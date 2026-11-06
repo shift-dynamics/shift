@@ -37,7 +37,7 @@ and the friction on it follow:
   relative advance along the axis (zero at the start; the thread is unloaded
   then);
 - the flank of the thread has the lead angle \f$\lambda\f$,
-  \f$\tan\lambda = \mathrm{lead} / (2 \pi r_m)\f$ with \f$r_m\f$ the mean_radius,
+  \f$\tan\lambda = \mathrm{lead} / (2 \pi r)\f$ with \f$r\f$ the mean_radius,
   along the axis' and the circle's directions, and the half angle \f$\alpha\f$
   of the thread in a plane through the axis (0 for a square thread, 14.5
   degrees for an Acme thread). The deflection moves the flanks together along
@@ -57,7 +57,7 @@ and the friction on it follow:
   \f$v = \sqrt{(r \omega)^2 + \dot{s}^2}\f$ for the angular speed
   \f$\omega\f$ and the advance speed \f$\dot{s}\f$ of the screw relative to the
   nut: the friction force is
-  \f$\mu |n| v / \sqrt{v^2 + v_0^2}\f$, with \f$v_0\f$ the slip_speed, the smooth
+  \f$\mu |n| v / \sqrt{v^2 + v_s^2}\f$, with \f$v_s\f$ the slip_speed, the smooth
   form of Coulomb friction, along the sliding. Its axial and circular parts
   loads the screw as the thread's sliding does: they add to the axial force
   and torque. The friction is the loss of the screw: the torque to drive it
@@ -84,9 +84,9 @@ force needed to the friction available, when that is below 1), where a real
 screw would stay; stick-slip friction is to be added (see the roadmap). Make
 slip_speed small against the speeds of the motion to keep the creep small.
 
-A backlash b (the axial play in the thread) leaves the deflection free for
-|delta| < b / 2, and the thread loads only beyond it, smoothly. The thrust
-collar's friction (the friction of the load's bearing on the screw) is not
+A backlash \f$b\f$ (the axial play in the thread) leaves the deflection free
+for \f$|\delta| < b / 2\f$, and the thread loads only beyond it, smoothly. The
+thrust collar's friction (the friction of the load's bearing on the screw) is not
 included; add it with the friction of the joint carrying the screw.
 
 JSON:
@@ -141,7 +141,7 @@ public:
   void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the lead angle of the thread,
-   * \f$\arctan(\mathrm{lead} / (2 \pi r_m))\f$ */
+   * \f$\arctan(\mathrm{lead} / (2 \pi r))\f$ */
   double get_lead_angle() const;
   /*! \brief whether the thread holds a load when it is not driven,
    * \f$\mu \sec\alpha \ge \tan\lambda\f$ */

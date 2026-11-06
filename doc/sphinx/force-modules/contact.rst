@@ -23,7 +23,7 @@ MSC Adams, scaled by the point's weight :math:`w`:
 
 .. math::
 
-   F = w \max\left(0,\; K d^e + \mathrm{STEP}(d, 0, 0, h, c)\, v\right),
+   f = w \max\left(0,\; k d^n + \mathrm{STEP}(d, 0, 0, h, c)\, v\right),
    \qquad \mathrm{STEP}(d, 0, 0, h, c) = c\, s^2 (3 - 2 s),\quad
    s = \min(d / h, 1)
 
@@ -32,18 +32,18 @@ the depth :math:`h` (``damping_depth``), so the force is continuous and
 depends on the state only. The stiffness depends on the shapes:
 
 * **Spheres, ellipsoids and planes**: Hertz contact :cite:`johnson1985` at
-  the deepest point, :math:`K = \tfrac{4}{3} E^* \sqrt{R^*}`,
-  :math:`e = 3/2`, with :math:`1/E^* = (1-\nu_a^2)/E_a + (1-\nu_b^2)/E_b`
+  the deepest point, :math:`k = \tfrac{4}{3} e^* \sqrt{r^*}`,
+  :math:`n = 3/2`, with :math:`1/e^* = (1-\nu_a^2)/e_a + (1-\nu_b^2)/e_b`
   from the materials' ``youngs_modulus`` and ``poisson_ratio`` and
-  :math:`1/R^*` the sum of the curvatures at the contact points.
+  :math:`1/r^*` the sum of the curvatures at the contact points.
 * **Cylinders and capsules on a plane**: Hertz line contact
-  :cite:`johnson1985`, :math:`F = \tfrac{\pi}{4} E^* L d` at depth
-  :math:`d` over a length :math:`L` of the line (see below), :math:`e = 1`.
+  :cite:`johnson1985`, :math:`f = \tfrac{\pi}{4} e^* l d` at depth
+  :math:`d` over a length :math:`l` of the line (see below), :math:`n = 1`.
   Against any other shape they touch as if round, with Hertz contact of the
   radius of the cylinder or capsule at the deepest point.
-* **Boxes and convex hulls**: a linear spring, :math:`K = k`, :math:`e = 1`, at each
-  point of the contact patch, with ``contact_stiffness`` the stiffness of
-  one point (a box resting on its face stands on four of them). The
+* **Boxes and convex hulls**: a linear spring, :math:`n = 1`, at each
+  point of the contact patch, with :math:`k` the ``contact_stiffness``, the
+  stiffness of one point (a box resting on its face stands on four of them). The
   stiffnesses of two materials combine in series.
   A box is a convex hull of eight corners (``"type": "box"``, with
   ``half_extents``), so a face resting on a plane or on another hull stands
@@ -51,7 +51,7 @@ depends on the state only. The stiffness depends on the shapes:
 * **CAD geometry**: each point found on the exact surfaces has its own
   normal and law: Hertz contact where two curved surfaces touch, and, along
   a line of contact (parallel cylinders, a cylinder on a plane), stations
-  of Hertz line contact, :math:`K = \tfrac{\pi}{4} E^* L`, :math:`e = 1`.
+  of Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
 
 A cylinder or a capsule on a plane touches along a line, the lowest
 generator of the cylinder or the segment of the capsule, and a single
@@ -70,7 +70,7 @@ of the shape, :math:`r_\mathrm{eff} = r` for a capsule (the lowest point of
 the sphere swept along its segment) and :math:`r\sqrt{1 - g^2}` for a
 cylinder (the lowest point of its circle). The depth is linear in :math:`s`, so
 Hertz line contact integrates in closed form over the stations where it is
-positive: a trapezoid of length :math:`L`, equal to one point carrying that
+positive: a trapezoid of length :math:`l`, equal to one point carrying that
 length with the mean depth, at the centroid of the trapezoid. The point
 moves along the line as the shape tilts, so the force is continuous in the
 state and gives the restoring moment. A cylinder standing on a flat end is
@@ -83,21 +83,21 @@ spring that rebounds with :math:`r`,
 
 .. math::
 
-   c = 2 \zeta \sqrt{k m}, \qquad
+   c = 2 \zeta \sqrt{\bar{k} m}, \qquad
    \zeta = \frac{-\ln r}{\sqrt{\pi^2 + \ln^2 r}}
 
 with :math:`m` the effective mass of the two groups of bodies in contact
-and :math:`k` the stiffness linearized at ``damping_depth``.
+and :math:`\bar{k}` the stiffness linearized at ``damping_depth``.
 
 Friction
 --------
 
 Coulomb friction, made smooth below ``friction_velocity``, opposes the
-sliding velocity :math:`u` at each point:
+sliding velocity :math:`\underline{u}` at each point:
 
 .. math::
 
-   F_t = -\mu F \frac{u}{\sqrt{|u|^2 + u_f^2}}
+   \underline{f}_t = -\mu f \frac{u}{\sqrt{|\underline{u}|^2 + u_f^2}}
 
 Friction and restitution of a pair combine by ``friction_combine`` and
 ``restitution_combine`` (the geometric mean by default) unless the pair is
@@ -112,22 +112,22 @@ creeps down it, at a fraction of ``friction_velocity``. A pair of collision
 geometries listed in ``stick_slip`` has friction that holds, by the bristle model
 of Canudas de Wit, Olsson, Åström and Lischinsky :cite:`canudas1995` (the LuGre
 model), at each point of its contact. The bristles at a point are a deflection
-:math:`z` in the tangent plane, a tiny stretch of the surface between the two
+:math:`\underline{z}` in the tangent plane, a tiny stretch of the surface between the two
 bodies, that grows as they slide over each other and saturates:
 
 .. math::
 
-   \dot z = u - \sigma_0\,\frac{|u|}{g(|u|)}\,z, \qquad
-   g(|u|) = \mu_c + (\mu_s - \mu_c)\,e^{-(|u|/v_s)^2}
+   \dot{\underline{z}} = \underline{u} - \sigma_0\,\frac{|\underline{u}|}{g(|\underline{u}|)}\,\underline{z}, \qquad
+   g(|\underline{u}|) = \mu_c + (\mu_s - \mu_c)\,\exp\bigl(-(|\underline{u}|/v_s)^2\bigr)
 
-for the sliding velocity :math:`u` at the point, and the friction force on body
+for the sliding velocity :math:`\underline{u}` at the point, and the friction force on body
 b is
 
 .. math::
 
-   F_t = -F\,(\sigma_0 z + \sigma_1 \dot z + \sigma_2 u)
+   \underline{f}_t = -f\,(\sigma_0 \underline{z} + \sigma_1 \dot{\underline{z}} + \sigma_2 \underline{u})
 
-for the normal force :math:`F` at the point. The parameters are the stiffness
+for the normal force :math:`f` at the point. The parameters are the stiffness
 :math:`\sigma_0` of the bristles (``bristle_stiffness``, in 1/m: the sliding at
 which the friction of a body at rest reaches a friction coefficient of 1), their
 damping :math:`\sigma_1` (``bristle_damping``), a viscous friction
@@ -138,10 +138,10 @@ least :math:`\mu_c`, default :math:`\mu_c`) and the Stribeck velocity :math:`v_s
 (``stribeck_velocity``), the sliding speed over which the friction falls from
 static to Coulomb.
 
-At rest the bristles hold: the deflection settles where :math:`\sigma_0 z` carries
-the tangential load, so a load of a fraction :math:`f` of the normal force gives
-:math:`z = f/\sigma_0`, and the body moves by that and no more, up to
-:math:`\mu_s F`. Beyond it the body slides, with friction that falls from
+At rest the bristles hold: the deflection settles where :math:`\sigma_0 \underline{z}` carries
+the tangential load, so a load of a fraction :math:`\eta` of the normal force gives
+:math:`|\underline{z}| = \eta/\sigma_0`, and the body moves by that and no more, up to
+:math:`\mu_s f`. Beyond it the body slides, with friction that falls from
 :math:`\mu_s` to :math:`\mu_c` as it speeds up, and the force is a smooth function
 of the state throughout.
 
@@ -150,14 +150,14 @@ The deflections of a pair are states of the module, three numbers for each of
 contact finds them) having the k-th. A point that is not in contact relaxes to
 zero over ``release_time``. A box on its face has four points, a line of contact
 of a CAD part up to about ten. The module logs, for each pair, the output
-``stick_<a>_<b>``: the largest :math:`|z|\sigma_0/\mu_s` of its points, which is 1
+``stick_<a>_<b>``: the largest :math:`|\underline{z}|\sigma_0/\mu_s` of its points, which is 1
 at the limit of holding.
 
-The bristles are stiff: they relax with a time constant :math:`g/(\sigma_0|u|)` at
-the sliding speed :math:`|u|`, and the variable step integrator has to resolve
+The bristles are stiff: they relax with a time constant :math:`g/(\sigma_0|\underline{u}|)` at
+the sliding speed :math:`|\underline{u}|`, and the variable step integrator has to resolve
 it. A stiffer :math:`\sigma_0` holds closer, with less travel, and takes smaller
 steps while the body slides; a body that is suddenly loaded moves
-:math:`f/\sigma_0` while the load comes on, and a Stribeck velocity smaller than
+:math:`\eta/\sigma_0` while the load comes on, and a Stribeck velocity smaller than
 the speed it gains in that travel gives the friction no time to hold. Choose
 :math:`\sigma_0` so that :math:`\mu_c/\sigma_0` is small against the sizes of the
 motion.

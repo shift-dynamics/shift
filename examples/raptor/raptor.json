@@ -108,40 +108,48 @@
           "name": "right_front_tire",
           "tire_type": "fiala",
           "wheel_body": "right_front_wheel",
-          "unloaded_radius": 0.394,
-          "width": 0.32,
-          "vertical_stiffness": 300000.0,
-          "vertical_damping": 3000.0
+          "fiala": {
+            "unloaded_radius": 0.394,
+            "width": 0.32,
+            "vertical_stiffness": 300000.0,
+            "vertical_damping": 3000.0
+          }
         },
         {
           "type": "tire",
           "name": "right_rear_tire",
           "tire_type": "fiala",
           "wheel_body": "right_rear_wheel",
-          "unloaded_radius": 0.394,
-          "width": 0.32,
-          "vertical_stiffness": 300000.0,
-          "vertical_damping": 3000.0
+          "fiala": {
+            "unloaded_radius": 0.394,
+            "width": 0.32,
+            "vertical_stiffness": 300000.0,
+            "vertical_damping": 3000.0
+          }
         },
         {
           "type": "tire",
           "name": "left_front_tire",
           "tire_type": "fiala",
           "wheel_body": "left_front_wheel",
-          "unloaded_radius": 0.394,
-          "width": 0.32,
-          "vertical_stiffness": 300000.0,
-          "vertical_damping": 3000.0
+          "fiala": {
+            "unloaded_radius": 0.394,
+            "width": 0.32,
+            "vertical_stiffness": 300000.0,
+            "vertical_damping": 3000.0
+          }
         },
         {
           "type": "tire",
           "name": "left_rear_tire",
           "tire_type": "fiala",
           "wheel_body": "left_rear_wheel",
-          "unloaded_radius": 0.394,
-          "width": 0.32,
-          "vertical_stiffness": 300000.0,
-          "vertical_damping": 3000.0
+          "fiala": {
+            "unloaded_radius": 0.394,
+            "width": 0.32,
+            "vertical_stiffness": 300000.0,
+            "vertical_damping": 3000.0
+          }
         }
       ],
       "sensors": [

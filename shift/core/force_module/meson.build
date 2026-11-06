@@ -17,5 +17,6 @@ core_src += files(
   'tire/base.cc',
   'tire/bekker_wong.cc',
   'tire/fiala.cc',
+  'tire/iowa.cc',
   'tire/pac2002.cc',
 )

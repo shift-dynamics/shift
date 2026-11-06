@@ -28,8 +28,8 @@ The journal and the bearing are two bodies, each with a frame at the center of
 its circle, whose z axis is the axis of the bearing (the axes are parallel).
 The shaft runs in the clearance \f$c\f$ (the radial clearance, bearing radius
 less journal radius) with the eccentricity
-\f$\underline{e}\f$ = (journal center - bearing center) perpendicular to the
-axis, the eccentricity ratio \f$\epsilon = |\underline{e}| / c\f$ and the film
+\f$\underline{e}\f$, the position of the journal center relative to the bearing
+center, perpendicular to the axis, the eccentricity ratio \f$\epsilon = |\underline{e}| / c\f$ and the film
 thickness \f$h = c (1 + \epsilon \cos\theta)\f$, with \f$\theta\f$ measured round
 the bearing from the thickest part of the film.
 
@@ -123,12 +123,14 @@ JSON:
 - radius: of the journal; length: of the bearing; clearance: the radial
   clearance; viscosity: of the oil (Pa s, for SI).
 - wall_stiffness (optional, default 0): stiffness of the contact when the
-  journal touches the bearing, e > c; zero for none.
+  journal touches the bearing, \f$|\underline{e}| > c\f$; zero for none.
 
-Outputs: eccentricity_ratio, min_film_thickness (c (1 - epsilon), negative
+Outputs: eccentricity_ratio, min_film_thickness (\f$c (1 - \epsilon)\f$, negative
 when the journal is in contact), peak_pressure, friction_torque (on the
 journal), side_flow (of oil out of the ends of the bearing), radial_force and
-tangential_force (F . u_1, F . u_2), and load (|F|).
+tangential_force (\f$\underline{f} \cdot \underline{u}_1\f$,
+\f$\underline{f} \cdot \underline{u}_2\f$), and load
+(\f$|\underline{f}|\f$).
 */
 class JournalBearing : public Base {
 public:

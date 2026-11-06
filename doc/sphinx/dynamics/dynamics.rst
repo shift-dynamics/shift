@@ -1168,15 +1168,15 @@ Permutation Order 1
 
 Permutation Order 1, :math:`PO(1)`, is the order of variables determined by kinematic substructuring. Bodies and joints are arranged in monotonically increasing level order within each substructure. In :math:`PO(1)`, the parent-child list can be used to generate the generalized mass matrix. The values that are accessed in :math:`PO(1)` include:
 
-    =================     ===============    ===========
-    variable name         name in program    description
-    =================     ===============    ===========
-    :math:`\ddot{q}`      *ddq*              second time derivative of generalized coordinates
-    :math:`\dot{q}`       *dq*               first time derivative of generalized coordinates
-    PC                    *PC*               parent child list
-    :math:`\lambda_p`     *lambda_p*         lagrange multipliers associated with primary constraint equations
-    :math:`f`             *f*                working forces applied in the joints
-    =================     ===============    ===========
+    =============================     ===============    ===========
+    variable name                     name in program    description
+    =============================     ===============    ===========
+    :math:`\underline{\ddot{q}}`      *ddq*              second time derivative of generalized coordinates
+    :math:`\underline{\dot{q}}`       *dq*               first time derivative of generalized coordinates
+    PC                                *PC*               parent child list
+    :math:`\underline{\lambda}_p`     *lambda_p*         lagrange multipliers associated with primary constraint equations
+    :math:`\underline{f}`             *f*                working forces applied in the joints
+    =============================     ===============    ===========
 
 
 Permutation Order 2
@@ -1184,11 +1184,11 @@ Permutation Order 2
 
 Permutation Order 2, :math:`PO(2)`, is the order of variables determined by generalized coordinate partitioning with dependent variables first and independent variables last within each substructure. To avoid working between three levels during the factorization algorithm, the results of *preconditioning* are saved in Permutation Order 3.
 
-    ====================================    ===============    ===========
-    variable name                           name in program    description
-    ====================================    ===============    ===========
-    :math:`\gamma^d`, :math:`\gamma_c^p`    *gamma_d*          relative quadratic velocity terms across constraints, note that both :math:`\gamma^d`, :math:`\gamma_c^p` are evaluated and stored in the same location in computer memory in :math:`PO(2)`
-    ====================================    ===============    ===========
+    ============================================================    ===============    ===========
+    variable name                                                   name in program    description
+    ============================================================    ===============    ===========
+    :math:`\underline{\gamma}^d`, :math:`\underline{\gamma}_c^p`    *gamma_d*          relative quadratic velocity terms across constraints, note that both :math:`\gamma^d`, :math:`\gamma_c^p` are evaluated and stored in the same location in computer memory in :math:`PO(2)`
+    ============================================================    ===============    ===========
 
 
 Permutation Order 3
@@ -1196,13 +1196,13 @@ Permutation Order 3
 
 Permutation Order 3, :math:`PO(3)`, is the order of variables used to solve the system of dynamics equations with independent variables first and dependent last. Within each independent and dependent grouping, variables are arranged in level increasing order to minimize fills. The following quantities are stored in Permutation Order 3:
 
-    =================     ===============    ===========
-    variable name         name in program    description
-    =================     ===============    ===========
-    :math:`M^{\ell}`      *M_l*              generalized mass matrix
-    :math:`\lambda^d`     *lambda_d*         *preconditioned* lagrange multipliers
-    :math:`f^{\ell}`      *f_l*              generalized forces
-    =================     ===============    ===========
+    =============================     ===============    ===========
+    variable name                     name in program    description
+    =============================     ===============    ===========
+    :math:`M^{\ell}`                  *M_l*              generalized mass matrix
+    :math:`\underline{\lambda}^d`     *lambda_d*         *preconditioned* lagrange multipliers
+    :math:`\underline{f}^{\ell}`      *f_l*              generalized forces
+    =============================     ===============    ===========
 
 
 Representing Permutations
@@ -1248,7 +1248,7 @@ The index into :math:`\wp_{12}` corresponds to an index into the array :math:`PO
   f^{\ell}_{PO(2)}(i_{PO(2)}) = f^{\ell}_{PO(1)}(\wp_{12}(i_{PO(2)}))
 
 
-where :math:`i` is an index into :math:`f^{\ell}_{PO(2)}` and the operation is carried out for indices of :math:`f^{\ell}_{PO(2)}`, in this case for :math:`i=0:len(f^{\ell})`, using the C/Python indexing convention.
+where :math:`i` is an index into :math:`\underline{f}^{\ell}_{PO(2)}` and the operation is carried out for indices of :math:`f^{\ell}_{PO(2)}`, in this case for :math:`i=0:len(f^{\ell})`, using the C/Python indexing convention.
 
 In Python code, Eq. :eq:`eq:permutation_array_example` is expressed as:
 
@@ -1602,7 +1602,7 @@ The operation in Eq. :eq:`eq:generalized_forces` can be broken down into the fol
   \underline{\textbf{g}} \leftarrow \underline{\textbf{g}} - M\underline{\gamma}
 
 
-and initialize the generalized forces, :math:`f^{\ell}` (:code:`f_l`) to zero using the following code:
+and initialize the generalized forces, :math:`\underline{f}^{\ell}` (:code:`f_l`) to zero using the following code:
 
 .. code:: python
 

@@ -255,10 +255,10 @@ quaternion.
 ``"type": "screw"``: a screw, one coordinate: the angle :math:`q` turned about
 ``axis`` (in the parent frame), with the child advancing along the axis by
 ``pitch`` :math:`\cdot q`. The pitch is the advance per radian, so a thread
-that advances :math:`L` per turn has a pitch of :math:`L / 2\pi`; a positive
+that advances :math:`l` per turn has a pitch of :math:`l / 2\pi`; a positive
 pitch is a right-handed screw, and a pitch of zero is a revolute joint. The
-joint's force acts on the angle :math:`q`; a force :math:`F` along the axis
-on the child does the work of a torque :math:`F \cdot` ``pitch`` on the
+joint's force acts on the angle :math:`q`; a force :math:`f` along the axis
+on the child does the work of a torque :math:`f \cdot` ``pitch`` on the
 coordinate.
 
 .. shift-parameters:: shift/core/joint/screw.cc

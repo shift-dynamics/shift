@@ -6,7 +6,7 @@ Beam
 ``"type": "beam"`` is a straight, uniform, elastic beam between frames on
 two bodies. It runs from the origin of frame A, along A's x axis, to the
 origin of frame B, which must lie on that axis as the model starts; its
-length :math:`L` is the distance between them, and the axes of its cross
+length :math:`l` is the distance between them, and the axes of its cross
 section are A's y and z axes. The beam is straight and unloaded as the
 model starts.
 
@@ -17,11 +17,11 @@ beam clamped at A, and the force and moment that hold it there are
 .. math::
 
    \begin{aligned}
-   F_x &= \frac{EA}{L} u & M_x &= \frac{GJ}{L} r_x \\
-   F_y &= \frac{12 E I_z}{L^3} v - \frac{6 E I_z}{L^2} r_z &
-   M_z &= -\frac{6 E I_z}{L^2} v + \frac{4 E I_z}{L} r_z \\
-   F_z &= \frac{12 E I_y}{L^3} w + \frac{6 E I_y}{L^2} r_y &
-   M_y &= \frac{6 E I_y}{L^2} w + \frac{4 E I_y}{L} r_y
+   f_x &= \frac{e a}{l} u & m_x &= \frac{g j}{l} r_x \\
+   f_y &= \frac{12 e i_z}{l^3} v - \frac{6 e i_z}{l^2} r_z &
+   m_z &= -\frac{6 e i_z}{l^2} v + \frac{4 e i_z}{l} r_z \\
+   f_z &= \frac{12 e i_y}{l^3} w + \frac{6 e i_y}{l^2} r_y &
+   m_y &= \frac{6 e i_y}{l^2} w + \frac{4 e i_y}{l} r_y
    \end{aligned}
 
 with :math:`(u, v, w)` the displacement of B and :math:`(r_x, r_y, r_z)` its
@@ -52,7 +52,7 @@ Sections
                         z), ``J`` (torsion constant)
 ======================= ======================================================
 
-The shear modulus is ``shear_modulus``, or :math:`G = E / (2(1 + \nu))`
+The shear modulus is ``shear_modulus``, or :math:`g = e / (2(1 + \nu))`
 from ``poisson_ratio``. The stiffness follows from the material and the
 section, so a beam takes no ``stiffness`` or ``damping`` matrices.
 
@@ -87,4 +87,4 @@ clamped at one end with a 10 kg mass at the other, as a chain of four
 elements. Released straight, it swings about its static deflection, 28 mm
 at the tip (22 mm from the mass and 6 mm from its own weight), between zero
 and twice that. Tests, including a cantilever that settles to
-:math:`PL^3/(3EI)` and :math:`PL^2/(2EI)`: :source:`test/test_beam.cc`.
+:math:`f l^3/(3 e i)` and :math:`f l^2/(2 e i)`: :source:`test/test_beam.cc`.

@@ -13,18 +13,19 @@ namespace body {
 @brief a rigid body outside the kinematic tree, model type "free_body"
 
 A free body has no joints: none may connect to it. It moves under the loads
-applied to it (e.g. contact forces) and gravity, by the Newton-Euler
-equations in the fixed frame,
+applied to it (e.g. contact forces) and gravity, by the spatial equations of
+motion in the fixed frame,
 
 \f[
-\mathbf{\underline{f}}^* = M \dot{\mathbf{\underline{v}}} + [ad]^* M \mathbf{\underline{v}},
+M_{ff} \dot{\mathbf{\underline{v}}}
+  = [ad]_{cf}^* M_{ff} \mathbf{\underline{v}} + \mathbf{\underline{f}}^*,
 \f]
 
 with \f$\mathbf{\underline{v}}\f$ the spatial velocity of the body and
 \f$\dot{\mathbf{\underline{v}}}\f$ its spatial acceleration, both referred
 to the fixed origin and in fixed coordinates ([linear, angular], as
 ksl_screw_t), \f$\mathbf{\underline{f}}^*\f$ the load on the body referred
-to the fixed origin ([force, moment], as ksl_coscrew_t) and \f$M\f$ the
+to the fixed origin ([force, moment], as ksl_coscrew_t) and \f$M_{ff}\f$ the
 spatial inertia about the fixed origin (ksl_inertia_transformed of the
 centroidal inertia). The linear part \f$\underline{v}\f$ of
 \f$\mathbf{\underline{v}}\f$ is the velocity of the material point of the
@@ -32,10 +33,11 @@ body at the fixed origin: a point \f$\underline{p}\f$ of the body moves with
 \f$\underline{v} + \underline{\omega} \times \underline{p}\f$, with
 \f$\underline{\omega}\f$ the angular part.
 
-\f$M\f$ is never factored. It is the centroidal inertia shifted from the
+\f$M_{ff}\f$ is never factored. It is the centroidal inertia shifted from the
 center of mass \f$\underline{c}\f$ to the fixed origin, and the centroidal
-inertia is block diagonal, \f$m E\f$ and \f$I_c\f$, so
-\f$\dot{\mathbf{\underline{v}}} = M^{-1} \mathbf{\underline{f}}^*\f$ is
+inertia is block diagonal, \f$m I\f$ (\f$I\f$ the identity) and the
+\f$3 \times 3\f$ moment of inertia \f$\bar{I}_{cc}\f$, so
+\f$\dot{\mathbf{\underline{v}}} = M_{ff}^{-1} \mathbf{\underline{f}}^*\f$ is
 (Featherstone, 2008, 2.13), with the force \f$\underline{f}\f$ and moment
 \f$\underline{n}\f$ of the load, and \f$\underline{a}\f$ and
 \f$\underline{\alpha}\f$ the linear and angular parts of the acceleration:
@@ -47,16 +49,39 @@ inertia is block diagonal, \f$m E\f$ and \f$I_c\f$, so
   \underline{n}_c = \underline{n} - \underline{c} \times \underline{f} \\
 \text{centroidal inverse}: &\quad
   \underline{a}_c = \underline{f}_c / m, \quad
-  \underline{\alpha} = I_c^{-1} \underline{n}_c \\
+  \underline{\alpha} = \bar{I}_{cc}^{-1} \underline{n}_c \\
 \text{shift the motion to the origin}: &\quad
   \underline{a} = \underline{a}_c - \underline{\alpha} \times \underline{c}
 \end{aligned}
 \f]
 
-with \f$I_c^{-1} = R I_b^{-1} R^T\f$ from the inverse of the body frame
-centroidal inertia \f$I_b\f$, inverted once. Gravity \f$\underline{g}\f$
-adds \f$\begin{Bmatrix}\underline{g}\\\underline{0}\end{Bmatrix}\f$ to
+with \f$\bar{I}_{cc}^{-1} = R (\bar{I}_{cc}^b)^{-1} R^T\f$ from the inverse of
+the body frame centroidal inertia \f$\bar{I}_{cc}^b\f$, inverted once. Gravity
+\f$\underline{g}\f$ adds
+\f$\begin{Bmatrix}\underline{g}\\\underline{0}\end{Bmatrix}\f$ to
 \f$\dot{\mathbf{\underline{v}}}\f$.
+
+This is where a free body differs from a body connected by joints. A connected
+body has no equations of its own: the influence coefficients express its motion
+in the joint coordinates, so its inertia is projected onto them and enters the
+generalized mass matrix \f$M^{\ell}\f$ with the other bodies of the model,
+closed loops add constraints and the multipliers \f$\underline{\lambda}\f$, and
+solver::RNCA factors and solves the resulting system at every evaluation. A free
+body enters none of it. With no joint, nothing couples its acceleration to that
+of another body; with no constraint, it has no row in the Jacobian, no
+multiplier and no split into independent and dependent coordinates. Its
+equations stay in spatial form, one \f$6 \times 6\f$ system per body, solved in
+closed form as above with nothing assembled or factored, so the cost grows
+linearly with the number of free bodies and they are evaluated in parallel
+(Context::SetForces).
+
+Free bodies therefore interact with the rest of the model only through
+loads. Force modules add them with Context::AddBodyLoad, computed from the
+current state, and the free bodies are evaluated after the force modules have
+run. A contact force reaches a free body this way; a joint or constraint cannot.
+To attach a body that moves in six degrees of freedom to a mechanism, or to
+include it in a closed loop, give it a joint::Float instead: its coordinates are
+then joint coordinates, solved with the rest of the model by solver::RNCA.
 
 Its displacement d (of the origin), v and a are kept in the free part of
 the DHVA (topology::DVA); a free body has no joint, so no influence

@@ -17,21 +17,26 @@ frequency of the motion
 
 Rubber stiffens and its damping falls as the motion grows faster. The mount
 is a bushing (see Bushing: the same frames, relative coordinates \f$\underline{x}\f$ and rates
-\f$\underline{v}\f$, rest pose, static stiffness \f$K\f$, damping \f$C\f$ and
+\f$\dot{\underline{x}}\f$, rest pose, static stiffness \f$K\f$, damping \f$C\f$ and
 preload) with, in parallel, a hardening term and spring-damper pairs in series
 (Maxwell elements) on each coordinate:
 
 \f[
-\underline{f} = -K \underline{x} - C \underline{v} + \underline{f}_{preload} -
-  k_3 \underline{x}^3 - \sum_e k_e \underline{s}_e
+\mathbf{\underline{f}}^* = -K \underline{x} - C \dot{\underline{x}} +
+  \mathbf{\underline{f}}^*_0 + \underline{h}, \quad
+h_i = -k_3 x_i^3 - \sum_e k_e s_e
 \f]
 
+where \f$h_i\f$ is the entry of \f$\underline{h}\f$ for the coordinate
+\f$x_i\f$, and \f$k_3\f$, \f$k_e\f$ and \f$s_e\f$ are the scalars of that
+coordinate.
+
 Each element is a spring of stiffness \f$k_e\f$ in series with a damper of
-coefficient \f$c_e\f$; \f$\underline{s}_e\f$ is the stretch of its spring, one
-state variable, with
+coefficient \f$c_e\f$; \f$s_e\f$ is the stretch of its spring, one state
+variable, with
 
 \f[
-\dot{\underline{s}}_e = \underline{v} - \underline{s}_e / \tau_e, \quad
+\dot{s}_e = \dot{x}_i - s_e / \tau_e, \quad
 \tau_e = c_e / k_e.
 \f]
 
@@ -40,8 +45,8 @@ stiffness; motion much faster than \f$1 / \tau_e\f$ loads the springs, adding
 \f$k_e\f$ to the stiffness. In between, an element damps the most, near the
 frequency \f$1 / (2 \pi \tau_e)\f$. Several elements with time constants spread
 over the frequencies of interest fit measured dynamic stiffness and loss angle
-(a Prony series). The springs start relaxed, \f$\underline{s}_e = 0\f$. For the
-rotations the rate \f$\underline{v}\f$ is the relative angular velocity, which is
+(a Prony series). The springs start relaxed, \f$s_e = 0\f$. For the
+rotations the rate \f$\dot{x}_i\f$ is the relative angular velocity, which is
 the rate of the rotation vector for small rotations.
 
 JSON:

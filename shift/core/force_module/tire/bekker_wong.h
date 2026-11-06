@@ -5,27 +5,12 @@
 
 #include "shift/core/force_module/soil.h"
 #include "shift/core/force_module/tire/model.h"
+#include "shift/core/parameter/list.h"
 
 namespace shift {
 namespace core {
 namespace force_module {
 namespace tire {
-
-/*! \brief parameters of a rigid wheel on soil, see BekkerWong */
-struct BekkerWongParameters {
-  double radius = 0.344;
-  double width = 0.235;
-  double vertical_damping = 0.0;
-  SoilProperties soil;
-  double c1 = 0.4; //!< theta_m = (c1 + c2 slip) theta_1
-  double c2 = 0.3;
-  double rebound = 0.0;        //!< rear sinkage over the front sinkage
-  double grouser_height = 0.0; //!< of lugs, for the shear
-  int stations = 16;           //!< per zone, front and rear of theta_m
-  int strips = 5;              //!< across the width of a cambered wheel
-  bool bulldozing = true;      //!< soil pushed by the sides of the wheel
-  double slip_speed = 0.01;    //!< m/s, smooths the slip at standstill
-};
 
 /*!
 @brief a rigid wheel on soft soil: the Bekker-Wong (Wong-Reece) model, with
@@ -130,10 +115,10 @@ Miwa, Nagatani and Yoshida, 2007),
 
 \f[
 p = 2 c \tan\left(45^\circ + \frac{\phi}{2}\right) +
-  \gamma h \tan^2\left(45^\circ + \frac{\phi}{2}\right),
+  w h \tan^2\left(45^\circ + \frac{\phi}{2}\right),
 \f]
 
-with the unit_weight \f$\gamma\f$, over the part of the side below the terrain, the circular segment that the
+with the unit_weight \f$w\f$, over the part of the side below the terrain, the circular segment that the
 terrain cuts off, and where the side moves into the soil (the velocity of
 the side's point along its outward normal is positive). It is fully
 mobilized above the speed slip_speed, and smoothly (a cubic) from zero at
@@ -160,20 +145,45 @@ B. Hanamoto, 1st Int. Conf. Soil-Vehicle Systems (1961); G. Ishigami, A.
 Miwa, K. Nagatani and K. Yoshida, J. Field Robotics 24(3), 233-250 (2007);
 Z. Jia, W. Smith and H. Peng, Robotica 30, 491-503 (2012).
 */
-class BekkerWong : public Model {
+class BekkerWong
+  : public Model
+  , public parameter::List {
 public:
-  explicit BekkerWong(const BekkerWongParameters& parameters);
+  BekkerWong() {
+    DeclareParameters();
+  }
+  virtual ~BekkerWong() {}
+
+  double radius = 0.344;
+  double width = 0.235;
+  double vertical_damping = 0.0;
+  SoilProperties soil; //!< see ResolveSoil
+  double c1 = 0.4; //!< theta_m = (c1 + c2 slip) theta_1
+  double c2 = 0.3;
+  double rebound = 0.0;        //!< rear sinkage over the front sinkage
+  double grouser_height = 0.0; //!< of lugs, for the shear
+  int stations = 16;           //!< per zone, front and rear of theta_m
+  int strips = 5;              //!< across the width of a cambered wheel
+  bool bulldozing = true;      //!< soil pushed by the sides of the wheel
+  double slip_speed = 0.01;    //!< m/s, smooths the slip at standstill
+
+  /*! \brief sets soil from the "soil" of the model's JSON */
+  void ResolveSoil(const std::string& owner) {
+    soil = soil_.Resolve(owner);
+  }
+
+  void Prepare() override;
 
   unsigned int get_state_count() const override {
     return 0;
   }
 
   double get_unloaded_radius() const override {
-    return p_.radius;
+    return radius;
   }
 
   double get_half_width() const override {
-    return 0.5 * p_.width;
+    return 0.5 * width;
   }
 
   void Evaluate(const Contact& contact, const double* states,
@@ -213,8 +223,11 @@ public:
     return bulldozing_force_;
   }
 
+protected:
+  virtual void DeclareParameters() override;
+
 private:
-  BekkerWongParameters p_;
+  Soil soil_;
   std::vector<double> nodes_, weights_;             //!< along the rim
   std::vector<double> strip_nodes_, strip_weights_; //!< across the width
   std::vector<double> side_nodes_, side_weights_;   //!< on a side

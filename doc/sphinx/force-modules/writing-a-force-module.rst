@@ -49,9 +49,10 @@ The life of a module
 Applying forces
 ---------------
 
-A force on a body is a spatial force (a coscrew) in the fixed frame,
-referred to the fixed origin: the force :math:`\underline{F}` and the moment
-:math:`\underline{p} \times \underline{F}` of a force applied at the point
+A force on a body is a spatial force (a coscrew),
+:math:`\mathbf{\underline{f}}^*`, in the fixed frame, referred to the fixed
+origin: the force :math:`\underline{f}` and the moment
+:math:`\underline{p} \times \underline{f}` of a force applied at the point
 :math:`\underline{p}`. The context accumulates them by the body's *load
 index*:
 

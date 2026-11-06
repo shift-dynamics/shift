@@ -27,16 +27,16 @@ Symbols
 ================================ ===============    ===========
 symbol                           name in program    description
 ================================ ===============    ===========
-:math:`\ddot{q}`                 *ddq*              second time derivative of generalized coordinates
-:math:`\dot{q}`                  *dq*               first time derivative of generalized coordinates
+:math:`\underline{\ddot{q}}`     *ddq*              second time derivative of generalized coordinates
+:math:`\underline{\dot{q}}`      *dq*               first time derivative of generalized coordinates
 PC                               *PC*               parent child list
-:math:`\lambda_p`                *lambda_p*         lagrange multipliers
-:math:`Q`                        *Q*                working forces applied in the joints
-:math:`\gamma^p`                 *gamma_p*          quadratic velocity terms
+:math:`\underline{\lambda}_p`    *lambda_p*         lagrange multipliers
+:math:`\underline{f}`            *f*                working forces applied in the joints
+:math:`\underline{\gamma}^p`     *gamma_p*          quadratic velocity terms
 :math:`M^{\ell}`                 *M_l*              generalized mass matrix
-:math:`\lambda^d`                *lambda_d*         *preconditioned* lagrange multipliers
-:math:`\gamma^d`                 *gamma_d*          *preconditioned* quadratic velocity terms
-:math:`f^{\ell}`                 *f_l*              generalized forces
+:math:`\underline{\lambda}^d`    *lambda_d*         *preconditioned* lagrange multipliers
+:math:`\underline{\gamma}^d`     *gamma_d*          *preconditioned* quadratic velocity terms
+:math:`\underline{f}^{\ell}`     *f_l*              generalized forces
 :math:`J`                        *J*                Jacobian matrix, :math:`J(q)`, a mapping of body velocities to generalized velocities
 :math:`\underline{\mathbf{p}}^*`                    momentum
 :math:`\underline{\mathbf{h}}`   h                  influence coefficient matrix

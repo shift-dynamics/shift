@@ -29,7 +29,7 @@ turn freely through the gap.
 
 Two quantities say how far each flank is compressed:
 
-* the displacement :math:`E_t` of the pitch point of gear 1 relative to that of
+* the displacement :math:`\delta_t` of the pitch point of gear 1 relative to that of
   gear 2, along the tangent of the pitch circles, the integral of their relative
   velocity (a state of the module, zero at the start, with the teeth midway through
   the backlash);
@@ -40,7 +40,7 @@ The compression of each flank, along its line of action, is
 
 .. math::
 
-   e_\pm = \pm\cos\phi\, E_t + \sin\phi\,(d_0 - d) + p(x) - \tfrac12 b \cos\phi
+   e_\pm = \pm\cos\phi\, \delta_t + \sin\phi\,(d_0 - d) + p(x) - \tfrac12 b \cos\phi
 
 with the circumferential backlash :math:`b` at the pitch circle and the error
 :math:`p(x)` of the teeth, their extra thickness along the line of action at the
@@ -48,13 +48,13 @@ position :math:`x` in the mesh (below). The force along the line of action is
 
 .. math::
 
-   F_\pm = \max\bigl(0,\; k(x)\, \langle e_\pm \rangle + c\, s(e_\pm)\, \dot e_\pm \bigr)
+   f_\pm = \max\bigl(0,\; k(x)\, \langle e_\pm \rangle + c\, s(e_\pm)\, \dot e_\pm \bigr)
 
 with the stiffness :math:`k(x)`, the damping :math:`c`, :math:`\langle e \rangle`
 the positive part of :math:`e` made smooth over the length ``smoothing``, and
 :math:`s` its slope (0 before the flank touches and 1 once it does), so that the
 force has no jump as a flank touches. The force on gear 2 at the pitch point is
-:math:`(F_+ - F_-)\cos\phi` along the tangent and :math:`(F_+ + F_-)\sin\phi` along the
+:math:`(f_+ - f_-)\cos\phi` along the tangent and :math:`(f_+ + f_-)\sin\phi` along the
 line of centers, apart from gear 1; gear 1 gets the opposite. The torque on a gear is
 the tangential force times its pitch radius, so the torques are in the ratio of the
 radii, and the speeds in the opposite ratio.
@@ -71,9 +71,9 @@ number of pairs in contact: two pairs share the load for the fraction
 
 .. math::
 
-   k(x) = k_t\,(1 + D(x))
+   k(x) = k_t\,(1 + m(x))
 
-where :math:`D` is 1 while two pairs are in contact and 0 while one is. It changes
+where :math:`m` is 1 while two pairs are in contact and 0 while one is. It changes
 over a smooth ramp, a fraction ``ramp`` of the mesh (default 0.1), so that the
 force has no jump, which the variable step integrator would have to find. The
 mean stiffness over the mesh is :math:`k_t \varepsilon`.
@@ -97,9 +97,9 @@ with one pair of teeth in contact is
 
 .. math::
 
-   \omega_n^2 = k_t \cos^2\phi \left(\frac{r_1^2}{I_1} + \frac{r_2^2}{I_2}\right)
+   \omega_n^2 = k_t \cos^2\phi \left(\frac{r_1^2}{i_k} + \frac{r_2^2}{i_k}\right)
 
-for the pitch radii :math:`r_i` and the moments of inertia :math:`I_i` of the
+for the pitch radii :math:`r_k` and the moments of inertia :math:`i_k` of the
 gears (and what is rigidly attached to them) about their axes; the tests check the
 oscillation of the pair against it. Pitch the mesh frequency away from it and its
 harmonics.
@@ -119,7 +119,7 @@ the teeth beyond ``tooth_stiffness``.
 ``tooth_stiffness`` and ``damping`` can be changed as the model runs (see
 :ref:`schedule`).
 
-Outputs, logged as ``<name>_<output>``: ``transmission_error`` (:math:`E_t`),
+Outputs, logged as ``<name>_<output>``: ``transmission_error`` (:math:`\delta_t`),
 ``mesh_force`` (the net tangential force at the pitch circles), ``force_plus`` and
 ``force_minus`` (along the lines of action), ``stiffness`` and ``phase`` (the
 position :math:`x` in the mesh).

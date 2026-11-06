@@ -265,12 +265,14 @@
           "name": "wheel",
           "tire_type": "bekker_wong",
           "wheel_body": "wheel",
-          "unloaded_radius": 0.08,
-          "width": 0.032,
-          "soil": {
-            "name": "tri1_lunar_simulant"
-          },
-          "soil_damping": 300.0
+          "bekker_wong": {
+            "unloaded_radius": 0.08,
+            "width": 0.032,
+            "soil": {
+              "name": "tri1_lunar_simulant"
+            },
+            "soil_damping": 300.0
+          }
         }
       ]
     }

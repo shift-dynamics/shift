@@ -9,6 +9,7 @@
 #include "shift/core/force_module/soil.h"
 #include "shift/core/force_module/tire/bekker_wong.h"
 #include "shift/core/force_module/tire/fiala.h"
+#include "shift/core/force_module/tire/iowa.h"
 #include "shift/core/force_module/tire/model.h"
 #include "shift/core/force_module/tire/pac2002.h"
 
@@ -36,35 +37,21 @@ as the plane tangent to the terrain at the contact point; without terrains
 the ground is flat at z = 0 with the normal +z (SAE, z down), as in the
 original implementation.
 
-JSON:
+Each tire model declares its own parameters, read from the block of its name:
+"fiala" (Fiala), "pac2002" (Pac2002), "bekker_wong" (BekkerWong) or "iowa" (Iowa).
 \code
 {"type": "tire", "name": "left_front", "tire_type": "fiala",
- "wheel_body": "left_front_wheel"}
-\endcode
-Fiala parameters (all optional): unloaded_radius, vertical_stiffness,
-vertical_damping, rolling_resistance, width, cslip, calpha, u_max, u_min,
-x_relaxation_length, y_relaxation_length.
-
-PAC2002 parameters: definition (required), the .tir property file, found
-next to the model file or in model_parameters/include_directories;
-mounted_side (optional), "left" or "right": mirrors the tire if it differs
-from TYRESIDE of the property file; use_transient_slip (optional, default
-false) relaxes the slips with the relaxation lengths of the property file
-(see Pac2002).
-\code
+ "wheel_body": "left_front_wheel", "fiala": {"unloaded_radius": 0.3}}
 {"type": "tire", "name": "left_front", "tire_type": "pac2002",
- "definition": "pac2002_235_60R15.tir", "wheel_body": "left_front_wheel"}
-\endcode
-
-Bekker-Wong (a rigid wheel on soft soil, see BekkerWong) parameters:
-unloaded_radius and width, as for Fiala; soil (required, see Soil);
-soil_damping, max_stress_angle (c1), max_stress_slip (c2), rebound,
-grouser_height, stations, strips, bulldozing, slip_speed (all optional).
-The wheel may be cambered and slip sideways.
-\code
+ "wheel_body": "left_front_wheel",
+ "pac2002": {"definition": "pac2002_235_60R15.tir"}}
 {"type": "tire", "name": "wheel", "tire_type": "bekker_wong",
- "wheel_body": "wheel", "unloaded_radius": 0.08, "width": 0.032,
- "soil": {"name": "tri1_lunar_simulant"}}
+ "wheel_body": "wheel",
+ "bekker_wong": {"unloaded_radius": 0.08, "width": 0.032,
+                 "soil": {"name": "tri1_lunar_simulant"}}}
+{"type": "tire", "name": "left_front", "tire_type": "iowa",
+ "wheel_body": "left_front_wheel",
+ "iowa": {"friction_coefficient": 0.8, "aligning_coefficient": 0.03}}
 \endcode
 */
 class Base : public force_module::Base {
@@ -93,7 +80,7 @@ public:
 
   /*! \brief the tire model */
   const Model* get_model() const {
-    return model_.get();
+    return model_;
   }
 
   /*! \brief force and moment on the wheel in the contact frame */
@@ -102,6 +89,12 @@ public:
   }
 
   void DeclareParameters() override;
+
+  /*! \brief reads the module, and refuses a member that it does not declare:
+   * the parameters of a tire are in the block of its model, and one left beside
+   * it would be ignored and the tire run with its default */
+  void ReadJSON(Json::Value& json_value) override;
+
   void Load() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
@@ -109,7 +102,9 @@ public:
   /*! \brief Bekker-Wong: sinkage, slip, drawbar_pull (\f$f_x\f$), load (\f$-f_z\f$),
    * shear_torque (BekkerWong::get_shear_torque), camber
    * (BekkerWong::get_camber) and side_force (\f$f_y\f$), of the last force
-   * evaluation; the other tire models have no outputs */
+   * evaluation; Iowa: deflection, slip, slip_angle, normal_force,
+   * longitudinal_force, lateral_force and aligning_moment; the other tire
+   * models have no outputs */
   std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
   void AppendOutputs(std::vector<double>& values) const override;
@@ -122,17 +117,26 @@ private:
   /*! \brief contact of the wheel disc with the terrain */
   void UpdateContact(const ksl_SE3_t& hub, const ksl_screw_t& velocity);
 
+  /*! \brief the same, from the area of the wheel below the terrain in the
+   * given number of slices (see Iowa) */
+  void UpdateSlicedContact(const ksl_SE3_t& hub, const ksl_screw_t& velocity,
+                           int segments);
+
+  /*! \brief the contact frame at origin, of the heading and the terrain normal
+   * (unit vectors), and the velocities of the contact */
+  void SetContact(const ksl_SE3_t& hub, const ksl_screw_t& velocity,
+                  const ksl_vec3_t& heading, const ksl_vec3_t& normal,
+                  const ksl_vec3_t& origin, double depth);
+
   static bool registered_;
 
   std::string tire_type_;
   std::string wheel_body_name_; //!< wheel body, in the same assembly
-  FialaParameters fiala_;
-  BekkerWongParameters bekker_wong_;
-  Soil soil_;
-  std::string definition_;   //!< PAC2002 .tir file
-  std::string mounted_side_; //!< PAC2002: "left", "right" or empty
-  bool use_transient_slip_ = false;
-  std::unique_ptr<Model> model_;
+  Fiala fiala_;
+  Pac2002 pac2002_;
+  BekkerWong bekker_wong_;
+  Iowa iowa_;
+  Model* model_ = nullptr; //!< the one of them that tire_type selects
 
   shift::core::body::Base* wheel_body_ = nullptr;
   shift::core::Frame* wheel_origin_ = nullptr;

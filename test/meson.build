@@ -16,6 +16,7 @@ test_sources = [
   'test_contact_geometry.cc',
   'test_contact_primitives.cc',
   'test_mesh_sharing.cc',
+  'test_tire_iowa.cc',
   'test_tire_pac2002.cc',
   'test_terrain.cc',
   'test_joint_axis.cc',

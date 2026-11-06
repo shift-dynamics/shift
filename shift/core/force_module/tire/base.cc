@@ -28,96 +28,17 @@ shift::core::force_module::tire::Base::Create() {
 
 void shift::core::force_module::tire::Base::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
-  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\", \"pac2002\" or \"bekker_wong\"", true);
+  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\", \"pac2002\", \"bekker_wong\" or \"iowa\"", true);
   DeclareParameter("wheel_body", &wheel_body_name_,
                    "name of the wheel body, in the same assembly; the wheel "
                    "spins about the y axis of its origin frame",
                    true);
 
-  FialaParameters& f = fiala_;
-  DeclareParameter("unloaded_radius", &f.unloaded_radius,
-                   "Fiala and Bekker-Wong: unloaded radius, defaults to "
-                   "0.344",
+  DeclareParameter("fiala", &fiala_, "the Fiala tire; optional", false);
+  DeclareParameter("pac2002", &pac2002_, "the PAC2002 tire", false);
+  DeclareParameter("bekker_wong", &bekker_wong_, "the Bekker-Wong wheel",
                    false);
-  DeclareParameter("vertical_stiffness", &f.vertical_stiffness,
-                   "Fiala: vertical stiffness, defaults to 310000", false);
-  DeclareParameter("vertical_damping", &f.vertical_damping,
-                   "Fiala: vertical damping, defaults to 3100", false);
-  DeclareParameter("rolling_resistance", &f.rolling_resistance,
-                   "Fiala: rolling resistance coefficient, defaults to 0.001",
-                   false);
-  DeclareParameter("width", &f.width,
-                   "Fiala and Bekker-Wong: tire width, defaults to 0.235",
-                   false);
-  DeclareParameter("cslip", &f.cslip,
-                   "Fiala: longitudinal slip stiffness, defaults to 1000000",
-                   false);
-  DeclareParameter("calpha", &f.calpha,
-                   "Fiala: cornering stiffness, defaults to 45836.6236", false);
-  DeclareParameter("u_max", &f.u_max,
-                   "Fiala: friction coefficient without sliding, defaults to "
-                   "1.0",
-                   false);
-  DeclareParameter("u_min", &f.u_min,
-                   "Fiala: friction coefficient when sliding, defaults to 0.9",
-                   false);
-  DeclareParameter("x_relaxation_length", &f.x_relaxation_length,
-                   "Fiala: longitudinal relaxation length, defaults to 0.05",
-                   false);
-  DeclareParameter("y_relaxation_length", &f.y_relaxation_length,
-                   "Fiala: lateral relaxation length, defaults to 0.15", false);
-
-  BekkerWongParameters& w = bekker_wong_;
-  DeclareParameter("soil", &soil_,
-                   "Bekker-Wong: the soil (see force_module::Soil)", false);
-  DeclareParameter("soil_damping", &w.vertical_damping,
-                   "Bekker-Wong: damping of the load on the normal velocity "
-                   "of the contact point, defaults to 0",
-                   false);
-  DeclareParameter("max_stress_angle", &w.c1,
-                   "Bekker-Wong: c1 of the angle of greatest normal stress "
-                   "theta_m = (c1 + c2 slip) theta_1, defaults to 0.4",
-                   false);
-  DeclareParameter("max_stress_slip", &w.c2,
-                   "Bekker-Wong: c2 of theta_m, defaults to 0.3", false);
-  DeclareParameter("rebound", &w.rebound,
-                   "Bekker-Wong: rear sinkage over the front sinkage, "
-                   "defaults to 0",
-                   false);
-  DeclareParameter("grouser_height", &w.grouser_height,
-                   "Bekker-Wong: height of the lugs, for the shear, "
-                   "defaults to 0",
-                   false);
-  DeclareParameter("stations", &w.stations,
-                   "Bekker-Wong: quadrature points in each of the two "
-                   "zones of the rim, defaults to 16",
-                   false);
-  DeclareParameter("strips", &w.strips,
-                   "Bekker-Wong: quadrature points across the width of a "
-                   "cambered wheel, defaults to 5",
-                   false);
-  DeclareParameter("bulldozing", &w.bulldozing,
-                   "Bekker-Wong: the passive pressure of the soil on the "
-                   "sides of the wheel, where they push it, defaults to "
-                   "true",
-                   false);
-  DeclareParameter("slip_speed", &w.slip_speed,
-                   "Bekker-Wong: speed that smooths the slip at "
-                   "standstill, defaults to 0.01",
-                   false);
-
-  DeclareParameter("definition", &definition_,
-                   "PAC2002: .tir property file, next to the model file or "
-                   "in an include directory",
-                   false);
-  DeclareParameter("mounted_side", &mounted_side_,
-                   "PAC2002: \"left\" or \"right\"; the tire is mirrored if "
-                   "this differs from TYRESIDE of the property file",
-                   false);
-  DeclareParameter("use_transient_slip", &use_transient_slip_,
-                   "PAC2002: relax the slips with the relaxation lengths of "
-                   "the property file (PTX1-3, PTY1-2)",
-                   false);
+  DeclareParameter("iowa", &iowa_, "the Iowa tire; optional", false);
 }
 
 std::string shift::core::force_module::tire::Base::FindFile(
@@ -142,49 +63,62 @@ std::string shift::core::force_module::tire::Base::FindFile(
                                " not found");
 }
 
+void shift::core::force_module::tire::Base::ReadJSON(Json::Value& json_value) {
+  for(const std::string& key : json_value.getMemberNames()) {
+    if(key != "comment" && Find(key) == nullptr) {
+      throw shift::core::Exception(
+        "Tire: unknown member \"" + key + "\"; the parameters of a tire are "
+        "in the block of its model: \"fiala\", \"pac2002\", \"bekker_wong\" "
+        "or \"iowa\"");
+    }
+  }
+  force_module::Base::ReadJSON(json_value);
+}
+
 void shift::core::force_module::tire::Base::Load() {
   if(tire_type_ == "fiala") {
-    model_ = std::make_unique<Fiala>(fiala_);
+    model_ = &fiala_;
   } else if(tire_type_ == "pac2002") {
     const std::string prefix = "Tire " + get_name() + ": ";
-    if(definition_.empty()) {
+    Pac2002& tire = pac2002_;
+    if(tire.definition.empty()) {
       throw shift::core::Exception(prefix + "pac2002 requires a definition "
                                             "(.tir property file)");
     }
     Pac2002Coefficients coefficients =
-      Pac2002Coefficients::Read(FindFile(definition_));
+      Pac2002Coefficients::Read(FindFile(tire.definition));
     bool mirror = coefficients.mirror;
-    if(!mounted_side_.empty()) {
-      if(mounted_side_ != "left" && mounted_side_ != "right") {
+    if(!tire.mounted_side.empty()) {
+      if(tire.mounted_side != "left" && tire.mounted_side != "right") {
         throw shift::core::Exception(prefix + "mounted_side must be "
                                               "\"left\" or \"right\"");
       }
-      mirror = mirror != ((mounted_side_ == "left") !=
+      mirror = mirror != ((tire.mounted_side == "left") !=
                           coefficients.measured_left);
     }
     if(mirror) {
       coefficients.Mirror();
     }
-    if(coefficients.relaxation != use_transient_slip_) {
+    if(coefficients.relaxation != tire.use_transient_slip) {
       SHIFT_INFO(prefix + "the property file " +
                  (coefficients.relaxation ? "enables" : "disables") +
                  " relaxation; use_transient_slip is " +
-                 (use_transient_slip_ ? "true" : "false"));
+                 (tire.use_transient_slip ? "true" : "false"));
     }
-    model_ = std::make_unique<Pac2002>(
+    tire.Configure(
       coefficients,
-      ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()),
-      use_transient_slip_);
+      ksl_vec3_l2norm(context_->get_model_parameters().get_gravity()));
+    model_ = &tire;
   } else if(tire_type_ == "bekker_wong") {
-    BekkerWongParameters parameters = bekker_wong_;
-    parameters.radius = fiala_.unloaded_radius;
-    parameters.width = fiala_.width;
-    parameters.soil = soil_.Resolve("Tire " + get_name());
-    model_ = std::make_unique<BekkerWong>(parameters);
+    bekker_wong_.ResolveSoil("Tire " + get_name());
+    model_ = &bekker_wong_;
+  } else if(tire_type_ == "iowa") {
+    model_ = &iowa_;
   } else {
     throw shift::core::Exception("Tire " + get_name() + ": tire_type \"" +
                                  tire_type_ + "\" is not supported");
   }
+  model_->Prepare();
   equation_count_ = model_->get_state_count();
   q_0_.assign(equation_count_, 0.0);
   force_w_ = ksl_coscrew(0, 0, 0, 0, 0, 0);
@@ -226,6 +160,11 @@ void shift::core::force_module::tire::Base::UpdateContact(
 
   contact_.in_contact = false;
   contact_.depth = 0.0;
+  const int segments = model_->get_contact_segments();
+  if(segments > 0) {
+    UpdateSlicedContact(hub, velocity, segments);
+    return;
+  }
   const double r0 = model_->get_unloaded_radius();
 
   const ksl_vec3_t& center = hub.t;
@@ -290,21 +229,157 @@ void shift::core::force_module::tire::Base::UpdateContact(
     return;
   }
 
+  /* the origin of the contact frame is the lowest point projected onto the
+  terrain plane */
+  ksl_vec3_normalize(&x_direction);
+  SetContact(hub, velocity, x_direction, terrain_normal,
+             {{lowest.x - depth * terrain_normal.x,
+               lowest.y - depth * terrain_normal.y,
+               lowest.z - depth * terrain_normal.z}},
+             depth);
+}
+
+void shift::core::force_module::tire::Base::UpdateSlicedContact(
+  const ksl_SE3_t& hub, const ksl_screw_t& velocity, int segments) {
+  const double radius = model_->get_unloaded_radius();
+  const ksl_vec3_t& center = hub.t;
+  const ksl_vec3_t& axle = hub.R.v1;
+
+  /* the wheel's plane: the heading, level, and the direction in it that points
+  most down; a wheel lying flat has no contact */
+  const ksl_vec3_t z_axis = {{0.0, 0.0, 1.0}};
+  ksl_vec3_t heading, down;
+  ksl_cross_vv(&axle, &z_axis, &heading);
+  if(ksl_vec3_l2norm(&heading) < 0.01) {
+    return;
+  }
+  ksl_vec3_normalize(&heading);
+  ksl_cross_vv(&heading, &axle, &down);
+
+  /* a point of the lower half of the rim, the terrain beneath it, and the
+  terrain's slopes there: its normal is along (slope_x, slope_y, 1) */
+  struct Sample {
+    ksl_vec3_t rim;
+    double ground, slope_x, slope_y;
+    double depth() const {
+      return rim.z - ground;
+    }
+  };
+  const auto& terrains = context_->get_active_terrain();
+  auto sample = [&](int j) {
+    const double along = radius * (2.0 * j / segments - 1.0);
+    const double below = std::sqrt(std::max(radius * radius - along * along, 0.0));
+    Sample s;
+    for(int i = 0; i < 3; i++) {
+      s.rim.at[i] = center.at[i] + along * heading.at[i] + below * down.at[i];
+    }
+    s.ground = 0.0;
+    s.slope_x = s.slope_y = 0.0;
+    for(auto terrain : terrains) {
+      ksl_vec3_t surface, normal;
+      if(terrain->Query(s.rim, surface, normal)) {
+        s.ground = surface.z;
+        s.slope_x = normal.x / normal.z;
+        s.slope_y = normal.y / normal.z;
+        break;
+      }
+    }
+    return s;
+  };
+
+  /* the area below the terrain of each slice, a trapezoid or a triangle,
+  with sums for the centroid and the mean normal */
+  double area = 0.0;
+  ksl_vec3_t moment = {{0.0, 0.0, 0.0}}, normal_sum = {{0.0, 0.0, 0.0}};
+  Sample a = sample(0);
+  for(int j = 1; j <= segments; j++) {
+    const Sample b = sample(j);
+    const double d_a = a.depth(), d_b = b.depth();
+    if(d_a > 0.0 || d_b > 0.0) {
+      const double length = std::hypot(b.rim.x - a.rim.x, b.rim.y - a.rim.y);
+      double part, along, height;
+      if(d_a > 0.0 && d_b > 0.0) {
+        part = 0.5 * (d_a + d_b) * length;
+        along = (d_a + 2.0 * d_b) / (3.0 * (d_a + d_b));
+        const double rim = a.rim.z * a.rim.z + a.rim.z * b.rim.z +
+                           b.rim.z * b.rim.z;
+        const double ground = a.ground * a.ground + a.ground * b.ground +
+                              b.ground * b.ground;
+        height = (rim - ground) / (3.0 * (d_a + d_b));
+      } else {
+        /* the rim crosses the terrain within the slice, at the fraction
+        crossing; the triangle is on the side of the deeper end */
+        const double crossing = d_a / (d_a - d_b);
+        const double cross_z =
+          a.ground + crossing * (b.ground - a.ground);
+        const Sample& deep = d_a > 0.0 ? a : b;
+        const double base = d_a > 0.0 ? crossing : 1.0 - crossing;
+        part = 0.5 * deep.depth() * base * length;
+        along = d_a > 0.0 ? base / 3.0 : 1.0 - base / 3.0;
+        height = (deep.ground + deep.rim.z + cross_z) / 3.0;
+      }
+      const double slope_x = a.slope_x + along * (b.slope_x - a.slope_x);
+      const double slope_y = a.slope_y + along * (b.slope_y - a.slope_y);
+      const double size = std::sqrt(1.0 + slope_x * slope_x + slope_y * slope_y);
+      area += part;
+      moment.x += part * (a.rim.x + along * (b.rim.x - a.rim.x));
+      moment.y += part * (a.rim.y + along * (b.rim.y - a.rim.y));
+      moment.z += part * height;
+      normal_sum.x += part * slope_x / size;
+      normal_sum.y += part * slope_y / size;
+      normal_sum.z += part / size;
+    }
+    a = b;
+  }
+  if(!(area > 0.0)) {
+    return;
+  }
+
+  /* the half angle of the circular segment of this area, by Newton's method
+  on theta - sin(2 theta) / 2 = area / r^2, from the half disc; its
+  derivative, 1 - cos(2 theta), is positive between 0 and pi */
+  const double target = std::min(area / (radius * radius), M_PI);
+  double theta = 0.5 * M_PI;
+  for(int i = 0; i < 50; i++) {
+    const double step = (theta - 0.5 * std::sin(2.0 * theta) - target) /
+                        (1.0 - std::cos(2.0 * theta));
+    theta = std::min(std::max(theta - step, 0.5 * theta), M_PI);
+    if(std::fabs(step) < 1e-10) {
+      break;
+    }
+  }
+  const double depth = radius * (1.0 - std::cos(theta));
+
+  /* the heading in the terrain plane, and the frame at the centroid */
+  ksl_vec3_normalize(&normal_sum);
+  ksl_cross_vv(&axle, &normal_sum, &heading);
+  if(ksl_vec3_l2norm(&heading) < 0.01) {
+    return;
+  }
+  ksl_vec3_normalize(&heading);
+  SetContact(hub, velocity, heading, normal_sum,
+             {{moment.x / area, moment.y / area, moment.z / area}}, depth);
+}
+
+void shift::core::force_module::tire::Base::SetContact(
+  const ksl_SE3_t& hub, const ksl_screw_t& velocity,
+  const ksl_vec3_t& x_direction, const ksl_vec3_t& terrain_normal,
+  const ksl_vec3_t& origin, double depth) {
+  const ksl_vec3_t& center = hub.t;
+  const ksl_vec3_t& wheel_normal = hub.R.v1;
+
   /* 15 */
   contact_.depth = depth;
   contact_.in_contact = true;
 
-  /* 10 - 14: contact frame, x heading, z terrain normal, y = z x x; its
-  origin is the lowest point projected onto the terrain plane */
-  ksl_vec3_normalize(&x_direction);
+  /* 10 - 14: contact frame, x heading, z terrain normal, y = z x x */
   ksl_vec3_t y_direction;
   ksl_cross_vv(&terrain_normal, &x_direction, &y_direction);
   ksl_SE3_t& w = contact_.w_frame;
   w.R.v0 = x_direction;
   w.R.v1 = y_direction;
   w.R.v2 = terrain_normal;
-  w.t = {{lowest.x - depth * terrain_normal.x, lowest.y - depth * terrain_normal.y,
-          lowest.z - depth * terrain_normal.z}};
+  w.t = origin;
 
   /* 16 - 17: velocity of the wheel's material point at the contact point,
   in the w frame; the spatial velocity is referred to the fixed origin, so
@@ -346,6 +421,13 @@ void shift::core::force_module::tire::Base::UpdateContact(
   contact_.angular_velocity_w = {{ksl_dot_vv(&w.R.v0, &velocity.ang),
                                   ksl_dot_vv(&w.R.v1, &velocity.ang),
                                   ksl_dot_vv(&w.R.v2, &velocity.ang)}};
+
+  /* the hub in the w frame */
+  const ksl_vec3_t to_hub = {{center.x - w.t.x, center.y - w.t.y,
+                              center.z - w.t.z}};
+  contact_.hub_w = {{ksl_dot_vv(&w.R.v0, &to_hub),
+                     ksl_dot_vv(&w.R.v1, &to_hub),
+                     ksl_dot_vv(&w.R.v2, &to_hub)}};
 
   /* spin axis in the w frame */
   contact_.spin_axis_w = {{ksl_dot_vv(&w.R.v0, &wheel_normal),
@@ -393,6 +475,11 @@ void shift::core::force_module::tire::Base::Service(const double* y,
 
 std::vector<std::string>
 shift::core::force_module::tire::Base::get_output_names() const {
+  if(tire_type_ == "iowa") {
+    return {"deflection",         "slip",          "slip_angle",
+            "normal_force",       "longitudinal_force", "lateral_force",
+            "aligning_moment"};
+  }
   if(tire_type_ != "bekker_wong") {
     return {};
   }
@@ -403,7 +490,16 @@ shift::core::force_module::tire::Base::get_output_names() const {
 void shift::core::force_module::tire::Base::UpdateOutputs(double,
                                                           const double*) {
   outputs_.clear();
-  const auto* wheel = dynamic_cast<const BekkerWong*>(model_.get());
+  if(const auto* iowa = dynamic_cast<const Iowa*>(model_)) {
+    const bool touching = contact_.in_contact;
+    outputs_ = {touching ? contact_.depth : 0.0, iowa->get_slip(),
+                iowa->get_slip_angle(), touching ? -force_w_.lin.z : 0.0,
+                touching ? force_w_.lin.x : 0.0,
+                touching ? force_w_.lin.y : 0.0,
+                touching ? force_w_.ang.z : 0.0};
+    return;
+  }
+  const auto* wheel = dynamic_cast<const BekkerWong*>(model_);
   if(wheel == nullptr) {
     return;
   }

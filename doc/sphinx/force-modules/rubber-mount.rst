@@ -13,16 +13,19 @@ coordinate:
 
 .. math::
 
-   \underline{f} = -K \underline{x} - C \dot{\underline{x}} +
-   \underline{f}_0 - k_3 \underline{x}^3 - \sum_e k_e \underline{s}_e
+   \mathbf{\underline{f}}^* = -K \underline{x} - C \dot{\underline{x}} +
+   \mathbf{\underline{f}}^*_0 + \underline{h}, \qquad
+   h_i = -k_3 x_i^3 - \sum_e k_e s_e
 
-Each element is a spring of stiffness :math:`k_e` in series with a damper
-of coefficient :math:`c_e`. The stretch :math:`s_e` of its spring is an
-internal state, with
+where :math:`h_i` is the entry of :math:`\underline{h}` for the coordinate
+:math:`x_i`, and :math:`k_3`, :math:`k_e` and :math:`s_e` are the scalars of
+that coordinate. Each element is a spring of stiffness :math:`k_e` in series
+with a damper of coefficient :math:`c_e`. The stretch :math:`s_e` of its
+spring is an internal state, with
 
 .. math::
 
-   \dot s_e = \dot x - s_e / \tau_e, \qquad \tau_e = c_e / k_e
+   \dot{s}_e = \dot{x}_i - s_e / \tau_e, \qquad \tau_e = c_e / k_e
 
 Slow motion relaxes the springs through their dampers, leaving the static
 stiffness; motion much faster than :math:`1/\tau_e` loads the springs,

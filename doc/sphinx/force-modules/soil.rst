@@ -32,12 +32,12 @@ Bekker's :math:`p = (k_c/b + k_\phi)\,z^n`, with the cohesive modulus
 :math:`k_c`, the frictional modulus :math:`k_\phi` and the sinkage exponent
 :math:`n`. Its shear strength is :math:`c + p\tan\phi` for the cohesion
 :math:`c` and the friction angle :math:`\phi`, reached as the plate slides, by
-Janosi and Hanamoto's :math:`1 - e^{-j/K}` after the slide :math:`j`
-(:math:`K` is the shear modulus). The soil's unit weight gives the earth
+Janosi and Hanamoto's :math:`1 - e^{-j/k_j}` after the slide :math:`j`
+(:math:`k_j` is the shear modulus). The soil's unit weight gives the earth
 pressure on the face of a grouser or the side of a shoe or wheel, from Rankine's
 theory of passive pressure: on a vertical face down to the depth :math:`h` it
-is :math:`\tfrac12 w h^2 K_p + 2 c h \sqrt{K_p}` per unit of width, with
-:math:`K_p = \tan^2(45^\circ + \phi/2)`.
+is :math:`\tfrac12 w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}` per unit of width, with
+:math:`\kappa_p = \tan^2(45^\circ + \phi/2)`.
 
 The table
 ---------
@@ -186,12 +186,12 @@ the sinkage from below, over ``plastic_time``, and so there is no jump as the
 soil is loaded and unloaded.
 
 The soil also gives traction and side force. The shear on the shoe's plate is
-the soil's shear strength under it, built up by the displacement :math:`j` of the shoe
-over the soil, :math:`1 - e^{-j/K}`. The earth pressure of the soil in its way
+the soil's shear strength under it, built up by the displacement :math:`\underline{j}` of the shoe
+over the soil, :math:`1 - e^{-|\underline{j}|/k_j}`. The earth pressure of the soil in its way
 adds to it: on the leading grouser along the track (of width ``shoe_width``
 and the depth of the grouser's embedding, at most ``grouser_height``), and on
 the side of the shoe across it, mobilized by the same factor. The displacement
-:math:`j` (two states, along and across the ground) is the slip of the shoe's
+:math:`\underline{j}` (two states, along and across the ground) is the slip of the shoe's
 center over the ground while it is on the soil, and relaxes to zero over
 ``shear_time`` when the shoe is lifted.
 

@@ -33,12 +33,13 @@ the equations of motion in this split form,
 
 .. math::
 
-   \begin{bmatrix} M_{ii} & M_{id} & B_{di}^T \\ M_{di} & M_{dd} & I \\
+   \begin{bmatrix} M^{\ell}_{ii} & M^{\ell}_{id} & B_{di}^T \\
+   M^{\ell}_{di} & M^{\ell}_{dd} & I \\
    B_{di} & I & 0 \end{bmatrix}
    \begin{Bmatrix} \underline{\ddot{q}}_i \\ \underline{\ddot{q}}_d \\
-   \underline{\lambda}_d \end{Bmatrix} =
-   \begin{Bmatrix} \underline{f}_i \\ \underline{f}_d \\
-   \underline{\gamma}_d \end{Bmatrix}
+   \underline{\lambda}^d \end{Bmatrix} =
+   \begin{Bmatrix} \underline{f}^{\ell}_i \\ \underline{f}^{\ell}_d \\
+   \underline{\gamma}^d \end{Bmatrix}
 
 by the run-time optimized natural constraint algorithm (RNCA).
 

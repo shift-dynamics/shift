@@ -50,8 +50,8 @@ struct SoilProperties {
 
   /*! \brief the passive force per width on a vertical face embedded to
    * depth \f$h\f$ (Rankine, with cohesion):
-   * \f$\frac{1}{2} \gamma h^2 \kappa_p + 2 c h \sqrt{\kappa_p}\f$, with the unit_weight
-   * \f$\gamma\f$, the cohesion \f$c\f$ and the coefficient \f$\kappa_p\f$ */
+   * \f$\frac{1}{2} w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}\f$, with the unit_weight
+   * \f$w\f$, the cohesion \f$c\f$ and the coefficient \f$\kappa_p\f$ */
   double PassiveForce(double h) const;
 };
 

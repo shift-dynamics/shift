@@ -13,17 +13,17 @@ shaft whirl.
 The shaft (the *journal*) and the bearing are two bodies, each with a frame at the
 center of its circle, whose z axis is the axis of the bearing (the axes are
 parallel). The *radial clearance* :math:`c` is the bearing's radius less the
-journal's. With the shaft off center by the vector :math:`\mathbf{e}`
+journal's. With the shaft off center by the vector :math:`\underline{e}`
 perpendicular to the axis, the *eccentricity ratio* is
-:math:`\varepsilon = |\mathbf{e}|/c`, and the film thickness round the bearing is
+:math:`\varepsilon = |\underline{e}|/c`, and the film thickness round the bearing is
 
 .. math::
 
    h = c\,(1 + \varepsilon\cos\theta)
 
 with :math:`\theta` measured from the thickest part of the film. The unit vector
-:math:`\mathbf{u}_1` points along the line of centers (from the bearing's center to
-the shaft's) and :math:`\mathbf{u}_2` across it, in the direction of rotation about
+:math:`\underline{u}_1` points along the line of centers (from the bearing's center to
+the shaft's) and :math:`\underline{u}_2` across it, in the direction of rotation about
 the axis.
 
 The pressure
@@ -33,11 +33,11 @@ The module uses the theory of the *short bearing* of Ocvirk :cite:`ocvirk1952`: 
 bearing that is short compared with its diameter (a length up to about half the
 diameter, and as an approximation to about the diameter) the oil flows out of the
 ends of the bearing much more than it flows round it, and the pressure in the film,
-for the oil of viscosity :math:`\mu` and a bearing of length :math:`L`, is
+for the oil of viscosity :math:`\mu` and a bearing of length :math:`l`, is
 
 .. math::
 
-   p = \frac{3\mu}{c^2}\Bigl(\frac{L^2}{4} - z^2\Bigr)
+   p = \frac{3\mu}{c^2}\Bigl(\frac{l^2}{4} - z^2\Bigr)
        \frac{s\sin\theta - q\cos\theta}{(1 + \varepsilon\cos\theta)^3}
 
 with :math:`z` along the axis from the middle of the bearing and
@@ -62,21 +62,21 @@ The pressure integrated over the journal gives the force of the film on it:
 
 .. math::
 
-   \mathbf{F} = \frac{\mu R L^3}{2c^2}\,\bigl(I_1\,\mathbf{u}_1 + I_2\,\mathbf{u}_2\bigr),
+   \underline{f} = \frac{\mu r l^3}{2c^2}\,\bigl(i_1\,\underline{u}_1 + i_2\,\underline{u}_2\bigr),
    \quad
-   I_1 = \int\!\frac{(s\sin\theta - q\cos\theta)\cos\theta}{(1+\varepsilon\cos\theta)^3}\,d\theta,
+   i_1 = \int\!\frac{(s\sin\theta - q\cos\theta)\cos\theta}{(1+\varepsilon\cos\theta)^3}\,d\theta,
    \quad
-   I_2 = \int\!\frac{(s\sin\theta - q\cos\theta)\sin\theta}{(1+\varepsilon\cos\theta)^3}\,d\theta
+   i_2 = \int\!\frac{(s\sin\theta - q\cos\theta)\sin\theta}{(1+\varepsilon\cos\theta)^3}\,d\theta
 
-over the film, for the journal's radius :math:`R`. The module integrates these
+over the film, for the journal's radius :math:`r`. The module integrates these
 numerically, with a change of variable (Sommerfeld's) that keeps the integrands
 smooth even where the film is thin. In steady running, with the shaft still at an
 eccentricity, they are the classical results
 
 .. math::
 
-   F_1 = -\frac{\mu R L^3\omega}{c^2}\,\frac{\varepsilon^2}{(1-\varepsilon^2)^2}, \qquad
-   F_2 = \frac{\mu R L^3\omega}{c^2}\,\frac{\pi\varepsilon}{4(1-\varepsilon^2)^{3/2}}
+   f_1 = -\frac{\mu r l^3\omega}{c^2}\,\frac{\varepsilon^2}{(1-\varepsilon^2)^2}, \qquad
+   f_2 = \frac{\mu r l^3\omega}{c^2}\,\frac{\pi\varepsilon}{4(1-\varepsilon^2)^{3/2}}
 
 The first pushes the shaft back to the center. The second, across the line of
 centers, makes the *attitude angle* between the load and the line of centers,
@@ -85,14 +85,14 @@ load
 
 .. math::
 
-   W = \frac{\mu R L^3 \omega\,\varepsilon}{4c^2(1-\varepsilon^2)^2}
+   w = \frac{\mu r l^3 \omega\,\varepsilon}{4c^2(1-\varepsilon^2)^2}
        \sqrt{16\varepsilon^2 + \pi^2(1-\varepsilon^2)}
 
 which sets the eccentricity at which a shaft settles under a load. The tests check
 the integrals against a direct integration of the pressure over the film, these
 closed forms and the equilibrium of a shaft under its weight. With the squeeze, a
-shaft near the center moving at a velocity :math:`\mathbf{v}` feels the damping
-force :math:`-(\pi\mu R L^3/2c^3)\,\mathbf{v}`.
+shaft near the center moving at a velocity :math:`\underline{v}` feels the damping
+force :math:`-(\pi\mu r l^3/2c^3)\,\underline{v}`.
 
 The friction torque
 -------------------
@@ -103,8 +103,8 @@ the pressure force:
 
 .. math::
 
-   T = -\frac{2\pi\mu R^3 L(\omega_j - \omega_b)}{c\sqrt{1-\varepsilon^2}}
-       - \tfrac12\,c\,\varepsilon\,F_2
+   \tau = -\frac{2\pi\mu r^3 l(\omega_j - \omega_b)}{c\sqrt{1-\varepsilon^2}}
+       - \tfrac12\,c\,\varepsilon\,f_2
 
 Both oppose the rotation. The bearing gets the opposite torque and force. The
 module also gives the minimum film thickness :math:`c(1-\varepsilon)` (negative if

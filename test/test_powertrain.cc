@@ -47,6 +47,7 @@ struct Vehicle {
   double time_span = 1.0;
   std::string extra_wheels = "";
   std::string joint_extra_l = ""; //!< e.g. a constant torque on the left wheel
+  std::string module_extra = ""; //!< more members of the force module
 };
 
 static void Load(shift::core::Context& context, const Vehicle& v) {
@@ -97,6 +98,7 @@ static void Load(shift::core::Context& context, const Vehicle& v) {
       "transmission": {)" << v.transmission << R"(},
       "axles": [)" << v.axles << R"(])"
          << (v.brakes.empty() ? "" : R"(, "brakes": [)" + v.brakes + "]")
+         << v.module_extra
          << R"(}]
   }]
 })";
@@ -677,4 +679,243 @@ TEST(PowertrainBristles, WhatItRefuses) {
               .find("stribeck_speed"),
             std::string::npos);
   EXPECT_EQ(message(R"(, "bristle_stiffness": 100)"), "");
+}
+
+/* a drive that settles to a steady state: a fixed throttle, the wheels driven
+against their drag */
+static Vehicle SteadyVehicle() {
+  Vehicle v;
+  v.engine = std::string(kEngine);
+  v.engine.replace(v.engine.find("\"idle_speed\""), 0, R"("throttle": 0.6, )");
+  v.speed_l = v.speed_r = 25.0;
+  v.time_span = 6.0;
+  return v;
+}
+
+TEST(PowertrainLosses, TheTeethLoseTheirShareOfThePowerTheyCarry) {
+  shift::core::Context context;
+  Vehicle v = SteadyVehicle();
+  v.transmission =
+    R"("ratios": [2.0, 1.0], "gear": 1, "efficiencies": [0.9, 0.95],
+       "clutch_capacity": 1500, "slip_speed": 1.0, "input_inertia": 0.2,
+       "output_inertia": 0.2)";
+  v.axles =
+    R"({"name": "rear", "left": "wheel_l", "right": "wheel_r",
+        "final_drive": 4.0, "efficiency": 0.8, "drag_torque": 5,
+        "shaft_stiffness": 5e3, "shaft_damping": 50})";
+  Load(context, v);
+  const auto state = Simulate(context);
+  Powertrain* drive = Find(context);
+  const double shaft = Output(drive, "rear_shaft_torque");
+  const double loss = Output(drive, "gear_loss");
+  ASSERT_GT(shaft, 10.0);
+  // of the torque r tau through the gear, the teeth lose 10 % and the rest
+  // goes down the propshaft
+  EXPECT_NEAR(loss / (loss + shaft), 0.1, 1e-3);
+  // the final drive passes on 80 % of its torque, less its drag
+  EXPECT_NEAR(Output(drive, "rear_left_torque") +
+                Output(drive, "rear_right_torque"),
+              0.8 * 4.0 * shaft - 5.0, 1e-2 * shaft);
+  // and that is what the wheels' drag takes
+  const double w = WheelSpeed(context, state, "wheel_l");
+  EXPECT_NEAR(Output(drive, "rear_left_torque"), 40.0 * w, 0.01 * 40.0 * w);
+}
+
+TEST(PowertrainLosses, ADragTorqueOpposesTheOutputInEitherDirection) {
+  // a coasting output with no drive: in neutral, the wheels turn the output
+  // through the propshaft, and the drag slows them
+  for(double direction : {1.0, -1.0}) {
+    shift::core::Context context;
+    Vehicle v;
+    v.transmission =
+      R"("ratios": [2.0, 1.0], "gear": 0, "drag_torque": 10,
+         "clutch_capacity": 1500, "slip_speed": 1.0, "input_inertia": 0.2,
+         "output_inertia": 0.2)";
+    v.speed_l = v.speed_r = direction * 20.0;
+    v.drag_l = v.drag_r = 0.0;
+    v.time_span = 0.5;
+    Load(context, v);
+    const auto state = Simulate(context);
+    // 10 N m at the output is 40 N m at the wheels, 20 on each of unit inertia
+    const double w = WheelSpeed(context, state, "wheel_l");
+    EXPECT_LT(std::fabs(w), 20.0 - 4.0);
+    EXPECT_GT(direction * w, 0.0);
+    EXPECT_NEAR(Output(Find(context), "gear_loss"),
+                direction * 10.0, 0.1);
+  }
+}
+
+/* each output of a center differential drives one wheel, on both sides of
+its axle */
+static Vehicle CenterVehicle(const std::string& center) {
+  Vehicle v = SteadyVehicle();
+  v.axles =
+    R"({"name": "front", "left": "wheel_l", "right": "wheel_l",
+        "center_output": 1, "final_drive": 4.0, "shaft_stiffness": 5e3,
+        "shaft_damping": 50},
+       {"name": "rear", "left": "wheel_r", "right": "wheel_r",
+        "center_output": 2, "final_drive": 4.0, "shaft_stiffness": 5e3,
+        "shaft_damping": 50})";
+  v.module_extra = R"(, "center_differential": {)" + center + "}";
+  v.drag_l = 40.0;
+  v.drag_r = 90.0;
+  v.time_span = 8.0;
+  return v;
+}
+
+TEST(PowertrainCenterDifferential, AnOpenOneDividesTheTorqueInItsRatio) {
+  shift::core::Context context;
+  Load(context, CenterVehicle(R"("split": 0.4, "inertia": 0.05)"));
+  const auto state = Simulate(context);
+  Powertrain* drive = Find(context);
+  const double front = Output(drive, "front_shaft_torque");
+  const double rear = Output(drive, "rear_shaft_torque");
+  ASSERT_GT(front, 10.0);
+  EXPECT_NEAR(front / (front + rear), 0.4, 1e-3);
+  // whatever the speeds of the axles, which differ: each wheel runs where the
+  // drag takes its share of the torque
+  const double w_f = WheelSpeed(context, state, "wheel_l");
+  const double w_r = WheelSpeed(context, state, "wheel_r");
+  EXPECT_NEAR(w_f, 4.0 * front / 40.0, 0.01 * w_f);
+  EXPECT_NEAR(w_r, 4.0 * rear / 90.0, 0.01 * w_r);
+  // the weighted mean of the outputs' speeds is the speed of the carrier
+  EXPECT_NEAR(0.4 * 4.0 * w_f + 0.6 * 4.0 * w_r,
+              Output(drive, "output_speed"),
+              1e-3 * Output(drive, "output_speed"));
+  EXPECT_NEAR(4.0 * w_f - 4.0 * w_r, Output(drive, "center_speed"),
+              1e-3 * std::fabs(Output(drive, "center_speed")));
+}
+
+TEST(PowertrainCenterDifferential, LockedOrLimitedSlipItHoldsTheAxlesTogether) {
+  for(const char* center :
+      {R"("split": 0.4, "type": "locked", "lock_damping": 3000)",
+       R"("split": 0.4, "type": "limited_slip", "bias_torque": 500,
+          "slip_speed": 0.2)"}) {
+    shift::core::Context context;
+    Load(context, CenterVehicle(center));
+    const auto state = Simulate(context);
+    Powertrain* drive = Find(context);
+    EXPECT_NEAR(WheelSpeed(context, state, "wheel_l"),
+                WheelSpeed(context, state, "wheel_r"),
+                0.02 * WheelSpeed(context, state, "wheel_l"))
+      << center;
+    // no longer in the ratio: the wheel with more drag takes more
+    EXPECT_GT(Output(drive, "rear_shaft_torque"),
+              1.8 * Output(drive, "front_shaft_torque"))
+      << center;
+  }
+}
+
+static const char* kHydraulics =
+  R"(, "clutch_hydraulics": {"supply_pressure": 2e6, "piston_area": 0.01,
+     "piston_stroke": 0.002, "spring_preload": 2000, "orifice_area": 1e-6,
+     "drain_orifice_area": 4e-6, "discharge_coefficient": 0.7, "density": 850,
+     "transition_pressure": 1e3})";
+
+TEST(PowertrainClutchHydraulics, ThePressureOfAClutchFollowsItsVolume) {
+  shift::core::Context context;
+  Vehicle v;
+  v.module_extra =
+    R"(, "clutch_hydraulics": {"supply_pressure": 2e6, "piston_area": 0.01,
+       "piston_stroke": 0.002, "spring_preload": 2000, "spring_rate": 1e5,
+       "orifice_area": 1e-6, "bulk_modulus": 1e9, "chamber_volume": 1e-4})";
+  Load(context, v);
+  Powertrain* drive = Find(context);
+  const double fill = 0.01 * 0.002;
+  const double kiss = (2000.0 + 1e5 * 0.002) / 0.01;
+  // on the stop, stroking the piston, and against the plates, and it joins
+  EXPECT_NEAR(drive->ClutchPressure(0.0), 2e5, 1e-6);
+  EXPECT_NEAR(drive->ClutchPressure(0.5 * fill),
+              (2000.0 + 1e5 * 0.001) / 0.01, 1e-6);
+  EXPECT_NEAR(drive->ClutchPressure(fill), kiss, 1e-6);
+  EXPECT_NEAR(drive->ClutchPressure(fill + 1e-7), kiss + 1e-7 * 1e9 / 1e-4,
+              1e-3);
+  EXPECT_NEAR(drive->ClutchPressure(-1e-8), 2e5 - 1e-8 * 1e9 / 1e-4, 1e-3);
+}
+
+TEST(PowertrainClutchHydraulics, ANewClutchTakesTheTimeToFillThroughItsOrifice) {
+  shift::core::Context context;
+  Vehicle v;
+  v.transmission =
+    R"("ratios": [2.0, 1.0], "gear": 0, "shift_time": 0.003,
+       "clutch_capacity": 1500, "slip_speed": 1.0, "input_inertia": 0.2,
+       "output_inertia": 0.2)";
+  v.controllers = R"({"type": "schedule", "name": "shift",
+    "interpolation": "step", "points": [0, 0, 0.1, 1],
+    "targets": ["force_modules/drive/transmission/gear"]})";
+  v.module_extra = kHydraulics;
+  v.time_span = 1.0;
+  Load(context, v);
+  double kiss_time = -1.0, last_pressure = 0.0, last_ratio = 0.0;
+  double ratio_at_fill = -1.0;
+  context.set_state_observer([&](double t, const std::vector<double>& y) {
+    Powertrain* drive = Find(context);
+    drive->UpdateOutputs(t, y.data());
+    last_pressure = Output(drive, "clutch_1_pressure");
+    last_ratio = Output(drive, "gear_ratio");
+    if(kiss_time < 0.0 && last_pressure > 2.1e5) {
+      kiss_time = t;
+    }
+    if(t < 0.5) {
+      ratio_at_fill = last_ratio;
+    }
+  });
+  context.Simulate();
+  // the oil of the stroke, a l = 2e-5 m^3, enters at
+  // Q = Cd A sqrt(2 (p_s - p_k) / rho) against the kiss pressure of 2e5 Pa
+  const double flow = 0.7 * 1e-6 * std::sqrt(2.0 * 1.8e6 / 850.0);
+  EXPECT_NEAR(kiss_time, 0.1 + 2e-5 / flow, 0.01);
+  // the clutch carries nothing while it fills, and all it can after
+  EXPECT_NEAR(ratio_at_fill, 0.0, 1e-9);
+  EXPECT_NEAR(last_pressure, 2e6, 2e3);
+  EXPECT_NEAR(last_ratio, 2.0, 1e-3);
+}
+
+TEST(PowertrainClutchHydraulics, AGearSelectedAtTheStartIsFullAndTheOthersDrained) {
+  shift::core::Context context;
+  Vehicle v = SteadyVehicle();
+  v.module_extra = kHydraulics;
+  v.time_span = 0.5;
+  Load(context, v);
+  Simulate(context);
+  Powertrain* drive = Find(context);
+  EXPECT_NEAR(Output(drive, "clutch_1_pressure"), 2e6, 1e3);
+  EXPECT_NEAR(Output(drive, "clutch_2_pressure"), 0.0, 1e3);
+  EXPECT_NEAR(Output(drive, "gear_ratio"), 2.0, 1e-6);
+}
+
+TEST(PowertrainExtensions, WhatTheyRefuse) {
+  auto message = [&](const Vehicle& v) {
+    shift::core::Context context;
+    try {
+      Load(context, v);
+    } catch(const std::exception& e) {
+      return std::string(e.what());
+    }
+    return std::string();
+  };
+  Vehicle count;
+  count.transmission =
+    R"("ratios": [2.0, 1.0], "gear": 1, "efficiencies": [0.9],
+       "clutch_capacity": 1500)";
+  EXPECT_NE(message(count).find("efficiencies"), std::string::npos);
+  Vehicle high;
+  high.axles = R"({"name": "rear", "left": "wheel_l", "right": "wheel_r",
+    "efficiency": 1.1, "shaft_stiffness": 5e3})";
+  EXPECT_NE(message(high).find("efficiency"), std::string::npos);
+  Vehicle one_side = CenterVehicle(R"("split": 0.4)");
+  one_side.axles = R"({"name": "rear", "left": "wheel_l", "right": "wheel_r",
+    "center_output": 1, "shaft_stiffness": 5e3})";
+  EXPECT_NE(message(one_side).find("both"), std::string::npos);
+  Vehicle no_center;
+  no_center.axles = R"({"name": "rear", "left": "wheel_l", "right": "wheel_r",
+    "center_output": 1, "shaft_stiffness": 5e3})";
+  EXPECT_NE(message(no_center).find("center_output"), std::string::npos);
+  EXPECT_NE(message(CenterVehicle(R"("split": 1.5)")).find("split"),
+            std::string::npos);
+  Vehicle weak;
+  weak.module_extra =
+    R"(, "clutch_hydraulics": {"supply_pressure": 1e5, "piston_area": 0.01,
+       "piston_stroke": 0.002, "spring_preload": 2000, "orifice_area": 1e-6})";
+  EXPECT_NE(message(weak).find("supply_pressure"), std::string::npos);
 }

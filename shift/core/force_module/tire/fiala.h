@@ -2,34 +2,12 @@
 #define SHIFT_FORCEMODULE_TIRE_FIALA_H_
 
 #include "shift/core/force_module/tire/model.h"
+#include "shift/core/parameter/list.h"
 
 namespace shift {
 namespace core {
 namespace force_module {
 namespace tire {
-
-/*! \brief Fiala tire parameters, see Fiala */
-struct FialaParameters {
-  double unloaded_radius = 0.344;
-  double vertical_stiffness = 310000;
-  double vertical_damping = 3100;
-  double rolling_resistance = 0.001;
-  double width = 0.235;
-  /*! longitudinal slip stiffness, N per unit slip: about 16 times the
-   * 3 kN load of a car tire. With the relaxation length it sets the
-   * longitudinal stiffness of the carcass, \f$c_{slip} / x_{relaxation}\f$
-   * (1e6 N/m), and so the wheel's spin mode on it,
-   * \f$\sqrt{r^2 c_{slip} / (i_{yy} \, x_{relaxation})}\f$, about 360 rad/s for a
-   * 21 kg wheel. The 1e6 of the original implementation (2e7 N/m) put
-   * that mode at 1600 rad/s, nearly undamped, and limited the integration
-   * steps of the vehicle models four times as much. */
-  double cslip = 50000;
-  double calpha = 45836.6236; //!< cornering stiffness
-  double u_max = 1.0;         //!< friction coefficient without sliding
-  double u_min = 0.9;         //!< friction coefficient when fully sliding
-  double x_relaxation_length = 0.05;
-  double y_relaxation_length = 0.15;
-};
 
 /*!
 @brief Fiala tire model with transient slip
@@ -53,24 +31,48 @@ aligning moment \f$m_z\f$ follow the Fiala expressions up to the critical slip
 angle; \f$m_y\f$ is rolling resistance. Axes as in tire::Contact (SAE, z down;
 \f$f_z < 0\f$ pushes the wheel up).
 */
-class Fiala : public Model {
+class Fiala
+  : public Model
+  , public parameter::List {
 public:
-  explicit Fiala(const FialaParameters& parameters)
-    : p_(parameters) {}
+  Fiala() {
+    DeclareParameters();
+  }
+  virtual ~Fiala() {}
+
+  double unloaded_radius = 0.344;
+  double vertical_stiffness = 310000;
+  double vertical_damping = 3100;
+  double rolling_resistance = 0.001;
+  double width = 0.235;
+  /*! longitudinal slip stiffness, N per unit slip: about 16 times the
+   * 3 kN load of a car tire. With the relaxation length it sets the
+   * longitudinal stiffness of the carcass, \f$c_{slip} / x_{relaxation}\f$
+   * (1e6 N/m), and so the wheel's spin mode on it,
+   * \f$\sqrt{r^2 c_{slip} / (i_{yy} \, x_{relaxation})}\f$, about 360 rad/s for a
+   * 21 kg wheel. The 1e6 of the original implementation (2e7 N/m) put
+   * that mode at 1600 rad/s, nearly undamped, and limited the integration
+   * steps of the vehicle models four times as much. */
+  double cslip = 50000;
+  double calpha = 45836.6236; //!< cornering stiffness
+  double u_max = 1.0;         //!< friction coefficient without sliding
+  double u_min = 0.9;         //!< friction coefficient when fully sliding
+  double x_relaxation_length = 0.05;
+  double y_relaxation_length = 0.15;
 
   unsigned int get_state_count() const override {
     return 2;
   }
 
   double get_unloaded_radius() const override {
-    return p_.unloaded_radius;
+    return unloaded_radius;
   }
 
   void Evaluate(const Contact& contact, const double* states,
                 double* state_rates, ksl_coscrew_t* force_w) override;
 
-private:
-  FialaParameters p_;
+protected:
+  virtual void DeclareParameters() override;
 };
 
 } // namespace tire

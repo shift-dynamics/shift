@@ -17,7 +17,6 @@ using shift::core::force_module::LookupSoil;
 using shift::core::force_module::SoilProperties;
 using shift::core::force_module::TrackSoil;
 using shift::core::force_module::tire::BekkerWong;
-using shift::core::force_module::tire::BekkerWongParameters;
 using shift::core::force_module::tire::Contact;
 
 /* a wheel of radius 0.5 sunk by depth, its hub moving forward at v_x, its
@@ -77,8 +76,7 @@ TEST(Soil, Table) {
 
 /* a frictionless, cohesionless soil (no shear) with the greatest stress at
 the bottom (c1 = c2 = 0) and no rebound: Bekker's rigid wheel */
-static BekkerWongParameters Bekker(double radius, double width) {
-  BekkerWongParameters p;
+static void Bekker(BekkerWong& p, double radius, double width) {
   p.radius = radius;
   p.width = width;
   LookupSoil("lete_sand", p.soil);
@@ -86,14 +84,15 @@ static BekkerWongParameters Bekker(double radius, double width) {
   p.soil.friction_angle = 0.0;
   p.c1 = p.c2 = 0.0;
   p.stations = 64;
-  return p;
 }
 
 TEST(BekkerWong, CompactionResistance) {
   // the horizontal force of the normal stress is Bekker's compaction
   // resistance exactly, b k z^(n+1) / (n+1), as dz = r sin(theta) dtheta
-  const BekkerWongParameters p = Bekker(0.5, 0.3);
-  BekkerWong wheel(p);
+  BekkerWong p;
+  Bekker(p, 0.5, 0.3);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const double k = p.soil.k_c / p.width + p.soil.k_phi;
   const double n = p.soil.n;
   for(double z : {0.002, 0.02, 0.1}) {
@@ -115,8 +114,10 @@ TEST(BekkerWong, BekkerSinkage) {
   // the load b k sqrt(2 r) z^(n + 1/2) integral_0^1 (1 - u^2)^n du, the
   // integral sqrt(pi) / 2 Gamma(n + 1) / Gamma(n + 3/2); Bekker's (3 - n)
   // / 3 approximates it (0.737 for 0.711 here)
-  const BekkerWongParameters p = Bekker(0.5, 0.3);
-  BekkerWong wheel(p);
+  BekkerWong p;
+  Bekker(p, 0.5, 0.3);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const double k = p.soil.k_c / p.width + p.soil.k_phi;
   const double n = p.soil.n;
   const double z = 1e-3;
@@ -138,11 +139,12 @@ TEST(BekkerWong, PublishedAngles) {
                                                   14.82},
        std::tuple<double, double, double, double>{0.210, 0.050, 3.0e-3,
                                                   13.73}}) {
-    BekkerWongParameters p;
+    BekkerWong p;
     p.radius = 0.5 * d;
     p.width = b;
     ASSERT_TRUE(LookupSoil("tri1_lunar_simulant", p.soil));
-    BekkerWong wheel(p);
+    p.Prepare();
+    BekkerWong& wheel = p;
     Evaluate(wheel, WheelContact(z, 0.0, 0.0, 0.0, p.radius));
     EXPECT_NEAR(wheel.get_entry_angle() * 180.0 / M_PI, entry, 0.005);
     EXPECT_NEAR(wheel.get_max_stress_angle(), 0.4 * wheel.get_entry_angle(),
@@ -157,12 +159,13 @@ TEST(BekkerWong, DrawbarPullGrowsWithSlip) {
   // more slip, and never beyond the soil's shear strength over the rim;
   // with theta_m fixed (c2 = 0), as at a fixed sinkage its moving back
   // with the slip lowers the pull at high slip
-  BekkerWongParameters p;
+  BekkerWong p;
   p.radius = 0.5;
   p.width = 0.3;
   p.c2 = 0.0;
   ASSERT_TRUE(LookupSoil("lete_sand", p.soil));
-  BekkerWong wheel(p);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const double z = 0.03;
   double last = -HUGE_VAL;
   double strength = 0.0;
@@ -199,11 +202,12 @@ TEST(BekkerWong, DrawbarPullGrowsWithSlip) {
 }
 
 TEST(BekkerWong, BrakingAndSideSlip) {
-  BekkerWongParameters p;
+  BekkerWong p;
   p.radius = 0.5;
   p.width = 0.3;
   ASSERT_TRUE(LookupSoil("lete_sand", p.soil));
-  BekkerWong wheel(p);
+  p.Prepare();
+  BekkerWong& wheel = p;
   // a locked wheel is pushed back by the shear, harder than a rolling one
   const double rolling = Evaluate(wheel, WheelContact(0.03, 2.0, 2.0)).lin.x;
   const ksl_coscrew_t locked = Evaluate(wheel, WheelContact(0.03, 2.0, 0.0));
@@ -217,11 +221,12 @@ TEST(BekkerWong, BrakingAndSideSlip) {
 TEST(BekkerWong, Standstill) {
   // at rest the shear is zero, and it grows from zero with the slip: no
   // division by a zero speed
-  BekkerWongParameters p;
+  BekkerWong p;
   p.radius = 0.5;
   p.width = 0.3;
   ASSERT_TRUE(LookupSoil("lete_sand", p.soil));
-  BekkerWong wheel(p);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const ksl_coscrew_t rest = Evaluate(wheel, WheelContact(0.03, 0.0, 0.0));
   EXPECT_EQ(wheel.get_shear_torque(), 0.0);
   EXPECT_LT(rest.lin.z, 0.0);
@@ -414,8 +419,10 @@ TEST(BekkerWong, CamberedCompactionResistance) {
   // tilted by gamma, -k / ((n + 1) cos(gamma)) integral(H(y)^(n+1) dy), the
   // sinkage H(y) = depth + y sin(gamma) over the part of the width in the
   // soil: integrating the stress along the radius gives dz / cos(gamma)
-  const BekkerWongParameters p = Bekker(0.5, 0.3);
-  BekkerWong wheel(p);
+  BekkerWong p;
+  Bekker(p, 0.5, 0.3);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const double k = p.soil.k_c / p.width + p.soil.k_phi;
   const double n = p.soil.n;
   for(double gamma : {0.0, 0.1, -0.1, 0.3}) {
@@ -454,8 +461,10 @@ TEST(BekkerWong, CamberThrust) {
   // the lateral force is the load times tan(gamma), towards +y when the +y
   // end of the axle is lower: the top of the wheel leans that way, and the
   // soil pushes the wheel up along its plane
-  const BekkerWongParameters p = Bekker(0.5, 0.3);
-  BekkerWong wheel(p);
+  BekkerWong p;
+  Bekker(p, 0.5, 0.3);
+  p.Prepare();
+  BekkerWong& wheel = p;
   for(double gamma : {0.05, 0.2, -0.2}) {
     SCOPED_TRACE(gamma);
     const ksl_coscrew_t f =
@@ -474,11 +483,12 @@ TEST(BekkerWong, CamberThrust) {
 TEST(BekkerWong, CamberMirror) {
   // mirrored in y: the same drawbar pull, load and torque, the lateral
   // force opposite
-  BekkerWongParameters p;
+  BekkerWong p;
   p.radius = 0.5;
   p.width = 0.3;
   ASSERT_TRUE(LookupSoil("lete_sand", p.soil));
-  BekkerWong wheel(p);
+  p.Prepare();
+  BekkerWong& wheel = p;
   const ksl_coscrew_t a = Evaluate(wheel, CamberedContact(0.03, 0.15, 2.0, 2.5));
   const double torque = wheel.get_shear_torque();
   const ksl_coscrew_t b = Evaluate(wheel, CamberedContact(0.03, -0.15, 2.0, 2.5));
@@ -496,7 +506,7 @@ TEST(BekkerWong, BulldozingOfTheSide) {
   // push; the other side is not touched. The segment's first moment about
   // the wheel's center is chord^3 / 12, chord = 2 sqrt(2 r H - H^2), so
   // the depth h below the terrain integrates to chord^3 / 12 - (r - H) A
-  BekkerWongParameters p;
+  BekkerWong p;
   p.radius = 0.5;
   p.width = 0.3;
   ASSERT_TRUE(LookupSoil("lete_sand", p.soil));
@@ -512,7 +522,8 @@ TEST(BekkerWong, BulldozingOfTheSide) {
                           p.soil.unit_weight * kp *
                             (chord * chord * chord / 12.0 -
                              (p.radius - depth) * area);
-  BekkerWong wheel(p);
+  p.Prepare();
+  BekkerWong& wheel = p;
   Evaluate(wheel, WheelContact(depth, 0.0, 0.0, 1.0));
   EXPECT_NEAR(wheel.get_bulldozing_force(), -expected, 2e-3 * expected);
   Evaluate(wheel, WheelContact(depth, 0.0, 0.0, -1.0));
@@ -525,11 +536,10 @@ TEST(BekkerWong, BulldozingOfTheSide) {
   EXPECT_LT(wheel.get_bulldozing_force(), 0.0);
   EXPECT_GT(wheel.get_bulldozing_force(), -0.6 * expected);
   // switched off
-  BekkerWongParameters off = p;
-  off.bulldozing = false;
-  BekkerWong plain(off);
-  Evaluate(plain, WheelContact(depth, 0.0, 0.0, 1.0));
-  EXPECT_EQ(plain.get_bulldozing_force(), 0.0);
+  p.bulldozing = false;
+  p.Prepare();
+  Evaluate(p, WheelContact(depth, 0.0, 0.0, 1.0));
+  EXPECT_EQ(p.get_bulldozing_force(), 0.0);
 }
 
 TEST(BekkerWong, PublishedWheelsAtTheirMeasuredSinkage) {
@@ -549,12 +559,13 @@ TEST(BekkerWong, PublishedWheelsAtTheirMeasuredSinkage) {
       {std::tuple<double, double, double>{0.160, 0.032, 2.66e-3},
        std::tuple<double, double, double>{0.210, 0.050, 3.0e-3}}) {
     SCOPED_TRACE(d);
-    BekkerWongParameters p;
+    BekkerWong p;
     p.radius = 0.5 * d;
     p.width = b;
     ASSERT_TRUE(LookupSoil("tri1_lunar_simulant", p.soil));
     p.c1 = p.c2 = 0.0;
-    BekkerWong wheel(p);
+    p.Prepare();
+    BekkerWong& wheel = p;
     const ksl_coscrew_t f =
       Evaluate(wheel, WheelContact(z, 0.0, 0.0, 0.0, p.radius));
     const double n = p.soil.n;
@@ -567,9 +578,9 @@ TEST(BekkerWong, PublishedWheelsAtTheirMeasuredSinkage) {
     EXPECT_LT(-f.lin.z, 0.5 * (d < 0.18 ? 52.2 : 67.4));
     // the stress at the entry angle's neighbour, at theta_m for c1 = 0.4
     p.c1 = 0.4;
-    BekkerWong paper(p);
-    Evaluate(paper, WheelContact(z, 0.0, 0.0, 0.0, p.radius));
-    const double peak = paper.NormalStress(paper.get_max_stress_angle());
+    p.Prepare();
+    Evaluate(p, WheelContact(z, 0.0, 0.0, 0.0, p.radius));
+    const double peak = p.NormalStress(p.get_max_stress_angle());
     EXPECT_GT(peak, 20e3);
     EXPECT_LT(peak, 40e3);
   }

@@ -27,15 +27,15 @@ Hydraulic Control Systems, 1967):
 
 \f[
 \begin{aligned}
-\dot{p}_h &= \frac{b}{v_h} (q_h - a_h \dot{x} - q_l + q_{rh}) \\
-\dot{p}_r &= \frac{b}{v_r} (q_r + a_r \dot{x} + q_l + q_{rr})
+\dot{p}_h &= \frac{\beta}{v_h} (q_h - a_h \dot{x} - q_l + q_{rh}) \\
+\dot{p}_r &= \frac{\beta}{v_r} (q_r + a_r \dot{x} + q_l + q_{rr})
 \end{aligned}
 \f]
 
 where \f$x\f$ is the extension of the cylinder from fully retracted,
 \f$a_h\f$ and \f$a_r\f$ the head and annulus areas,
 \f$v_h = v_{h0} + a_h x\f$ and \f$v_r = v_{r0} + a_r (\mathrm{stroke} - x)\f$ the
-volumes of oil on each side, \f$b\f$ the bulk modulus of the oil, and \f$q_l\f$
+volumes of oil on each side, \f$\beta\f$ the bulk modulus of the oil, and \f$q_l\f$
 the leakage past the piston from head to rod side.
 
 The valve opening \f$u\f$, from -1 to 1, connects the supply to the head side and
