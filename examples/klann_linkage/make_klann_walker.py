@@ -7,7 +7,8 @@ and joints), hung from a chassis on a float joint:
 * two shafts, one at the front and one at the rear of the chassis, each
   carrying four legs, two on each side in their own planes, with the crank of
   every leg fixed to its shaft at its own phase (0 and 180 degrees on each
-  side); the rear shaft turns half a turn behind the front one;
+  side); the cranks of the rear shaft point the same way as those of the front
+  one, and stay so, as the shafts turn alike;
 * the legs of the right side are mirror images across the x-y plane of the
   linkage: meshes with scale [1, 1, -1], frames and centers of mass with z
   negated, and the products of inertia with z negated;
@@ -28,10 +29,12 @@ and joints), hung from a chassis on a float joint:
   across the leg, against the ground plane. The contact force module is
   Hertz line contact of the cylinder on the plane (see the Contact page).
 
-The joint angles of the four phases are from klann_linkage.json run with its
-crank driven at a steady speed (the angles at the crank angles 0, 90, 180
-and 270 degrees after its initial one): the closure of each loop starts from
-them.
+The joint angles of the phases are from klann_linkage.json run with its crank
+driven at a steady speed: the closure of each loop starts from them. PHASES,
+of the front legs, are at the crank angles 0 and 180 degrees after its initial
+one. A rear leg is a mirror image, so its crank points at pi - a for the angle
+a of the linkage: REAR_PHASES, for the same direction of the crank as the
+front leg of that phase, are at pi - a.
 
 usage: make_klann_walker.py
 """
@@ -48,7 +51,6 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 import mesh_builder  # noqa: E402
 
 SHAFT_X = {"f": 0.7, "b": -0.7}     # of the front and rear (back) shafts
-SHAFT_PHASE = {"f": 0, "b": 180}    # the rear shaft is half a turn behind
 LEG_Y = [0.15, 0.65]                # of the left legs (to the left), mirrored
 PHASE = [0, 180]                    # crank angle of each leg on its shaft
 PIVOT_Z = 0.9                       # of the shaft, below the deck
@@ -68,9 +70,11 @@ FOOT_CENTER = [-1.63, -0.42, 0.05]  # the center of the tip of the leg
 # rocker arm to connecting rod, first rocker arm to leg, connecting rod to leg
 PHASES = {
     0: [3.532, 2.3624, 2.4979, 2.4919, 3.6615, 4.5717, 1.0458],
-    90: [5.1032, 0.9039, 1.4394, 0.6014, 4.7979, 5.6991, 1.4367],
     180: [6.6744, 0.6592, 2.4779, -0.2521, 5.7631, 5.1328, 1.1884],
-    270: [8.2456, 1.8577, 2.6185, -1.7642, 4.6237, 4.6151, 0.7522],
+}
+REAR_PHASES = {
+    0: [5.8928, 0.6298, 2.093, 0.1945, 5.4575, 5.4003, 1.406],
+    180: [9.0344, 2.4343, 2.9034, -2.6329, 3.9672, 4.1919, 0.6938],
 }
 JOINTS = [
     "a_fixed_to_crank", "b_fixed_to_second_rocker_arm",
@@ -237,7 +241,7 @@ for shaft_id, x0 in SHAFT_X.items():
             # the y-z plane: x and the angles reverse
             fx = -1.0 if back else 1.0
             angles = [fx * a for a in
-                      PHASES[(PHASE[k] + SHAFT_PHASE[shaft_id]) % 360]]
+                      (REAR_PHASES if back else PHASES)[PHASE[k]]]
             y = LEG_Y[k] if mirrored else -LEG_Y[k]
             out = 1.0 if mirrored else -1.0   # outward along y
             # the layers of the inner legs are mirrored about the plane of
