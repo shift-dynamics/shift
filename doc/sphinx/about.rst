@@ -130,7 +130,7 @@ Exact CAD geometry from STEP files
 
 .. raw:: html
 
-    <video src="_static/track_loop.webm" width="640" controls>
+    <video src="_static/track_frame.webm" width="640" controls>
     </video>
 
 
@@ -144,8 +144,9 @@ Contact uses the same surfaces. Between two STEP parts, or a STEP part and any o
 the other collision shapes, the points of contact, their depths and their normals are
 solved on the surfaces themselves, so the normals and curvatures are those of the part and not of the
 facets of a mesh, and the Hertz contact law uses the true curvature at each point.
-In this track, 44 links run around a drive sprocket and an idler and rest on the
-ground, with every contact found on the surfaces of the STEP files. Reading STEP
+In this track frame, half of a 20 t excavator, 44 links run around a drive sprocket,
+an idler, five track rollers and a carrier roller, and the sprocket drives the frame
+along the ground, with every contact found on the surfaces of the STEP files. Reading STEP
 files needs the optional STEPcode library.
 
 

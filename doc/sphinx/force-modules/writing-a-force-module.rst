@@ -11,8 +11,8 @@ under the ``type`` that model files use. The modules in
 ``belt.cc`` apply forces to bodies, ``hydraulic_cylinder.cc`` to a joint,
 and ``rubber_mount.cc`` and ``belt.cc`` keep internal states.
 
-The life of a module
---------------------
+Force module lifecycle
+----------------------
 
 ``DeclareParameters()``
     Called from the constructor: declares each JSON key, the member it is
