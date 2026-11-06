@@ -353,3 +353,10 @@ void shift::core::body::Base::ComputeMassFromGeometry(MassCache& cache) {
      << (closed ? "" : " (convex hull)");
   SHIFT_INFO(ss.str());
 }
+
+void shift::core::body::Base::CheckUniqueNames() {
+  CheckObjectNames(frames_.get_data(), "Frame");
+  CheckObjectNames(lights_.get_data(), "Light");
+  CheckObjectNames(geometry_.get_data(), "Geometry");
+  CheckObjectNames(collision_geometry_.get_data(), "Collision geometry");
+}

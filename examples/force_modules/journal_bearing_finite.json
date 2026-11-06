@@ -1,0 +1,211 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 5.0,
+        "time_step": 0.0005,
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "journal_bearing_finite.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "bearing_axis",
+      "T": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "rotor",
+      "comment": "The shaft of journal_bearing.json in a bearing twice as long, as long as its diameter: too long for the short bearing theory, so the module solves the Reynolds equation for its length. The oil heats with the friction and thins, and the shaft sinks as it does; the heating rises towards the balance of the friction and the cooling.",
+      "bodies": [
+        {
+          "name": "carriage_x",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 0.001,
+            "Ixx": 1e-06,
+            "Iyy": 1e-06,
+            "Izz": 1e-06,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "carriage_y",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 0.001,
+            "Ixx": 1e-06,
+            "Iyy": 1e-06,
+            "Izz": 1e-06,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "shaft",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 10.0,
+            "Ixx": 0.1,
+            "Iyy": 0.1,
+            "Izz": 1000.0,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide_x",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "bearing_axis"
+          ],
+          "child": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "slide_y",
+          "type": "prismatic",
+          "parent": [
+            [
+              "carriage_x"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carriage_y"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "parent": [
+            [
+              "carriage_y"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "shaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_velocity": 100.0
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "journal_bearing",
+          "name": "bearing",
+          "journal": [
+            "shaft",
+            "origin"
+          ],
+          "bearing": [
+            "fixed",
+            "bearing_axis"
+          ],
+          "radius": 0.025,
+          "length": 0.05,
+          "clearance": 5e-05,
+          "viscosity": 0.005,
+          "model": "finite",
+          "heat_capacity": 0.5,
+          "cooling": 0.5,
+          "viscosity_slope": 0.03
+        }
+      ]
+    }
+  ]
+}

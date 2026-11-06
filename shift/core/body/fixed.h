@@ -41,6 +41,10 @@ public:
 
   virtual void DeclareParameters() override;
 
+  /*! \brief as body::Base, with the frames, lights and terrain of the fixed
+   * body */
+  virtual void CheckUniqueNames() override;
+
   std::vector<std::unique_ptr<terrain::Base>>& get_terrain() {
     return terrain_.get_data();
   }

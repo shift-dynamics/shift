@@ -21,7 +21,7 @@ pose and in the axes of the rest pose:
 
 .. math::
 
-   \underline{x} = [d_x, d_y, d_z, r_x, r_y, r_z]
+   \underline{x} = \begin{Bmatrix} \underline{d} \\ \underline{r} \end{Bmatrix}
 
 with :math:`\underline{d}` the displacement of :math:`j`'s origin and
 :math:`\underline{r}` the rotation vector (axis times angle, radians) of its
@@ -36,8 +36,8 @@ axes, are
 
 .. math::
 
-   \underline{f} = -K \underline{x} - C \dot{\underline{x}} +
-   \underline{f}_0
+   \mathbf{\underline{f}}^* = -K \underline{x} - C \dot{\underline{x}} +
+   \mathbf{\underline{f}}^*_0
 
 and the opposite force and moment act on frame :math:`i`'s body at the
 same point. For :math:`m` pairs, :math:`K` and :math:`C` are
@@ -63,7 +63,7 @@ Outputs
 -------
 
 ``pair_<k>_fx``, ``_fy``, ``_fz``, ``_mx``, ``_my``, ``_mz``: the force and
-moment :math:`\underline{f}` of each pair :math:`k` on frame :math:`j`, in
+moment :math:`\mathbf{\underline{f}}^*` of each pair :math:`k` on frame :math:`j`, in
 the rest axes.
 
 Example

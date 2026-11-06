@@ -17,15 +17,15 @@ less the rate at which its volume grows, over the side's compliance
 
 .. math::
 
-   \dot p_h = \frac{\beta}{V_h}\left(Q_h - A_h \dot x - Q_l + Q_{rh}\right),
+   \dot p_h = \frac{\beta}{v_h}\left(q_h - a_h \dot x - q_l + q_{rh}\right),
    \qquad
-   \dot p_r = \frac{\beta}{V_r}\left(Q_r + A_r \dot x + Q_l + Q_{rr}\right)
+   \dot p_r = \frac{\beta}{v_r}\left(q_r + a_r \dot x + q_l + q_{rr}\right)
 
-where :math:`x` is the extension from fully retracted, :math:`A_h` and
-:math:`A_r` the head and annulus areas, :math:`V_h = V_{h0} + A_h x` and
-:math:`V_r = V_{r0} + A_r(s - x)` the volumes of oil on each side for the
+where :math:`x` is the extension from fully retracted, :math:`a_h` and
+:math:`a_r` the head and annulus areas, :math:`v_h = v_{h0} + a_h x` and
+:math:`v_r = v_{r0} + a_r(s - x)` the volumes of oil on each side for the
 stroke :math:`s`, :math:`\beta` the bulk modulus of the oil, and
-:math:`Q_l` the leakage past the piston.
+:math:`q_l` the leakage past the piston.
 
 Valve
 -----
@@ -37,7 +37,7 @@ orifice,
 
 .. math::
 
-   Q = |u|\, Q_\text{rated} \sqrt{\Delta p / \Delta p_\text{rated}}
+   q = |u|\, q_\text{rated} \sqrt{\Delta p / \Delta p_\text{rated}}
 
 with the square root made smooth near zero pressure drop, where the flow
 becomes laminar. A relief valve on each side lets oil out to the tank above
@@ -54,9 +54,9 @@ The force of the cylinder along its extension,
 
 .. math::
 
-   F = p_h A_h - p_r A_r - c\,\dot x - F_\text{stop}
+   f = p_h a_h - p_r a_r - c\,\dot x - f_\text{stop}
 
-is applied to the joint. :math:`F_\text{stop}` holds the piston at the ends
+is applied to the joint. :math:`f_\text{stop}` holds the piston at the ends
 of its stroke: :math:`k\,\delta (1 + e\,\dot\delta)` for a penetration
 :math:`\delta` past an end, never pulling (Hunt and Crossley's contact force
 :cite:`hunt1975`).

@@ -62,21 +62,9 @@ void shift::core::force_module::Bushing::DeclareParameters() {
 
 std::string shift::core::force_module::Bushing::FindFile(
   const std::string& name) const {
-  if(!name.empty() && name[0] == '/') {
-    return name;
-  }
-  const std::string file =
-    shift::core::utility::GetParentPath(context_->get_filename()) + "/" + name;
-  if(shift::core::utility::FileExists(file)) {
+  const std::string file = context_->FindFile(name);
+  if(!file.empty()) {
     return file;
-  }
-  for(const auto& directory :
-      (*context_)["model_parameters"]["include_directories"]
-        .get<std::vector<std::string>>()) {
-    const std::string candidate = directory + "/" + name;
-    if(shift::core::utility::FileExists(candidate)) {
-      return candidate;
-    }
   }
   throw shift::core::Exception("Bushing " + get_name() + ": file " + name +
                                " not found");
@@ -95,7 +83,7 @@ void shift::core::force_module::Bushing::Connect() {
                                    "[body, frame]");
     }
     Attachment a;
-    a.body = context_->FindActiveBody(names[0]);
+    a.body = context_->FindActiveBody(names[0], get_parent_assembly());
     if(!a.body) {
       throw shift::core::Exception(prefix + "body " + names[0] +
                                    " not found among the active bodies");

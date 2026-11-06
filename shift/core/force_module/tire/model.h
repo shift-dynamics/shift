@@ -30,6 +30,7 @@ struct Contact {
   ksl_vec3_t center_velocity_w;
   ksl_vec3_t spin_axis_w = {{0.0, 1.0, 0.0}}; //!< wheel spin axis (hub y
                                               //!< axis), in the w frame
+  ksl_vec3_t hub_w = {{0.0, 0.0, 0.0}}; //!< the hub, in the w frame
   /*! velocity of the hub, and angular velocity of the wheel, in the w
    * frame */
   ksl_vec3_t hub_velocity_w = {{0.0, 0.0, 0.0}};
@@ -48,6 +49,10 @@ class Model {
 public:
   virtual ~Model() {}
 
+  /*! \brief check the parameters and prepare what follows from them, once
+   * they are read; throws if one is out of range */
+  virtual void Prepare() {}
+
   /*! \brief number of internal states */
   virtual unsigned int get_state_count() const = 0;
 
@@ -59,6 +64,13 @@ public:
    * the middle of its rim does; 0 if the model has no width */
   virtual double get_half_width() const {
     return 0.0;
+  }
+
+  /*! \brief the number of slices of the wheel with which tire::Base finds
+   * the contact with the terrain under it (see Iowa); 0, for the plane tangent
+   * to the terrain under the wheel */
+  virtual int get_contact_segments() const {
+    return 0;
   }
 
   /*! \brief compute the force and moment on the wheel in the w frame

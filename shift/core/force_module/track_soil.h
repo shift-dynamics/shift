@@ -53,11 +53,11 @@ Rankine's passive earth pressure on the faces of the soil in the shoe's
 way: the leading grouser (width x the passive force per width at the
 grouser's embedded depth, \f$\min(z, \mathrm{grouser\_height})\f$) along the
 track, and a side of the shoe (length x the passive force at the shoe's depth)
-across it. Both are mobilized by the shear displacement \f$j\f$ of the shoe on
-the soil, by \f$1 - e^{-|j| / k_j}\f$, and oppose it. \f$j\f$, in the ground
+across it. Both are mobilized by the shear displacement \f$\underline{j}\f$ of the shoe on
+the soil, by \f$1 - e^{-|\underline{j}| / k_j}\f$, and oppose it. \f$\underline{j}\f$, in the ground
 plane, is a state: the slip velocity of the shoe's center while it is on the
 soil, relaxing to zero with shear_time when it is lifted,
-\f$\dot{j} = w v - (1 - w) j / t_{shear}\f$, with
+\f$\dot{\underline{j}} = w \underline{v} - (1 - w) \underline{j} / t_{shear}\f$, with
 \f$w = 1 - e^{-z_{max} / \mathrm{contact\_depth}}\f$ for the deepest station's
 sinkage \f$z_{max}\f$.
 

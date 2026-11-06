@@ -5,6 +5,7 @@ core_src += files(
   'bushing.cc',
   'contact.cc',
   'gear_mesh.cc',
+  'gear_teeth.cc',
   'hydraulic_cylinder.cc',
   'journal_bearing.cc',
   'lead_screw.cc',
@@ -17,5 +18,6 @@ core_src += files(
   'tire/base.cc',
   'tire/bekker_wong.cc',
   'tire/fiala.cc',
+  'tire/iowa.cc',
   'tire/pac2002.cc',
 )

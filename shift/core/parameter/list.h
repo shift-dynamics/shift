@@ -4,7 +4,9 @@
 #include "shift/core/parameter/value.h"
 
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace shift {
 namespace core {
@@ -51,8 +53,33 @@ public:
     return active_;
   }
 
-  Assembly* get_parent_assembly() {
+  Assembly* get_parent_assembly() const {
     return parent_assembly_ptr_;
+  }
+
+  /*! \brief name, an object of this list, with the assemblies around it:
+   * <assembly>__<subassembly>__<name>. Names are unique within an assembly, so
+   * this identifies the object in the model. An object of a body has the name
+   * of the body before its own. */
+  std::string FullyQualifiedName(const std::string& name) const;
+
+  /*! \brief throw if two of the fully qualified names are the same; kind names
+   * the objects in the message */
+  static void CheckNames(const std::vector<std::string>& names,
+                         const std::string& kind);
+
+  /*! \brief as CheckNames, for the objects of an array; unnamed ones are
+   * skipped, as a name is optional for some */
+  template <class T>
+  static void CheckObjectNames(const std::vector<std::unique_ptr<T>>& objects,
+                               const std::string& kind) {
+    std::vector<std::string> names;
+    for(const auto& object : objects) {
+      if(!object->get_name().empty()) {
+        names.push_back(object->FullyQualifiedName(object->get_name()));
+      }
+    }
+    CheckNames(names, kind);
   }
 
   shift::core::body::Base* get_parent_body() {

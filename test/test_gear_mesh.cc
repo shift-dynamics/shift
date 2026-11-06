@@ -8,6 +8,7 @@ transmission error by the errors of the teeth */
 
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -18,6 +19,7 @@ transmission error by the errors of the teeth */
 #include "shift/core/joint/base.h"
 
 using shift::core::force_module::GearMesh;
+using shift::core::force_module::GearTeeth;
 
 static const double kR1 = 0.05, kR2 = 0.1;
 static const double kI1 = 0.01, kI2 = 0.08;
@@ -29,7 +31,7 @@ model */
 static void Load(shift::core::Context& context, const std::string& mesh,
                  double time_span, const std::string& drive = "",
                  double load = 0.0, double speed_1 = 0.0,
-                 double speed_2 = 0.0) {
+                 double speed_2 = 0.0, double center = kR1 + kR2) {
   const std::string path = testing::TempDir() + "/gear_mesh_test.json";
   {
     std::ofstream file(path);
@@ -45,7 +47,7 @@ static void Load(shift::core::Context& context, const std::string& mesh,
          << time_span << R"(, "time_step": 0.0001,
                      "relative_error": 1e-8, "absolute_error": 1e-10}]
   },
-  "frames": [{"name": "axis_2", "T": [)" << kR1 + kR2 << R"(, 0, 0]}],
+  "frames": [{"name": "axis_2", "T": [)" << center << R"(, 0, 0]}],
   "assemblies": [{"name": "test",
     "bodies": [
       {"name": "gear_1", "center_of_mass": [0, 0, 0],
@@ -204,8 +206,9 @@ TEST(GearMesh, BacklashLeavesTheTeethApartAndTheyNeverPull) {
   ASSERT_NE(mesh, nullptr);
   for(double e_t : {0.0, 1e-5, -1.9e-5, 2e-5}) {
     Evaluate(context, mesh, e_t, 0.0);
-    EXPECT_EQ(mesh->get_force_plus(), 0.0) << e_t;
-    EXPECT_EQ(mesh->get_force_minus(), 0.0) << e_t;
+    // 2e-5 is exactly at the edge of the gap, where rounding may leave ~1e-25 N
+    EXPECT_NEAR(mesh->get_force_plus(), 0.0, 1e-15) << e_t;
+    EXPECT_NEAR(mesh->get_force_minus(), 0.0, 1e-15) << e_t;
   }
   // 5 um past the gap on the plus side
   Evaluate(context, mesh, 2.5e-5, 0.0);
@@ -388,4 +391,210 @@ TEST(GearMesh, WhatItRefuses) {
             std::string::npos); // does not span [0, 1]
   EXPECT_EQ(message(R"("tooth_stiffness": 1e8)"), "");
   EXPECT_EQ(message(R"("stiffness_table": [0, 1e8, 0.5, 2e8, 1, 1e8])"), "");
+}
+
+TEST(GearMeshInternal, ARingTurnsTheSameWayAndCarriesTheLoad) {
+  shift::core::Context context;
+  const double load = 0.2;
+  Load(context,
+       R"("internal": true, "tooth_stiffness": 1e8, "contact_ratio": 1.6,
+          "damping": 7e3, "smoothing": 1e-9)",
+       0.4, kDrive, load, 0.0, 0.0, kR2 - kR1);
+  GearMesh* mesh = Find(context);
+  ASSERT_NE(mesh, nullptr);
+  std::vector<double> state;
+  double sum = 0.0;
+  int count = 0;
+  context.set_state_observer([&](double t, const std::vector<double>& y) {
+    state = y;
+    if(t > 0.3) {
+      mesh->UpdateOutputs(t, y.data());
+      sum += mesh->get_mesh_force();
+      count++;
+    }
+  });
+  context.Simulate();
+  ASSERT_GT(count, 10);
+  const double w1 = Joint(context, "turn_1", state);
+  const double w2 = Joint(context, "turn_2", state);
+  EXPECT_NEAR(w2 / w1, kR1 / kR2, 2e-3);
+  const double expected = load * std::fabs(w2) / kR2;
+  EXPECT_NEAR(std::fabs(sum / count), expected, 0.02 * expected);
+}
+
+TEST(GearMeshInternal, APinionPushedTowardsThePitchPointCompressesTheTeeth) {
+  // the centers of an internal pair get farther apart as the pinion moves
+  // into the ring's teeth, the opposite of an external pair
+  shift::core::Context context;
+  Load(context, R"("internal": true, "tooth_stiffness": 1e8,
+                   "contact_ratio": 1.0, "ramp": 0, "smoothing": 1e-13)",
+       0.1, "", 0.0, 0.0, 0.0, kR2 - kR1);
+  GearMesh* mesh = Find(context);
+  Evaluate(context, mesh, 1e-5, 0.0);
+  const double cp = std::cos(20.0 * M_PI / 180.0);
+  EXPECT_NEAR(mesh->get_force_plus(), 1e8 * cp * 1e-5, 1e-4);
+  EXPECT_NEAR(mesh->get_radial_force(),
+              mesh->get_mesh_force() * std::tan(20.0 * M_PI / 180.0), 1e-6);
+}
+
+TEST(GearMeshHelical, TheForcesAreThoseOfAHelicalGear) {
+  // the textbook relations: f_a = f_t tan(beta),
+  // f_r = f_t tan(phi_n) / cos(beta)
+  const double beta = 0.3, phi = 20.0 * M_PI / 180.0;
+  shift::core::Context context;
+  Load(context, R"("helix_angle": 0.3, "tooth_stiffness": 1e8,
+                   "contact_ratio": 1.0, "ramp": 0, "smoothing": 1e-13)",
+       0.1);
+  GearMesh* mesh = Find(context);
+  Evaluate(context, mesh, 1e-5, 0.0);
+  const double tangent = mesh->get_mesh_force();
+  EXPECT_NEAR(tangent, 1e8 * 1e-5 * std::pow(std::cos(phi) * std::cos(beta), 2.0),
+              1e-4);
+  EXPECT_NEAR(std::fabs(mesh->get_axial_force()), tangent * std::tan(beta), 1e-6);
+  EXPECT_NEAR(mesh->get_radial_force(),
+              tangent * std::tan(phi) / std::cos(beta), 1e-6);
+  // a right hand helix on gear 1 pushes gear 2 against the axis when gear 1
+  // drives it along the tangent, and the opposite for a left hand one
+  EXPECT_LT(mesh->get_axial_force(), 0.0);
+  shift::core::Context left;
+  Load(left, R"("helix_angle": -0.3, "tooth_stiffness": 1e8,
+                "contact_ratio": 1.0, "ramp": 0)",
+       0.1);
+  Evaluate(left, Find(left), 1e-5, 0.0);
+  EXPECT_GT(Find(left)->get_axial_force(), 0.0);
+}
+
+TEST(GearMeshHelical, AWholeToothOfOverlapLeavesAConstantStiffness) {
+  // an overlap of one pitch: every position in the mesh is present somewhere
+  // along the face, so the stiffness is the mean, k_t times the contact ratio
+  const double pitch = 2.0 * M_PI * kR1 / 20.0;
+  const double beta = 0.3;
+  std::ostringstream options;
+  options.precision(17);
+  options << R"("helix_angle": 0.3, "tooth_stiffness": 1e8,
+                "contact_ratio": 1.6, "face_width": )"
+          << pitch / std::tan(beta);
+  shift::core::Context context;
+  Load(context, options.str(), 0.1);
+  GearMesh* mesh = Find(context);
+  for(double x = 0.0; x <= 1.0; x += 0.1) {
+    EXPECT_NEAR(mesh->StiffnessAt(x), 1.6e8, 0.02 * 1.6e8);
+  }
+}
+
+TEST(GearTeeth, TheContactRatioIsThatOfTheInvolutes) {
+  // module 2 mm, 25 and 50 teeth, 20 degrees
+  GearTeeth teeth;
+  teeth.youngs_modulus = 2.06e11;
+  const double phi = 20.0 * M_PI / 180.0, m = 0.002;
+  const double r_1 = 0.025, r_2 = 0.05;
+  teeth.Configure(r_1, r_2, 25, 50, phi, m, false);
+  const double b_1 = r_1 * std::cos(phi), b_2 = r_2 * std::cos(phi);
+  const double path = std::sqrt(std::pow(r_1 + m, 2.0) - b_1 * b_1) +
+                      std::sqrt(std::pow(r_2 + m, 2.0) - b_2 * b_2) -
+                      (r_1 + r_2) * std::sin(phi);
+  EXPECT_NEAR(teeth.get_contact_ratio(), path / (M_PI * m * std::cos(phi)), 1e-12);
+  EXPECT_GT(teeth.get_contact_ratio(), 1.6);
+  EXPECT_LT(teeth.get_contact_ratio(), 1.8);
+}
+
+TEST(GearTeeth, AgreesWithTheSingleStiffnessOfISO6336) {
+  // ISO 6336-1 for solid steel gears without shift:
+  // c' = 0.8 / (0.04723 + 0.15551 / z_1 + 0.25791 / z_2) N/(mm um)
+  GearTeeth teeth;
+  teeth.youngs_modulus = 2.06e11;
+  const double phi = 20.0 * M_PI / 180.0;
+  for(int z_1 : {20, 25, 30}) {
+    const int z_2 = 2 * z_1;
+    const double m = 0.002;
+    teeth.Configure(0.5 * m * z_1, 0.5 * m * z_2, z_1, z_2, phi, m, false);
+    const double single = teeth.MeshStiffness(0.5, 1.0); // N/m per m of width
+    const double iso = 0.8 / (0.04723 + 0.15551 / z_1 + 0.25791 / z_2) * 1e9;
+    EXPECT_NEAR(single / iso, 1.0, 0.1) << z_1;
+  }
+}
+
+TEST(GearTeeth, ThePairsShareTheMeshAndTheStiffnessScales) {
+  GearTeeth teeth;
+  teeth.youngs_modulus = 2.06e11;
+  teeth.Configure(0.025, 0.05, 25, 50, 20.0 * M_PI / 180.0, 0.002, false);
+  const double epsilon = teeth.get_contact_ratio();
+  // a pair is stiffest in the middle of its path
+  const double middle = teeth.PairStiffness(0.5 * epsilon, 0.02);
+  EXPECT_GT(middle, teeth.PairStiffness(0.0, 0.02));
+  EXPECT_GT(middle, teeth.PairStiffness(epsilon, 0.02));
+  // one pair at x = 0.5, two at x = 0
+  EXPECT_NEAR(teeth.MeshStiffness(0.5, 0.02), middle, 1e-6 * middle);
+  EXPECT_GT(teeth.MeshStiffness(0.0, 0.02), 1.5 * middle);
+  // in proportion to the face width and to the modulus
+  EXPECT_NEAR(teeth.PairStiffness(0.7, 0.04), 2.0 * teeth.PairStiffness(0.7, 0.02),
+              1e-3);
+  teeth.youngs_modulus *= 0.5;
+  EXPECT_NEAR(teeth.PairStiffness(0.7, 0.02) * 2.0,
+              teeth.PairStiffness(0.7, 0.04), 1e-3);
+}
+
+TEST(GearTeeth, AMeshTakesItsStiffnessFromTheTeeth) {
+  // the pitch radii of the test, 20 and 40 teeth
+  shift::core::Context context;
+  Load(context, R"("face_width": 0.02,
+                   "tooth_geometry": {"youngs_modulus": 2.06e11})",
+       0.1);
+  GearMesh* mesh = Find(context);
+  ASSERT_NE(mesh, nullptr);
+  EXPECT_GT(mesh->get_contact_ratio(), 1.5);
+  EXPECT_LT(mesh->get_contact_ratio(), 1.8);
+  EXPECT_GT(mesh->StiffnessAt(0.0), 1.3 * mesh->StiffnessAt(0.5));
+  EXPECT_GT(mesh->StiffnessAt(0.5), 1e8);
+  EXPECT_LT(mesh->StiffnessAt(0.5), 1e9);
+}
+
+TEST(GearTeeth, ARingMeshesAndWhatDoesNotMeshIsRefused) {
+  GearTeeth teeth;
+  teeth.youngs_modulus = 2.06e11;
+  const double phi = 20.0 * M_PI / 180.0;
+  // 20 teeth in 60 would interfere with full depth teeth; 30 in 90 do not
+  EXPECT_THROW(teeth.Configure(0.02, 0.06, 20, 60, phi, 0.002, true),
+               std::exception);
+  teeth.Configure(0.03, 0.09, 30, 90, phi, 0.002, true);
+  EXPECT_GT(teeth.get_contact_ratio(), 1.6); // internal pairs overlap more
+  EXPECT_GT(teeth.MeshStiffness(0.5, 0.02), 1e8);
+  // the teeth of a tiny pinion reach inside the wheel's base circle
+  EXPECT_THROW(teeth.Configure(0.006, 0.1, 6, 100, phi, 0.002, false),
+               std::exception);
+  shift::core::Context context;
+  EXPECT_THROW(Load(context, R"("tooth_geometry": {"youngs_modulus": 2e11})", 0.1),
+               std::exception); // no face_width
+}
+
+TEST(GearMeshOil, TheSqueezeFilmIsThatOfTheReynoldsEquation) {
+  // the gears crossing their backlash: a direct integration of the pressure
+  // between two cylinders, p' = 12 mu v x / h^3, against the module's force
+  const double mu = 0.05, width = 0.02, omega = 2.0;
+  const double phi = 20.0 * M_PI / 180.0;
+  std::ostringstream options;
+  options << R"("tooth_stiffness": 1e8, "contact_ratio": 1.0, "ramp": 0,
+                "backlash": 1e-3, "smoothing": 1e-9, "face_width": )"
+          << width << R"(, "oil_viscosity": )" << mu;
+  shift::core::Context context;
+  Load(context, options.str(), 0.1, "", 0.0, 0.0, 0.0);
+  GearMesh* mesh = Find(context);
+  auto joint = context["assemblies"]["test"]["joints"]["turn_1"]
+                 .get_data<shift::core::joint::Base>();
+  context.get_dq()[joint->get_dq_index()] = omega;
+  Evaluate(context, mesh, 0.0, 0.0);
+  const double closing = omega * kR1 * std::cos(phi);
+  const double gap = 0.5 * std::cos(phi) * 1e-3 + 1e-6;
+  const double r_1 = kR1 * std::sin(phi), r_2 = kR2 * std::sin(phi);
+  const double radius = r_1 * r_2 / (r_1 + r_2);
+  double integral = 0.0;
+  const double dx = 1e-5;
+  for(double x = -0.5 * dx + 0.2; x > -0.2; x -= dx) {
+    integral += x * x / std::pow(gap + x * x / (2.0 * radius), 3.0) * dx;
+  }
+  const double force = 12.0 * mu * closing * width * integral;
+  EXPECT_NEAR(mesh->get_squeeze_force(), force, 0.01 * force);
+  // and the flank that opens has none: only the one closing
+  EXPECT_NEAR(mesh->get_force_plus(), force, 0.01 * force);
+  EXPECT_EQ(mesh->get_force_minus(), 0.0);
 }

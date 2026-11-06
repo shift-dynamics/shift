@@ -105,6 +105,7 @@ public:
 
 protected:
   void DeclareParameters() override;
+  void CheckUniqueNames() override;
 
 private:
   static bool registered_;

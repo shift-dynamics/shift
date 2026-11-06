@@ -63,12 +63,21 @@ collision geometry are fixed in space.
 Names
 -----
 
-Every body, joint, frame and module has a ``name``. A joint names the
+Every body, joint, frame and module has a ``name``. A name may be used only
+once at one level: among the assemblies, bodies, joints, force modules,
+sensors, controllers or constraints of an assembly, or among the frames,
+lights, geometry or collision geometry of a body. A model that repeats one does
+not load, even if the objects are not active. The same name is allowed in a
+different assembly or body, and objects of different kinds, such as a body and
+a force module, may share a name, as each object is identified by its fully
+qualified name, ``<assembly>__<subassembly>__<name>``. A joint names the
 bodies it connects as ``[[body], frame]``: ``[["fixed"], "origin"]`` is the
 origin of the fixed body, ``[["boom"], "pivot"]`` the frame ``pivot`` of
-the body ``boom``. Force modules name frames as ``[body, frame]``, with the
-body found by its name among all the active bodies of the model, so body
-names should be unique across the model. Sensors, controllers and force
+the body ``boom``. Force modules and lights name frames as ``[body, frame]``.
+The body is looked for in their own assembly first, then anywhere in the
+model. If several bodies elsewhere have that name, the model does not load:
+give the fully qualified name, such as ``machine__left__load``, to choose one.
+Sensors, controllers and force
 modules that name a joint or a sensor look for it in their own assembly.
 Each body has a frame ``origin`` at its origin, which needs no entry.
 
@@ -255,10 +264,10 @@ quaternion.
 ``"type": "screw"``: a screw, one coordinate: the angle :math:`q` turned about
 ``axis`` (in the parent frame), with the child advancing along the axis by
 ``pitch`` :math:`\cdot q`. The pitch is the advance per radian, so a thread
-that advances :math:`L` per turn has a pitch of :math:`L / 2\pi`; a positive
+that advances :math:`l` per turn has a pitch of :math:`l / 2\pi`; a positive
 pitch is a right-handed screw, and a pitch of zero is a revolute joint. The
-joint's force acts on the angle :math:`q`; a force :math:`F` along the axis
-on the child does the work of a torque :math:`F \cdot` ``pitch`` on the
+joint's force acts on the angle :math:`q`; a force :math:`f` along the axis
+on the child does the work of a torque :math:`f \cdot` ``pitch`` on the
 coordinate.
 
 .. shift-parameters:: shift/core/joint/screw.cc
@@ -313,7 +322,8 @@ Geometry
 
 Geometry is what the viewer draws, and what collision geometry is fitted
 to. Files are found next to the model file or in its
-``include_directories``.
+``include_directories``; a relative include directory is taken from the
+directory of the model file.
 
 .. shift-parameters:: shift/core/geometry/base.cc
 

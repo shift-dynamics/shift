@@ -75,7 +75,7 @@ d(\underline{n}) = \max_{\underline{v}} \underline{n} \cdot
 \f]
 
 with \f$\underline{v}\f$ the hull's vertices, \f$\underline{c}\f$ the
-ellipsoid's center and \f$G = R \, \mathrm{diag}(\underline{a}^2) R^T\f$ its
+ellipsoid's center and \f$G = R \, \mathrm{diag}(a_x^2, a_y^2, a_z^2) R^T\f$ its
 shape matrix. \f$d\f$ is the largest of smooth functions, one per vertex, so
 its least value is set by a feature of the hull, the vertices whose
 functions are largest there:
@@ -149,7 +149,7 @@ bool ConvexHullPairContact(const ConvexHull& a, const ConvexHull& b,
 /*!
 @brief two ellipsoids, by the Perram-Wertheim contact function
 
-With the shape matrices \f$G = R \, \mathrm{diag}(\underline{a}^2) R^T\f$ of the
+With the shape matrices \f$G = R \, \mathrm{diag}(a_x^2, a_y^2, a_z^2) R^T\f$ of the
 ellipsoids, \f$\underline{r} = \underline{c}_b - \underline{c}_a\f$ and
 \f$M(\ell) = (1 - \ell) G_a + \ell G_b\f$, the function
 

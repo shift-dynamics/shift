@@ -77,7 +77,7 @@ shift::core::force_module::LeadScrew::Resolve(
     throw shift::core::Exception(prefix + what + " must be [body, frame]");
   }
   Attachment a;
-  a.body = context_->FindActiveBody(names[0]);
+  a.body = context_->FindActiveBody(names[0], get_parent_assembly());
   if(!a.body) {
     throw shift::core::Exception(prefix + "body " + names[0] +
                                  " not found among the active bodies");

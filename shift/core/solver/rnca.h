@@ -113,7 +113,7 @@ private:
 
   std::vector<double>
     gamma_d_; /*!< preconditioned constraints, this quantity contains both
-                 \f$\gamma^p\f$ and \f$\gamma^d\f$ */
+                 \f$\underline{\gamma}^p\f$ and \f$\underline{\gamma}^d\f$ */
 
   int Ml_size_ = 0; /*!< size of Ml array = \f$(2 + n)(1 + n) / 2\f$ */
 

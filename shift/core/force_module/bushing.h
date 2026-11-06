@@ -46,12 +46,12 @@ rotation. Their rates are the velocity of the origin of \f$j\f$ relative to the
 point of \f$i\f$'s body there, and the angular velocity of \f$j\f$ relative to
 \f$i\f$, in the same axes.
 
-The force and moment \f$\underline{f}\f$ on frame \f$j\f$, at its origin and in
+The force and moment \f$\mathbf{\underline{f}}^*\f$ on frame \f$j\f$, at its origin and in
 the same axes, is
 
 \f[
-\underline{f} = -K \underline{x} - C \dot{\underline{x}} +
-  \underline{f}_{preload}
+\mathbf{\underline{f}}^* = -K \underline{x} - C \dot{\underline{x}} +
+  \mathbf{\underline{f}}^*_0
 \f]
 
 and the opposite force and moment act on frame \f$i\f$'s body at the same point.
@@ -148,7 +148,7 @@ protected:
    * a derived module in dy unless it is null */
   void Compute(const double* y, double* dy);
   /*! \brief add forces of a derived module to f_, and set the rates of its
-   * states, if dy is not null; after \f$\underline{f} = -K \underline{x} - C \underline{v} + \underline{f}_{preload}\f$ */
+   * states, if dy is not null; after \f$\mathbf{\underline{f}}^* = -K \underline{x} - C \dot{\underline{x}} + \mathbf{\underline{f}}^*_0\f$ */
   virtual void AddForces(const double* y, double* dy) {
     (void)y;
     (void)dy;

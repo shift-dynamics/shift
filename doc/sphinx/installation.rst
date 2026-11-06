@@ -92,23 +92,29 @@ option               default   purpose
 Running a model
 ---------------
 
+From the top of the repository, give ``shift-cli`` the path to the model file:
+
 .. code:: bash
 
-   cd examples/pendulum
-   ../../build/shift/main/shift-cli pendulum.json
+   build/shift/main/shift-cli examples/pendulum/pendulum.json
+
+You do not need to start *Shift* from the folder of a model. It runs from any
+directory, and the paths to the program and to the model file can each be
+relative to the current directory or absolute.
 
 ``shift-cli --help`` lists the options: ``-d`` writes the graph of bodies
 and joints and exits, ``-f`` the graph of frames, ``-V`` only checks the
 model file, and ``-v`` sets how much is printed. Files the model refers to
 (meshes, terrain, tire property files) are found next to the model file or
-in its ``include_directories``; log files are written to the current
-directory.
+in its ``include_directories``, wherever you start from: a relative include
+directory is taken from the directory of the model file. A log file is
+written only if the model declares a logger, and goes to the current directory.
 
 To watch it run, open the model in the viewer:
 
 .. code:: bash
 
-   ../../build/shift/main/shift pendulum.json
+   build/shift/main/shift examples/pendulum/pendulum.json
 
 Building this documentation
 ---------------------------

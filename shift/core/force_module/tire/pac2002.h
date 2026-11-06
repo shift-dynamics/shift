@@ -34,9 +34,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <cmath>
 #include <string>
 
 #include "shift/core/force_module/tire/model.h"
+#include "shift/core/parameter/list.h"
 
 namespace shift {
 namespace core {
@@ -196,16 +198,30 @@ Deviations from ChPac02Tire:
    dimensioned value read is converted
  - deflection and bottoming load curves are not supported
 */
-class Pac2002 : public Model {
+class Pac2002
+  : public Model
+  , public parameter::List {
 public:
+  Pac2002() {
+    DeclareParameters();
+  }
   /*! \param gravity magnitude of gravity, for the rolling resistance speed
    * scale */
   /*! \param transient relax the slips (two more states) */
   Pac2002(const Pac2002Coefficients& coefficients, double gravity,
           bool transient = false);
+  virtual ~Pac2002() {}
+
+  std::string definition;   //!< the .tir property file
+  std::string mounted_side; //!< "left", "right" or empty
+  bool use_transient_slip = false;
+
+  /*! \brief the coefficients, read from the property file, and the magnitude
+   * of gravity, for the rolling resistance speed scale */
+  void Configure(const Pac2002Coefficients& coefficients, double gravity);
 
   unsigned int get_state_count() const override {
-    return transient_ ? 4 : 2;
+    return use_transient_slip ? 4 : 2;
   }
 
   /*! \brief longitudinal relaxation length at the load fz */
@@ -220,6 +236,9 @@ public:
   void Evaluate(const Contact& contact, const double* states,
                 double* state_rates, ksl_coscrew_t* force_w) override;
 
+protected:
+  virtual void DeclareParameters() override;
+
 private:
   /*! \brief steady state forces and aligning moment, ISO W axes */
   void CalcFxyMz(double& fx, double& fy, double& mz, double kappa,
@@ -233,11 +252,10 @@ private:
                          double y2);
 
   Pac2002Coefficients p_;
-  double gravity_;
-  bool transient_;
-  double gamma_limit_;
-  double fz0_prime_; //!< scaled nominal load
-  double dpi_;       //!< normalized inflation pressure
+  double gravity_ = 9.81;
+  double gamma_limit_ = 3.0 * M_PI / 180.0;
+  double fz0_prime_ = 0.0; //!< scaled nominal load
+  double dpi_ = 0.0;       //!< normalized inflation pressure
   double dfz0_ = 0.0; //!< normalized load, of the current evaluation
 
   /* Dahl friction model, low speed */

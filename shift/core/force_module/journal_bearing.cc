@@ -48,6 +48,26 @@ void shift::core::force_module::JournalBearing::DeclareParameters() {
                    "bearing; optional, default 0 (none)",
                    false)
     .set_runtime();
+  DeclareParameter("model", &model_,
+                   "\"short\" (Ocvirk's narrow bearing) or \"finite\" (the "
+                   "Reynolds equation solved for the length of the bearing); "
+                   "optional, default \"short\"",
+                   false);
+  DeclareParameter("groove_width", &groove_width_,
+                   "width of a circumferential groove at the middle of the "
+                   "bearing; optional, default 0 (none)",
+                   false);
+  DeclareParameter("heat_capacity", &heat_capacity_,
+                   "heat capacity of the oil and the parts it heats (J/K); "
+                   "optional, default 0 (no heating)",
+                   false);
+  DeclareParameter("cooling", &cooling_,
+                   "heat loss per temperature rise (W/K); optional, default 0",
+                   false);
+  DeclareParameter("viscosity_slope", &viscosity_slope_,
+                   "beta of the viscosity mu exp(-beta T) at the temperature "
+                   "rise T (1/K); optional, default 0",
+                   false);
 }
 
 shift::core::force_module::JournalBearing::Attachment
@@ -58,7 +78,7 @@ shift::core::force_module::JournalBearing::Resolve(
     throw shift::core::Exception(prefix + what + " must be [body, frame]");
   }
   Attachment a;
-  a.body = context_->FindActiveBody(names[0]);
+  a.body = context_->FindActiveBody(names[0], get_parent_assembly());
   if(!a.body) {
     throw shift::core::Exception(prefix + "body " + names[0] +
                                  " not found among the active bodies");
@@ -110,9 +130,201 @@ void shift::core::force_module::JournalBearing::Load() {
     throw shift::core::Exception(prefix + "the clearance must be much less "
                                  "than the radius");
   }
+  if(model_ != "short" && model_ != "finite") {
+    throw shift::core::Exception(prefix + "model must be \"short\" or "
+                                 "\"finite\"");
+  }
+  if(groove_width_ < 0.0 || !(groove_width_ < length_)) {
+    throw shift::core::Exception(prefix + "groove_width must not be negative, "
+                                 "and less than the length");
+  }
+  if(heat_capacity_ < 0.0 || cooling_ < 0.0 || viscosity_slope_ < 0.0) {
+    throw shift::core::Exception(prefix + "heat_capacity, cooling and "
+                                 "viscosity_slope must not be negative");
+  }
+  lands_ = groove_width_ > 0.0 ? 2 : 1;
+  land_ = (length_ - groove_width_) / lands_;
+  film_table_.clear();
+  if(model_ == "finite") {
+    BuildFilmTable();
+  }
   journal_.load_index = bearing_.load_index = -2;
-  equation_count_ = 0;
-  q_0_.clear();
+  equation_count_ = heat_capacity_ > 0.0 ? 1 : 0;
+  q_0_.assign(equation_count_, 0.0);
+}
+
+/* the tables of the finite model */
+static const int kEccentricities = 48;
+static const int kDirections = 72;
+static const double kTopEccentricity = 0.995;
+
+void shift::core::force_module::JournalBearing::BuildFilmTable() {
+  /* the grid: n angles, and m stations from the middle of the land (Z = 0, by
+  symmetry) to the node before its end (Z = 1, where P = 0) */
+  const int n = 180, m = 8;
+  const double kappa = 4.0 * radius_ * radius_ / (land_ * land_);
+  const double dz = 1.0 / m;
+
+  /* the unknowns in the order 0, n-1, 1, n-2, ...: a band of 2 m, with the
+  neighbours round the bearing close together */
+  auto index = [&](int i, int j) {
+    const int fold = i < n / 2 ? 2 * i : 2 * (n - 1 - i) + 1;
+    return fold * m + j;
+  };
+  const int size = n * m, band = 2 * m;
+  std::vector<double> a(static_cast<size_t>(size) * (band + 1));
+  auto at = [&](int row, int column) -> double& { // column <= row
+    return a[static_cast<size_t>(row) * (band + 1) + (row - column)];
+  };
+  /* the weights of Simpson's rule on Z in [0, 1], for the two halves */
+  std::vector<double> simpson(m + 1);
+  for(int j = 0; j <= m; j++) {
+    simpson[j] = dz / 3.0 * (j == 0 || j == m ? 1.0 : (j % 2 ? 4.0 : 2.0));
+  }
+
+  film_table_.assign(static_cast<size_t>(kEccentricities) * kDirections * 3, 0.0);
+  std::vector<double> theta(n), width(n), gap(n), flux(n);
+  std::vector<double> p_s(size), p_q(size);
+  for(int k = 0; k < kEccentricities; k++) {
+    const double epsilon =
+      kTopEccentricity * std::sin(0.5 * M_PI * k / (kEccentricities - 1));
+    const double root = std::sqrt(1.0 - epsilon * epsilon);
+
+    /* angles uniform in Sommerfeld's, close together where the film is thin */
+    for(int i = 0; i < n; i++) {
+      const double psi = 2.0 * M_PI * (i + 0.5) / n - M_PI;
+      theta[i] = std::atan2(root * std::sin(psi), std::cos(psi) - epsilon);
+    }
+    for(int i = 0; i < n; i++) {
+      const double next = i + 1 < n ? theta[i + 1] : theta[0] + 2.0 * M_PI;
+      gap[i] = next - theta[i]; // to the next angle
+      const double h = 1.0 + epsilon * std::cos(0.5 * (theta[i] + next));
+      flux[i] = h * h * h / gap[i];
+    }
+    for(int i = 0; i < n; i++) {
+      width[i] = 0.5 * (gap[i] + gap[(i + n - 1) % n]);
+    }
+
+    /* the finite volume operator, symmetric and positive definite: each cell
+    is width x dz, and half that at the middle of the land */
+    std::fill(a.begin(), a.end(), 0.0);
+    auto couple = [&](int row, int column, double value) {
+      at(std::max(row, column), std::min(row, column)) -= value;
+      at(row, row) += value;
+      at(column, column) += value;
+    };
+    for(int i = 0; i < n; i++) {
+      const double h = 1.0 + epsilon * std::cos(theta[i]);
+      const double h3 = h * h * h;
+      for(int j = 0; j < m; j++) {
+        const double cell = j == 0 ? 0.5 * dz : dz;
+        couple(index(i, j), index((i + 1) % n, j), flux[i] * cell);
+        const double axial = kappa * h3 * width[i] / dz;
+        if(j + 1 < m) {
+          couple(index(i, j), index(i, j + 1), axial);
+        } else {
+          at(index(i, j), index(i, j)) += axial; // P = 0 at the end
+        }
+      }
+    }
+    /* banded Cholesky factors, in place */
+    for(int row = 0; row < size; row++) {
+      for(int column = std::max(0, row - band); column <= row; column++) {
+        double sum = at(row, column);
+        for(int l = std::max(0, row - band); l < column; l++) {
+          sum -= at(row, l) * at(column, l);
+        }
+        at(row, column) =
+          row == column ? std::sqrt(sum) : sum / at(column, column);
+      }
+    }
+    auto solve = [&](std::vector<double>& x) {
+      for(int row = 0; row < size; row++) {
+        for(int l = std::max(0, row - band); l < row; l++) {
+          x[row] -= at(row, l) * x[l];
+        }
+        x[row] /= at(row, row);
+      }
+      for(int row = size - 1; row >= 0; row--) {
+        x[row] /= at(row, row);
+        for(int l = std::max(0, row - band); l < row; l++) {
+          x[l] -= at(row, l) * x[row];
+        }
+      }
+    };
+    for(int i = 0; i < n; i++) {
+      for(int j = 0; j < m; j++) {
+        const double cell = width[i] * (j == 0 ? 0.5 * dz : dz);
+        p_s[index(i, j)] = 6.0 * std::sin(theta[i]) * cell;
+        p_q[index(i, j)] = -6.0 * std::cos(theta[i]) * cell;
+      }
+    }
+    solve(p_s);
+    solve(p_q);
+
+    /* clip the pressure at zero for each direction, and integrate it over
+    both halves of the land */
+    const double scale =
+      (1.0 - epsilon * epsilon) * (1.0 - epsilon * epsilon);
+    for(int d = 0; d < kDirections; d++) {
+      const double psi = 2.0 * M_PI * d / kDirections;
+      const double s = std::cos(psi), q = std::sin(psi);
+      double j_1 = 0.0, j_2 = 0.0, peak = 0.0;
+      for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+          const double p = s * p_s[index(i, j)] + q * p_q[index(i, j)];
+          if(p > 0.0) {
+            const double w = 2.0 * simpson[j] * width[i] * p;
+            j_1 += w * std::cos(theta[i]);
+            j_2 += w * std::sin(theta[i]);
+            peak = std::max(peak, p);
+          }
+        }
+      }
+      double* entry = &film_table_[(static_cast<size_t>(k) * kDirections + d) * 3];
+      entry[0] = scale * j_1;
+      entry[1] = scale * j_2;
+      entry[2] = scale * peak;
+    }
+  }
+}
+
+void shift::core::force_module::JournalBearing::FiniteFilm(
+  double epsilon, double s, double q, double* j_1, double* j_2,
+  double* peak) const {
+  *j_1 = *j_2 = *peak = 0.0;
+  const double strength = std::hypot(s, q);
+  if(strength == 0.0 || film_table_.empty()) {
+    return;
+  }
+  const double e = std::min(std::max(epsilon, 0.0), kTopEccentricity);
+  const double u =
+    std::asin(e / kTopEccentricity) * 2.0 / M_PI * (kEccentricities - 1);
+  const int k = std::min(static_cast<int>(u), kEccentricities - 2);
+  const double a = u - k;
+  double direction = std::atan2(q, s);
+  if(direction < 0.0) {
+    direction += 2.0 * M_PI;
+  }
+  const double v = direction / (2.0 * M_PI) * kDirections;
+  const int d = static_cast<int>(v) % kDirections;
+  const double b = v - std::floor(v);
+  const int d_next = (d + 1) % kDirections;
+  const double unscale =
+    strength / ((1.0 - e * e) * (1.0 - e * e));
+  auto entry = [&](int row, int column, int i) {
+    return film_table_[(static_cast<size_t>(row) * kDirections + column) * 3 + i];
+  };
+  double out[3];
+  for(int i = 0; i < 3; i++) {
+    out[i] = unscale * ((1.0 - a) * ((1.0 - b) * entry(k, d, i) +
+                                     b * entry(k, d_next, i)) +
+                        a * ((1.0 - b) * entry(k + 1, d, i) +
+                             b * entry(k + 1, d_next, i)));
+  }
+  *j_1 = out[0];
+  *j_2 = out[1];
+  *peak = out[2];
 }
 
 /* the nodes and weights of n point Gauss-Legendre quadrature on [-1, 1], by
@@ -186,17 +398,19 @@ void shift::core::force_module::JournalBearing::FilmIntegrals(
   *i_2 = sum_2;
 }
 
-void shift::core::force_module::JournalBearing::Service(const double*,
-                                                        double*) {
-  Compute(true);
+void shift::core::force_module::JournalBearing::Service(const double* y,
+                                                        double* dy) {
+  Compute(y, dy, true);
 }
 
 void shift::core::force_module::JournalBearing::UpdateOutputs(double,
-                                                              const double*) {
-  Compute(false);
+                                                              const double* y) {
+  Compute(y, nullptr, false);
 }
 
-void shift::core::force_module::JournalBearing::Compute(bool apply) {
+void shift::core::force_module::JournalBearing::Compute(const double* y,
+                                                        double* dy,
+                                                        bool apply) {
   Attachment* ends[2] = {&journal_, &bearing_};
   for(Attachment* a : ends) {
     if(a->load_index == -2) {
@@ -207,7 +421,11 @@ void shift::core::force_module::JournalBearing::Compute(bool apply) {
   const ksl_screw_t sj = context_->GetBodyVelocity(journal_.load_index);
   const ksl_screw_t sb = context_->GetBodyVelocity(bearing_.load_index);
   const ksl_vec3_t axis = db.R.v2;
-  const double c = clearance_, r = radius_, l = length_, mu = viscosity_;
+  const double c = clearance_, r = radius_, l = land_;
+  temperature_rise_ = equation_count_ > 0 ? y[state_offset_] : 0.0;
+  effective_viscosity_ =
+    viscosity_ * std::exp(-viscosity_slope_ * temperature_rise_);
+  const double mu = effective_viscosity_;
 
   /* the eccentricity, the velocity of the journal center relative to the
   bearing's, and the rotation of each about the axis (spatial velocities are
@@ -256,11 +474,18 @@ void shift::core::force_module::JournalBearing::Compute(bool apply) {
   const double s = eps_film * (omega_j + omega_b) - 2.0 * rate_2 / c;
   const double q = 2.0 * rate_1 / c;
 
-  double i_1, i_2;
-  FilmIntegrals(eps_film, s, q, &i_1, &i_2);
-  const double k = mu * r * l * l * l / (2.0 * c * c);
-  radial_force_ = k * i_1;
-  tangential_force_ = k * i_2;
+  double i_1, i_2, finite_peak = 0.0;
+  if(film_table_.empty()) {
+    FilmIntegrals(eps_film, s, q, &i_1, &i_2);
+    const double k = lands_ * mu * r * l * l * l / (2.0 * c * c);
+    radial_force_ = k * i_1;
+    tangential_force_ = k * i_2;
+  } else {
+    FiniteFilm(eps_film, s, q, &i_1, &i_2, &finite_peak);
+    const double k = lands_ * mu * r * r * r * l / (2.0 * c * c);
+    radial_force_ = k * i_1;
+    tangential_force_ = k * i_2;
+  }
   for(int i = 0; i < 3; i++) {
     force_.at[i] = radial_force_ * u_1.at[i] + tangential_force_ * u_2.at[i];
   }
@@ -277,7 +502,8 @@ void shift::core::force_module::JournalBearing::Compute(bool apply) {
   round the whole bearing, and the work of the pressure force */
   const double root = std::sqrt(1.0 - eps_film * eps_film);
   const double couette =
-    -2.0 * M_PI * mu * r * r * r * l * (omega_j - omega_b) / (c * root);
+    -2.0 * M_PI * mu * r * r * r * lands_ * l * (omega_j - omega_b) /
+    (c * root);
   const double pressure_part = -0.5 * c * eps_film * tangential_force_;
   friction_torque_ = couette + pressure_part;
 
@@ -293,9 +519,18 @@ void shift::core::force_module::JournalBearing::Compute(bool apply) {
     const double film = 1.0 + eps_film * std::cos(theta);
     peak = std::max(peak, std::sin(theta - theta_0) / (film * film * film));
   }
-  peak_pressure_ = 3.0 * mu * (0.25 * l * l) * strength * peak / (c * c);
-  side_flow_ = r * c * l * strength;
+  peak_pressure_ = film_table_.empty()
+                     ? 3.0 * mu * (0.25 * l * l) * strength * peak / (c * c)
+                     : mu * r * r / (c * c) * finite_peak;
+  side_flow_ = lands_ * r * c * l * strength;
   load_ = ksl_vec3_l2norm(&force_);
+
+  /* the oil heats with the power of the friction */
+  if(dy != nullptr && equation_count_ > 0) {
+    dy[state_offset_] = (std::fabs(friction_torque_ * (omega_j - omega_b)) -
+                         cooling_ * temperature_rise_) /
+                        heat_capacity_;
+  }
 
   if(!apply) {
     return;
@@ -323,7 +558,8 @@ std::vector<std::string>
 shift::core::force_module::JournalBearing::get_output_names() const {
   return {"eccentricity_ratio", "min_film_thickness", "peak_pressure",
           "friction_torque",    "side_flow",          "radial_force",
-          "tangential_force",   "load"};
+          "tangential_force",   "load",               "viscosity",
+          "temperature_rise"};
 }
 
 void shift::core::force_module::JournalBearing::AppendOutputs(
@@ -331,5 +567,6 @@ void shift::core::force_module::JournalBearing::AppendOutputs(
   values.insert(values.end(),
                 {eccentricity_ratio_, min_film_thickness_, peak_pressure_,
                  friction_torque_, side_flow_, radial_force_,
-                 tangential_force_, load_});
+                 tangential_force_, load_, effective_viscosity_,
+                 temperature_rise_});
 }

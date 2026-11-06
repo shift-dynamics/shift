@@ -1,0 +1,345 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 2.0,
+        "time_step": 0.005,
+        "relative_error": 1e-06,
+        "absolute_error": 1e-06,
+        "omega_n": 50
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "tire_iowa.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [
+        6.0,
+        -6.0,
+        -6.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "T": [
+        -6.0,
+        -6.0,
+        -6.0
+      ],
+      "R": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_1"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "overhead_2"
+      ],
+      "Ka": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "Kd": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "Ks": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "tire",
+      "active": true,
+      "force_modules": [
+        {
+          "type": "tire",
+          "name": "tire",
+          "tire_type": "iowa",
+          "wheel_body": "tire",
+          "iowa": {
+            "friction_coefficient": 0.9,
+            "aligning_coefficient": 0.03,
+            "segments": 20
+          }
+        }
+      ],
+      "bodies": [
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        },
+        {
+          "name": "3"
+        },
+        {
+          "name": "4"
+        },
+        {
+          "name": "5"
+        },
+        {
+          "name": "tire",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.5,
+              "filename": [
+                "left_wheel.obj",
+                "left_wheel.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 20.1,
+            "Ixx": 0.578,
+            "Iyy": 0.931,
+            "Izz": 0.578,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "1"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 1.0
+        },
+        {
+          "name": "B",
+          "type": "prismatic",
+          "parent": [
+            [
+              "1"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "2"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "C",
+          "type": "prismatic",
+          "parent": [
+            [
+              "2"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "3"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.345,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "D",
+          "type": "revolute",
+          "parent": [
+            [
+              "3"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "4"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "E",
+          "type": "revolute",
+          "parent": [
+            [
+              "4"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "5"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "F",
+          "type": "revolute",
+          "parent": [
+            [
+              "5"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "tire"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": -0.344
+        }
+      ]
+    }
+  ]
+}

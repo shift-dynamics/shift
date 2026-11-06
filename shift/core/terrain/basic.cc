@@ -80,24 +80,12 @@ void shift::core::terrain::Base::Load() {}
 void shift::core::terrain::Base::Connect() {}
 
 std::string shift::core::terrain::Basic::FindFile(const std::string& name) const {
-  if(!name.empty() && name[0] == '/') {
-    return name;
-  }
   if(shift::core::utility::IsResourcePath(name)) {
     return name;
   }
-  const std::string file =
-    shift::core::utility::GetParentPath(context_->get_filename()) + "/" + name;
-  if(shift::core::utility::FileExists(file)) {
+  const std::string file = context_->FindFile(name);
+  if(!file.empty()) {
     return file;
-  }
-  for(const auto& directory :
-      (*context_)["model_parameters"]["include_directories"]
-        .get<std::vector<std::string>>()) {
-    const std::string candidate = directory + "/" + name;
-    if(shift::core::utility::FileExists(candidate)) {
-      return candidate;
-    }
   }
   throw shift::core::Exception("Terrain " + get_name() + ": file " + name +
                                " not found");

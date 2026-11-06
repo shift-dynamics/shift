@@ -21,19 +21,19 @@ Spans and tension
 
 Between pulleys the belt is a straight span along the common tangent of
 the two pulleys. With :math:`r_a` and :math:`r_b` the (signed) radii and
-:math:`D` the distance between the centers, the span's length between its
-tangent points is :math:`L = \sqrt{D^2 - (r_a - r_b)^2}`. A span's tension
+:math:`d` the distance between the centers, the span's length between its
+tangent points is :math:`l = \sqrt{d^2 - (r_a - r_b)^2}`. A span's tension
 follows from its stretch :math:`e`, its length less the unstretched length
 of the belt between its ends:
 
 .. math::
 
-   T = \frac{EA\, e}{L - e} + \beta \frac{EA}{L - e}\,\dot e, \qquad T \ge 0
+   \tau = \frac{k_a\, e}{l - e} + \beta \frac{k_a}{l - e}\,\dot e, \qquad \tau \ge 0
 
 A span that would be in compression is slack and carries no force; the
 change from slack to taut is smoothed over ``slack_band``. The tension
 pulls the pulley at each end of the span along the span, at its tangent
-point, so the belt transmits torque, :math:`r(T_\text{out} - T_\text{in})`
+point, so the belt transmits torque, :math:`r(\tau_\text{out} - \tau_\text{in})`
 on each pulley, and pulls the pulleys toward each other. The belt carries
 no bending, and its mass is not modeled.
 
@@ -49,14 +49,14 @@ Slip
 
 Without ``friction_coefficient`` the belt does not slip, as a toothed
 belt. With it, the friction around a pulley of wrap angle :math:`\phi`
-holds tensions in a ratio up to :math:`e^{\mu\phi}` (the capstan equation);
+holds tensions in a ratio up to :math:`\exp(\mu\phi)` (the capstan equation);
 beyond that the belt slides over the pulley, toward the tighter span, at
 the speed
 
 .. math::
 
-   v_s = \frac{|T_\text{out} - T_\text{in}| - T_\text{slack}
-   \left(e^{\mu\phi} - 1\right)}{c_s}
+   v_s = \frac{|\tau_\text{out} - \tau_\text{in}| - \tau_\text{slack}
+   \left(\exp(\mu\phi) - 1\right)}{c_s}
 
 with :math:`c_s` the ``slip_damping``. The length of belt slipped over each
 pulley is another internal state.

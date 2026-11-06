@@ -32,6 +32,74 @@ Context
              get_joint_working_forces, get_active_force_modules,
              get_active_joints, HoldInitialStates
 
+Model structure
+---------------
+
+.. doxygenclass:: shift::core::Assembly
+
+.. doxygenclass:: shift::core::Substructure
+
+.. doxygenclass:: shift::core::Frame
+
+.. doxygenclass:: shift::core::Jacobian
+
+.. doxygenstruct:: shift::core::topology::DHVA
+
+.. doxygenstruct:: shift::core::topology::DVA
+
+Bodies
+------
+
+.. doxygenclass:: shift::core::body::Base
+
+.. doxygenclass:: shift::core::body::Rigid
+
+.. doxygenclass:: shift::core::body::Fixed
+
+.. doxygenclass:: shift::core::body::Virtual
+
+.. doxygenclass:: shift::core::body::Free
+
+Joints
+------
+
+.. doxygenclass:: shift::core::joint::Base
+
+.. doxygenclass:: shift::core::joint::Revolute
+
+.. doxygenclass:: shift::core::joint::Prismatic
+
+.. doxygenclass:: shift::core::joint::Spherical
+
+.. doxygenclass:: shift::core::joint::Float
+
+.. doxygenclass:: shift::core::joint::Rigid
+
+.. doxygenclass:: shift::core::joint::Screw
+
+.. doxygenclass:: shift::core::joint::Gear
+
+Constraints
+-----------
+
+.. doxygenclass:: shift::core::constraint::Base
+
+.. doxygenclass:: shift::core::constraint::Chord
+
+Solvers and integrators
+-----------------------
+
+.. doxygenclass:: shift::core::solver::Base
+
+.. doxygenclass:: shift::core::solver::RNCA
+   :members: FactorAndSolve
+
+.. doxygenclass:: shift::core::integrator::Base
+
+.. doxygenclass:: shift::core::integrator::ODE113
+
+.. doxygenclass:: shift::core::integrator::RK4
+
 Force modules
 -------------
 
@@ -45,6 +113,12 @@ Force modules
 .. doxygenclass:: shift::core::force_module::tire::Fiala
 
 .. doxygenclass:: shift::core::force_module::tire::Pac2002
+
+.. doxygenclass:: shift::core::force_module::tire::BekkerWong
+
+.. doxygenclass:: shift::core::force_module::tire::Iowa
+
+.. doxygenclass:: shift::core::force_module::tire::Model
 
 .. doxygenclass:: shift::core::force_module::Bushing
    :members: get_pair_count, get_displacements, get_velocities, get_forces
@@ -61,6 +135,22 @@ Force modules
              get_slip_speeds
 
 .. doxygenclass:: shift::core::force_module::HydraulicCylinder
+
+.. doxygenclass:: shift::core::force_module::GearMesh
+
+.. doxygenclass:: shift::core::force_module::GearTeeth
+
+.. doxygenclass:: shift::core::force_module::JournalBearing
+
+.. doxygenclass:: shift::core::force_module::LeadScrew
+
+.. doxygenclass:: shift::core::force_module::Powertrain
+
+.. doxygenclass:: shift::core::force_module::Track
+
+.. doxygenclass:: shift::core::force_module::TrackSoil
+
+.. doxygenclass:: shift::core::force_module::Soil
 
 .. doxygenclass:: shift::core::force_module::Table
 
@@ -82,7 +172,71 @@ Controllers
 
 .. doxygenclass:: shift::core::controller::PID
 
+.. doxygenclass:: shift::core::controller::Schedule
+
+.. doxygenclass:: shift::core::controller::IK7DOF
+
 Loggers
 -------
 
+.. doxygenclass:: shift::core::logger::Base
+
 .. doxygenclass:: shift::core::logger::HDF5
+
+.. doxygenclass:: shift::core::logger::CSV
+
+Collision geometry
+------------------
+
+.. doxygenclass:: shift::core::collision_geometry::Base
+
+.. doxygenclass:: shift::core::collision_geometry::Plane
+
+.. doxygenclass:: shift::core::collision_geometry::Sphere
+
+.. doxygenclass:: shift::core::collision_geometry::Box
+
+.. doxygenclass:: shift::core::collision_geometry::Capsule
+
+.. doxygenclass:: shift::core::collision_geometry::Cylinder
+
+.. doxygenclass:: shift::core::collision_geometry::Ellipsoid
+
+.. doxygenclass:: shift::core::collision_geometry::ConvexHull
+
+.. doxygenclass:: shift::core::collision_geometry::Cad
+
+Geometry
+--------
+
+.. doxygenclass:: shift::core::geometry::Base
+
+.. doxygenclass:: shift::core::geometry::Mesh
+
+.. doxygenclass:: shift::core::geometry::Sphere
+
+.. doxygenclass:: shift::core::geometry::Ellipsoid
+
+.. doxygenclass:: shift::core::geometry::PointCloud
+
+.. doxygenclass:: shift::core::geometry::Cad
+
+Terrain
+-------
+
+.. doxygenclass:: shift::core::terrain::Base
+
+.. doxygenclass:: shift::core::terrain::Basic
+
+Lights
+------
+
+.. doxygenclass:: shift::core::light::Base
+
+.. doxygenclass:: shift::core::light::Directional
+
+.. doxygenclass:: shift::core::light::Point
+
+.. doxygenclass:: shift::core::light::Spot
+
+.. doxygenclass:: shift::core::light::IES

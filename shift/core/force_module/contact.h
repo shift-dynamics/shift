@@ -187,10 +187,10 @@ sliding velocity \f$\underline{u}\f$ at the point:
 
 \f[
 \underline{f}_t = -\frac{\mu f \underline{u}}
-  {\sqrt{|\underline{u}|^2 + u_0^2}}
+  {\sqrt{|\underline{u}|^2 + u_f^2}}
 \f]
 
-with \f$u_0\f$ the friction_velocity.
+with \f$u_f\f$ the friction_velocity.
 
 *Stick-slip friction.* Regularized Coulomb friction lets a body held by friction
 creep: it slides at the speed where the friction it gives equals the load, a

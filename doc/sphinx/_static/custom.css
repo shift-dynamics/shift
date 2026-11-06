@@ -151,6 +151,15 @@ div.body table.docutils {
     margin-left: 0;
 }
 
+/* basic.css hyphenates every paragraph in the body, which split the header of
+   a narrow column ("re-quired"); a header stays whole and sets the width */
+div.body table.docutils th,
+div.body table.docutils th p {
+    white-space: nowrap;
+    -webkit-hyphens: none;
+    hyphens: none;
+}
+
 @media screen and (max-width: 940px) {
     div.document,
     div.footer {

@@ -18,3 +18,10 @@ void shift::core::body::Fixed::DeclareParameters() {
   DeclareParameter("terrain", &terrain_,
                "an array of one or more Shift terrain objects", false);
 }
+
+void shift::core::body::Fixed::CheckUniqueNames() {
+  shift::core::body::Base::CheckUniqueNames();
+  CheckObjectNames(frames_.get_data(), "Frame");
+  CheckObjectNames(lights_.get_data(), "Light");
+  CheckObjectNames(terrain_.get_data(), "Terrain");
+}

@@ -132,6 +132,15 @@ void shift::core::force_module::PowertrainTransmission::DeclareParameters() {
                    "moment of inertia of the output shaft; optional, default "
                    "0.5",
                    false);
+  DeclareParameter("efficiencies", &efficiencies,
+                   "efficiency of the teeth of each gear, the reverse last; "
+                   "optional, default 1 for all",
+                   false)
+    .set_row_dim(-1);
+  DeclareParameter("drag_torque", &drag_torque,
+                   "constant loss on the output shaft (N m); optional, "
+                   "default 0",
+                   false);
   DeclareParameter("spin_loss", &spin_loss,
                    "viscous loss torque on the output shaft per rad/s; "
                    "optional, default 0",
@@ -171,6 +180,18 @@ void shift::core::force_module::PowertrainAxle::DeclareParameters() {
   DeclareParameter("transfer_ratio", &transfer_ratio,
                    "ratio of the transfer case, propshaft speed over output "
                    "speed; optional, default 1",
+                   false);
+  DeclareParameter("efficiency", &efficiency,
+                   "of the final drive, the fraction of the power its teeth "
+                   "pass on; optional, default 1",
+                   false);
+  DeclareParameter("drag_torque", &drag_torque,
+                   "constant loss of the final drive, at the carrier (N m); "
+                   "optional, default 0",
+                   false);
+  DeclareParameter("center_output", &center_output,
+                   "with a center differential, the output that drives the "
+                   "axle, 1 or 2; optional otherwise",
                    false);
   DeclareParameter("shaft_stiffness", &shaft_stiffness,
                    "torsional stiffness of the propshaft, N m/rad", true);
@@ -224,6 +245,75 @@ void shift::core::force_module::PowertrainAxle::DeclareParameters() {
                    false);
 }
 
+void shift::core::force_module::PowertrainCenterDifferential::DeclareParameters() {
+  DeclareParameter("split", &split,
+                   "share of the torque of output 1, between 0 and 1", true);
+  DeclareParameter("inertia", &inertia,
+                   "inertia of the differential's gears at their relative "
+                   "speed; optional, default 0.05",
+                   false);
+  DeclareParameter("type", &type,
+                   "\"open\", \"locked\" or \"limited_slip\"; optional, "
+                   "default \"open\"",
+                   false);
+  DeclareParameter("bias_torque", &bias_torque,
+                   "limited slip: preload torque of the clutches; optional, "
+                   "default 0",
+                   false)
+    .set_runtime();
+  DeclareParameter("bias_ratio", &bias_ratio,
+                   "limited slip: torque of the clutches per torque through "
+                   "the differential; optional, default 0",
+                   false)
+    .set_runtime();
+  DeclareParameter("lock_damping", &lock_damping,
+                   "locked: damping that holds the outputs to one speed "
+                   "(N m s/rad); optional, default 1000",
+                   false);
+  DeclareParameter("slip_speed", &slip_speed,
+                   "limited slip: slip speed that smooths the clutches "
+                   "(rad/s); optional, default 0.5",
+                   false);
+}
+
+void shift::core::force_module::PowertrainClutchHydraulics::DeclareParameters() {
+  DeclareParameter("supply_pressure", &supply_pressure,
+                   "pressure of the supply, at which a clutch has its "
+                   "clutch_capacity (Pa)",
+                   true);
+  DeclareParameter("piston_area", &piston_area,
+                   "area of a clutch's piston (m^2)", true);
+  DeclareParameter("piston_stroke", &piston_stroke,
+                   "travel of the piston until the plates touch (m)", true);
+  DeclareParameter("spring_preload", &spring_preload,
+                   "force of the return spring at rest (N); optional, "
+                   "default 0",
+                   false);
+  DeclareParameter("spring_rate", &spring_rate,
+                   "stiffness of the return spring (N/m); optional, default 0",
+                   false);
+  DeclareParameter("orifice_area", &orifice_area,
+                   "area of the orifice that feeds a clutch (m^2)", true);
+  DeclareParameter("drain_orifice_area", &drain_orifice_area,
+                   "area of the orifice that drains a clutch (m^2); optional, "
+                   "default the orifice_area",
+                   false);
+  DeclareParameter("discharge_coefficient", &discharge_coefficient,
+                   "of the orifices; optional, default 0.7", false);
+  DeclareParameter("density", &density,
+                   "of the oil (kg/m^3); optional, default 850", false);
+  DeclareParameter("bulk_modulus", &bulk_modulus,
+                   "of the oil (Pa); optional, default 1.5e9", false);
+  DeclareParameter("chamber_volume", &chamber_volume,
+                   "volume of oil in a filled clutch and its passages (m^3); "
+                   "optional, default twice the volume of the stroke",
+                   false);
+  DeclareParameter("transition_pressure", &transition_pressure,
+                   "pressure drop below which the flow of an orifice goes "
+                   "smoothly through zero (Pa); optional, default 1e4",
+                   false);
+}
+
 void shift::core::force_module::PowertrainBrake::DeclareParameters() {
   DeclareParameter("name", &name, "name of the brake", true);
   DeclareParameter("joint", &joint, "the joint that the brake acts on", true);
@@ -273,6 +363,13 @@ void shift::core::force_module::Powertrain::DeclareParameters() {
                    "transmission",
                    true);
   DeclareParameter("transmission", &transmission_, "the transmission", true);
+  DeclareParameter("center_differential", &center_,
+                   "divides the torque of the output between two groups of "
+                   "axles; optional",
+                   false);
+  DeclareParameter("clutch_hydraulics", &hydraulics_,
+                   "the hydraulics of the clutches of the gears; optional",
+                   false);
   DeclareParameter("axles", &axles_,
                    "the driven axles, each with a propshaft, a final drive, "
                    "a differential and two wheels; optional",
@@ -401,8 +498,93 @@ void shift::core::force_module::Powertrain::Load() {
                                  "transmission");
   }
 
+  if(!t.efficiencies.empty() && t.efficiencies.size() != gear_count_) {
+    throw shift::core::Exception(prefix + "transmission efficiencies needs "
+                                 "one for each gear, the reverse last");
+  }
+  for(double efficiency : t.efficiencies) {
+    if(!(efficiency > 0.0) || efficiency > 1.0) {
+      throw shift::core::Exception(prefix + "efficiencies are above 0 and at "
+                                   "most 1");
+    }
+  }
+  if(t.drag_torque < 0.0) {
+    throw shift::core::Exception(prefix + "drag_torque must not be negative");
+  }
+
+  const bool has_center = center_.split != 0.0;
+  if(has_center) {
+    const auto& d = center_;
+    if(!(d.split > 0.0) || !(d.split < 1.0) || !(d.inertia > 0.0) ||
+       !(d.slip_speed > 0.0) || d.lock_damping < 0.0 || d.bias_torque < 0.0 ||
+       d.bias_ratio < 0.0 ||
+       (d.type != "open" && d.type != "locked" && d.type != "limited_slip")) {
+      throw shift::core::Exception(
+        prefix + "center_differential: split between 0 and 1, inertia and "
+                 "slip_speed positive, damping and bias not negative, and "
+                 "type \"open\", \"locked\" or \"limited_slip\"");
+    }
+    bool used[2] = {false, false};
+    for(const auto& axle : axles_.get_data()) {
+      if(axle->center_output != 1 && axle->center_output != 2) {
+        throw shift::core::Exception(prefix + "axle '" + axle->name +
+                                     "': center_output must be 1 or 2 with "
+                                     "a center differential");
+      }
+      used[axle->center_output - 1] = true;
+    }
+    if(!used[0] || !used[1]) {
+      throw shift::core::Exception(prefix + "center_differential: both "
+                                   "outputs need an axle");
+    }
+  } else {
+    for(const auto& axle : axles_.get_data()) {
+      if(axle->center_output != 0) {
+        throw shift::core::Exception(prefix + "axle '" + axle->name +
+                                     "': center_output without a "
+                                     "center_differential");
+      }
+    }
+  }
+
+  auto& h = hydraulics_;
+  const bool has_hydraulics = h.supply_pressure != 0.0;
+  if(has_hydraulics) {
+    if(h.drain_orifice_area < 0.0) {
+      h.drain_orifice_area = h.orifice_area;
+    }
+    if(h.chamber_volume < 0.0) {
+      h.chamber_volume = 2.0 * h.piston_area * h.piston_stroke;
+    }
+    if(!(h.supply_pressure > 0.0) || !(h.piston_area > 0.0) ||
+       !(h.piston_stroke > 0.0) || !(h.orifice_area > 0.0) ||
+       !(h.drain_orifice_area > 0.0) || !(h.discharge_coefficient > 0.0) ||
+       !(h.density > 0.0) || !(h.bulk_modulus > 0.0) ||
+       !(h.chamber_volume > 0.0) || !(h.transition_pressure > 0.0) ||
+       h.spring_preload < 0.0 || h.spring_rate < 0.0) {
+      throw shift::core::Exception(
+        prefix + "clutch_hydraulics: pressures, areas, stroke, density, "
+                 "modulus and volume must be positive, and the spring's "
+                 "preload and rate not negative");
+    }
+    kiss_pressure_ =
+      (h.spring_preload + h.spring_rate * h.piston_stroke) / h.piston_area;
+    oil_compliance_ = h.chamber_volume / h.bulk_modulus;
+    if(!(h.supply_pressure > kiss_pressure_)) {
+      throw shift::core::Exception(
+        prefix + "clutch_hydraulics: the supply_pressure must be above the "
+                 "pressure that strokes the piston against its spring");
+    }
+  }
+
   axle_count_ = axles_.get_data().size();
   for(const auto& axle : axles_.get_data()) {
+    if(!(axle->efficiency > 0.0) || axle->efficiency > 1.0 ||
+       axle->drag_torque < 0.0) {
+      throw shift::core::Exception(prefix + "axle '" + axle->name +
+                                   "': efficiency above 0 and at most 1, and "
+                                   "drag_torque not negative");
+    }
     if(!(axle->shaft_stiffness > 0.0) || axle->shaft_damping < 0.0 ||
        !(axle->final_drive > 0.0) || !(axle->transfer_ratio > 0.0) ||
        !(axle->direction == 1.0 || axle->direction == -1.0) ||
@@ -473,6 +655,12 @@ void shift::core::force_module::Powertrain::Load() {
                    brake->stribeck_speed);
     brake_state_.push_back(brake->bristle_stiffness > 0.0 ? next++ : kNone);
   }
+  center_state_ = has_center ? next++ : kNone;
+  hydraulic_state_ = kNone;
+  if(has_hydraulics) {
+    hydraulic_state_ = next;
+    next += gear_count_;
+  }
   extra_states_ = next - first_extra;
 
   /* the states: the speeds of the engine, of the transmission's input and of
@@ -481,10 +669,28 @@ void shift::core::force_module::Powertrain::Load() {
   equation_count_ = static_cast<unsigned int>(get_state_count());
   q_0_.assign(equation_count_, 0.0);
   q_0_[0] = e.idle_speed;
+  size_t selected = kNone;
   if(gear >= 1.0) {
-    q_0_[3 + axle_count_ + static_cast<size_t>(gear) - 1] = 1.0;
+    selected = static_cast<size_t>(gear) - 1;
   } else if(gear == -1.0) {
-    q_0_[3 + axle_count_ + t.ratios.size()] = 1.0;
+    selected = t.ratios.size();
+  }
+  if(selected != kNone) {
+    q_0_[3 + axle_count_ + selected] = 1.0;
+  }
+  /* the oil of the clutches, as a fraction of the volume of the stroke (a
+  volume itself is so small that the integrator's absolute error would be a
+  large pressure): the selected one full at the supply pressure, the others
+  drained to no pressure */
+  if(has_hydraulics) {
+    const double fill = h.piston_area * h.piston_stroke;
+    for(size_t i = 0; i < gear_count_; i++) {
+      q_0_[hydraulic_state_ + i] =
+        (i == selected ? fill + (h.supply_pressure - kiss_pressure_) *
+                                  oil_compliance_
+                       : -oil_compliance_ * h.spring_preload / h.piston_area) /
+        fill;
+    }
   }
   outputs_.assign(get_output_names().size(), 0.0);
 }
@@ -498,6 +704,18 @@ static double SmoothStep(double x) {
     return 1.0;
   }
   return x * x * (3.0 - 2.0 * x);
+}
+
+double shift::core::force_module::Powertrain::ClutchPressure(double v) const {
+  const auto& h = hydraulics_;
+  const double fill = h.piston_area * h.piston_stroke;
+  if(v < 0.0) {
+    return h.spring_preload / h.piston_area + v / oil_compliance_;
+  }
+  if(v > fill) {
+    return kiss_pressure_ + (v - fill) / oil_compliance_;
+  }
+  return (h.spring_preload + h.spring_rate * v / h.piston_area) / h.piston_area;
 }
 
 double shift::core::force_module::Powertrain::EngineTorque(
@@ -601,14 +819,36 @@ void shift::core::force_module::Powertrain::Compute(const double* y,
                  coupling.static_ratio, coupling.stribeck_speed));
 
   /* the clutches of the gears */
-  double clutch_sum = 0.0, output_sum = 0.0;
+  double clutch_sum = 0.0, output_sum = 0.0, gear_loss = 0.0;
   double ratio_sum = 0.0, engaged_sum = 0.0;
+  std::vector<double> pressures;
+  const auto& h = hydraulics_;
+  const double output_direction = std::tanh(w_o / t.slip_speed);
   const double target_gear = std::round(t.gear);
   const double tau = std::max(t.shift_time / 3.0, 1e-4);
   for(size_t i = 0; i < gear_count_; i++) {
     const bool reverse = i >= t.ratios.size();
     const double ratio = reverse ? t.reverse_ratio : t.ratios[i];
-    const double e = y[s + 3 + axles + i];
+    const double valve = y[s + 3 + axles + i];
+    /* the engagement: the lag of the valve, or the pressure of the oil that
+    it feeds */
+    double e = valve;
+    if(hydraulic_state_ != kNone) {
+      const double fill = h.piston_area * h.piston_stroke;
+      const double pressure = ClutchPressure(y[s + hydraulic_state_ + i] * fill);
+      const double drop = valve * h.supply_pressure - pressure;
+      const double area = drop > 0.0 ? h.orifice_area : h.drain_orifice_area;
+      dy[s + hydraulic_state_ + i] =
+        h.discharge_coefficient * area * std::sqrt(2.0 / h.density) * drop /
+        (std::pow(drop * drop + h.transition_pressure * h.transition_pressure,
+                  0.25) *
+         fill);
+      e = std::min(std::max((pressure - kiss_pressure_) /
+                              (h.supply_pressure - kiss_pressure_),
+                            0.0),
+                   1.0);
+      pressures.push_back(pressure);
+    }
     const double slip = w_t - ratio * w_o;
     const double torque =
       e * t.clutch_capacity *
@@ -617,16 +857,23 @@ void shift::core::force_module::Powertrain::Compute(const double* y,
                t.static_ratio, t.stribeck_speed);
     clutch_sum += torque;
     output_sum += ratio * torque;
+    if(!t.efficiencies.empty()) {
+      gear_loss +=
+        (1.0 - t.efficiencies[i]) * std::fabs(ratio * torque) * output_direction;
+    }
     ratio_sum += ratio * e;
     engaged_sum += e;
     const double target =
       reverse ? (target_gear == -1.0 ? 1.0 : 0.0)
               : (target_gear == static_cast<double>(i + 1) ? 1.0 : 0.0);
-    dy[s + 3 + axles + i] = (target - e) / tau;
+    dy[s + 3 + axles + i] = (target - valve) / tau;
   }
+  gear_loss += t.drag_torque * output_direction;
 
   /* the axles: the propshaft, the final drive and the differential */
   double propshaft_load = 0.0; // on the output shaft
+  double output_load[2] = {0.0, 0.0}; // on the center differential's outputs
+  const double w_d = center_state_ == kNone ? 0.0 : y[s + center_state_];
   std::vector<double> axle_outputs;
   for(size_t a = 0; a < axles; a++) {
     const auto& axle = *axles_.get_data()[a];
@@ -635,13 +882,26 @@ void shift::core::force_module::Powertrain::Compute(const double* y,
     const double w_l = speed(left), w_r = speed(right);
     const double carrier = 0.5 * (w_l + w_r);
     const double twist = y[s + 3 + a];
+    double w_shaft = w_o;
+    if(axle.center_output == 1) {
+      w_shaft += (1.0 - center_.split) * w_d;
+    } else if(axle.center_output == 2) {
+      w_shaft -= center_.split * w_d;
+    }
     const double twist_rate =
-      axle.transfer_ratio * w_o - axle.final_drive * carrier;
+      axle.transfer_ratio * w_shaft - axle.final_drive * carrier;
     dy[s + 3 + a] = twist_rate;
     const double shaft = axle.engaged * (axle.shaft_stiffness * twist +
                                          axle.shaft_damping * twist_rate);
     propshaft_load += axle.transfer_ratio * shaft;
-    const double carrier_torque = axle.final_drive * shaft;
+    if(axle.center_output != 0) {
+      output_load[axle.center_output - 1] += axle.transfer_ratio * shaft;
+    }
+    const double carrier_torque =
+      axle.final_drive * shaft -
+      ((1.0 - axle.efficiency) * std::fabs(axle.final_drive * shaft) +
+       axle.drag_torque) *
+        std::tanh(carrier / axle.slip_speed);
     double t_l = 0.5 * carrier_torque, t_r = 0.5 * carrier_torque;
     if(axle.differential == "locked") {
       const double coupling = axle.lock_damping * (w_l - w_r);
@@ -686,19 +946,40 @@ void shift::core::force_module::Powertrain::Compute(const double* y,
 
   dy[s] = (engine_torque - on_pump) / engine_.inertia;
   dy[s + 1] = (on_turbine - clutch_sum) / t.input_inertia;
-  dy[s + 2] = (output_sum - propshaft_load - t.spin_loss * w_o) /
+  dy[s + 2] = (output_sum - propshaft_load - t.spin_loss * w_o - gear_loss) /
               t.output_inertia;
 
+  /* the center differential: the difference of the torques of its outputs
+  from the split turns its gears, against the clutches that lock it */
+  if(center_state_ != kNone) {
+    const auto& d = center_;
+    double lock = 0.0;
+    if(d.type == "locked") {
+      lock = d.lock_damping * w_d;
+    } else if(d.type == "limited_slip") {
+      lock = (d.bias_torque + d.bias_ratio * std::fabs(propshaft_load)) *
+             std::tanh(w_d / d.slip_speed);
+    }
+    dy[s + center_state_] =
+      (d.split * output_load[1] - (1.0 - d.split) * output_load[0] - lock) /
+      d.inertia;
+  }
+
   outputs_.assign({w_e, engine_torque, fuel, w_t, w_o, torque_ratio,
-                   engaged_sum > 1e-9 ? ratio_sum / engaged_sum : 0.0});
+                   engaged_sum > 1e-9 ? ratio_sum / engaged_sum : 0.0,
+                   gear_loss});
   outputs_.insert(outputs_.end(), axle_outputs.begin(), axle_outputs.end());
+  if(center_state_ != kNone) {
+    outputs_.push_back(w_d);
+  }
+  outputs_.insert(outputs_.end(), pressures.begin(), pressures.end());
 }
 
 std::vector<std::string>
 shift::core::force_module::Powertrain::get_output_names() const {
   std::vector<std::string> names = {
     "engine_speed", "engine_torque", "fuel",       "turbine_speed",
-    "output_speed", "converter_torque_ratio", "gear_ratio"};
+    "output_speed", "converter_torque_ratio", "gear_ratio", "gear_loss"};
   /* get_data is not const; reading the names does not change the array */
   for(const auto& axle :
       const_cast<parameter::Array<PowertrainAxle>&>(axles_).get_data()) {
@@ -706,10 +987,36 @@ shift::core::force_module::Powertrain::get_output_names() const {
     names.push_back(axle->name + "_left_torque");
     names.push_back(axle->name + "_right_torque");
   }
+  if(center_state_ != kNone) {
+    names.push_back("center_speed");
+  }
+  if(hydraulic_state_ != kNone) {
+    for(size_t i = 0; i < gear_count_; i++) {
+      names.push_back("clutch_" + std::to_string(i + 1) + "_pressure");
+    }
+  }
   return names;
 }
 
 void shift::core::force_module::Powertrain::AppendOutputs(
   std::vector<double>& values) const {
   values.insert(values.end(), outputs_.begin(), outputs_.end());
+}
+
+void shift::core::force_module::Powertrain::CheckUniqueNames() {
+  const std::string prefix = FullyQualifiedName(get_name()) + "__";
+  std::vector<std::string> names;
+  for(const auto& axle : axles_.get_data()) {
+    if(!axle->name.empty()) {
+      names.push_back(prefix + axle->name);
+    }
+  }
+  CheckNames(names, "Axle");
+  names.clear();
+  for(const auto& brake : brakes_.get_data()) {
+    if(!brake->name.empty()) {
+      names.push_back(prefix + brake->name);
+    }
+  }
+  CheckNames(names, "Brake");
 }

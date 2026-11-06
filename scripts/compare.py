@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ax1 = plt.subplot(411)
     for name in data1.dtype.names[1:]:
-        if "_q_" in name:
+        if "__q_" in name:
             print(data1["time"])
             data1_interp = \
                 inter.InterpolatedUnivariateSpline(data1["time"][:index], data1[name][:index])
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     ax2 = plt.subplot(412, sharex=ax1)
     for name in data1.dtype.names[1:]:
-        if "_dq_" in name:
+        if "__dq_" in name:
             data1_interp = \
                 inter.InterpolatedUnivariateSpline(data1["time"][:index], data1[name][:index])
             data2_interp = \
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     ax3 = plt.subplot(413, sharex=ax2)
     for name in data1.dtype.names[1:]:
-        if "_ddq_" in name:
+        if "__ddq_" in name:
             data1_interp = \
                 inter.InterpolatedUnivariateSpline(data1["time"][:index], data1[name][:index])
             data2_interp = \

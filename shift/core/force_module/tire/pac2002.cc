@@ -318,16 +318,36 @@ double shift::core::force_module::tire::Pac2002::SineStep(double x, double x1,
   return y1 + (y2 - y1) * (xx - std::sin(2.0 * M_PI * xx) / (2.0 * M_PI));
 }
 
+void shift::core::force_module::tire::Pac2002::DeclareParameters() {
+  DeclareParameter("definition", &definition,
+                   ".tir property file, next to the model file or in an "
+                   "include directory",
+                   true);
+  DeclareParameter("mounted_side", &mounted_side,
+                   "\"left\" or \"right\"; the tire is mirrored if this "
+                   "differs from TYRESIDE of the property file; optional",
+                   false);
+  DeclareParameter("use_transient_slip", &use_transient_slip,
+                   "relax the slips with the relaxation lengths of the "
+                   "property file (PTX1-3, PTY1-2); optional, default false",
+                   false);
+}
+
 shift::core::force_module::tire::Pac2002::Pac2002(
-  const Pac2002Coefficients& coefficients, double gravity, bool transient)
-  : p_(coefficients)
-  , gravity_(gravity)
-  , transient_(transient)
-  , gamma_limit_(3.0 * M_PI / 180.0) {
+  const Pac2002Coefficients& coefficients, double gravity, bool transient) {
+  DeclareParameters();
+  use_transient_slip = transient;
+  Configure(coefficients, gravity);
+}
+
+void shift::core::force_module::tire::Pac2002::Configure(
+  const Pac2002Coefficients& coefficients, double gravity) {
+  p_ = coefficients;
+  gravity_ = gravity;
   fz0_prime_ = p_.fnomin * p_.lfzo;
   const double pi0_prime = p_.ip_nom * p_.lip;
   dpi_ = (p_.ip - pi0_prime) / pi0_prime;
-  if(transient_ && (p_.ptx1 <= 0.0 || p_.pty1 <= 0.0 || p_.pty2 == 0.0)) {
+  if(use_transient_slip && (p_.ptx1 <= 0.0 || p_.pty1 <= 0.0 || p_.pty2 == 0.0)) {
     throw shift::core::Exception(
       "Pac2002: transient slip requires PTX1 > 0, PTY1 > 0 and PTY2 != 0");
   }
@@ -589,7 +609,7 @@ void shift::core::force_module::tire::Pac2002::Evaluate(
   const double bry = states[1];
   state_rates[0] = -100.0 * brx;
   state_rates[1] = -100.0 * bry;
-  if(transient_) {
+  if(use_transient_slip) {
     // out of contact the relaxed slips decay; overwritten below in contact
     state_rates[2] = -100.0 * states[2];
     state_rates[3] = -100.0 * states[3];
@@ -628,7 +648,7 @@ void shift::core::force_module::tire::Pac2002::Evaluate(
   double kappa = std::clamp(-vsx / vx_reg, -1.0, 1.0);
   double alpha =
     std::clamp(std::atan2(vsy, vx_reg), -M_PI_2 + 0.01, M_PI_2 - 0.01);
-  if(transient_) {
+  if(use_transient_slip) {
     /* first order relaxation of kappa' and tan(alpha'); their steady state
     is the unclamped kinematic slips -Vsx / vx_reg and Vsy / vx_reg */
     state_rates[2] = (-vsx - vx_reg * states[2]) / RelaxationLengthKappa(Fz);

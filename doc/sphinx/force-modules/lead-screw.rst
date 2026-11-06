@@ -37,10 +37,10 @@ an Acme thread). The deflection presses the flanks together along their normal b
 
 .. math::
 
-   N = \cos\alpha\cos\lambda\,\bigl(k\,\delta + c\,\dot\delta\bigr)
+   n = \cos\alpha\cos\lambda\,\bigl(k\,\delta + c\,\dot\delta\bigr)
 
 for the contact stiffness :math:`k` and damping :math:`c`. Its radial part
-cancels around the thread. Its part along the axis, :math:`N \cos\alpha\cos\lambda`,
+cancels around the thread. Its part along the axis, :math:`n \cos\alpha\cos\lambda`,
 pushes the screw along the axis, and the circular part turns it, with :math:`p`
 times the axial part as torque: the screw is driven by torque and delivers force
 as the ideal screw does.
@@ -52,7 +52,7 @@ The friction force is
 
 .. math::
 
-   \mu\,|N|\,\frac{v}{\sqrt{v^2 + v_s^2}}
+   \mu\,|n|\,\frac{v}{\sqrt{v^2 + v_s^2}}
 
 along the sliding, with the friction coefficient :math:`\mu` and the slip speed
 :math:`v_s`: Coulomb friction that goes smoothly to zero at low speed. This
@@ -60,18 +60,18 @@ friction is the loss of the screw: the torque to drive it exceeds that of the id
 screw.
 
 In steady motion the module gives the torque that power screw theory does
-:cite:`budynas2015`. To raise a load :math:`F` (to drive the screw against it) the
+:cite:`budynas2015`. To raise a load :math:`f` (to drive the screw against it) the
 torque is
 
 .. math::
 
-   T = F\,r\,\frac{\tan\lambda + \mu\sec\alpha}{1 - \mu\sec\alpha\tan\lambda},
+   \tau = f\,r\,\frac{\tan\lambda + \mu\sec\alpha}{1 - \mu\sec\alpha\tan\lambda},
 
 and to lower it
 
 .. math::
 
-   T = F\,r\,\frac{\mu\sec\alpha - \tan\lambda}{1 + \mu\sec\alpha\tan\lambda},
+   \tau = f\,r\,\frac{\mu\sec\alpha - \tan\lambda}{1 + \mu\sec\alpha\tan\lambda},
 
 which is negative if :math:`\mu\sec\alpha < \tan\lambda`: the load turns the screw,
 and the screw is not *self-locking*. The tests compare the module's torque and
@@ -99,7 +99,7 @@ is not in the module; put it on the joint that carries the screw.
 ``friction``, ``stiffness``, ``damping`` and ``slip_speed`` can be changed as the
 model runs (see :ref:`schedule`).
 
-Outputs, logged as ``<name>_<output>``: ``axial_force`` (the force of the thread on
+Outputs, logged as ``<assembly>__<name>__<output>``: ``axial_force`` (the force of the thread on
 the screw along the axis), ``torque`` (on the screw about the axis),
 ``deflection``, ``normal_force``, ``friction_force`` and ``turns`` (the rotation
 of the screw relative to the nut, in turns).

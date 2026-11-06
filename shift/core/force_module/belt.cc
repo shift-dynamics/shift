@@ -73,7 +73,7 @@ void shift::core::force_module::Belt::Connect() {
                                    "[body, frame]");
     }
     Pulley pulley;
-    pulley.body = context_->FindActiveBody(names[0]);
+    pulley.body = context_->FindActiveBody(names[0], get_parent_assembly());
     if(!pulley.body) {
       throw shift::core::Exception(prefix + "body " + names[0] +
                                    " not found among the active bodies");

@@ -7,15 +7,18 @@ Examples
 The :tree:`examples` directory holds runnable models. Every one of them is
 also a test: ``meson test -C build`` loads and simulates each model in
 ``examples/`` (a few large collision models are kept as benchmarks, run
-with ``meson test -C build --benchmark``). Run any of them from its
-directory:
+with ``meson test -C build --benchmark``). Run any of them from the top of
+the repository, without changing to its folder:
 
 .. code:: bash
 
-   cd examples/force_modules
-   ../../build/shift/main/shift-cli belt.json
+   build/shift/main/shift-cli examples/force_modules/belt.json
 
-or open it in the viewer, ``build/shift/main/shift``.
+or open it in the viewer:
+
+.. code:: bash
+
+   build/shift/main/shift examples/force_modules/belt.json
 
 Force modules, sensors and controllers
 --------------------------------------

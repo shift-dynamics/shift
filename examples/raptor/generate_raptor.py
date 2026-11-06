@@ -314,9 +314,10 @@ for side, s in (("right", 1.0), ("left", -1.0)):
 
     force_modules.append({
         "type": "tire", "name": c + "tire", "tire_type": "fiala",
-        "wheel_body": c + "wheel", "unloaded_radius": radius,
-        "width": 0.32, "vertical_stiffness": 300000.0,
-        "vertical_damping": 3000.0})
+        "wheel_body": c + "wheel",
+        "fiala": {"unloaded_radius": radius, "width": 0.32,
+                  "vertical_stiffness": 300000.0,
+                  "vertical_damping": 3000.0}})
 
     # rear
     c = side + "_rear_"
@@ -371,9 +372,10 @@ for side, s in (("right", 1.0), ("left", -1.0)):
               c + "coil_lower", (5.0, 4.0))
     force_modules.append({
         "type": "tire", "name": c + "tire", "tire_type": "fiala",
-        "wheel_body": c + "wheel", "unloaded_radius": radius,
-        "width": 0.32, "vertical_stiffness": 300000.0,
-        "vertical_damping": 3000.0})
+        "wheel_body": c + "wheel",
+        "fiala": {"unloaded_radius": radius, "width": 0.32,
+                  "vertical_stiffness": 300000.0,
+                  "vertical_damping": 3000.0}})
     controllers.append({
         "type": "pid", "name": c + "drive", "kp": -100.0, "ki": -400.0,
         "kd": 0.0, "target": speed,

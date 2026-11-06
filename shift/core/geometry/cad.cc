@@ -44,18 +44,8 @@ void shift::core::geometry::Cad::Load() {
       "CAD geometry " + filename_ +
       ": shift was built without STEP support (meson option 'step')");
   }
-  const std::string parent_path =
-    shift::core::utility::GetParentPath(context_->get_filename());
-  const std::vector<std::string> include_directories =
-    (*context_)["model_parameters"]["include_directories"]
-      .get<std::vector<std::string>>();
-  std::string file = parent_path + "/" + filename_;
-  bool found = shift::core::utility::FileExists(file);
-  for(size_t i = 0; !found && i < include_directories.size(); i++) {
-    file = include_directories[i] + "/" + filename_;
-    found = shift::core::utility::FileExists(file);
-  }
-  if(!found) {
+  const std::string file = context_->FindFile(filename_);
+  if(file.empty()) {
     throw shift::core::Exception("File: " + filename_ + " not found");
   }
 

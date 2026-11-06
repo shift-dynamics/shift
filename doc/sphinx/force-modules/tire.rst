@@ -7,7 +7,8 @@ Tire
 evaluated, the module finds where the wheel disc touches the ground, builds
 the contact frame and the slip velocities of the contact point, evaluates
 the tire model chosen by ``tire_type``, and applies its force and moment to
-the wheel.
+the wheel. Each tire model declares its own parameters, which are read from a block
+named after it: ``"fiala"``, ``"pac2002"``, ``"bekker_wong"`` or ``"iowa"``.
 
 The wheel spins about the y axis of the wheel body's origin frame. It rolls
 on the active terrains of the model (see :ref:`model-file`, Terrain),
@@ -25,8 +26,8 @@ follow the slip velocities with first order relaxation,
 
 .. math::
 
-   \sigma_x \dot\kappa = -(|V_x| \kappa + V_{sx}), \qquad
-   \sigma_y \dot\alpha = V_{sy} - |V_x| \tan\alpha
+   \sigma_x \dot\kappa = -(|v_x| \kappa + v_{sx}), \qquad
+   \sigma_y \dot\alpha = v_{sy} - |v_x| \tan\alpha
 
 so the forces build up over a rolling distance (the relaxation lengths
 ``x_relaxation_length`` and ``y_relaxation_length``) and stay smooth as the
@@ -40,7 +41,7 @@ critical slip angle. All parameters have defaults for a passenger car tire.
 
    {"type": "tire", "name": "left_front", "tire_type": "fiala",
     "wheel_body": "left_front_wheel",
-    "unloaded_radius": 0.344, "vertical_stiffness": 310000}
+    "fiala": {"unloaded_radius": 0.344, "vertical_stiffness": 310000}}
 
 PAC2002
 -------
@@ -59,8 +60,9 @@ on the side opposite to the property file's ``TYRESIDE``.
 .. code:: javascript
 
    {"type": "tire", "name": "left_front", "tire_type": "pac2002",
-    "definition": "pac2002_235_60R15.tir", "use_transient_slip": true,
-    "wheel_body": "left_front_wheel"}
+    "wheel_body": "left_front_wheel",
+    "pac2002": {"definition": "pac2002_235_60R15.tir",
+                "use_transient_slip": true}}
 
 Bekker-Wong
 -----------
@@ -96,9 +98,9 @@ it the soil gives after the tread has slid by :math:`j` over it,
 
 .. math::
 
-   \tau = (c + \sigma\tan\phi)\left(1 - e^{-j/K}\right)
+   \tau = (c + \sigma\tan\phi)\left(1 - e^{-j/k_j}\right)
 
-with the shear modulus :math:`K` of the soil. The shear acts opposite to the
+with the shear modulus :math:`k_j` of the soil. The shear acts opposite to the
 sliding velocity of the tread over the soil, and :math:`j` is the distance the
 tread has slid since it entered the soil. Both come from the full velocity of
 the hub and the angular velocity of the wheel, so the model covers any slip,
@@ -124,7 +126,7 @@ the earth pressure of the soil on it, at depth :math:`d` below the terrain
 
 .. math::
 
-   p = 2c\sqrt{K_p} + w\,d\,K_p, \qquad K_p = \tan^2(45^\circ + \phi/2)
+   p = 2c\sqrt{\kappa_p} + w\,d\,\kappa_p, \qquad \kappa_p = \tan^2(45^\circ + \phi/2)
 
 with the soil's unit weight :math:`w`, over the part of the side that is below
 the terrain. It is fully applied above a sliding speed of ``slip_speed``, and
@@ -139,19 +141,107 @@ The force is integrated over the tread with Gauss-Legendre quadrature of
 .. code:: javascript
 
    {"type": "tire", "name": "wheel", "tire_type": "bekker_wong",
-    "wheel_body": "wheel", "unloaded_radius": 0.08, "width": 0.032,
-    "soil": {"name": "tri1_lunar_simulant"}}
+    "wheel_body": "wheel",
+    "bekker_wong": {"unloaded_radius": 0.08, "width": 0.032,
+                    "soil": {"name": "tri1_lunar_simulant"}}}
 
-Outputs, logged as ``<name>_<output>``: ``sinkage``, ``slip``,
+Outputs, logged as ``<assembly>__<name>__<output>``: ``sinkage``, ``slip``,
 ``drawbar_pull`` (the force along the heading), ``load``, ``shear_torque``
 (the torque the soil's shear puts on the wheel, which its driving torque has
 to overcome), ``camber`` and ``side_force``.
+
+Iowa
+----
+
+``"tire_type": "iowa"`` is a simple, fast tire for driving simulators and long runs over
+rough ground, after the real-time tire of the National Advanced Driving Simulator of the
+University of Iowa. It takes a few parameters, and what it adds is its contact with uneven
+ground: Fiala and PAC2002 describe the forces of a tire in more detail, this one the
+ground under it.
+
+*The contact.* The wheel is a disc in its plane, and the module samples the terrain under
+the lower half of it at ``segments`` + 1 points equally spaced along the heading. Each
+slice between two points adds the area of the disc below the terrain, a trapezoid or, where
+the rim crosses the terrain, a triangle. From the area :math:`a_s` follow the point of action
+(the centroid of the area), the terrain normal (the mean of the normals over the area) and
+the deflection :math:`\delta`, that of a wheel on flat ground with the same area:
+
+.. math::
+
+   r^2\bigl(\theta - \tfrac12\sin 2\theta\bigr) = a_s, \qquad \delta = r(1 - \cos\theta)
+
+so the force, its point of action and the normal follow bumps, steps and slopes smaller
+than the contact patch. Use an even number of ``segments``, so that a point is under the
+hub; ``"segments": 0`` is the plane tangent to the terrain, as for the other models.
+
+*The forces.* In SAE axes, with the hub's velocity :math:`(v_x, v_y, v_z)` in the contact
+frame and the spin :math:`\omega` about the hub's y axis (negative rolling forward), the
+load is a spring and a damper that do not pull, :math:`f_n = \max(k\delta + c\,v_z, 0)`.
+The tread moves over the ground at :math:`v_p = v_x + \omega(r - \delta)`, which gives
+the slip ratio and the slip angle, both fading out below ``low_speed`` :math:`v_\epsilon`,
+so that the forces stay smooth as the vehicle comes to rest:
+
+.. math::
+
+   \kappa = -\frac{v_p}{\max(|\omega|(r - \delta), |v_x|, v_\epsilon)}\,
+            \frac{|v_p|}{v_\epsilon + |v_p|}, \qquad
+   \alpha = \arctan\frac{|v_y|}{\max(|v_x|, v_\epsilon)}\,
+            \frac{v_y}{v_\epsilon + |v_y|}
+
+The longitudinal force is :math:`\mathrm{sign}(\kappa)\,\mu_x(|\kappa|)\,f_n`, where the
+friction rises in proportion to the slip to a peak of :math:`1.05\,\mu` at a slip of 0.2,
+holds to 0.25, and falls to ``friction_coefficient`` :math:`\mu` at 0.5. The lateral force,
+with the limit :math:`f_m = \mu f_n` and :math:`x = c_\alpha|\alpha|/f_m` for the cornering stiffness
+:math:`c_\alpha` (``cornering_stiffness``), is
+
+.. math::
+
+   f_y = -\mathrm{sign}(\alpha)\,f_m\,(x - 0.32x^2 + 0.032x^3)
+
+up to :math:`x = 2.5`, where it reaches :math:`f_m` with no slope, and
+:math:`-\mathrm{sign}(\alpha)f_m` beyond. If the two together exceed :math:`f_m`, both are scaled
+down to it (the friction ellipse). The rolling resistance is the force
+:math:`-c_r f_n v_x/(v_\epsilon + |v_x|)` at the hub. The lateral force acts behind the
+point of action by the trail ``aligning_coefficient``, which gives the aligning moment,
+and the component of the load across a cambered wheel acts behind it likewise.
+
+It has no relaxation lengths, camber thrust or soft soil (see Bekker-Wong above). Outputs:
+``deflection``, ``slip``, ``slip_angle``, ``normal_force``, ``longitudinal_force``,
+``lateral_force`` and ``aligning_moment``.
+
+.. code:: javascript
+
+   {"type": "tire", "name": "left_front", "tire_type": "iowa",
+    "wheel_body": "left_front_wheel",
+    "iowa": {"friction_coefficient": 0.8, "aligning_coefficient": 0.03,
+             "segments": 20}}
+
+Its parameters, in ``"iowa"``:
+
+.. shift-parameters:: shift/core/force_module/tire/iowa.cc
+   :function: Iowa::DeclareParameters
 
 Parameters
 ----------
 
 .. shift-parameters:: shift/core/force_module/tire/base.cc
+   :function: tire::Base::DeclareParameters
    :exclude: name, type, active
+
+``fiala``:
+
+.. shift-parameters:: shift/core/force_module/tire/fiala.cc
+   :function: Fiala::DeclareParameters
+
+``pac2002``:
+
+.. shift-parameters:: shift/core/force_module/tire/pac2002.cc
+   :function: Pac2002::DeclareParameters
+
+``bekker_wong``:
+
+.. shift-parameters:: shift/core/force_module/tire/bekker_wong.cc
+   :function: BekkerWong::DeclareParameters
 
 Examples
 --------
@@ -168,8 +258,9 @@ Examples
 
    vehicle_terrain.json at 3 s: the passenger car on an elevation map
 
-* :source:`examples/vehicle/tire_fiala.json` and
-  :source:`examples/vehicle/tire_pac2002.json`: a single wheel with each
+* :source:`examples/vehicle/tire_fiala.json`,
+  :source:`examples/vehicle/tire_pac2002.json` and
+  :source:`examples/vehicle/tire_iowa.json`: a single wheel with each
   tire model; :source:`examples/vehicle/tire_fiala_rig.json` holds the
   wheel on a test rig.
 * :source:`examples/vehicle/vehicle_control.json`: a passenger car with

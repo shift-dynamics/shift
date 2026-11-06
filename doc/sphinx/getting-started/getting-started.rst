@@ -72,20 +72,24 @@ other.
 Running it
 ----------
 
+From the top of the repository:
+
 .. code:: bash
 
-   cd examples/pendulum
-   ../../build/shift/main/shift-cli pendulum.json
+   build/shift/main/shift-cli examples/pendulum/pendulum.json
+
+You do not need to change to the folder of the model: *Shift* runs from any
+directory, given the path to the model file.
 
 ``shift-cli`` simulates the 100 s time span (in a few hundredths of a
-second), printing its progress, and writes ``pendulum.csv``.
-``shift-cli -d pendulum.json`` instead draws the graph of bodies and joints
+second), printing its progress, and, as the model declares a ``csv`` logger,
+writes ``pendulum.csv`` to the current directory. ``shift-cli -d examples/pendulum/pendulum.json`` instead draws the graph of bodies and joints
 that *Shift* found, and exits. Its first columns are the time and the joint's
 coordinate, velocity and acceleration:
 
 .. code:: text
 
-   time, fixed_to_link1_q_0, fixed_to_link1_dq_0, fixed_to_link1_ddq_0, ...
+   time, pendulum__fixed_to_link1__q_0, pendulum__fixed_to_link1__dq_0, ...
 
 followed by the root mean square error of the loop closure equations and
 the potential, kinetic and total energy. The total energy stays at
@@ -97,7 +101,7 @@ To watch the model, open it in the viewer:
 
 .. code:: bash
 
-   ../../build/shift/main/shift pendulum.json
+   build/shift/main/shift examples/pendulum/pendulum.json
 
 The viewer can also render a model to an image without user input, which
 is how the pictures in these documents are made
@@ -107,8 +111,8 @@ is how the pictures in these documents are made
 
    # simulate to 1 s, then save a ray traced image, viewed from 30 degrees
    # around the z axis and 20 degrees above the floor
-   ../../build/shift/main/shift double_pendulum.json --image pendulum.png \
-     --time 1 --size 1200x800 --view 30,20 --samples 256
+   build/shift/main/shift examples/pendulum/double_pendulum.json \
+     --image pendulum.png --time 1 --size 1200x800 --view 30,20 --samples 256
 
 ``shift --help`` lists the options.
 

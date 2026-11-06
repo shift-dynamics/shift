@@ -53,21 +53,59 @@ static ksl_vec3_t Combination(double a, const ksl_vec3_t& x, double b,
            a * x.z + b * y.z + c * z.z}};
 }
 
-shift::core::force_module::tire::BekkerWong::BekkerWong(
-  const BekkerWongParameters& parameters)
-  : p_(parameters) {
-  if(!(p_.radius > 0.0) || !(p_.width > 0.0) || p_.stations < 2 ||
-     p_.strips < 1 || p_.rebound < 0.0 || !(p_.rebound <= 1.0) ||
-     p_.grouser_height < 0.0 || !(p_.slip_speed > 0.0) || p_.c1 < 0.0 ||
-     p_.c2 < 0.0 || !(p_.c1 + p_.c2 <= 1.0)) {
+void shift::core::force_module::tire::BekkerWong::DeclareParameters() {
+  DeclareParameter("unloaded_radius", &radius,
+                   "unloaded radius (m); optional, default 0.344", false);
+  DeclareParameter("width", &width, "tire width (m); optional, default 0.235",
+                   false);
+  DeclareParameter("soil", &soil_, "the soil (see force_module::Soil)", true);
+  DeclareParameter("soil_damping", &vertical_damping,
+                   "damping of the load on the normal velocity of the contact "
+                   "point; optional, default 0",
+                   false);
+  DeclareParameter("max_stress_angle", &c1,
+                   "c1 of the angle of greatest normal stress theta_m = (c1 + "
+                   "c2 slip) theta_1; optional, default 0.4",
+                   false);
+  DeclareParameter("max_stress_slip", &c2,
+                   "c2 of theta_m; optional, default 0.3", false);
+  DeclareParameter("rebound", &rebound,
+                   "rear sinkage over the front sinkage; optional, default 0",
+                   false);
+  DeclareParameter("grouser_height", &grouser_height,
+                   "height of the lugs, for the shear; optional, default 0",
+                   false);
+  DeclareParameter("stations", &stations,
+                   "quadrature points in each of the two zones of the rim; "
+                   "optional, default 16",
+                   false);
+  DeclareParameter("strips", &strips,
+                   "quadrature points across the width of a cambered wheel; "
+                   "optional, default 5",
+                   false);
+  DeclareParameter("bulldozing", &bulldozing,
+                   "the passive pressure of the soil on the sides of the "
+                   "wheel, where they push it; optional, default true",
+                   false);
+  DeclareParameter("slip_speed", &slip_speed,
+                   "speed that smooths the slip at standstill; optional, "
+                   "default 0.01",
+                   false);
+}
+
+void shift::core::force_module::tire::BekkerWong::Prepare() {
+  if(!(radius > 0.0) || !(width > 0.0) || stations < 2 ||
+     strips < 1 || rebound < 0.0 || !(rebound <= 1.0) ||
+     grouser_height < 0.0 || !(slip_speed > 0.0) || c1 < 0.0 ||
+     c2 < 0.0 || !(c1 + c2 <= 1.0)) {
     throw shift::core::Exception(
       "Bekker-Wong tire: radius, width and slip_speed must be positive, "
       "stations at least 2, strips at least 1, rebound in [0, 1], "
       "grouser_height not negative and c1, c2 not negative with c1 + c2 at "
       "most 1");
   }
-  GaussLegendre(p_.stations, nodes_, weights_);
-  GaussLegendre(p_.strips, strip_nodes_, strip_weights_);
+  GaussLegendre(stations, nodes_, weights_);
+  GaussLegendre(strips, strip_nodes_, strip_weights_);
   GaussLegendre(6, side_nodes_, side_weights_);
 }
 
@@ -81,8 +119,8 @@ double shift::core::force_module::tire::BekkerWong::NormalStress(
     theta = theta_1_ - (theta - theta_2_) / (theta_m_ - theta_2_) *
                          (theta_1_ - theta_m_);
   }
-  return p_.soil.Pressure(
-    p_.width, effective_radius_ * (std::cos(theta) - std::cos(theta_1_)));
+  return soil.Pressure(
+    width, effective_radius_ * (std::cos(theta) - std::cos(theta_1_)));
 }
 
 void shift::core::force_module::tire::BekkerWong::Evaluate(
@@ -91,12 +129,11 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
   force_w->ang = {{0.0, 0.0, 0.0}};
   theta_1_ = theta_2_ = theta_m_ = slip_ = 0.0;
   shear_torque_ = camber_ = bulldozing_force_ = 0.0;
-  effective_radius_ = p_.radius;
+  effective_radius_ = radius;
   if(!contact.in_contact) {
     return;
   }
-  const double r = p_.radius, b = p_.width;
-  const SoilProperties& soil = p_.soil;
+  const double r = radius, b = width;
 
   /* the frame of the rim, (f, a, u), in the w frame (x heading, z the
   terrain normal into the terrain): the axle, the direction in the wheel's
@@ -136,7 +173,7 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
   {
     const double h0 = std::min(std::max(depth, 0.0), r_eff);
     theta_1_ = std::acos(1.0 - h0 / r_eff);
-    theta_2_ = -std::acos(1.0 - p_.rebound * h0 / r_eff);
+    theta_2_ = -std::acos(1.0 - rebound * h0 / r_eff);
   }
 
   /* velocities in the frame of the rim */
@@ -154,10 +191,10 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
   const double v_rim = -wa * r;
   const double v_max = std::max(std::fabs(v_rim), std::fabs(vf));
   const double speed =
-    std::sqrt(v_max * v_max + p_.slip_speed * p_.slip_speed);
+    std::sqrt(v_max * v_max + slip_speed * slip_speed);
   slip_ = (v_rim - vf) / speed;
   const double slip_clamped = std::min(std::max(slip_, 0.0), 1.0);
-  theta_m_ = (p_.c1 + p_.c2 * slip_clamped) * theta_1_;
+  theta_m_ = (c1 + c2 * slip_clamped) * theta_1_;
 
   /* from the contact point (the w frame's origin) to the hub */
   const ksl_vec3_t hub = {{-r * u.x, -r * u.y, depth - r * u.z}};
@@ -176,9 +213,9 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
 
   /* the tread, by strips of the width */
   const bool cambered = std::fabs(sin_gamma) > 1e-9;
-  const int strips = cambered ? p_.strips : 1;
+  const int strip_count = cambered ? strips : 1;
   const double y_half = 0.5 * (y_hi - y_lo), y_mid = 0.5 * (y_hi + y_lo);
-  for(int j = 0; j < strips; j++) {
+  for(int j = 0; j < strip_count; j++) {
     const double y = y_mid + y_half * (cambered ? strip_nodes_[j] : 0.0);
     const double y_weight = y_half * (cambered ? strip_weights_[j] : 2.0);
     const double h = std::min(depth + y * sin_gamma, r_eff);
@@ -186,11 +223,11 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
       continue;
     }
     const double theta_1 = std::acos(1.0 - h / r_eff);
-    const double theta_2 = -std::acos(1.0 - p_.rebound * h / r_eff);
-    const double theta_m = (p_.c1 + p_.c2 * slip_clamped) * theta_1;
+    const double theta_2 = -std::acos(1.0 - rebound * h / r_eff);
+    const double theta_m = (c1 + c2 * slip_clamped) * theta_1;
     /* the shear starts where the grousers' tips enter the soil */
     const double theta_s = std::acos(
-      std::min(1.0, (r_eff - h) / (r_eff + p_.grouser_height * cos_gamma)));
+      std::min(1.0, (r_eff - h) / (r_eff + grouser_height * cos_gamma)));
     const double sin_s = std::sin(theta_s), cos_s = std::cos(theta_s);
     const ksl_vec3_t offset = Combination(y, a, 0.0, a, 0.0, a);
 
@@ -243,7 +280,7 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
   shear_torque_ = torque;
 
   /* the sides of the tread: the passive pressure of the soil they push */
-  if(p_.bulldozing) {
+  if(bulldozing) {
     const double kp = soil.PassiveCoefficient();
     const double edge = 2.0 * soil.cohesion * std::sqrt(kp);
     for(int side = -1; side <= 1; side += 2) {
@@ -279,7 +316,7 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
           const double outward =
             side * (ksl_dot_vv(&contact.hub_velocity_w, &a) +
                     ksl_dot_vv(&spin, &a));
-          const double mobilized = SmoothStep(outward / p_.slip_speed);
+          const double mobilized = SmoothStep(outward / slip_speed);
           if(!(mobilized > 0.0)) {
             continue;
           }
@@ -297,7 +334,7 @@ void shift::core::force_module::tire::BekkerWong::Evaluate(
   /* the load, damped and clipped: the soil only pushes; the damping acts at
   the contact point, it has no moment about it */
   const double fz = std::min(
-    force.z - p_.vertical_damping * contact.contact_velocity_w.z, 0.0);
+    force.z - vertical_damping * contact.contact_velocity_w.z, 0.0);
   force_w->lin = {{force.x, force.y, fz}};
   force_w->ang = moment;
 }

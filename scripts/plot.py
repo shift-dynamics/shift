@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     ax1 = plt.subplot(511)
     for name in data.dtype.names[1:]:
-        if "_q_" in name:
+        if "__q_" in name:
             plt.plot(t, data[name], label=name)
     plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
     ax1.set_ylabel('q (m,rad)')
@@ -24,14 +24,14 @@ if __name__ == "__main__":
 
     ax2 = plt.subplot(512, sharex=ax1)
     for name in data.dtype.names[1:]:
-        if "_dq_" in name:
+        if "__dq_" in name:
             plt.plot(t, data[name], label=name)
     plt.ylim(-10, 10)
     ax2.set_ylabel('dq (m/s, rad/s)')
 
     ax3 = plt.subplot(513, sharex=ax2)
     for name in data.dtype.names[1:]:
-        if "_ddq_" in name:
+        if "__ddq_" in name:
             plt.plot(t, data[name], label=name)
     plt.ylim(-20, 20)
     ax3.set_ylabel('ddq (m/s^2, rad/s^2)')
