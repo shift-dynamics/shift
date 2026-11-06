@@ -158,6 +158,9 @@ The graph edges above the dashed line in Eq. :eq:`eq:incidence_matrix_no_substru
     Spanning tree of hydraulic excavator
 
 
+*Shift* keeps two graphs of the same mechanism. The first is the model as the user wrote it: the assemblies hold the bodies and joints, and each joint keeps the parent and child it was given. The second is built from the first and follows the spanning tree: it holds only the active bodies and joints, in level order, in arrays of their own, and it is what the simulation runs on. The user never has to arrange a model to suit it. Where a joint points against the spanning tree, its sense is set to -1 and the second graph uses the inverse of its transformation, so the joint's coordinates keep the meaning they have in the model file. A joint that reaches a body already in the tree closes a loop: it gets a virtual body and a chord constraint. Bodies, joints and their parameters stay accessible through the first graph, so results are reported in the terms of the model.
+
+
 Path Matrix
 ***********
 The path matrix is another important tool
