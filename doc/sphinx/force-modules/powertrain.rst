@@ -71,16 +71,16 @@ transmission's input shaft, as the turbine, through oil. With the speed ratio
 :math:`s = \omega_t/\omega_e` of turbine to pump, the *capacity curve*
 :math:`k_c(s)` (pairs of :math:`s` and :math:`k_c`, in rad/s per square root of N m)
 gives the torque that the pump takes, and the *torque ratio curve*
-:math:`\mathrm{TR}(s)` that the turbine gives:
+:math:`g_t(s)` that the turbine gives:
 
 .. math::
 
-   \tau_p = \frac{\omega_e|\omega_e|}{k_c(s)^2}, \qquad \tau_t = \mathrm{TR}(s)\,\tau_p
+   \tau_p = \frac{\omega_e|\omega_e|}{k_c(s)^2}, \qquad \tau_t = g_t(s)\,\tau_p
 
 A stalled turbine (:math:`s = 0`) has the greatest torque ratio, which multiplies the
-torque of the engine as a vehicle starts, and :math:`\mathrm{TR}` falls to 1 at the coupling
+torque of the engine as a vehicle starts, and :math:`g_t` falls to 1 at the coupling
 point, where the converter acts as a fluid coupling. A converter cannot give out more
-power than it takes in, :math:`\mathrm{TR}(s)\,s \le 1`, which the module checks when it loads;
+power than it takes in, :math:`g_t(s)\,s \le 1`, which the module checks when it loads;
 and the capacity :math:`k_c` of a real converter rises steeply as :math:`s \to 1`, so that
 the pump's torque vanishes when the turbine reaches its speed.
 
@@ -149,32 +149,32 @@ lag above. With it, :math:`e_i` is the opening of the gear's valve, and the clut
 to be filled with oil before it carries torque, so that a shift has a delay and a
 clutch is applied at the rate the oil can reach it (:cite:`merritt1967` for the flow of
 an orifice). The valve feeds the clutch from the pressure :math:`e_i p_s`, the
-``supply_pressure`` :math:`p_s`, through an orifice of area :math:`A`
+``supply_pressure`` :math:`p_s`, through an orifice of area :math:`a_o`
 (``orifice_area``, or ``drain_orifice_area`` as the oil leaves). The state of a clutch is
 the volume :math:`v` of oil that has entered it,
 
 .. math::
 
-   \dot v = C_d A \sqrt{\frac{2}{\rho}}\,
+   \dot v = c_d a_o \sqrt{\frac{2}{\rho}}\,
      \frac{e_i p_s - p}{\bigl((e_i p_s - p)^2 + p_t^2\bigr)^{1/4}}
 
 the orifice equation, which goes smoothly through zero below the
-``transition_pressure`` :math:`p_t`, with the ``discharge_coefficient`` :math:`C_d` and
+``transition_pressure`` :math:`p_t`, with the ``discharge_coefficient`` :math:`c_d` and
 ``density`` :math:`\rho`. The piston is light and quickly balances the oil against its
 return spring, so the pressure is a function of the volume:
 
 .. math::
 
    p(v) = \begin{cases}
-     F_0/a + v/C & v < 0 \quad\text{(on its stop, the oil decompressing)} \\
-     (F_0 + k_r v/a)/a & 0 \le v \le a l \quad\text{(stroking the piston)} \\
-     p_k + (v - a l)/C & v > a l \quad\text{(against the plates)}
+     f_0/a + v/c_o & v < 0 \quad\text{(on its stop, the oil decompressing)} \\
+     (f_0 + k_r v/a)/a & 0 \le v \le a l \quad\text{(stroking the piston)} \\
+     p_k + (v - a l)/c_o & v > a l \quad\text{(against the plates)}
    \end{cases}
 
 with the ``piston_area`` :math:`a`, ``piston_stroke`` :math:`l` (the travel until the
-plates touch), the return spring's ``spring_preload`` :math:`F_0` and ``spring_rate``
-:math:`k_r`, the *kiss pressure* :math:`p_k = (F_0 + k_r l)/a`, and the compliance of the
-oil :math:`C` = ``chamber_volume`` / ``bulk_modulus``. Taking the pressure from the
+plates touch), the return spring's ``spring_preload`` :math:`f_0` and ``spring_rate``
+:math:`k_r`, the *kiss pressure* :math:`p_k = (f_0 + k_r l)/a`, and the compliance of the
+oil :math:`c_o` = ``chamber_volume`` / ``bulk_modulus``. Taking the pressure from the
 volume, in place of a state for the pressure and one for the piston, leaves out the
 piston's own fast motion, which a variable step integrator would have to follow.
 
@@ -317,7 +317,7 @@ settles over a fraction of a second as the clutches and propshafts take up the
 difference of speeds.
 
 The power follows from the equations: the engine's power less its inertia's goes to the
-coupling, the converter gives out at most what it takes in (:math:`\mathrm{TR}(s)\,s \le 1`), the
+coupling, the converter gives out at most what it takes in (:math:`g_t(s)\,s \le 1`), the
 clutches dissipate the product of their torque and slip, and what reaches the output
 shaft goes through the propshafts to the wheels, less the loss and the work of the
 differentials' clutches.
@@ -383,7 +383,7 @@ The inputs that can be changed as the model runs are ``engine/throttle``,
 the path to it, such as ``"force_modules/drive/transmission/gear"`` or
 ``"force_modules/drive/axles/front/engaged"``.
 
-Outputs, logged as ``<name>_<output>``: ``engine_speed``, ``engine_torque``, ``fuel``,
+Outputs, logged as ``<assembly>__<name>__<output>``: ``engine_speed``, ``engine_torque``, ``fuel``,
 ``turbine_speed``, ``output_speed``, ``converter_torque_ratio``, ``gear_ratio`` (the
 ratios of the gears weighted by their engagement), ``gear_loss``, for each axle
 ``<axle>_shaft_torque``, ``<axle>_left_torque`` and ``<axle>_right_torque``, and

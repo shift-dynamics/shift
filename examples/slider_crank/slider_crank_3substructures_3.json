@@ -542,7 +542,7 @@
           "initial_velocity": 0.0
         },
         {
-          "name": "K_connecting_rod3_piston3",
+          "name": "K_connecting_rod3_piston3_2",
           "type": "revolute",
           "parent": [
             ["connecting_rod3_2"],

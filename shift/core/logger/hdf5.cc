@@ -94,7 +94,8 @@ void shift::core::logger::HDF5::WriteHeader() {
     };
 
     strcpy(data.name, joint->get_name().c_str());
-    strcpy(data.fully_qualified_name, joint->get_name().c_str());
+    strcpy(data.fully_qualified_name,
+           joint->FullyQualifiedName(joint->get_name()).c_str());
 
     joint_meta_data.push_back(data);
   }
@@ -184,7 +185,8 @@ void shift::core::logger::HDF5::WriteStates(const double t,
         if(names.empty()) {
           continue;
         }
-        H5::Group group = modules.createGroup(module->get_name());
+        H5::Group group =
+          modules.createGroup(module->FullyQualifiedName(module->get_name()));
         for(const auto& name : names) {
           outputs_.push_back(CreateSeries(group, name, 0));
         }

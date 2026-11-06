@@ -104,11 +104,47 @@ The eccentricity ratio is limited to 0.995 in the film (smoothly beyond 0.9),
 where the film's force is large but finite; give wall_stiffness for contact of
 the journal with the bearing at \f$|\underline{e}| > c\f$.
 
-Not in the module: the inertia of the oil, thermal effects (the viscosity can be
-changed as the model runs, see the schedule controller), misalignment, the
-grooves and the supply pressure of the oil, a bearing that is not narrow (see
-the roadmap: Booker's mobility method gives finite bearings), and the
-elasticity of the shaft and the bearing.
+*A bearing of finite length.* With "model": "finite" the module drops the
+narrow bearing's assumption and solves the Reynolds equation itself. With
+\f$\bar{h} = 1 + \epsilon \cos\theta\f$, \f$\bar{z} = 2 z / l\f$ and
+\f$p = (\mu r^2 / c^2) \bar{p}\f$, it is
+
+\f[
+\frac{\partial}{\partial\theta}\left(\bar{h}^3 \frac{\partial \bar{p}}{\partial\theta}\right) +
+  \frac{4 r^2}{l^2} \frac{\partial}{\partial \bar{z}}\left(\bar{h}^3 \frac{\partial \bar{p}}{\partial \bar{z}}\right) =
+  -6 (s \sin\theta - q \cos\theta)
+\f]
+
+with \f$\bar{p} = 0\f$ at the ends, which is the short bearing's pressure as
+\f$l / r\f$ goes to zero and Sommerfeld's as it grows. It is linear in \f$s\f$ and
+\f$q\f$, so \f$\bar{p} = s \bar{p}_s + q \bar{p}_q\f$, and when the model loads the module solves for
+\f$\bar{p}_s\f$ and \f$\bar{p}_q\f$ at each of a table of eccentricity ratios, by finite volumes
+on a grid that is fine where the film is thin (uniform in Sommerfeld's angle). The
+oil cavitates where the pressure would be negative (the half Sommerfeld
+condition, the "pi film" of the narrow bearing). For each direction
+\f$\mathrm{atan2}(q, s)\f$ of a second table the module clips \f$\bar{p}\f$ at zero and
+integrates it, and as the model runs the force is interpolated in the two tables,
+in proportion to \f$\sqrt{s^2 + q^2}\f$.
+
+*A groove.* groove_width is a circumferential oil groove at the middle of the
+bearing, at no pressure, which divides it into two bearings, each of
+length \f$(l - \mathrm{groove\_width}) / 2\f$, for either model.
+
+*The heating of the oil.* With heat_capacity, the temperature rise \f$t_r\f$ of the
+oil over the viscosity's reference is a state, with the power of the friction
+and a heat loss, and the viscosity falls with it (Reynolds' exponential law):
+
+\f[
+c_h \dot{t_r} = |\tau (\omega_j - \omega_b)| - k_t t_r, \quad
+\mu = \mu_0 e^{-\beta t_r}
+\f]
+
+with the heat_capacity \f$c_h\f$, cooling \f$k_t\f$ and viscosity_slope \f$\beta\f$.
+
+Not in the module: the inertia of the oil, misalignment, axial grooves and the
+pressure at which the oil is supplied, a temperature that varies over the film,
+and the elasticity of the shaft and the bearing. With the finite model,
+side_flow is still the short bearing's.
 
 JSON:
 \code
@@ -124,13 +160,16 @@ JSON:
   clearance; viscosity: of the oil (Pa s, for SI).
 - wall_stiffness (optional, default 0): stiffness of the contact when the
   journal touches the bearing, \f$|\underline{e}| > c\f$; zero for none.
+- model (optional, default "short"): "short" or "finite".
+- groove_width (optional, default 0).
+- heat_capacity, cooling, viscosity_slope (optional): the heating of the oil.
 
 Outputs: eccentricity_ratio, min_film_thickness (\f$c (1 - \epsilon)\f$, negative
 when the journal is in contact), peak_pressure, friction_torque (on the
 journal), side_flow (of oil out of the ends of the bearing), radial_force and
 tangential_force (\f$\underline{f} \cdot \underline{u}_1\f$,
-\f$\underline{f} \cdot \underline{u}_2\f$), and load
-(\f$|\underline{f}|\f$).
+\f$\underline{f} \cdot \underline{u}_2\f$), load
+(\f$|\underline{f}|\f$), viscosity and temperature_rise.
 */
 class JournalBearing : public Base {
 public:
@@ -162,6 +201,18 @@ public:
   static void FilmIntegrals(double epsilon, double s, double q, double* i_1,
                             double* i_2);
 
+  /*! \brief the force of the film of one land of the finite model over
+   * \f$\mu r^3 l / (2 c^2)\f$, along and across the line of centers, and its
+   * peak of \f$\bar{p}\f$, interpolated in the tables */
+  void FiniteFilm(double epsilon, double s, double q, double* j_1, double* j_2,
+                  double* peak) const;
+
+  double get_viscosity() const {
+    return effective_viscosity_;
+  }
+  double get_temperature_rise() const {
+    return temperature_rise_;
+  }
   double get_eccentricity_ratio() const {
     return eccentricity_ratio_;
   }
@@ -205,7 +256,10 @@ private:
   ksl_SE3_t Pose(const Attachment& attachment) const;
   Attachment Resolve(const std::vector<std::string>& names,
                      const std::string& what) const;
-  void Compute(bool apply);
+  void Compute(const double* y, double* dy, bool apply);
+
+  /*! \brief solves the Reynolds equation for the tables of the finite model */
+  void BuildFilmTable();
 
   static bool registered_;
 
@@ -215,6 +269,15 @@ private:
   double clearance_ = 0.0;
   double viscosity_ = 0.0;
   double wall_stiffness_ = 0.0;
+  std::string model_ = "short";
+  double groove_width_ = 0.0;
+  double heat_capacity_ = 0.0, cooling_ = 0.0, viscosity_slope_ = 0.0;
+
+  double land_ = 0.0; //!< length of a land
+  int lands_ = 1;
+  /* the finite model: j_1, j_2 and the peak for each eccentricity ratio and
+  direction, times (1 - epsilon^2)^2, which takes out most of their growth */
+  std::vector<double> film_table_;
 
   Attachment journal_, bearing_;
 
@@ -222,6 +285,7 @@ private:
   double eccentricity_ratio_ = 0.0, min_film_thickness_ = 0.0;
   double peak_pressure_ = 0.0, friction_torque_ = 0.0, side_flow_ = 0.0;
   double radial_force_ = 0.0, tangential_force_ = 0.0, load_ = 0.0;
+  double effective_viscosity_ = 0.0, temperature_rise_ = 0.0;
 };
 
 } // namespace force_module

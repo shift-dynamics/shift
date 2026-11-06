@@ -338,7 +338,7 @@ TEST(HydraulicCylinder, LoggersRecordTheOutputs) {
     cylinder->get_rod_flow()};
   EXPECT_GT(cylinder->get_head_pressure(), 1e6);
 
-  /* CSV: the columns cylinder_<output>, last row */
+  /* CSV: the columns test__cylinder__<output>, last row */
   std::vector<std::string> header, last;
   {
     std::ifstream file(csv);
@@ -360,7 +360,7 @@ TEST(HydraulicCylinder, LoggersRecordTheOutputs) {
   }
   for(size_t k = 0; k < names.size(); k++) {
     const auto it =
-      std::find(header.begin(), header.end(), "cylinder_" + names[k]);
+      std::find(header.begin(), header.end(), "test__cylinder__" + names[k]);
     ASSERT_NE(it, header.end()) << names[k];
     const size_t column = it - header.begin();
     ASSERT_LT(column, last.size());
@@ -369,7 +369,7 @@ TEST(HydraulicCylinder, LoggersRecordTheOutputs) {
       << names[k];
   }
 
-  /* HDF5: /force_modules/cylinder/<output>, as many rows as /time */
+  /* HDF5: /force_modules/test__cylinder/<output>, as many rows as /time */
   {
     H5::H5File file(h5, H5F_ACC_RDONLY);
     hsize_t rows = 0;
@@ -377,7 +377,7 @@ TEST(HydraulicCylinder, LoggersRecordTheOutputs) {
     ASSERT_GT(rows, 2u);
     for(size_t k = 0; k < names.size(); k++) {
       H5::DataSet dataset =
-        file.openDataSet("/force_modules/cylinder/" + names[k]);
+        file.openDataSet("/force_modules/test__cylinder/" + names[k]);
       hsize_t count = 0;
       dataset.getSpace().getSimpleExtentDims(&count);
       ASSERT_EQ(count, rows) << names[k];
@@ -420,4 +420,100 @@ TEST(HydraulicCylinder, RejectsAJointThatIsNotPrismatic) {
   }
   EXPECT_ANY_THROW(context.LoadJSON(path));
   std::remove(path.c_str());
+}
+
+/* a machine with two subassemblies, each with a joint and a cylinder of the
+same names, and with duplicate a second cylinder of that name in the first */
+static std::string TwoCylinders(const std::string& csv, const std::string& h5,
+                                bool duplicate) {
+  const std::string body =
+    std::string(R"("bodies": [{"name": "load", )") + kLoadInertia + R"(}],
+    "joints": [{"name": "slide", "type": "prismatic",
+                "parent": [["fixed"], "origin"],
+                "child": [["load"], "origin"], "axis": [0, 0, 1]}],)";
+  const std::string cylinder =
+    R"({"type": "hydraulic_cylinder", "name": "cylinder", "joint": "slide",
+        "stroke": 0.5, "bore_diameter": 0.05, "rod_diameter": 0.03,
+        "direction": -1, "retracted_position": 0.25,
+        "supply_pressure": 10e6, "relief_pressure": 20e6,
+        "rated_flow": 5e-5, "friction": 7e4, "command": 0.5})";
+  return R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, 9.81],
+    "solvers": [{"type": "rnca"}],
+    "loggers": [{"type": "csv", "csv_logfile": ")" +
+         csv + R"("}, {"type": "hdf5", "logfile": ")" + h5 + R"("}],
+    "integrators": [{"type": "ode113", "time_span": 0.05, "time_step": 0.01,
+                     "relative_error": 1e-7, "absolute_error": 1e-9}]
+  },
+  "assemblies": [{"name": "machine", "assemblies": [
+    {"name": "left", )" +
+         body + R"( "force_modules": [)" + cylinder +
+         (duplicate ? ", " + cylinder : "") + R"(]},
+    {"name": "right", )" +
+         body + R"( "force_modules": [)" + cylinder + R"(]}]}]
+})";
+}
+
+static void LoadText(shift::core::Context& context, const std::string& name,
+                     const std::string& text) {
+  const std::string path = testing::TempDir() + "/" + name + ".json";
+  std::ofstream(path) << text;
+  try {
+    context.LoadJSON(path);
+    std::remove(path.c_str());
+  } catch(...) {
+    std::remove(path.c_str());
+    throw;
+  }
+}
+
+/* modules of the same name in different assemblies are told apart in the logs
+by their fully qualified names */
+TEST(HydraulicCylinder, LogsUseFullyQualifiedNames) {
+  const std::string csv = testing::TempDir() + "/qualified_names.csv";
+  const std::string h5 = testing::TempDir() + "/qualified_names.h5";
+  shift::core::Context context;
+  LoadText(context, "qualified_names", TwoCylinders(csv, h5, false));
+  context.Simulate();
+
+  std::string header;
+  std::ifstream header_file(csv);
+  std::getline(header_file, header);
+  std::vector<std::string> columns;
+  std::stringstream cells(header);
+  for(std::string cell; std::getline(cells, cell, ',');) {
+    columns.push_back(cell);
+  }
+  for(const std::string column :
+      {"machine__left__slide__q_0", "machine__right__slide__q_0",
+       "machine__left__slide__dq_0", "machine__right__slide__ddq_0",
+       "machine__left__cylinder__force", "machine__right__cylinder__force"}) {
+    EXPECT_EQ(std::count(columns.begin(), columns.end(), column), 1) << column;
+  }
+
+  H5::H5File file(h5, H5F_ACC_RDONLY);
+  file.openDataSet("/force_modules/machine__left__cylinder/force");
+  file.openDataSet("/force_modules/machine__right__cylinder/force");
+  std::remove(csv.c_str());
+  std::remove(h5.c_str());
+}
+
+TEST(HydraulicCylinder, NameMustBeUniqueWithinItsAssembly) {
+  const std::string csv = testing::TempDir() + "/duplicate_names.csv";
+  const std::string h5 = testing::TempDir() + "/duplicate_names.h5";
+  shift::core::Context context;
+  try {
+    LoadText(context, "duplicate_names", TwoCylinders(csv, h5, true));
+    FAIL() << "a duplicate name must not load";
+  } catch(const shift::core::Exception& e) {
+    EXPECT_NE(std::string(e.what()).find("machine__left__cylinder"),
+              std::string::npos)
+      << e.what();
+  }
+  std::remove(csv.c_str());
+  std::remove(h5.c_str());
 }

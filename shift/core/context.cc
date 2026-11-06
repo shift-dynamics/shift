@@ -118,6 +118,8 @@ void shift::core::Context::LoadJSON(const std::string filename) {
 
 void shift::core::Context::PostLoad(const std::string) {
 
+  CheckUniqueNames();
+
   /* process topology */
   ActivateObjects(true);
   Connect();
@@ -2155,6 +2157,14 @@ void shift::core::Context::SetToInitialConditions() {
   UpdateFreeDV(dhva_, free_q);
 }
 
+void shift::core::Context::CheckUniqueNames() {
+  shift::core::body::Fixed::CheckUniqueNames();
+  CheckObjectNames(assemblies_.get_data(), "Assembly");
+  for(auto& assembly : assemblies_.get_data()) {
+    assembly->CheckUniqueNames();
+  }
+}
+
 void shift::core::Context::SetupFreeBodies() {
   free_bodies_.clear();
   for(auto body : active_free_bodies_) {
@@ -2991,18 +3001,40 @@ void shift::core::Context::InitializeAuxiliaryStates(double* y_auxiliary) {
 }
 
 shift::core::body::Base*
-shift::core::Context::FindActiveBody(const std::string& name) {
+shift::core::Context::FindActiveBody(const std::string& name,
+                                     const Assembly* assembly) {
   if(name == "fixed") {
     return get_fixed_body();
   }
+  std::vector<body::Base*> matches;
   for(auto list : {&active_articulated_bodies_, &active_free_bodies_}) {
     for(auto body : *list) {
       if(body->get_name() == name) {
+        if(assembly && body->get_parent_assembly() == assembly) {
+          return body;
+        }
+        matches.push_back(body);
+      }
+    }
+  }
+  for(auto list : {&active_articulated_bodies_, &active_free_bodies_}) {
+    for(auto body : *list) {
+      if(body->FullyQualifiedName(body->get_name()) == name) {
         return body;
       }
     }
   }
-  return nullptr;
+  if(matches.size() > 1) {
+    std::string candidates;
+    for(auto body : matches) {
+      candidates += (candidates.empty() ? "'" : ", '") +
+                    body->FullyQualifiedName(body->get_name()) + "'";
+    }
+    throw shift::core::Exception("Body name '" + name + "' is ambiguous: use " +
+                                 "the fully qualified name, one of " +
+                                 candidates);
+  }
+  return matches.empty() ? nullptr : matches[0];
 }
 
 int shift::core::Context::GetBodyLoadIndex(const body::Base* body) const {
@@ -3048,6 +3080,13 @@ void shift::core::Context::AddBodyLoad(int load_index,
   for(int i = 0; i < 6; i++) {
     sum.at[i] += load.at[i];
   }
+}
+
+std::string shift::core::Context::FindFile(const std::string& name) {
+  return shift::core::utility::FindFile(
+    name, filename_,
+    (*this)["model_parameters"]["include_directories"]
+      .get<std::vector<std::string>>());
 }
 
 void shift::core::Context::EvaluateConstraints() {

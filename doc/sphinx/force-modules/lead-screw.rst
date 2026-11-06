@@ -99,7 +99,7 @@ is not in the module; put it on the joint that carries the screw.
 ``friction``, ``stiffness``, ``damping`` and ``slip_speed`` can be changed as the
 model runs (see :ref:`schedule`).
 
-Outputs, logged as ``<name>_<output>``: ``axial_force`` (the force of the thread on
+Outputs, logged as ``<assembly>__<name>__<output>``: ``axial_force`` (the force of the thread on
 the screw along the axis), ``torque`` (on the screw about the axis),
 ``deflection``, ``normal_force``, ``friction_force`` and ``turns`` (the rotation
 of the screw relative to the nut, in turns).

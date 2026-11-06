@@ -83,7 +83,7 @@ static ksl_vec3_t UnitVector(const std::vector<double>& v,
 void shift::core::force_module::Track::Load() {
   const std::string prefix = "Track force module '" + name_ + "': ";
   auto find = [&](const std::string& name) {
-    auto body = context_->FindActiveBody(name);
+    auto body = context_->FindActiveBody(name, get_parent_assembly());
     if(!body) {
       throw shift::core::Exception(prefix + "body '" + name +
                                    "' is not an active body");
@@ -227,4 +227,15 @@ std::vector<double> shift::core::force_module::Track::Measure() {
   }
   out.push_back(side);
   return out;
+}
+
+void shift::core::force_module::Track::CheckUniqueNames() {
+  const std::string prefix = FullyQualifiedName(get_name()) + "__";
+  std::vector<std::string> names;
+  for(const auto& span : spans_.get_data()) {
+    if(!span->name.empty()) {
+      names.push_back(prefix + span->name);
+    }
+  }
+  CheckNames(names, "Track span");
 }

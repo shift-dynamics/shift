@@ -125,7 +125,7 @@
           "initial_velocity": 1000.0
         },
         {
-          "name": "A_fixed_link1",
+          "name": "B_link1_link2",
           "type": "revolute",
           "parent": [
             ["link1"],

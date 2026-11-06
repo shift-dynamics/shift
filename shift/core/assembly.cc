@@ -61,3 +61,22 @@ void shift::core::Assembly::DeclareParameters() {
                "constraint in the array must have a unique name identifier",
                false);
 }
+
+void shift::core::Assembly::CheckUniqueNames() {
+  CheckObjectNames(assemblies_.get_data(), "Assembly");
+  CheckObjectNames(bodies_.get_data(), "Body");
+  CheckObjectNames(joints_.get_data(), "Joint");
+  CheckObjectNames(force_modules_.get_data(), "Force module");
+  CheckObjectNames(sensors_.get_data(), "Sensor");
+  CheckObjectNames(controllers_.get_data(), "Controller");
+  CheckObjectNames(constraints_.get_data(), "Constraint");
+  for(auto& body : bodies_.get_data()) {
+    body->CheckUniqueNames();
+  }
+  for(auto& module : force_modules_.get_data()) {
+    module->CheckUniqueNames();
+  }
+  for(auto& assembly : assemblies_.get_data()) {
+    assembly->CheckUniqueNames();
+  }
+}

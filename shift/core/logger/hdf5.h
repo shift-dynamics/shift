@@ -21,7 +21,7 @@ At each output time step the logger appends a row to each of:
 - /states/q, /states/dq: the generalized coordinates and velocities, one
   row per output step; /state_meta_data/generalized_variables gives each
   joint's offsets into them
-- /force_modules/\<module\>/\<output\>: each output of each force module (such
+- /force_modules/\<assembly\>__\<name\>/\<output\>: each output of each force module (such
   as a cylinder's head_pressure or force), one value per row
 
 The datasets grow as the simulation runs, and the file is flushed after

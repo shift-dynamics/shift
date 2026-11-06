@@ -68,11 +68,6 @@ static float SrgbToLinear(float c) {
 void shift::core::geometry::Mesh::Load() {
 
   assert(context_);
-  std::string parent_path =
-    shift::core::utility::GetParentPath(context_->get_filename());
-  const std::vector<std::string> include_directories =
-    (*context_)["model_parameters"]["include_directories"]
-      .get<std::vector<std::string>>();
 
   if(color_space_ != "linear" && color_space_ != "srgb") {
     throw shift::core::Exception("Invalid mesh color_space: " + color_space_);
@@ -103,13 +98,8 @@ void shift::core::geometry::Mesh::Load() {
     if(extension != ".obj" && extension != ".gltf" && extension != ".glb") {
       continue;
     }
-    std::string file = parent_path + "/" + str;
-    bool file_found = shift::core::utility::FileExists(file);
-    for(size_t i = 0; !file_found && i < include_directories.size(); i++) {
-      file = include_directories[i] + "/" + str;
-      file_found = shift::core::utility::FileExists(file);
-    }
-    if(!file_found) {
+    const std::string file = context_->FindFile(str);
+    if(file.empty()) {
       throw shift::core::Exception("File: " + str + " not found");
     }
     files.push_back(file);

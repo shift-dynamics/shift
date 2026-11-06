@@ -75,7 +75,8 @@ void shift::core::light::Base::Connect() {
                   "light is not drawn");
     return;
   }
-  body::Base* body = context_->FindActiveBody(parent_[0]);
+  body::Base* body =
+    context_->FindActiveBody(parent_[0], get_parent_assembly());
   if(!body) {
     SHIFT_WARNING(prefix + "body " + parent_[0] + " not found among the "
                   "active bodies; the light is not drawn");

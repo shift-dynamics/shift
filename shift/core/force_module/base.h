@@ -72,6 +72,10 @@ public:
   virtual void Load();
   virtual void Connect() = 0;
 
+  /*! \brief throw if a name is repeated among the named parts of this module,
+   * such as the axles of a powertrain */
+  virtual void CheckUniqueNames() {}
+
   /*! \brief holding: a module that drives a joint (such as a hydraulic
    * cylinder) may ask to start with the internal states that hold the joint
    * still. Before integrating, Context::HoldInitialStates finds the joint

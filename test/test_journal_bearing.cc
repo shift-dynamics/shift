@@ -10,6 +10,7 @@ equilibrium under its weight */
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ it: two prismatic joints and a revolute joint; the bearing is the fixed body.
 gravity is along the x axis */
 static void Load(shift::core::Context& context, double viscosity, double mass,
                  double time_span, const std::string& extra = "",
-                 double spin = 0.0) {
+                 double spin = 0.0, double length = kLength) {
   const std::string path = testing::TempDir() + "/journal_bearing_test.json";
   {
     std::ofstream file(path);
@@ -67,7 +68,7 @@ static void Load(shift::core::Context& context, double viscosity, double mass,
          << spin << R"(}],
     "force_modules": [{"type": "journal_bearing", "name": "bearing",
       "journal": ["shaft", "origin"], "bearing": ["fixed", "origin"],
-      "radius": )" << kRadius << R"(, "length": )" << kLength
+      "radius": )" << kRadius << R"(, "length": )" << length
          << R"(, "clearance": )" << kClearance << R"(, "viscosity": )"
          << viscosity << extra << R"(}]
   }]
@@ -352,5 +353,164 @@ TEST(JournalBearing, WhatItRefuses) {
   EXPECT_NE(message("", -1.0).find("viscosity"), std::string::npos);
   EXPECT_NE(message(R"(, "wall_stiffness": -1)").find("wall_stiffness"),
             std::string::npos);
+  EXPECT_NE(message(R"(, "model": "long")").find("model"), std::string::npos);
+  EXPECT_NE(message(R"(, "groove_width": 1)").find("groove_width"),
+            std::string::npos);
+  EXPECT_NE(message(R"(, "cooling": -1)").find("cooling"), std::string::npos);
   EXPECT_EQ(message(""), "");
+}
+
+/* the bearing of finite length, solved from the Reynolds equation */
+
+static const char* kFinite = R"(, "model": "finite")";
+
+TEST(JournalBearingFinite, ANarrowBearingIsTheShortBearing) {
+  // at a length of a tenth of the diameter the two models agree, for rotation,
+  // squeeze and the two together
+  const double length = 0.1 * 2.0 * kRadius;
+  shift::core::Context short_context, finite_context;
+  Load(short_context, 0.01, 10.0, 0.0, "", 0.0, length);
+  Load(finite_context, 0.01, 10.0, 0.0, kFinite, 0.0, length);
+  JournalBearing* narrow = Find(short_context);
+  JournalBearing* finite = Find(finite_context);
+  for(double epsilon : {0.1, 0.3, 0.6}) {
+    for(double speed : {0.0, 0.002, -0.002}) {
+      SCOPED_TRACE(epsilon);
+      SCOPED_TRACE(speed);
+      for(shift::core::Context* context : {&short_context, &finite_context}) {
+        Evaluate(*context, epsilon * kClearance, 0.0, speed, 0.0, 100.0);
+      }
+      const double size =
+        std::hypot(narrow->get_radial_force(), narrow->get_tangential_force());
+      ASSERT_GT(size, 0.0);
+      EXPECT_NEAR(finite->get_radial_force(), narrow->get_radial_force(),
+                  0.03 * size);
+      EXPECT_NEAR(finite->get_tangential_force(),
+                  narrow->get_tangential_force(), 0.03 * size);
+    }
+  }
+}
+
+TEST(JournalBearingFinite, TheGapToTheShortBearingClosesAsTheBearingNarrows) {
+  // at a large eccentricity the film varies quickly round the bearing, and the
+  // short theory needs a narrower bearing to hold: the gap goes with
+  // the square of the length
+  double last = 1.0;
+  for(double ratio : {0.2, 0.1, 0.05, 0.025}) {
+    const double length = ratio * 2.0 * kRadius;
+    shift::core::Context short_context, finite_context;
+    Load(short_context, 0.01, 10.0, 0.0, "", 0.0, length);
+    Load(finite_context, 0.01, 10.0, 0.0, kFinite, 0.0, length);
+    Evaluate(short_context, 0.8 * kClearance, 0.0, 0.0, 0.0, 100.0);
+    Evaluate(finite_context, 0.8 * kClearance, 0.0, 0.0, 0.0, 100.0);
+    const double narrow = Find(short_context)->get_radial_force();
+    const double gap =
+      std::fabs(Find(finite_context)->get_radial_force() / narrow - 1.0);
+    EXPECT_LT(gap, last);
+    last = gap;
+  }
+  EXPECT_LT(last, 0.01);
+}
+
+TEST(JournalBearingFinite, ALongBearingHasSommerfeldsPressure) {
+  // the middle of a long bearing is an infinite one, whose film is in closed
+  // form: P = 6 omega epsilon sin(theta) (2 + epsilon cos(theta)) /
+  // ((2 + epsilon^2) (1 + epsilon cos(theta))^2), for the spin omega of one
+  // surface. Its greatest value is at cos(theta) = -3 epsilon / (2 + epsilon^2)
+  const double omega = 100.0, mu = 0.01;
+  shift::core::Context context;
+  Load(context, mu, 10.0, 0.0, kFinite, 0.0, 12.0 * 2.0 * kRadius);
+  JournalBearing* bearing = Find(context);
+  for(double epsilon : {0.2, 0.5, 0.7}) {
+    SCOPED_TRACE(epsilon);
+    Evaluate(context, epsilon * kClearance, 0.0, 0.0, 0.0, omega);
+    double peak = 0.0;
+    for(double theta = 0.0; theta < M_PI; theta += 1e-3) {
+      const double h = 1.0 + epsilon * std::cos(theta);
+      peak = std::max(peak, 6.0 * omega * epsilon * std::sin(theta) *
+                              (2.0 + epsilon * std::cos(theta)) /
+                              ((2.0 + epsilon * epsilon) * h * h));
+    }
+    const double expected = mu * kRadius * kRadius /
+                            (kClearance * kClearance) * peak;
+    Find(context)->UpdateOutputs(0.0, nullptr);
+    EXPECT_NEAR(bearing->get_peak_pressure(), expected, 0.02 * expected);
+  }
+}
+
+TEST(JournalBearingFinite, TheShortTheoryOverestimatesABearingAsLongAsItsDiameter) {
+  // a length of one diameter: the flow round the bearing relieves the pressure
+  // the short theory builds, so the finite force is the smaller of the two,
+  // but of the same order
+  shift::core::Context short_context, finite_context;
+  const double length = 2.0 * kRadius;
+  Load(short_context, 0.01, 10.0, 0.0, "", 0.0, length);
+  Load(finite_context, 0.01, 10.0, 0.0, kFinite, 0.0, length);
+  for(double epsilon : {0.2, 0.6}) {
+    SCOPED_TRACE(epsilon);
+    Evaluate(short_context, epsilon * kClearance, 0.0, 0.0, 0.0, 100.0);
+    Evaluate(finite_context, epsilon * kClearance, 0.0, 0.0, 0.0, 100.0);
+    const double narrow = std::hypot(Find(short_context)->get_radial_force(),
+                                     Find(short_context)->get_tangential_force());
+    const double finite = std::hypot(Find(finite_context)->get_radial_force(),
+                                     Find(finite_context)->get_tangential_force());
+    EXPECT_LT(finite, narrow);
+    EXPECT_GT(finite, 0.3 * narrow);
+  }
+}
+
+TEST(JournalBearingFinite, TheForceIsInProportionToTheSpeed) {
+  shift::core::Context context;
+  Load(context, 0.01, 10.0, 0.0, kFinite);
+  JournalBearing* bearing = Find(context);
+  Evaluate(context, 0.5 * kClearance, 0.0, 0.0, 0.0, 100.0);
+  const double radial = bearing->get_radial_force();
+  const double tangential = bearing->get_tangential_force();
+  Evaluate(context, 0.5 * kClearance, 0.0, 0.0, 0.0, 300.0);
+  EXPECT_NEAR(bearing->get_radial_force(), 3.0 * radial,
+              1e-9 * std::fabs(radial));
+  EXPECT_NEAR(bearing->get_tangential_force(), 3.0 * tangential,
+              1e-9 * std::fabs(tangential));
+  // the film pushes the journal back, and across, as the short bearing's
+  EXPECT_LT(radial, 0.0);
+  EXPECT_GT(tangential, 0.0);
+}
+
+TEST(JournalBearing, AGrooveMakesTwoBearingsOfHalfTheLength) {
+  // the force of the short bearing goes with the cube of the length: two lands
+  // of half the length (less the groove) carry a quarter of it, or less
+  shift::core::Context plain_context, grooved_context;
+  Load(plain_context, 0.01, 10.0, 0.0);
+  std::ostringstream groove;
+  groove << R"(, "groove_width": )" << 0.2 * kLength;
+  Load(grooved_context, 0.01, 10.0, 0.0, groove.str());
+  Evaluate(plain_context, 0.5 * kClearance, 0.0, 0.0, 0.0, 100.0);
+  Evaluate(grooved_context, 0.5 * kClearance, 0.0, 0.0, 0.0, 100.0);
+  EXPECT_NEAR(Find(grooved_context)->get_radial_force(),
+              2.0 * std::pow(0.4, 3.0) * Find(plain_context)->get_radial_force(),
+              1e-9 * std::fabs(Find(plain_context)->get_radial_force()));
+}
+
+TEST(JournalBearing, TheOilHeatsUntilTheCoolingTakesThePowerOfTheFriction) {
+  // a centered shaft spun at omega against a fixed bearing, the friction torque
+  // tau(mu) of Petroff's formula: at the steady temperature rise T,
+  // tau(mu exp(-beta T)) omega = k T
+  const double omega = 500.0, mu = 0.05, beta = 0.03, cooling = 2.0;
+  shift::core::Context context;
+  std::ostringstream extra;
+  extra << R"(, "heat_capacity": 5, "cooling": )" << cooling
+        << R"(, "viscosity_slope": )" << beta;
+  Load(context, mu, 10.0, 30.0, extra.str(), omega);
+  std::vector<double> state;
+  context.set_state_observer(
+    [&state](double, const std::vector<double>& y) { state = y; });
+  context.Simulate();
+  JournalBearing* bearing = Find(context);
+  bearing->UpdateOutputs(0.0, state.data());
+  const double rise = bearing->get_temperature_rise();
+  ASSERT_GT(rise, 1.0);
+  EXPECT_NEAR(bearing->get_viscosity(), mu * std::exp(-beta * rise), 1e-12);
+  const double power =
+    std::fabs(bearing->get_friction_torque()) * omega;
+  EXPECT_NEAR(power, cooling * rise, 0.02 * power);
 }

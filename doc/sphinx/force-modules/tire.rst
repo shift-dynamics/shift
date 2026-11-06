@@ -145,7 +145,7 @@ The force is integrated over the tread with Gauss-Legendre quadrature of
     "bekker_wong": {"unloaded_radius": 0.08, "width": 0.032,
                     "soil": {"name": "tri1_lunar_simulant"}}}
 
-Outputs, logged as ``<name>_<output>``: ``sinkage``, ``slip``,
+Outputs, logged as ``<assembly>__<name>__<output>``: ``sinkage``, ``slip``,
 ``drawbar_pull`` (the force along the heading), ``load``, ``shear_torque``
 (the torque the soil's shear puts on the wheel, which its driving torque has
 to overcome), ``camber`` and ``side_force``.
@@ -162,13 +162,13 @@ ground under it.
 *The contact.* The wheel is a disc in its plane, and the module samples the terrain under
 the lower half of it at ``segments`` + 1 points equally spaced along the heading. Each
 slice between two points adds the area of the disc below the terrain, a trapezoid or, where
-the rim crosses the terrain, a triangle. From the area :math:`A` follow the point of action
+the rim crosses the terrain, a triangle. From the area :math:`a_s` follow the point of action
 (the centroid of the area), the terrain normal (the mean of the normals over the area) and
 the deflection :math:`\delta`, that of a wheel on flat ground with the same area:
 
 .. math::
 
-   r^2\bigl(\theta - \tfrac12\sin 2\theta\bigr) = A, \qquad \delta = r(1 - \cos\theta)
+   r^2\bigl(\theta - \tfrac12\sin 2\theta\bigr) = a_s, \qquad \delta = r(1 - \cos\theta)
 
 so the force, its point of action and the normal follow bumps, steps and slopes smaller
 than the contact patch. Use an even number of ``segments``, so that a point is under the
@@ -191,15 +191,15 @@ so that the forces stay smooth as the vehicle comes to rest:
 The longitudinal force is :math:`\mathrm{sign}(\kappa)\,\mu_x(|\kappa|)\,f_n`, where the
 friction rises in proportion to the slip to a peak of :math:`1.05\,\mu` at a slip of 0.2,
 holds to 0.25, and falls to ``friction_coefficient`` :math:`\mu` at 0.5. The lateral force,
-with the limit :math:`F = \mu f_n` and :math:`x = C|\alpha|/F` for the cornering stiffness
-:math:`C` (``cornering_stiffness``), is
+with the limit :math:`f_m = \mu f_n` and :math:`x = c_\alpha|\alpha|/f_m` for the cornering stiffness
+:math:`c_\alpha` (``cornering_stiffness``), is
 
 .. math::
 
-   f_y = -\mathrm{sign}(\alpha)\,F\,(x - 0.32x^2 + 0.032x^3)
+   f_y = -\mathrm{sign}(\alpha)\,f_m\,(x - 0.32x^2 + 0.032x^3)
 
-up to :math:`x = 2.5`, where it reaches :math:`F` with no slope, and
-:math:`-\mathrm{sign}(\alpha)F` beyond. If the two together exceed :math:`F`, both are scaled
+up to :math:`x = 2.5`, where it reaches :math:`f_m` with no slope, and
+:math:`-\mathrm{sign}(\alpha)f_m` beyond. If the two together exceed :math:`f_m`, both are scaled
 down to it (the friction ellipse). The rolling resistance is the force
 :math:`-c_r f_n v_x/(v_\epsilon + |v_x|)` at the hub. The lateral force acts behind the
 point of action by the trail ``aligning_coefficient``, which gives the aligning moment,

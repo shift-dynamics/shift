@@ -29,7 +29,7 @@ results do not depend on the step size.
 
 **Outputs.** A force module may name output values, such as the pressures
 of a cylinder or the tensions of a belt. The loggers record them as
-columns named ``<module>_<output>`` (see :ref:`logging`).
+columns named ``<assembly>__<module>__<output>`` (see :ref:`logging`).
 
 **Starting in equilibrium.** A hydraulic cylinder with ``"hold": true``
 starts with the pressures that hold the model still; the forces of all such

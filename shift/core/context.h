@@ -88,9 +88,16 @@ public:
     return this;
   }
 
-  /*! \brief the body named name: "fixed" for the fixed body, or an active
-   * articulated or free body; null if there is none */
-  body::Base* FindActiveBody(const std::string& name);
+  /*! \brief the active body named name, null if there is none: "fixed" for the
+   * fixed body, else a body of assembly, else the body of that fully qualified
+   * name (<assembly>__<subassembly>__<name>), else the one body of that name in
+   * the model. It is an error if several bodies have the name: the fully
+   * qualified name tells them apart.
+   * @param name [in] name of the body
+   * @param assembly [in] assembly of the object asking, searched first
+   */
+  body::Base* FindActiveBody(const std::string& name,
+                             const Assembly* assembly = nullptr);
 
   /*! \brief the active lights, connected to their frames */
   const std::vector<light::Base*>& get_active_lights() const {
@@ -356,6 +363,10 @@ public:
     return filename_;
   }
 
+  /*! \brief the path of a file named by the model, empty if it is not found
+   * (see utility::FindFile) */
+  std::string FindFile(const std::string& name);
+
   inline const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
     return &active_joints_;
   }
@@ -597,6 +608,9 @@ private:
   /*! \brief collect the active free bodies, check that no joint connects to
    * one, and set up their inertias */
   void SetupFreeBodies();
+  /*! \brief throw if a name is repeated at one level of the model, from the
+   * top level down: objects are identified by their fully qualified names */
+  void CheckUniqueNames() override;
   /*! \brief the accelerations of the free bodies (dhva_.free.a) from their
    * loads and gravity, and the time derivatives of their generalized
    * coordinates at the free body offset of dy. Each body is independent, so

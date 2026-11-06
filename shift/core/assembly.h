@@ -58,6 +58,11 @@ public:
     return assemblies_.get_data();
   }
 
+  /*! \brief throw if a name is repeated at one level: among the assemblies,
+   * bodies, joints, force modules, sensors, controllers or constraints of this
+   * assembly, or within one of them, or in the assemblies nested in it */
+  void CheckUniqueNames();
+
 private:
   void DeclareParameters() override;
 

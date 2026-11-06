@@ -104,7 +104,7 @@ void shift::core::force_module::TrackSoil::Load() {
   ksl_cross_vv(&normal_, &along_, &across_);
   shoes_.clear();
   for(const auto& name : shoe_names_) {
-    auto body = context_->FindActiveBody(name);
+    auto body = context_->FindActiveBody(name, get_parent_assembly());
     if(!body) {
       throw shift::core::Exception(prefix + ": body '" + name +
                                    "' is not an active body");

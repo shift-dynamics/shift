@@ -85,6 +85,33 @@ void shift::core::force_module::GearMesh::DeclareParameters() {
                    "length over which a flank starts to load; optional, "
                    "default 1e-7",
                    false);
+  DeclareParameter("internal", &internal_,
+                   "gear 2 is a ring gear, with gear 1 inside it; optional, "
+                   "default false",
+                   false);
+  DeclareParameter("helix_angle", &helix_angle_,
+                   "helix angle of gear 1 at the pitch circle, radians, "
+                   "positive for a right hand helix; pressure_angle is then "
+                   "that of the normal section; optional, default 0",
+                   false);
+  DeclareParameter("face_width", &face_width_,
+                   "width of the teeth along the axis; needed for "
+                   "tooth_geometry, oil_viscosity and the overlap of helical "
+                   "teeth; optional",
+                   false);
+  DeclareParameter("tooth_geometry", &teeth_,
+                   "the stiffness of the mesh from the shape of the teeth, "
+                   "see GearTeeth; replaces tooth_stiffness, contact_ratio "
+                   "and stiffness_table; optional",
+                   false);
+  DeclareParameter("oil_viscosity", &oil_viscosity_,
+                   "viscosity of the oil, for the squeeze film between the "
+                   "flanks; optional, default 0 (none)",
+                   false)
+    .set_runtime();
+  DeclareParameter("min_film", &min_film_,
+                   "thinnest film of the squeeze film; optional, default 1e-6",
+                   false);
 }
 
 shift::core::force_module::GearMesh::Attachment
@@ -95,7 +122,7 @@ shift::core::force_module::GearMesh::Resolve(
     throw shift::core::Exception(prefix + what + " must be [body, frame]");
   }
   Attachment a;
-  a.body = context_->FindActiveBody(names[0]);
+  a.body = context_->FindActiveBody(names[0], get_parent_assembly());
   if(!a.body) {
     throw shift::core::Exception(prefix + "body " + names[0] +
                                  " not found among the active bodies");
@@ -164,6 +191,29 @@ double shift::core::force_module::GearMesh::PairsInContact(
   return 2.0 - SmoothStep((u - h + 0.5 * ramp) / ramp);
 }
 
+void shift::core::force_module::GearMesh::BuildStiffnessTable(
+  const std::function<double(double)>& spur, int points) {
+  /* a helical gear is a stack of thin spur gears, each turned from the last:
+  the sections across the face are spread over the overlap ratio, in tooth
+  pitches */
+  const double overlap = face_width_ * std::fabs(std::tan(helix_angle_)) *
+                         teeth_1_ / (2.0 * M_PI * pitch_radius_1_);
+  const int slices = overlap > 0.0 ? 24 : 1;
+  std::vector<double> pairs;
+  pairs.reserve(2 * (points + 1));
+  for(int i = 0; i <= points; i++) {
+    const double x = static_cast<double>(i) / points;
+    double sum = 0.0;
+    for(int j = 0; j < slices; j++) {
+      sum += spur(x + overlap * ((j + 0.5) / slices - 0.5));
+    }
+    pairs.push_back(x);
+    pairs.push_back(sum / slices);
+  }
+  stiffness_table_ = Table::FromPairs(pairs, Table::Extrapolation::kHold,
+                                      "stiffness of the mesh");
+}
+
 double shift::core::force_module::GearMesh::StiffnessAt(double x) const {
   const double f = x - std::floor(x);
   if(!stiffness_table_.empty()) {
@@ -194,7 +244,54 @@ void shift::core::force_module::GearMesh::Load() {
                "positive, pressure_angle between 0 and 90 degrees, damping and "
                "backlash not negative");
   }
-  if(stiffness_points_.empty()) {
+  if(!(std::fabs(helix_angle_) < 0.5 * M_PI) || face_width_ < 0.0 ||
+     oil_viscosity_ < 0.0 || !(min_film_ > 0.0)) {
+    throw shift::core::Exception(
+      prefix + "helix_angle must be within 90 degrees, face_width and "
+               "oil_viscosity not negative and min_film positive");
+  }
+  if(internal_ && !(pitch_radius_2_ > pitch_radius_1_)) {
+    throw shift::core::Exception(
+      prefix + "the ring gear, gear 2, must be larger than gear 1");
+  }
+  const bool geometry = teeth_.youngs_modulus > 0.0;
+  if((geometry || oil_viscosity_ > 0.0) && !(face_width_ > 0.0)) {
+    throw shift::core::Exception(
+      prefix + "tooth_geometry and oil_viscosity need the face_width");
+  }
+  /* the sections of the teeth: the normal one, along the tooth's surface, and
+  the transverse one, perpendicular to the axis */
+  const double beta = helix_angle_;
+  transverse_angle_ =
+    std::atan(std::tan(pressure_angle_) / std::cos(beta));
+  const double base_helix =
+    std::atan(std::tan(beta) * std::cos(transverse_angle_));
+  contact_length_ = face_width_ / std::cos(base_helix);
+  const double side = internal_ ? -1.0 : 1.0;
+  tangential_ = std::cos(pressure_angle_) * std::cos(beta);
+  axial_ = -side * std::cos(pressure_angle_) * std::sin(beta);
+  radial_ = std::sin(pressure_angle_);
+  const double r_1 = pitch_radius_1_ * std::sin(transverse_angle_);
+  const double r_2 = pitch_radius_2_ * std::sin(transverse_angle_);
+  film_radius_ = r_1 * r_2 / (r_2 + side * r_1) / std::cos(base_helix);
+
+  if(geometry) {
+    const double teeth_2 = teeth_1_ * pitch_radius_2_ / pitch_radius_1_;
+    if(std::fabs(teeth_2 - std::round(teeth_2)) > 1e-6) {
+      throw shift::core::Exception(
+        prefix + "the pitch radii do not give a whole number of teeth on "
+                 "gear 2");
+    }
+    teeth_.Configure(pitch_radius_1_, pitch_radius_2_, teeth_1_,
+                     static_cast<int>(std::round(teeth_2)), transverse_angle_,
+                     2.0 * pitch_radius_1_ / teeth_1_ * std::cos(beta),
+                     internal_);
+    contact_ratio_ = teeth_.get_contact_ratio();
+    stiffness_points_.clear();
+    BuildStiffnessTable([&](double x) {
+      return teeth_.MeshStiffness(x, contact_length_);
+    }, teeth_.points);
+  } else if(stiffness_points_.empty()) {
     if(!(tooth_stiffness_ > 0.0) || !(contact_ratio_ >= 1.0) ||
        !(contact_ratio_ <= 2.0) || ramp_ < 0.0) {
       throw shift::core::Exception(
@@ -211,6 +308,11 @@ void shift::core::force_module::GearMesh::Load() {
         ") nor that with one (" + std::to_string(1.0 - 2.0 * h) + ")");
     }
     stiffness_table_ = Table();
+    if(face_width_ > 0.0 && helix_angle_ != 0.0) {
+      BuildStiffnessTable([&](double x) {
+        return tooth_stiffness_ * PairsInContact(x, contact_ratio_, ramp_);
+      }, 200);
+    }
   } else {
     SpanCheck(stiffness_points_, prefix + "stiffness_table");
     stiffness_table_ = Table::FromPairs(stiffness_points_,
@@ -232,6 +334,7 @@ void shift::core::force_module::GearMesh::Load() {
   const double along = ksl_dot_vv(&diff, &axis);
   ksl_axpy_vv(-along, &axis, &diff);
   center_distance_0_ = ksl_vec3_l2norm(&diff);
+  axial_offset_0_ = along;
   if(!(center_distance_0_ > 0.0)) {
     throw shift::core::Exception(prefix + "the gears' axes coincide");
   }
@@ -263,6 +366,17 @@ static double Pos(double e, double w, double* slope) {
   return e - 0.5 * w;
 }
 
+double shift::core::force_module::GearMesh::SqueezeForce(double e,
+                                                         double rate) const {
+  if(!(oil_viscosity_ > 0.0) || !(rate > 0.0)) {
+    return 0.0;
+  }
+  double slope;
+  const double film = Pos(-e, smoothing_, &slope) + min_film_;
+  return 3.0 * std::sqrt(2.0) * M_PI * oil_viscosity_ * contact_length_ *
+         std::pow(film_radius_ / film, 1.5) * rate;
+}
+
 void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
                                                   bool apply) {
   Attachment* ends[2] = {&gear_1_, &gear_2_};
@@ -287,9 +401,11 @@ void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
   ksl_vec3_scale(&c, 1.0 / distance);
   ksl_vec3_t n;
   ksl_cross_vv(&axis, &c, &n);
+  /* outside gear 1 toward gear 2, or away from it inside a ring */
+  const double side = internal_ ? -1.0 : 1.0;
   ksl_vec3_t point = d1.t;
-  ksl_axpy_vv(pitch_radius_1_ / (pitch_radius_1_ + pitch_radius_2_), &perp,
-              &point);
+  ksl_axpy_vv(side * pitch_radius_1_ / (pitch_radius_2_ + side * pitch_radius_1_),
+              &perp, &point);
   ksl_vec3_t w1_p, w2_p, v1, v2, dv;
   ksl_cross_vv(&s1.ang, &point, &w1_p);
   ksl_cross_vv(&s2.ang, &point, &w2_p);
@@ -299,7 +415,8 @@ void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
     dv.at[i] = v1.at[i] - v2.at[i];
   }
   const double tangential_rate = ksl_dot_vv(&dv, &n);
-  const double approach_rate = ksl_dot_vv(&dv, &c); // v1 - v2 along c
+  const double approach_rate = side * ksl_dot_vv(&dv, &c); // into the teeth
+  const double axial_rate = ksl_dot_vv(&dv, &axis);
 
   const double e_t = y[state_offset_];
   const double theta = y[state_offset_ + 1];
@@ -313,37 +430,48 @@ void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
   stiffness_ = StiffnessAt(x);
   const double error = profile_table_.empty() ? 0.0 : profile_table_.Evaluate(x);
 
-  /* the compression of each flank along its line of action, and its rate */
-  const double cp = std::cos(pressure_angle_), sp = std::sin(pressure_angle_);
-  const double approach = center_distance_0_ - distance;
-  const double clearance = 0.5 * cp * backlash_;
-  const double e_plus = cp * e_t + sp * approach + error - clearance;
-  const double e_minus = -cp * e_t + sp * approach + error - clearance;
-  const double rate_plus = cp * tangential_rate + sp * approach_rate;
-  const double rate_minus = -cp * tangential_rate + sp * approach_rate;
+  /* the compression of each flank along its line of action, and its rate;
+  gear 1 relative to gear 2 along the axis, for helical teeth */
+  ksl_vec3_t between;
+  ksl_subtract_vv(&d2.t, &d1.t, &between);
+  const double axial = axial_offset_0_ - ksl_dot_vv(&between, &axis);
+  const double approach = side * (center_distance_0_ - distance);
+  const double clearance = 0.5 * tangential_ * backlash_;
+  const double along = tangential_ * e_t + axial_ * axial;
+  const double along_rate = tangential_ * tangential_rate + axial_ * axial_rate;
+  const double e_plus = along + radial_ * approach + error - clearance;
+  const double e_minus = -along + radial_ * approach + error - clearance;
+  const double rate_plus = along_rate + radial_ * approach_rate;
+  const double rate_minus = -along_rate + radial_ * approach_rate;
   double slope_plus, slope_minus;
   const double pos_plus = Pos(e_plus, smoothing_, &slope_plus);
   const double pos_minus = Pos(e_minus, smoothing_, &slope_minus);
-  const double f_plus = std::max(
-    0.0, stiffness_ * pos_plus + damping_ * slope_plus * rate_plus);
-  const double f_minus = std::max(
-    0.0, stiffness_ * pos_minus + damping_ * slope_minus * rate_minus);
+  const double squeeze_plus = SqueezeForce(e_plus, rate_plus);
+  const double squeeze_minus = SqueezeForce(e_minus, rate_minus);
+  const double f_plus =
+    std::max(0.0, stiffness_ * pos_plus + damping_ * slope_plus * rate_plus) +
+    squeeze_plus;
+  const double f_minus =
+    std::max(0.0, stiffness_ * pos_minus + damping_ * slope_minus * rate_minus) +
+    squeeze_minus;
 
   transmission_error_ = e_t;
   force_plus_ = f_plus;
   force_minus_ = f_minus;
-  mesh_force_ = (f_plus - f_minus) * cp;
+  squeeze_force_ = squeeze_plus + squeeze_minus;
+  mesh_force_ = (f_plus - f_minus) * tangential_;
+  radial_force_ = (f_plus + f_minus) * radial_;
+  axial_force_ = (f_plus - f_minus) * axial_;
 
   if(!apply) {
     return;
   }
   /* the force on gear 2 at the pitch point: along the tangent, and apart
   along the line of centers; the opposite on gear 1 */
-  const double tangent = (f_plus - f_minus) * cp;
-  const double radial = (f_plus + f_minus) * sp;
   ksl_coscrew_t load;
   for(int i = 0; i < 3; i++) {
-    load.lin.at[i] = tangent * n.at[i] + radial * c.at[i];
+    load.lin.at[i] = mesh_force_ * n.at[i] + side * radial_force_ * c.at[i] +
+                     axial_force_ * axis.at[i];
   }
   ksl_cross_vv(&point, &load.lin, &load.ang);
   context_->AddBodyLoad(gear_2_.load_index, load);
@@ -355,12 +483,14 @@ void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
 
 std::vector<std::string>
 shift::core::force_module::GearMesh::get_output_names() const {
-  return {"transmission_error", "mesh_force", "force_plus",
-          "force_minus",        "stiffness",  "phase"};
+  return {"transmission_error", "mesh_force",   "force_plus",
+          "force_minus",        "stiffness",    "phase",
+          "radial_force",       "axial_force",  "squeeze_force"};
 }
 
 void shift::core::force_module::GearMesh::AppendOutputs(
   std::vector<double>& values) const {
   values.insert(values.end(), {transmission_error_, mesh_force_, force_plus_,
-                               force_minus_, stiffness_, phase_});
+                               force_minus_, stiffness_, phase_, radial_force_,
+                               axial_force_, squeeze_force_});
 }

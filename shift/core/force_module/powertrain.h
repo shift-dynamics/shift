@@ -250,14 +250,14 @@ to the transmission's input, as turbine, through the oil. With the speed ratio
 \f$s = \omega_t / \omega_e\f$ of turbine and pump, the capacity curve
 \f$k_c(s)\f$ (a table of \f$[s, k_c]\f$ pairs, \f$k_c\f$ in rad/s per square root
 of N m) gives the torque on the pump and the torque ratio curve
-\f$\mathrm{TR}(s)\f$ the torque on the turbine:
+\f$g_t(s)\f$ the torque on the turbine:
 
 \f[
-\tau_p = \frac{\omega_e |\omega_e|}{k_c(s)^2}, \quad \tau_t = \mathrm{TR}(s) \, \tau_p,
+\tau_p = \frac{\omega_e |\omega_e|}{k_c(s)^2}, \quad \tau_t = g_t(s) \, \tau_p,
 \f]
 
-\f$\mathrm{TR}\f$ is above 1 when the turbine is slow (torque multiplication at stall)
-and falls to 1 at the coupling point. The efficiency \f$\mathrm{TR}(s) \, s\f$ must
+\f$g_t\f$ is above 1 when the turbine is slow (torque multiplication at stall)
+and falls to 1 at the coupling point. The efficiency \f$g_t(s) \, s\f$ must
 not exceed 1. A lockup clutch in parallel, of capacity "capacity" and engaged
 by "engagement" (0 to 1, an input that can be set as the model runs), adds a
 torque of capacity \f$\cdot\f$ engagement \f$\cdot
@@ -308,30 +308,30 @@ through an orifice, and the engagement follows from the pressure \f$p\f$ of the
 oil in the clutch. Its state is the volume \f$v\f$ of oil that has entered, of rate
 
 \f[
-\dot{v} = C_d A \sqrt{\frac{2}{\rho}} \,
+\dot{v} = c_d a_o \sqrt{\frac{2}{\rho}} \,
   \frac{e_i p_s - p}{\left((e_i p_s - p)^2 + p_t^2\right)^{1/4}},
 \f]
 
-the orifice equation smooth through zero (discharge_coefficient \f$C_d\f$,
-density \f$\rho\f$, transition_pressure \f$p_t\f$), with the orifice_area \f$A\f$ while
+the orifice equation smooth through zero (discharge_coefficient \f$c_d\f$,
+density \f$\rho\f$, transition_pressure \f$p_t\f$), with the orifice_area \f$a_o\f$ while
 filling and the drain_orifice_area while draining. The pressure is a function
 of the volume, as the piston (piston_area \f$a\f$, piston_stroke \f$l\f$) is light
 and quickly balances the oil against its return spring (spring_preload
-\f$F_0\f$, spring_rate \f$k_r\f$):
+\f$f_0\f$, spring_rate \f$k_r\f$):
 
 \f[
 p(v) = \begin{cases}
-  F_0 / a + v / C & v < 0 \\
-  (F_0 + k_r v / a) / a & 0 \le v \le a l \\
-  p_k + (v - a l) / C & v > a l
+  f_0 / a + v / c_o & v < 0 \\
+  (f_0 + k_r v / a) / a & 0 \le v \le a l \\
+  p_k + (v - a l) / c_o & v > a l
 \end{cases}
 \f]
 
 Below zero the piston is on its stop and the oil decompresses, between 0 and
 \f$a l\f$ it fills the clutch and strokes the piston at a low pressure, and at the
-kiss pressure \f$p_k = (F_0 + k_r l) / a\f$ the plates touch and the pressure
+kiss pressure \f$p_k = (f_0 + k_r l) / a\f$ the plates touch and the pressure
 rises quickly with the compliance of the oil,
-\f$C = \mathrm{chamber\_volume} / \mathrm{bulk\_modulus}\f$. The force on the plates
+\f$c_o = \mathrm{chamber\_volume} / \mathrm{bulk\_modulus}\f$. The force on the plates
 is \f$a (p - p_k)\f$, so that the engagement is
 \f$\mathrm{clamp}\left((p - p_k) / (p_s - p_k), 0, 1\right)\f$, and clutch_capacity
 is the capacity at the supply pressure. A shift then has the delay of the fill.
@@ -512,6 +512,7 @@ public:
 
 protected:
   void DeclareParameters() override;
+  void CheckUniqueNames() override;
 
 private:
   void Initialize() {

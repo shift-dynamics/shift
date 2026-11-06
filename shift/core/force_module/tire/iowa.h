@@ -23,8 +23,8 @@ two points adds the area of the disc below the terrain, and from them follow:
 - the point of action, the centroid of the area, the origin of the w frame;
 - the terrain normal, the mean of the normals weighted by the area, its z axis;
 - the deflection \f$\delta\f$, that of a wheel on flat ground with the same
-  area \f$A\f$: the area of the circular segment of half angle \f$\theta\f$,
-  \f$r^2 (\theta - \frac{1}{2} \sin 2\theta) = A\f$, gives
+  area \f$a_s\f$: the area of the circular segment of half angle \f$\theta\f$,
+  \f$r^2 (\theta - \frac{1}{2} \sin 2\theta) = a_s\f$, gives
   \f$\delta = r (1 - \cos\theta)\f$.
 
 So the force, its point of action and the normal follow bumps, steps and slopes
@@ -67,18 +67,18 @@ with the friction coefficient \f$\mu\f$ rising to a peak \f$\mu_p = 1.05 \mu\f$:
 \end{cases}
 \f]
 
-*Lateral force.* With the cornering stiffness \f$C\f$, \f$F = \mu f_n\f$ and
-\f$x = C |\alpha| / F\f$, a cubic that leaves the origin with the slope \f$C\f$ and
-reaches \f$F\f$ with no slope at \f$x = 2.5\f$:
+*Lateral force.* With the cornering stiffness \f$c_\alpha\f$, \f$f_m = \mu f_n\f$ and
+\f$x = c_\alpha |\alpha| / f_m\f$, a cubic that leaves the origin with the slope \f$c_\alpha\f$ and
+reaches \f$f_m\f$ with no slope at \f$x = 2.5\f$:
 
 \f[
-f_y = -\mathrm{sign}(\alpha) \, F \, (x - 0.32 x^2 + 0.032 x^3), \quad x \le 2.5
+f_y = -\mathrm{sign}(\alpha) \, f_m \, (x - 0.32 x^2 + 0.032 x^3), \quad x \le 2.5
 \f]
 
-and \f$-\mathrm{sign}(\alpha) F\f$ beyond.
+and \f$-\mathrm{sign}(\alpha) f_m\f$ beyond.
 
-*Friction ellipse.* If \f$\sqrt{f_x^2 + f_y^2} > F\f$, both are scaled down to
-\f$F\f$.
+*Friction ellipse.* If \f$\sqrt{f_x^2 + f_y^2} > f_m\f$, both are scaled down to
+\f$f_m\f$.
 
 *Rolling resistance.* A force at the hub, along the heading,
 \f$-c_r f_n v_x / (v_\epsilon + |v_x|)\f$.
@@ -133,7 +133,7 @@ public:
   double LongitudinalFriction(double s) const;
 
   /*! \brief the size of the lateral force at the slip angle \f$\alpha\f$ under
-   * the friction limit \f$F\f$ (before the friction ellipse) */
+   * the friction limit \f$f_m\f$ (before the friction ellipse) */
   double LateralForce(double alpha, double limit) const;
 
   double get_slip() const {

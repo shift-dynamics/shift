@@ -74,12 +74,16 @@ where the log levels are defined as:
 
 
 ## Running Shift
+From the top of the repository, give `shift-cli` the path to the model file:
 ```bash
-cd examples/excavator
-../../build/shift/main/shift-cli excavator.json
+build/shift/main/shift-cli examples/excavator/excavator.json
 ```
+
+You do not need to start Shift from the folder of a model. It runs from any
+directory. A log file is written only if the model declares a logger, and
+goes to the current directory.
 
 to see all options run:
 ```bash
-./bin/shift-cli --help
+build/shift/main/shift-cli --help
 ```

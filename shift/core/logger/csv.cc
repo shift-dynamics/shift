@@ -56,17 +56,20 @@ void shift::core::logger::CSV::WriteHeader() {
     file_ << "time" << delimiter_;
     for(auto& joint : context_->get_active_joints()) {
       for(size_t i = 0; i < joint->get_q_count(); i++) {
-        file_ << joint->get_name() << "_q_" << i << delimiter_;
+        file_ << joint->FullyQualifiedName(joint->get_name()) << "__q_" << i
+              << delimiter_;
       }
     }
     for(auto& joint : context_->get_active_joints()) {
       for(size_t i = 0; i < joint->get_dq_count(); i++) {
-        file_ << joint->get_name() << "_dq_" << i << delimiter_;
+        file_ << joint->FullyQualifiedName(joint->get_name()) << "__dq_" << i
+              << delimiter_;
       }
     }
     for(auto& joint : context_->get_active_joints()) {
       for(size_t i = 0; i < joint->get_dq_count(); i++) {
-        file_ << joint->get_name() << "_ddq_" << i << delimiter_;
+        file_ << joint->FullyQualifiedName(joint->get_name()) << "__ddq_" << i
+              << delimiter_;
       }
     }
     file_ << "rms_constraint_error" << delimiter_;
@@ -95,7 +98,8 @@ void shift::core::logger::CSV::WriteHeader() {
     /* the outputs of the force modules, such as cylinder pressures */
     for(auto& module : context_->get_active_force_modules()) {
       for(const auto& output : module->get_output_names()) {
-        file_ << module->get_name() << "_" << output << delimiter_;
+        file_ << module->FullyQualifiedName(module->get_name()) << "__" << output
+              << delimiter_;
       }
     }
   }

@@ -1002,3 +1002,21 @@ void shift::core::force_module::Powertrain::AppendOutputs(
   std::vector<double>& values) const {
   values.insert(values.end(), outputs_.begin(), outputs_.end());
 }
+
+void shift::core::force_module::Powertrain::CheckUniqueNames() {
+  const std::string prefix = FullyQualifiedName(get_name()) + "__";
+  std::vector<std::string> names;
+  for(const auto& axle : axles_.get_data()) {
+    if(!axle->name.empty()) {
+      names.push_back(prefix + axle->name);
+    }
+  }
+  CheckNames(names, "Axle");
+  names.clear();
+  for(const auto& brake : brakes_.get_data()) {
+    if(!brake->name.empty()) {
+      names.push_back(prefix + brake->name);
+    }
+  }
+  CheckNames(names, "Brake");
+}

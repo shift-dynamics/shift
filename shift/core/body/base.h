@@ -113,6 +113,10 @@ public:
     return level_;
   }
 
+  /*! \brief throw if a name is repeated among the frames, lights, geometry or
+   * collision geometry of this body */
+  virtual void CheckUniqueNames();
+
   std::vector<std::unique_ptr<Frame>>& get_frames() {
     return frames_.get_data();
   }

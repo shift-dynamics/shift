@@ -138,6 +138,8 @@ Force modules
 
 .. doxygenclass:: shift::core::force_module::GearMesh
 
+.. doxygenclass:: shift::core::force_module::GearTeeth
+
 .. doxygenclass:: shift::core::force_module::JournalBearing
 
 .. doxygenclass:: shift::core::force_module::LeadScrew

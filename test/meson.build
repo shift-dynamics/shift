@@ -19,6 +19,8 @@ test_sources = [
   'test_tire_iowa.cc',
   'test_tire_pac2002.cc',
   'test_terrain.cc',
+  'test_unique_names.cc',
+  'test_find_file.cc',
   'test_joint_axis.cc',
   'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',

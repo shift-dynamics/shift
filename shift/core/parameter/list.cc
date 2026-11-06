@@ -3,6 +3,10 @@
 #include "shift/core/body/base.h"
 #include "shift/core/parameter/list.h"
 
+#include <set>
+
+#include "shift/core/exception.h"
+
 void shift::core::parameter::List::Print(std::string prefix,
                                          bool break_line) const {
   if(break_line) {
@@ -39,6 +43,30 @@ void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
     }
     if(json_value.isMember(parameter.first)) {
       parameter.second.ReadJSON(json_value[parameter.first]);
+    }
+  }
+}
+
+std::string shift::core::parameter::List::FullyQualifiedName(
+  const std::string& name) const {
+  /* every object has the fixed body, the context, as a parent body; only a body
+  of the model is part of the name */
+  if(parent_body_ptr_ && !is_body_ && parent_body_ptr_ != context_) {
+    return parent_body_ptr_->FullyQualifiedName(parent_body_ptr_->get_name()) +
+           "__" + name;
+  }
+  return parent_assembly_ptr_
+           ? parent_assembly_ptr_->FullyQualifiedName(
+               parent_assembly_ptr_->get_name()) + "__" + name
+           : name;
+}
+
+void shift::core::parameter::List::CheckNames(
+  const std::vector<std::string>& names, const std::string& kind) {
+  std::set<std::string> seen;
+  for(const auto& name : names) {
+    if(!seen.insert(name).second) {
+      throw shift::core::Exception(kind + " name '" + name + "' is not unique");
     }
   }
 }

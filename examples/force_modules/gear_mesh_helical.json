@@ -1,0 +1,196 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 0.5,
+        "time_step": 0.0001,
+        "relative_error": 1e-07,
+        "absolute_error": 1e-10
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "gear_mesh_helical.csv",
+        "timestamp_logfile": false
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "axis_2",
+      "T": [
+        0.15,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "gearbox",
+      "comment": "The pair of gear_mesh.json as helical gears in oil: a 15 degree helix on a 50 mm face, for an overlap of 0.85 of a pitch, with the stiffness of the mesh and the contact ratio computed from the shape of the teeth. The sections of the teeth across the face come into contact in turn, so the stiffness varies much less through the mesh than that of the spur pair, and the teeth now push the gears along their axis.",
+      "bodies": [
+        {
+          "name": "pinion",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 0.01,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "wheel",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "inertia": {
+            "mass": 2.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 0.08,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "pinion_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "pinion"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "wheel_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "axis_2"
+          ],
+          "child": [
+            [
+              "wheel"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "damping_coefficients": [
+            0,
+            0.2
+          ]
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "pinion_speed",
+          "joint": "pinion_bearing",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "drive",
+          "kp": 5.0,
+          "ki": 200.0,
+          "kd": 0.0,
+          "target": 100.0,
+          "sensor": "pinion_speed",
+          "joint": "pinion_bearing"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "gear_mesh",
+          "name": "mesh",
+          "gear_1": [
+            "pinion",
+            "origin"
+          ],
+          "gear_2": [
+            "wheel",
+            "origin"
+          ],
+          "pitch_radius_1": 0.05,
+          "pitch_radius_2": 0.1,
+          "teeth_1": 20,
+          "pressure_angle": 0.349,
+          "helix_angle": 0.2618,
+          "face_width": 0.05,
+          "tooth_geometry": {
+            "youngs_modulus": 2.06e11
+          },
+          "oil_viscosity": 0.05,
+          "ramp": 0.1,
+          "damping": 12000.0,
+          "backlash": 2e-05,
+          "profile_error": [
+            0,
+            0,
+            0.25,
+            5e-07,
+            0.5,
+            0,
+            0.75,
+            -5e-07,
+            1,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}
