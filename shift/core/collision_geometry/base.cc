@@ -65,6 +65,15 @@ void shift::core::collision_geometry::Base::DeclareParameters() {
     "whether the geometry takes part in contact detection; defaults to true",
     false);
   DeclareParameter(
+    "max_depth", &max_depth_,
+    "deepest penetration taken for contact with CAD geometry: a deeper point "
+    "of a face, edge or vertex inside another body is taken to be on its far "
+    "side. Given on a shape, it is used against any CAD geometry; otherwise "
+    "the CAD geometry's is used, which defaults to 2% of its size (the "
+    "diagonal of its bounds). Between two CAD geometries, the smaller of "
+    "theirs",
+    false);
+  DeclareParameter(
     "material", &material_,
     "name of the contact material, one of the materials of the contact force "
     "module; defaults to its default material",

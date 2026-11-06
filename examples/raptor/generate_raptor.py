@@ -1,6 +1,6 @@
 """writes raptor.json: the 2024 Ford F-150 Raptor R on its own suspension.
 
-Text generation only. The hardpoints were measured from the meshes of the
+The hardpoints were measured from the meshes of the
 source model, and the mass properties, springs and dampers are estimates.
 The meshes come from shift/scripts/vehicle_splits/raptor.json (see
 readme.rst).
@@ -22,19 +22,63 @@ rolls on its bushings). A coil-over on each side carries it.
 
 The front halfshafts and the prop shaft telescope too: each is a universal
 joint at its inner end, a slide along the shaft and a ball joint at the other
-end, which adds no constraint. The truck drives on its rear wheels.
+end, which adds no constraint.
+
+Drive: a powertrain module on the rear wheels (the truck drives on them, with a
+limited slip differential), with an engine and converter like those of the real
+truck, a supercharged V8 and a ten speed automatic. Its figures are estimates.
+
+The route is a list of schedules: the throttle, the gear, the lockup clutch and
+the brakes, and the steering, which sets the target of a PID controller that
+holds the rack in position.
 """
 import json
 import math
+import os
 import sys
 
+import numpy as np
+from PIL import Image
+
 out = sys.argv[1] if len(sys.argv) > 1 else "raptor.json"
-speed = 15.0
+speed = 0.0        # the truck starts at rest
 radius = 0.394
 # the meshes put the wheel centers 0.079 m above where the tires touch the
 # ground: the chassis starts that much lower, and a little more for the
 # tires to carry the truck
 ride_drop = 0.10
+
+
+# the drive, as schedules [t0, v0, t1, v1, ...]: the throttle (0 to 1), the
+# gear, the lockup clutch and the brakes (0 to 1) and the rack position (m)
+ROUTE = {
+    "time_span": 36.0,
+    # away from rest, then a light throttle to hold about 15 m/s through the
+    # bends, and off the throttle to stop
+    "throttle": [0, 0, 0.5, 0, 1.5, 0.5, 6.5, 0.5, 7.5, 0.16, 30, 0.16,
+                 30.5, 0, 36, 0],
+    "gears": [0, 1, 3, 2, 5, 3, 7, 4, 32, 2, 34, 1],
+    "lockup": [0, 0, 8, 0, 8.5, 1, 30, 1, 30.5, 0, 36, 0],
+    "brakes": [0, 0, 30.5, 0, 31.5, 0.27, 36, 0.27],
+    # a double lane change, a long bend to the right and one to the left
+    "rack": [0, 0, 9, 0, 9.8, -0.005, 10.6, 0, 11.4, 0.005, 12.2, 0,
+             14, 0, 15, 0.009, 21, 0.009, 22, 0, 23, -0.009, 28, -0.009,
+             29, 0, 36, 0],
+}
+
+
+# the ground: samples on a grid over the route, and the waves that make it,
+# each an amplitude (m), a wavelength (m), the heading it runs along (degrees)
+# and a phase (radians)
+TERRAIN = {
+    "origin": [-30.0, -40.0],
+    "spacing": 1.0,
+    "size": [461, 281],
+    "flat_radius": 12.0,
+    "full_radius": 45.0,
+    "waves": [[0.35, 70.0, 20.0, 0.5], [0.25, 45.0, 120.0, 1.1],
+              [0.10, 17.0, 37.0, 2.0], [0.08, 13.0, -53.0, 0.7]],
+}
 
 
 def add(a, b):
@@ -210,7 +254,7 @@ for k, (kind, axis, q0, dq0) in enumerate([
           [[chain[k + 1]], "origin"], axis=axis, initial_displacement=q0,
           initial_velocity=dq0)
 
-# steering rack (not drawn), held centered by a spring and damper standing
+# steering rack (not drawn), moved by a PID controller and a damper standing
 # in for the steering column and the driver's hands on the wheel
 chassis_frames.append({"name": "steering_rack", "T": r(rack_origin)})
 bodies.append({"name": "steering_rack", "geometry": [],
@@ -219,7 +263,6 @@ bodies.append({"name": "steering_rack", "geometry": [],
 joint("rack_slide", "prismatic", [["chassis"], "steering_rack"],
       [["steering_rack"], "origin"], axis=[0, 1, 0],
       initial_displacement=0.0, initial_velocity=0.0,
-      stiffness_coefficients=[0.0, 300000.0],
       damping_coefficients=[0.0, 6000.0])
 
 for side, s in (("right", 1.0), ("left", -1.0)):
@@ -317,7 +360,8 @@ for side, s in (("right", 1.0), ("left", -1.0)):
         "wheel_body": c + "wheel",
         "fiala": {"unloaded_radius": radius, "width": 0.32,
                   "vertical_stiffness": 300000.0,
-                  "vertical_damping": 3000.0}})
+                  "vertical_damping": 3000.0,
+                  "x_relaxation_length": 0.15}})
 
     # rear
     c = side + "_rear_"
@@ -375,12 +419,8 @@ for side, s in (("right", 1.0), ("left", -1.0)):
         "wheel_body": c + "wheel",
         "fiala": {"unloaded_radius": radius, "width": 0.32,
                   "vertical_stiffness": 300000.0,
-                  "vertical_damping": 3000.0}})
-    controllers.append({
-        "type": "pid", "name": c + "drive", "kp": -100.0, "ki": -400.0,
-        "kd": 0.0, "target": speed,
-        "comment": "rear wheel drive: wheel torque to hold the speed",
-        "sensor": "chassis_Tx_velocity", "joint": c + "hub"})
+                  "vertical_damping": 3000.0,
+                  "x_relaxation_length": 0.15}})
 
 # rear axle, with the Panhard rod from the frame on the right to the axle on
 # the left, and the prop shaft from the transfer case to the differential
@@ -418,6 +458,87 @@ bodies.insert(0, {
     "comment": "estimated: frame, body, engine and transmission",
     "inertia": inertia(2150.0, 1100.0, 5000.0, 5300.0)})
 
+force_modules.append({
+    "type": "powertrain", "name": "drive",
+    "comment": "estimated: 5.2 l supercharged V8 and ten speed automatic",
+    "engine": {"inertia": 0.3, "idle_speed": 75.0, "high_idle_speed": 680.0,
+               "torque_curve": [75, 450, 200, 750, 420, 868, 630, 828, 680, 0],
+               "friction_curve": [75, -30, 680, -150]},
+    "coupling": {"type": "converter", "capacity": 1500.0, "slip_speed": 20.0,
+                 "capacity_curve": [0, 11, 0.8, 14, 0.95, 30, 1.0, 300],
+                 "torque_ratio_curve": [0, 2.0, 0.85, 1.0, 1.0, 1.0]},
+    "transmission": {"ratios": [4.70, 2.99, 2.15, 1.80, 1.52, 1.28, 1.00,
+                                0.85, 0.69, 0.64],
+                     "reverse_ratio": -4.87, "gear": 1,
+                     # an engaged clutch sets the step of the integrator, at
+                     # a rate of capacity / slip_speed * (1 / input_inertia
+                     # + ratio^2 / output_inertia), so these are chosen to run
+                     # fast: the capacity just covers the engine through the
+                     # converter, and the output inertia is well above a real
+                     # one, which costs about 2% of the distance on the route
+                     "clutch_capacity": 2000.0, "slip_speed": 30.0,
+                     "input_inertia": 1.0, "output_inertia": 3.0,
+                     "shift_time": 0.3, "spin_loss": 0.1},
+    "axles": [{"name": "rear", "left": "left_rear_hub",
+               "right": "right_rear_hub", "direction": -1,
+               "final_drive": 3.73, "shaft_stiffness": 20000.0,
+               "shaft_damping": 50.0, "differential": "limited_slip",
+               "bias_torque": 100.0, "bias_ratio": 0.2}],
+    "brakes": [{"name": side + "_" + end, "joint": side + "_" + end + "_hub",
+                "direction": -1, "capacity": capacity}
+               for side in ("left", "right")
+               for end, capacity in (("front", 4500.0), ("rear", 3000.0))]})
+
+controllers.append({
+    "type": "pid", "name": "steering", "kp": 2000000.0, "ki": 4000000.0,
+    "kd": 0.0, "target": 0.0, "sensor": "rack_position",
+    "joint": "rack_slide"})
+
+
+def write_terrain():
+    """Writes raptor_terrain.tiff, rolling ground over the whole route.
+
+    Fixed waves, so the ground is the same every time: long swells that pitch
+    and lift the truck, and shorter waves that cross its path at an angle, so
+    that the wheels on the two sides ride over different heights. The ground is
+    flat around the start, where the truck is placed.
+    """
+    x = TERRAIN["origin"][0] + TERRAIN["spacing"] * np.arange(TERRAIN["size"][0])
+    y = TERRAIN["origin"][1] + TERRAIN["spacing"] * np.arange(TERRAIN["size"][1])
+    X, Y = np.meshgrid(x, y)
+    elevation = np.zeros_like(X)
+    for amplitude, wavelength, heading, phase in TERRAIN["waves"]:
+        along = (X * np.cos(np.radians(heading)) +
+                 Y * np.sin(np.radians(heading)))
+        elevation += amplitude * np.sin(2.0 * np.pi * along / wavelength + phase)
+    flat, full = TERRAIN["flat_radius"], TERRAIN["full_radius"]
+    blend = np.clip((np.hypot(X, Y) - flat) / (full - flat), 0.0, 1.0)
+    elevation *= blend * blend * (3.0 - 2.0 * blend)
+    # a sample is the z of the surface, and +z is down
+    Image.fromarray((-elevation).astype(np.float32), mode="F").save(
+        "raptor_terrain.tiff")
+    print("wrote raptor_terrain.tiff: %d x %d samples, elevation %.2f .. %.2f m"
+          % (len(x), len(y), elevation.min(), elevation.max()))
+
+
+def schedule(name, interpolation, points, targets, **extra):
+    controllers.append({"type": "schedule", "name": name,
+                        "interpolation": interpolation, "points": points,
+                        "targets": targets, **extra})
+
+
+schedule("throttle", "linear", ROUTE["throttle"],
+         ["force_modules/drive/engine/throttle"])
+schedule("gears", "step", ROUTE["gears"],
+         ["force_modules/drive/transmission/gear"])
+schedule("lockup", "linear", ROUTE["lockup"],
+         ["force_modules/drive/coupling/engagement"])
+schedule("brake_pedal", "linear", ROUTE["brakes"],
+         ["force_modules/drive/brakes/" + side + "_" + end + "/pressure"
+          for side in ("left", "right") for end in ("front", "rear")])
+schedule("steering_wheel", "cubic", ROUTE["rack"],
+         ["controllers/steering/target"])
+
 model = {
     "model_parameters": {
         "version": "0.2",
@@ -426,12 +547,15 @@ model = {
         "gravity": [0.0, 0.0, 9.81],
         "include_directories": ["."],
         "solvers": [{"type": "rnca", "infinity_norm_multiplier": 2.0}],
-        "integrators": [{"type": "ode113", "time_span": 10.0,
+        "integrators": [{"type": "ode113", "time_span": ROUTE["time_span"],
                          "time_step": 0.02, "relative_error": 0.0001,
-                         "absolute_error": 0.0001, "omega_n": 50.0}]},
+                         "absolute_error": 0.0001, "omega_n": 50.0}],
+        "loggers": [{"type": "csv", "csv_logfile": "raptor.csv",
+                     "timestamp_logfile": False}]},
     "frames": [
         {"name": "overhead_1", "T": [8.0, -8.0, -8.0]},
-        {"name": "overhead_2", "T": [-8.0, -8.0, -8.0]}],
+        {"name": "overhead_2", "T": [-8.0, -8.0, -8.0]},
+        {"name": "terrain", "T": TERRAIN["origin"] + [0.0]}],
     "lights": [
         {"name": "overhead_1", "type": "point",
          "parent": ["fixed", "overhead_1"], "Ka": [0.4, 0.4, 0.4],
@@ -439,14 +563,21 @@ model = {
         {"name": "overhead_2", "type": "point",
          "parent": ["fixed", "overhead_2"], "Ka": [0.6, 0.6, 0.6],
          "Kd": [0.6, 0.6, 0.6], "Ks": [0.2, 0.2, 0.2]}],
+    "terrain": [{
+        "type": "basic", "name": "rolling_ground",
+        "filename": "raptor_terrain.tiff", "parent": [["fixed"], "terrain"],
+        "x_scale": TERRAIN["spacing"], "y_scale": TERRAIN["spacing"],
+        "coordinate_type": "sae", "interpolation_type": "bicubic",
+        "texture_filename": "qrc:/textures/cracked_sand.jpg",
+        "texture_scale": 4.0}],
     "assemblies": [{
         "name": "raptor", "active": True,
         "force_modules": force_modules,
-        "sensors": [{"type": "frame", "name": "chassis_Tx_velocity",
-                     "body_frame_pair": ["chassis", "origin"],
-                     "quantity": "velocity", "coordinate_system": "local",
-                     "dof": "Tx"}],
+        "sensors": [{"type": "joint", "name": "rack_position",
+                     "joint": "rack_slide", "quantity": "position"}],
         "controllers": controllers, "bodies": bodies, "joints": joints}]}
 with open(out, "w") as f:
     json.dump(model, f, indent=2)
+os.chdir(os.path.dirname(os.path.abspath(out)))
+write_terrain()
 print("bodies", len(bodies), "joints", len(joints))

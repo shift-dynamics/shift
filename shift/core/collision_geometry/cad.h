@@ -9,6 +9,7 @@
 
 #include "shift/core/cad/brep.h"
 #include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/fitting.h"
 #include "shift/core/collision_geometry/gjk.h"
 #include "ksl/SE3.h"
 #include "ksl/vec3.h"
@@ -84,6 +85,7 @@ struct CadContactEdge {
   int edge = -1; //!< in the model of the asset
   int placement = -1;
   std::vector<int> faces; //!< in CadContactShape::faces
+  bool sharp = false; //!< a convex edge between two faces at an angle
   /*! points along the edge, without its ends, with their parameters */
   std::vector<double> sample_t;
   std::vector<ksl_vec3_t> sample_points;
@@ -157,9 +159,13 @@ struct CadContactShape {
   /*! the pieces \f$[t_0, t_1]\f$ of the segment from a to b in \f$(u, v)\f$,
    * \f$\underline{a} + t (\underline{b} - \underline{a})\f$ with
    * \f$t \in [0, 1]\f$, that are inside the face's trims; the segment is taken
-   * in the period of periodic parameters nearest the face */
+   * in the period of periodic parameters nearest the face. With inset, a
+   * share of the face's span, an end within that share of the face's bounds
+   * is first brought inside them by it, so that a segment along the edge of
+   * the face is inside it */
   std::vector<std::array<double, 2>> Clip(int face, const cad::Vec2& a,
-                                          const cad::Vec2& b) const;
+                                          const cad::Vec2& b,
+                                          double inset = 0.0) const;
 };
 
 /*!
@@ -174,11 +180,55 @@ touch; two cylinders, and a cylinder on a plane, touch along a line at any
 angle, sliced over the length where they overlap, so that a line tilting out
 of parallel carries its load towards one end, and becomes a point as two
 cylinders cross, or the rim of a cylinder tilting up on a plane (with no
-jump in the force between); other pairs of faces touch at points found by
-Newton's method on the surfaces; and edges and vertices touch faces where no
-pair of their faces does. Points outside a face's trims are not on the face. With other
-collision geometry (spheres, ellipsoids, convex hulls) a CAD geometry is the
-convex hull of points on its faces, tested by GJK.
+jump in the force between); a NURBS or extruded face touches a cylinder or a
+plane the same way where the gap between them is curved mainly in one direction,
+as a cam on its roller or flat follower, each section of the line solved on the
+face, and across a seam between faces; other pairs of faces touch at points
+found by Newton's method on the surfaces; and edges and vertices touch faces where no
+pair of their faces does. Points outside a face's trims are not on the face.
+
+Contact with a sphere or an ellipsoid (CadRoundContact) is exact too. With its
+center \f$\underline{c}\f$ and its shape matrix
+\f$G = R \, \mathrm{diag}(a_x^2, a_y^2, a_z^2) R^T\f$, the point of the shape whose
+outward normal is \f$\underline{m}\f$ has the closed form
+\f$\underline{e}(\underline{m}) = \underline{c} + G \underline{m} /
+\sqrt{\underline{m}^T G \underline{m}}\f$, so that a point of contact with a face
+is the root of the two equations in \f$(u, v)\f$ alone,
+
+\f[
+(\underline{e}(-\underline{n}) - \underline{p}) \cdot \underline{p}_u = 0, \quad
+(\underline{e}(-\underline{n}) - \underline{p}) \cdot \underline{p}_v = 0,
+\f]
+
+with \f$\underline{p}\f$ the point of the face and \f$\underline{n}\f$ its outward
+normal there: the shape has no parameters of its own, nor poles. For a sphere
+this is the point of the face closest to \f$\underline{c}\f$. A face can touch at
+several points, and the curvature of the gap is the sum of the face's and that of
+the shape, \f$\underline{s}^T G^{-1} \underline{t} / |G^{-1} (\underline{e} -
+\underline{c})|\f$ in the tangents \f$\underline{s}\f$ and \f$\underline{t}\f$.
+An edge or vertex touches where no face next to it does, at the point deepest in
+the shape. A point counts only with the center of the shape on the outer side of
+the face, so a shape does not touch a thin wall from behind.
+
+Boxes, convex hulls and cylinders have exact shapes of their own
+(Base::get_exact_shape), faces of planes and cylinders with edges and vertices, so
+that they touch CAD geometry as other CAD geometry does (CadExactContact): a corner
+on a face, a side along a line, a face's edge on an edge. A capsule is the side of a
+cylinder, with no edges, and a sphere at each end: its line of contact gives way to
+the hemisphere as it tilts. The edges and vertices of these shapes are rounded to
+their edge_radius, 0.002 of their size by default, and those of a capsule's cylinder
+blend into its ends at its radius. A hull of points in a plane or along a line is
+thickened to 1e-4 of their extent, so that it has faces. Only a hull of a single
+point has no exact shape: it touches the convex hull of points on the faces of the
+CAD geometry, tested by GJK.
+
+Two sharp edges that cross touch at their closest points, solved on the curves
+themselves (CadContactEdge::sharp): the normal \f$\underline{n}\f$ is along the
+cross product of their tangents, and they touch if \f$\underline{n}\f$ is among the
+outward normals of the first edge's faces, \f$-\underline{n}\f$ among the second's,
+and the first edge is beyond the second along \f$\underline{n}\f$. Such a crossing
+replaces the contact of each edge with the faces of the other, whose depth is to a
+face that ends there.
 
 The contact force module (force_module::Contact) applies Hertz contact at each
 point: of a line for line contacts, of the ellipse of the faces' principal
@@ -226,9 +276,6 @@ public:
 
   /*! \brief deepest penetration taken for contact; deeper points are taken
    * to be on the far side of a body */
-  double get_max_depth() const {
-    return max_depth_;
-  }
 
 protected:
   virtual void DeclareParameters() override;
@@ -239,7 +286,6 @@ protected:
 private:
   static bool registered_;
   double edge_radius_ = 0.0;
-  double max_depth_ = 0.0;
   std::shared_ptr<const CadContactShape> shape_;
 };
 
@@ -253,11 +299,32 @@ bool CadCadContact(ContactPair& pair);
 /*! @brief contact of CAD geometry and a plane (either may be pair.a) */
 bool CadPlaneContact(ContactPair& pair);
 
+/*! @brief contact of CAD geometry and a sphere or an ellipsoid (either may be
+ * pair.a), see Cad; sets the pair's contact data */
+bool CadRoundContact(ContactPair& pair);
+
+/*! @brief contact of CAD geometry and a geometry with an exact shape (either
+ * may be pair.a), see Cad and Base::get_exact_shape; sets the pair's contact
+ * data */
+bool CadExactContact(ContactPair& pair);
+
 /*! @brief builds the contact shape of a CAD asset at a scale (exposed for
  * tests) */
 std::shared_ptr<const CadContactShape>
 MakeCadContactShape(std::shared_ptr<const geometry::CadAsset> asset,
                     double scale);
+
+/*! @brief the exact shape of a convex hull: a plane face for each of its
+ * polygons, with their shared edges and vertices; null without polygons */
+std::shared_ptr<const CadContactShape>
+MakeHullShape(const ConvexHullData& hull);
+
+/*! @brief the exact shape of a cylinder about the z axis, centered at the
+ * origin: its side and, if caps, its ends, each rim in four arcs so that a
+ * cylinder standing on a face stands on four points. Without caps it is the
+ * side alone, with no edges or vertices, as a capsule's is */
+std::shared_ptr<const CadContactShape>
+MakeCylinderShape(double radius, double half_length, bool caps);
 
 } // namespace collision_geometry
 } // namespace core

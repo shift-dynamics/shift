@@ -24,6 +24,9 @@ struct Incline {
   double tan_slope = 0.2;     //!< tangent of the angle of the plane
   double friction = 0.5;      //!< Coulomb friction of both materials
   std::string stick_slip = ""; //!< the stick_slip array of the contact module
+  std::string stick_slip_all = ""; //!< the stick_slip_all of the contact module
+  double lift = 0.0; //!< speed off the plane at the start
+  double rock = 0.0; //!< angular speed about the y axis at the start
   double time_span = 1.0;
 };
 
@@ -86,12 +89,16 @@ static void RunIncline(shift::core::Context& context, const Incline& incline,
        "parent": [["fixed"], "origin"], "child": [["box"], "origin"],
        "initial_displacement": {"T": [)" << Start(incline.tan_slope).x << ", 0, "
         << Start(incline.tan_slope).z << R"(], )" << rotation.str() << R"(},
-       "initial_velocity": [0, 0, 0, 0, 0, 0]}],
+       "initial_velocity": [0, 0, )" << -incline.lift << R"(, 0, )"
+        << incline.rock << R"(, 0]}],
     "force_modules": [{"name": "contact", "type": "contact",
       "friction_velocity": 0.01, )"
         << (incline.stick_slip.empty() ? ""
                                        : "\"stick_slip\": [" +
                                            incline.stick_slip + "],")
+        << (incline.stick_slip_all.empty() ? ""
+                                           : "\"stick_slip_all\": " +
+                                               incline.stick_slip_all + ",")
         << R"(
       "materials": [
         {"name": "surface", "restitution": 0.1, "friction": )"
@@ -153,7 +160,7 @@ static shift::core::force_module::Contact* ContactModule(
 }
 
 static const char* kHolding = R"({"geometry_a": "ground", "geometry_b": "box",
-  "bristle_stiffness": 2000, "bristle_damping": 0, "static_friction": 0.6,
+  "bristle_stiffness": 2000, "bristle_damping": 5, "static_friction": 0.6,
   "stribeck_velocity": 0.05})";
 
 TEST(StickSlip, AHeldBodyDoesNotCreepWhereRegularizedFrictionDoes) {
@@ -250,10 +257,10 @@ TEST(StickSlip, StaticFrictionAboveTheCoulombFrictionHoldsWhereCoulombSlides) {
   // Stribeck velocity
   Incline steep;
   steep.tan_slope = 0.8;
-  steep.time_span = 1.0;
+  steep.time_span = 3.0;
   steep.stick_slip = R"({"geometry_a": "ground", "geometry_b": "box",
-    "bristle_stiffness": 20000, "static_friction": 0.9,
-    "stribeck_velocity": 0.5})";
+    "bristle_stiffness": 20000, "bristle_damping": 500,
+    "static_friction": 0.9, "stribeck_velocity": 0.5})";
   shift::core::Context held;
   RunIncline(held, steep);
   EXPECT_LT(Speed(held), 1e-6);
@@ -309,4 +316,95 @@ TEST(StickSlip, WhatItRefuses) {
   EXPECT_EQ(message(R"({"geometry_a": "ground", "geometry_b": "box",
                       "bristle_stiffness": 1000})"),
             "");
+}
+
+static const char* kAll = R"({"bristle_stiffness": 2000, "bristle_damping": 5,
+  "static_ratio": 1.2, "stribeck_velocity": 0.05, "pairs": 2})";
+
+TEST(StickSlipAll, EveryPairHoldsWithoutBeingListed) {
+  // the same bristles as the listed pair of kHolding, with no pair named: the
+  // box stays where the listed pair holds it
+  Incline slope;
+  slope.time_span = 1.5;
+  slope.stick_slip = kHolding;
+  shift::core::Context listed;
+  RunIncline(listed, slope);
+  slope.stick_slip = "";
+  slope.stick_slip_all = kAll;
+  shift::core::Context holding;
+  RunIncline(holding, slope);
+  EXPECT_NEAR(Downhill(holding, slope.tan_slope),
+              Downhill(listed, slope.tan_slope), 1e-8);
+  EXPECT_LT(Speed(holding), 1e-6);
+  EXPECT_EQ(ContactModule(holding)->get_shared_pairs(), 1);
+  const auto names = ContactModule(holding)->get_output_names();
+  ASSERT_EQ(names.size(), 2u);
+  EXPECT_EQ(names[0], "stick_all");
+  EXPECT_EQ(names[1], "stick_pairs");
+}
+
+TEST(StickSlipAll, ThePairsGetTheFrictionOfTheirMaterials) {
+  // past the static limit of 0.6 (0.5 x 1.2), it slides, at the acceleration
+  // of the Coulomb friction of the pair
+  Incline slope;
+  slope.tan_slope = 0.7;
+  slope.time_span = 0.5;
+  slope.stick_slip_all = kAll;
+  shift::core::Context context;
+  RunIncline(context, slope);
+  const double angle = std::atan(slope.tan_slope);
+  const double a =
+    kGravity * (std::sin(angle) - 0.5 * std::cos(angle));
+  EXPECT_NEAR(Speed(context), a * slope.time_span, 0.05 * a * slope.time_span);
+}
+
+TEST(StickSlipAll, AListedPairKeepsItsOwnBristles) {
+  Incline slope;
+  slope.stick_slip = kHolding;
+  slope.stick_slip_all = kAll;
+  slope.time_span = 0.2;
+  shift::core::Context context;
+  RunIncline(context, slope);
+  EXPECT_EQ(ContactModule(context)->get_shared_pairs(), 0);
+}
+
+TEST(StickSlipAll, ASetGoesBackWhenThePairHasLeft) {
+  // the box leaves the plane at once: its pair takes a set, gives it back when
+  // the bristles have relaxed, and the set is free at the end
+  Incline slope;
+  slope.lift = 3.0;
+  slope.time_span = 0.25;
+  slope.stick_slip_all = kAll;
+  shift::core::Context context;
+  RunIncline(context, slope);
+  EXPECT_GT(Speed(context), 0.5);
+  EXPECT_EQ(ContactModule(context)->get_shared_pairs(), 0);
+}
+
+TEST(StickSlipAll, WhatItRefuses) {
+  Incline slope;
+  slope.stick_slip_all = R"({"bristle_stiffness": 2000, "static_ratio": 0.5})";
+  shift::core::Context context;
+  EXPECT_THROW(RunIncline(context, slope), std::exception);
+}
+
+TEST(StickSlip, TheBristleDampingStopsABodyWalkingDownTheSlope) {
+  // the friction of a corner is its normal force times the deflection of its
+  // bristles, so rocking can feed energy into itself; with bristle_damping a
+  // box set rocking settles and stays. Without it the outcome depends on the
+  // rounding of the build, so only the damped case is checked
+  Incline slope;
+  slope.tan_slope = 0.35;
+  slope.rock = 1e-3;
+  slope.stick_slip = R"({"geometry_a": "ground", "geometry_b": "box",
+    "bristle_stiffness": 2000, "bristle_damping": 5, "static_friction": 0.6,
+    "stribeck_velocity": 0.05})";
+  slope.time_span = 1.0;
+  shift::core::Context early;
+  RunIncline(early, slope);
+  slope.time_span = 4.0;
+  shift::core::Context late;
+  RunIncline(late, slope);
+  EXPECT_NEAR(Downhill(late, slope.tan_slope), Downhill(early, slope.tan_slope),
+              1e-7);
 }

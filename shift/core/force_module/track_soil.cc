@@ -64,6 +64,11 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
                    "time for the shear displacement of a lifted shoe to "
                    "relax; defaults to 0.01",
                    false);
+  DeclareParameter("rut_time", &rut_time_,
+                   "time for a shoe off the soil to forget its plastic "
+                   "sinkage, so that a shoe going round the track comes "
+                   "down on fresh soil; defaults to 0.5",
+                   false);
   DeclareParameter("contact_depth", &contact_depth_,
                    "sinkage over which a shoe comes onto the soil, for the "
                    "shear displacement and the cohesion; defaults to 0.001",
@@ -90,7 +95,8 @@ void shift::core::force_module::TrackSoil::Load() {
   if(!(length_ > 0.0) || !(width_ > 0.0) || grouser_height_ < 0.0 ||
      stations_along_ < 1 || stations_across_ < 1 ||
      !(unloading_ratio_ > 0.0) || !(plastic_time_ > 0.0) ||
-     !(shear_time_ > 0.0) || !(contact_depth_ > 0.0)) {
+     !(shear_time_ > 0.0) || !(rut_time_ > 0.0) ||
+     !(contact_depth_ > 0.0)) {
     throw shift::core::Exception(
       prefix + ": shoe_length, shoe_width, unloading_ratio, plastic_time, "
                "shear_time and contact_depth must be positive, the "
@@ -195,6 +201,11 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
         center_depth += z / stations;
         if(rate) {
           rate[n] = std::max(0.0, z - q[n]) / plastic_time_;
+          if(z < 0.0) {
+            /* off the soil: the rut stays behind, and the shoe comes down
+            on fresh soil */
+            rate[n] += q[n] * std::expm1(z / contact_depth_) / rut_time_;
+          }
         }
         if(!facing || !(z > 0.0)) {
           continue;

@@ -1,7 +1,9 @@
 Collision modeling
 ------------------
 
-Currently in development is the ability to model collisions using mesh-to-mesh contact, minimum bounding spheres, minimum bounding ellipsoids or convex hulls. Collision geometries are computed automatically when models are initially loaded. 
+Collisions are modeled by the `contact force module <https://shift-dynamics.github.io/shift/force-modules/contact.html>`_ between the collision geometry of bodies: spheres, ellipsoids, boxes, cylinders, capsules, planes, convex hulls and the exact surfaces of CAD parts (see `cad <../cad>`_). Without dimensions, a collision geometry is fitted to the body's meshes when the model is loaded.
+
+The models in this directory are pairs and triples of spheres, ellipsoids, planes and convex hulls, and piles of 5 to 5000 bodies. The largest piles are benchmarks: they are left out of ``meson test -C build`` and run with ``meson test -C build --benchmark``. 
 
 .. image:: screenshot.png
 

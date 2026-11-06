@@ -45,11 +45,14 @@ with the unloading stiffness
 back by \f$z_p / \mathrm{unloading\_ratio}\f$). The plastic sinkage \f$z_p\f$ is a
 state that follows the sinkage from below,
 \f$\dot{z}_p = \max(0, z - z_p) / t_{plastic}\f$, so that a shoe pressed in keeps
-its rut when lifted and reloads along the stiff line.
+its rut when lifted a moment and reloads along the stiff line. The rut is in
+the ground, not on the shoe, so off the soil it fades,
+\f$\dot{z}_p = -(1 - e^{z / \mathrm{contact\_depth}}) z_p / t_{rut}\f$ for
+\f$z < 0\f$: a shoe going round the track comes down on fresh soil.
 
 Traction: the soil's shear on the plane of the tips (Mohr-Coulomb with
 Janosi and Hanamoto), sum over the stations of \f$(c + p \tan\phi) a_i\f$, and
-Rankine's passive earth pressure on the faces of the soil in the shoe's
+the passive earth pressure (SoilProperties) on the faces of the soil in the shoe's
 way: the leading grouser (width x the passive force per width at the
 grouser's embedded depth, \f$\min(z, \mathrm{grouser\_height})\f$) along the
 track, and a side of the shoe (length x the passive force at the shoe's depth)
@@ -136,6 +139,7 @@ private:
   double unloading_ratio_ = 10.0;
   double plastic_time_ = 0.01;
   double shear_time_ = 0.01;
+  double rut_time_ = 0.5;
   double contact_depth_ = 1e-3;
 
   SoilProperties soil_properties_;

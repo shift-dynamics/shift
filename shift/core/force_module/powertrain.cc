@@ -88,7 +88,8 @@ void shift::core::force_module::PowertrainCoupling::DeclareParameters() {
                    false);
   DeclareParameter("bristle_damping", &bristle_damping,
                    "bristle model: sigma_1, the damping of the bristles "
-                   "(s/rad); optional, default 0",
+                   "(s/rad). With 0 the bristles ring, with little to settle "
+                   "them; optional, default 0.5",
                    false);
   DeclareParameter("static_ratio", &static_ratio,
                    "bristle model: the static friction over the Coulomb "
@@ -152,7 +153,8 @@ void shift::core::force_module::PowertrainTransmission::DeclareParameters() {
                    false);
   DeclareParameter("bristle_damping", &bristle_damping,
                    "bristle model: sigma_1, the damping of the bristles "
-                   "(s/rad); optional, default 0",
+                   "(s/rad). With 0 the bristles ring, with little to settle "
+                   "them; optional, default 0.5",
                    false);
   DeclareParameter("static_ratio", &static_ratio,
                    "bristle model: the static friction over the Coulomb "
@@ -232,7 +234,8 @@ void shift::core::force_module::PowertrainAxle::DeclareParameters() {
                    false);
   DeclareParameter("bristle_damping", &bristle_damping,
                    "bristle model: sigma_1, the damping of the bristles "
-                   "(s/rad); optional, default 0",
+                   "(s/rad). With 0 the bristles ring, with little to settle "
+                   "them; optional, default 0.5",
                    false);
   DeclareParameter("static_ratio", &static_ratio,
                    "bristle model: the static friction over the Coulomb "
@@ -342,7 +345,8 @@ void shift::core::force_module::PowertrainBrake::DeclareParameters() {
                    false);
   DeclareParameter("bristle_damping", &bristle_damping,
                    "bristle model: sigma_1, the damping of the bristles "
-                   "(s/rad); optional, default 0",
+                   "(s/rad). With 0 the bristles ring, with little to settle "
+                   "them; optional, default 0.5",
                    false);
   DeclareParameter("static_ratio", &static_ratio,
                    "bristle model: the static friction over the Coulomb "

@@ -1,0 +1,227 @@
+{
+  "comment": "a yoke on the slip spline of a driveshaft, pushed along it by 300 N: it slides freely until the rising torque presses the teeth together, and then the friction stops it and holds it, a few centimetres along",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09,
+        "hmax": 0.001,
+        "time_span": 1.0,
+        "time_step": 0.01
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "spline",
+      "R": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ]
+      ],
+      "T": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "driveline",
+      "bodies": [
+        {
+          "name": "carrier",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "geometry": [],
+          "inertia": {
+            "mass": 4.0,
+            "Ixx": 0.05,
+            "Iyy": 0.1,
+            "Izz": 0.1,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          }
+        },
+        {
+          "name": "yoke",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "geometry": [],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 0.02,
+            "Iyy": 0.1,
+            "Izz": 0.1,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          },
+          "frames": [
+            {
+              "name": "spline",
+              "R": [
+                [
+                  0,
+                  0,
+                  1
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  -1,
+                  0,
+                  0
+                ]
+              ],
+              "T": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "joints": [
+        {
+          "name": "slip",
+          "type": "prismatic",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "turn",
+          "type": "revolute",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "parent": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "yoke"
+            ],
+            "origin"
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "applied_load",
+          "name": "push",
+          "body": "yoke",
+          "coordinates": "fixed",
+          "force": [
+            300,
+            0,
+            0
+          ]
+        },
+        {
+          "type": "applied_load",
+          "name": "drive",
+          "body": "yoke",
+          "coordinates": "fixed",
+          "moment": [
+            200,
+            0,
+            0
+          ],
+          "scale_curve": [
+            0,
+            0,
+            0.25,
+            1,
+            100,
+            1
+          ]
+        },
+        {
+          "type": "spline",
+          "name": "slip_spline",
+          "frames": [
+            [
+              "fixed",
+              "spline"
+            ],
+            [
+              "yoke",
+              "spline"
+            ]
+          ],
+          "pitch_radius": 0.02,
+          "pressure_angle": 0.5236,
+          "torsional_stiffness": 50000.0,
+          "torsional_damping": 100,
+          "backlash": 0.002,
+          "friction": 0.1,
+          "static_friction": 0.12,
+          "viscous_friction": 20
+        }
+      ]
+    }
+  ]
+}

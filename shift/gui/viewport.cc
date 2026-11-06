@@ -1,5 +1,8 @@
 #include "shift/gui/viewport.h"
 
+#include "shift/core/context.h"
+#include "shift/core/terrain/base.h"
+
 #include "shift/gui/environment.h"
 #include "shift/gui/simulation.h"
 
@@ -294,6 +297,7 @@ shift::gui::Viewport::~Viewport() {
 }
 
 void shift::gui::Viewport::set_simulation(Simulation* simulation) {
+  set_follow_body(-1);
   simulation_ = simulation;
   poses_ = Poses();
   cad_triangles_.clear();
@@ -340,7 +344,45 @@ void shift::gui::Viewport::UpdatePoses() {
   if(simulation_ && simulation_->TakePoses(poses_)) {
     rt_instances_dirty_ = true;
     LowerFloorBelowModel();
+    if(follow_body_ >= 0 &&
+       follow_body_ < static_cast<int>(poses_.bodies.size())) {
+      camera_.set_follow(FollowFrame(follow_body_, follow_mode_) *
+                         follow_offset_);
+    }
   }
+}
+
+QMatrix4x4 shift::gui::Viewport::FollowFrame(int body, FollowMode mode) const {
+  const QMatrix4x4& pose = poses_.bodies[body];
+  if(mode == FollowMode::kBody) {
+    return pose;
+  }
+  // the height of the ground under the body; without a terrain the ground is
+  // flat at z = 0, as it is for the tires
+  float ground_z = 0.f;
+  const ksl_vec3_t point = {{pose(0, 3), pose(1, 3), pose(2, 3)}};
+  for(const auto* terrain : simulation_->get_context()->get_active_terrain()) {
+    ksl_vec3_t surface, normal;
+    if(terrain->Query(point, surface, normal)) {
+      ground_z = static_cast<float>(surface.z);
+      break;
+    }
+  }
+  return Camera::GroundFrame(pose, ground_z);
+}
+
+void shift::gui::Viewport::set_follow_body(int body, FollowMode mode) {
+  if(body < 0 || body >= static_cast<int>(poses_.bodies.size())) {
+    follow_body_ = -1;
+    camera_.ClearFollow();
+  } else {
+    // the camera does not move: changing bodies keeps the current view
+    follow_body_ = body;
+    follow_mode_ = mode;
+    follow_offset_ = FollowFrame(body, mode).inverted() * camera_.get_follow();
+  }
+  rt_frame_ = 0;
+  update();
 }
 
 void shift::gui::Viewport::set_floor_below_model(float z) {

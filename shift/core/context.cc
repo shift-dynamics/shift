@@ -40,6 +40,7 @@
 #include "shift/core/body/free.h"
 #include "shift/core/body/rigid.h"
 #include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/constraint/base.h"
 #include "shift/core/constraint/chord.h"
@@ -858,6 +859,29 @@ void shift::core::Context::Connect() {
   }
 }
 
+/* with CAD geometry in the model, the exact shapes of the other geometry, once
+it is all loaded, so that contact threads only read them. Geometry fitted to the
+same mesh shares its hull, and so its shape */
+void shift::core::Context::LoadExactShapes() {
+  bool cad = false;
+  for(auto geometry : active_collision_geometry_) {
+    cad = cad || dynamic_cast<collision_geometry::Cad*>(geometry);
+  }
+  if(!cad) {
+    return;
+  }
+  std::map<const void*, std::shared_ptr<const collision_geometry::CadContactShape>>
+    shapes;
+  for(auto geometry : active_collision_geometry_) {
+    const void* key = geometry->ExactShapeKey();
+    auto found = shapes.find(key);
+    if(found == shapes.end()) {
+      found = shapes.insert({key, geometry->MakeExactShape()}).first;
+    }
+    geometry->SetExactShape(found->second);
+  }
+}
+
 void shift::core::Context::LoadData() {
   for(auto& controller : active_controllers_) {
     controller->Load();
@@ -910,6 +934,7 @@ void shift::core::Context::LoadData() {
   for(auto& collision_geometry : active_collision_geometry_) {
     collision_geometry->Load();
   }
+  LoadExactShapes();
 }
 
 void shift::core::Context::LevelOrderSort() {
@@ -3552,13 +3577,19 @@ void shift::core::Context::ExcludeContact(const body::Base* a,
   contact_candidates_valid_ = false;
 }
 
-/* the work of contact detection is shared by threads with at least this many
-geometries (poses) or pairs (tests) each, as starting threads costs more than
-it saves for less */
-static constexpr int kParallelGrain = 32;
+/* the poses of the geometries are shared by threads with at least this many
+each: a pose takes well under a microsecond, and starting threads costs more
+than it saves for less */
+static constexpr int kPoseGrain = 512;
+
+/* the tests of the candidate pairs are shared by threads if the last round of
+them took this long (s). The number of pairs says little: most of them end at
+the bounding spheres, or are a plane and a sphere, while a mesh pair in contact
+takes tens of microseconds. */
+static constexpr double kParallelTestSeconds = 100e-6;
 
 static int ThreadCount(int work) {
-  return std::max(1, std::min(omp_get_max_threads(), work / kParallelGrain));
+  return std::max(1, std::min(omp_get_max_threads(), work / kPoseGrain));
 }
 
 /* the margin of a bounding sphere in the broad phase, as a fraction of its
@@ -3761,14 +3792,24 @@ void shift::core::Context::DetectContacts() {
     UpdateContactCandidates();
   }
 
+  /* a pair at a time: the pairs that take long are few, and neighbors in the
+  list, so larger chunks leave them all to one thread. The pairs do not depend
+  on each other, so the threads do not change the results. */
   const int m = static_cast<int>(contact_candidates_.size());
-#pragma omp parallel for schedule(dynamic, 8) num_threads(ThreadCount(m))
+  const int threads =
+    contact_test_seconds_ > kParallelTestSeconds ? omp_get_max_threads() : 1;
+  const auto tests_start = std::chrono::steady_clock::now();
+#pragma omp parallel for schedule(dynamic, 1) num_threads(threads)
   for(int k = 0; k < m; k++) {
     ContactCandidate& candidate = contact_candidates_[k];
     candidate.was_in_contact = candidate.pair->collision;
     TestCandidate(*candidate.pair, contact_planes_[candidate.a],
                   contact_planes_[candidate.b]);
   }
+  contact_test_seconds_ =
+    threads * std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                            tests_start)
+                .count();
 
   /* in the order of the candidates, the same for any number of threads */
   for(const auto& candidate : contact_candidates_) {

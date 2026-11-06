@@ -1,0 +1,163 @@
+{
+  "comment": "a 40 kg rotor on an oil film between tapered pads: it starts on the film, the oil slows it, and it comes down onto the surfaces as the pads lose their lift",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09,
+        "hmax": 0.001,
+        "time_span": 8.0,
+        "time_step": 0.01
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "seat",
+      "T": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "start",
+      "T": [
+        0,
+        0,
+        -0.0001
+      ]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "rotor_on_collar",
+      "bodies": [
+        {
+          "name": "carrier",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "frames": [],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.05,
+            "Iyy": 0.05,
+            "Izz": 0.05,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          },
+          "geometry": []
+        },
+        {
+          "name": "rotor",
+          "center_of_mass": [
+            0,
+            0,
+            0
+          ],
+          "frames": [],
+          "inertia": {
+            "mass": 35.0,
+            "Ixx": 0.02,
+            "Iyy": 0.02,
+            "Izz": 0.02,
+            "Ixy": 0,
+            "Iyz": 0,
+            "Izx": 0
+          },
+          "geometry": []
+        }
+      ],
+      "joints": [
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "parent": [
+            [
+              "fixed"
+            ],
+            "start"
+          ],
+          "child": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "spin",
+          "type": "revolute",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "parent": [
+            [
+              "carrier"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "rotor"
+            ],
+            "origin"
+          ],
+          "initial_velocity": 60.0
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "thrust_collar",
+          "name": "collar",
+          "frames": [
+            [
+              "rotor",
+              "origin"
+            ],
+            [
+              "fixed",
+              "seat"
+            ]
+          ],
+          "inner_radius": 0.03,
+          "outer_radius": 0.06,
+          "viscosity": 0.05,
+          "pads": 6,
+          "taper": 3e-05,
+          "roughness": 1e-06,
+          "friction": 0.1
+        }
+      ]
+    }
+  ]
+}

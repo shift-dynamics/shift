@@ -1,5 +1,5 @@
 [wrap-git]
-url = /home/kristopher/Projects/dynamics/ksl
+url = https://github.com/shift-dynamics/ksl.git
 revision = master
 
 [provide]

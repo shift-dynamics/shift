@@ -195,8 +195,9 @@ TEST(LeadScrew, TheDeflectionIsTheAdvanceBeyondTheIdealScrew) {
   // on the ideal screw nothing acts, whatever the turns
   Evaluate(context, screw, p * 7.0, 7.0, 0.0, 0.0);
   EXPECT_NEAR(screw->get_deflection(), 0.0, 1e-15);
-  EXPECT_EQ(screw->get_axial_force(), 0.0);
-  EXPECT_EQ(screw->get_torque(), 0.0);
+  // (to the rounding of the deflection, times the stiffness of 1e8)
+  EXPECT_NEAR(screw->get_axial_force(), 0.0, 1e-9);
+  EXPECT_NEAR(screw->get_torque(), 0.0, 1e-9);
   // off it, a spring along the flank's normal: the force along the axis is
   // -k delta cos^2(lambda) (the deflection along the normal is cos(lambda)
   // of it, and so is the part of the force along the axis), and the torque
@@ -351,4 +352,129 @@ TEST(LeadScrew, ASelfLockingScrewHoldsItsLoadAndAFreeOneIsBackDriven) {
     EXPECT_NEAR(advance, 0.5 * ideal * 0.25, 0.1 * 0.5 * ideal * 0.25);
     EXPECT_GT(advance, 0.0);
   }
+}
+
+/* where the load has got to, by the prismatic joint */
+static double Travel(shift::core::Context& context,
+                     const std::vector<double>& y) {
+  return y[context["assemblies"]["test"]["joints"]["slide"]
+             .get_data<shift::core::joint::Base>()
+             ->get_q_index()];
+}
+
+static const char* kBristles = R"("bristle_stiffness": 1e5,
+  "bristle_damping": 500, "stribeck_velocity": 0.01)";
+
+TEST(LeadScrewStick, TheBristlesHoldWhereTheSmoothedFrictionCreeps) {
+  // the load of a self-locking thread: the smoothed friction lets it creep
+  // on, the bristles stop it. The travel between 0.5 s and 1 s
+  const std::string thread = R"("lead": 0.1, "mean_radius": 0.02,
+    "friction": 1.0, "stiffness": 1e7, "damping": 2e3, "slip_speed": 1e-3)";
+  auto creep = [](const std::string& options) {
+    shift::core::Context context;
+    Load(context, options, 10.0, 0.05, 1.0);
+    double half = 0.0, end = 0.0;
+    context.set_state_observer([&](double t, const std::vector<double>& y) {
+      if(t <= 0.5) {
+        half = Travel(context, y);
+      }
+      end = Travel(context, y);
+    });
+    context.Simulate();
+    return std::fabs(end - half);
+  };
+  const double smoothed = creep(thread);
+  const double held = creep(thread + ", " + kBristles);
+  EXPECT_GT(smoothed, 1e-5);
+  EXPECT_LT(held, 1e-8);
+}
+
+TEST(LeadScrewStick, TheDeflectionOfTheBristlesCarriesTheTorqueOfTheLoad) {
+  // the load tries to turn the screw with p w; the friction along the thread
+  // holds it, a fraction of the limit, shown by stick
+  shift::core::Context context;
+  Load(context, std::string(R"("lead": 0.1, "mean_radius": 0.02,
+         "friction": 1.0, "stiffness": 1e7, "damping": 2e3, )") + kBristles,
+       10.0, 0.05, 1.0);
+  LeadScrew* screw = Find(context);
+  std::vector<double> y;
+  context.set_state_observer(
+    [&y](double, const std::vector<double>& state) { y = state; });
+  context.Simulate();
+  screw->UpdateOutputs(1.0, y.data());
+  // at rest the flank's friction balances the part of the load along the
+  // thread: f_t = n tan(lambda), so stick = tan(lambda) / mu
+  const double lambda = screw->get_lead_angle();
+  EXPECT_NEAR(screw->get_stick(), std::tan(lambda), 0.02);
+  EXPECT_NEAR(screw->get_axial_force(), -10.0 * 9.81, 0.02 * 98.1);
+}
+
+TEST(LeadScrewStick, TheStaticFrictionDecidesWhetherItLocks) {
+  // tan(lambda) = 0.796: friction of 0.5 lets it run, unless the static
+  // friction is above it. Started at rest, that holds
+  const std::string thread = R"("lead": 0.1, "mean_radius": 0.02,
+    "friction": 0.5, "stiffness": 1e7, "damping": 2e3, )";
+  {
+    shift::core::Context context;
+    Load(context, thread + kBristles + R"(, "static_friction": 1.0)", 10.0,
+         0.05, 0.5);
+    EXPECT_TRUE(Find(context)->is_self_locking());
+    std::vector<double> y;
+    context.set_state_observer(
+      [&y](double, const std::vector<double>& state) { y = state; });
+    context.Simulate();
+    EXPECT_LT(std::fabs(Travel(context, y)), 1e-3);
+  }
+  {
+    shift::core::Context context;
+    Load(context, thread + kBristles, 10.0, 0.05, 0.5);
+    EXPECT_FALSE(Find(context)->is_self_locking());
+    std::vector<double> y;
+    context.set_state_observer(
+      [&y](double, const std::vector<double>& state) { y = state; });
+    context.Simulate();
+    EXPECT_GT(std::fabs(Travel(context, y)), 0.01);
+  }
+}
+
+TEST(LeadScrewStick, InSteadyMotionItIsTheFrictionOfThePowerScrew) {
+  // the formulas of power screws, as the smoothed friction gives them
+  const double load = 1000.0, r = 0.012, lead = 0.005, mu = 0.15;
+  const double lambda = std::atan(lead / (2.0 * M_PI * r));
+  std::ostringstream options;
+  options << R"("lead": 0.005, "mean_radius": 0.012, "friction": 0.15,
+                "stiffness": 1e8, "bristle_stiffness": 1e5)";
+  shift::core::Context context;
+  Load(context, options.str(), 1.0, 1e-3, 0.1);
+  LeadScrew* screw = Find(context);
+  // the bristles saturated: z = mu / sigma_0, sliding forward
+  const double p = lead / (2.0 * M_PI);
+  const double delta = -load / 1e8 / std::pow(std::cos(lambda), 2.0);
+  auto joint = [&](const char* name) {
+    return context["assemblies"]["test"]["joints"][name]
+      .get_data<shift::core::joint::Base>();
+  };
+  const double omega = 10.0;
+  context.get_q()[joint("slide")->get_q_index()] = delta;
+  context.get_dq()[joint("slide")->get_dq_index()] = p * omega;
+  context.get_dq()[joint("spin")->get_dq_index()] = omega;
+  context.UpdateDHVA();
+  std::vector<double> y(
+    context.get_state_count() + context.get_auxiliary_state_count(), 0.0);
+  y[screw->get_state_offset() + 1] = mu / 1e5;
+  std::vector<double> dy(y.size(), 0.0);
+  context.SetForces(0.0, y, dy);
+  EXPECT_NEAR(dy[screw->get_state_offset() + 1], 0.0, 1e-9);
+  // the flank's normal force is the load over cos(lambda)
+  EXPECT_NEAR(screw->get_normal_force(), -load / std::cos(lambda), 1e-6 * load);
+  EXPECT_NEAR(screw->get_friction_force(), mu * load / std::cos(lambda),
+              1e-6 * load);
+  EXPECT_NEAR(screw->get_stick(), 1.0, 1e-9);
+}
+
+TEST(LeadScrewStick, WhatItRefuses) {
+  shift::core::Context context;
+  EXPECT_THROW(Load(context, R"("lead": 0.01, "mean_radius": 0.02,
+    "friction": 0.5, "stiffness": 1e7, "bristle_stiffness": 1e5,
+    "static_friction": 0.3)", 1.0, 0.01, 0.1), std::exception);
 }

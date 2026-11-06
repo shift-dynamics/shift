@@ -140,9 +140,9 @@ surfaces (the free-form surfaces of CAD), bounded by their trimming curves. No
 triangle mesh has to be prepared. The viewer draws the parts by evaluating these
 surfaces on the graphics card, so curved faces look smooth at any distance.
 
-Contact uses the same surfaces. Between two STEP parts, or a STEP part and a plane,
-the points of contact, their depths and their normals are solved on the surfaces
-themselves, so the normals and curvatures are those of the part and not of the
+Contact uses the same surfaces. Between two STEP parts, or a STEP part and any of
+the other collision shapes, the points of contact, their depths and their normals are
+solved on the surfaces themselves, so the normals and curvatures are those of the part and not of the
 facets of a mesh, and the Hertz contact law uses the true curvature at each point.
 In this track, 44 links run around a drive sprocket and an idler and rest on the
 ground, with every contact found on the surfaces of the STEP files. Reading STEP

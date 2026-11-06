@@ -36,12 +36,6 @@ void shift::core::collision_geometry::Cad::DeclareParameters() {
     "defaults to 0.2% of the size of the geometry (the diagonal of its "
     "bounds)",
     false);
-  DeclareParameter(
-    "max_depth", &max_depth_,
-    "deepest penetration taken for contact: a deeper point of a face, edge "
-    "or vertex inside another body is taken to be on its far side; defaults "
-    "to 2% of the size of the geometry",
-    false);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -330,7 +324,8 @@ bool shift::core::collision_geometry::CadContactShape::Inside(
 
 std::vector<std::array<double, 2>>
 shift::core::collision_geometry::CadContactShape::Clip(int face, const Vec2& a,
-                                                       const Vec2& b) const {
+                                                       const Vec2& b,
+                                                       double inset) const {
   const CadContactFace& f = faces[face];
   Vec2 p = a, q = b;
   for(int k = 0; k < 2; k++) {
@@ -339,6 +334,16 @@ shift::core::collision_geometry::CadContactShape::Clip(int face, const Vec2& a,
       const double shift = InPeriod(mid, f.lo[k], f.hi[k]) - mid;
       p[k] += shift;
       q[k] += shift;
+    }
+    if(inset > 0.0) {
+      const double margin = inset * (f.hi[k] - f.lo[k]);
+      for(double* end : {&p[k], &q[k]}) {
+        if(std::fabs(*end - f.lo[k]) < margin) {
+          *end = f.lo[k] + margin;
+        } else if(std::fabs(*end - f.hi[k]) < margin) {
+          *end = f.hi[k] - margin;
+        }
+      }
     }
   }
   /* the parameters where the segment crosses the polygons' sides */
@@ -465,6 +470,57 @@ static double Diagonal(const shift::core::collision_geometry::CadBox& box) {
   return ksl_vec3_l2norm(&d);
 }
 
+/* marks the convex edges between two faces that meet at an angle, from the
+middle of each: the faces' normals there, and the direction into the first */
+static void MarkSharpEdges(
+  shift::core::collision_geometry::CadContactShape& shape) {
+  const auto& m = shape.model();
+  for(auto& edge : shape.edges) {
+    const auto& e = m.edges[edge.edge];
+    if(edge.faces.size() != 2 || edge.faces[0] == edge.faces[1] ||
+       e.curve < 0 || !e.has_range) {
+      continue;
+    }
+    const auto& curve = m.curves[e.curve];
+    const auto& place = shape.placements[edge.placement];
+    auto point_at = [&](double t) {
+      return place.Apply(shift::core::cad::CurvePoint<3>(curve, t));
+    };
+    const double middle = 0.5 * (e.range[0] + e.range[1]);
+    const double step = 1e-4 * (e.range[1] - e.range[0]);
+    const ksl_vec3_t p = point_at(middle);
+    const ksl_vec3_t after = point_at(middle + step);
+    const ksl_vec3_t before = point_at(middle - step);
+    ksl_vec3_t tangent;
+    ksl_subtract_vv(&after, &before, &tangent);
+    const double length = ksl_vec3_l2norm(&tangent);
+    shift::core::cad::Vec2 uv[2];
+    if(!(length > 0.0) || !shape.Project(edge.faces[0], p, uv[0]) ||
+       !shape.Project(edge.faces[1], p, uv[1])) {
+      continue;
+    }
+    ksl_vec3_scale(&tangent, 1.0 / length);
+    const ksl_vec3_t n0 = shape.Normal(edge.faces[0], uv[0]);
+    const ksl_vec3_t n1 = shape.Normal(edge.faces[1], uv[1]);
+    ksl_vec3_t cross, inward;
+    ksl_cross_vv(&n0, &n1, &cross);
+    if(ksl_vec3_l2norm(&cross) < 0.05) {
+      continue; // the faces meet smoothly
+    }
+    ksl_cross_vv(&tangent, &n0, &inward);
+    for(double sense : {1.0, -1.0}) {
+      ksl_vec3_t q = p;
+      ksl_axpy_vv(sense * 1e-5 * shape.size, &inward, &q);
+      shift::core::cad::Vec2 at;
+      if(shape.Project(edge.faces[0], q, at) &&
+         shape.Inside(edge.faces[0], at)) {
+        edge.sharp = sense * ksl_dot_vv(&n1, &inward) < 0.0;
+        break;
+      }
+    }
+  }
+}
+
 std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
 shift::core::collision_geometry::MakeCadContactShape(
   std::shared_ptr<const geometry::CadAsset> asset, double scale) {
@@ -568,9 +624,16 @@ shift::core::collision_geometry::MakeCadContactShape(
     if(e.curve < 0 || !e.has_range) {
       continue;
     }
-    for(int i = 1; i <= kEdgeSamples; i++) {
-      const double t =
-        e.range[0] + (e.range[1] - e.range[0]) * i / (kEdgeSamples + 1);
+    /* as many of them on each quarter of a turn of a circle: a short stretch
+    of a long rim may be all that is inside a face */
+    int intervals = kEdgeSamples + 1;
+    if(m.curves[e.curve].type == cad::Curve3::Type::kConic) {
+      const double quarters = std::fabs(e.range[1] - e.range[0]) / (0.5 * M_PI);
+      intervals *= std::min(std::max(static_cast<int>(std::ceil(quarters - 1e-9)),
+                                     1), 4);
+    }
+    for(int i = 1; i < intervals; i++) {
+      const double t = e.range[0] + (e.range[1] - e.range[0]) * i / intervals;
       edge.sample_t.push_back(t);
       edge.sample_points.push_back(shape->placements[edge.placement].Apply(
         cad::CurvePoint<3>(m.curves[e.curve], t)));
@@ -660,6 +723,8 @@ shift::core::collision_geometry::MakeCadContactShape(
     shape->hull_points.push_back(v.point);
   }
 
+  MarkSharpEdges(*shape);
+
   /* the box tree */
   if(!shape->faces.empty()) {
     shape->order.resize(shape->faces.size());
@@ -670,6 +735,260 @@ shift::core::collision_geometry::MakeCadContactShape(
     BuildTree(*shape, 0, 0, static_cast<int>(shape->faces.size()));
   }
   return shape;
+}
+
+/* ------------------------------------------------------------------------ */
+/* the exact shapes of other collision geometry */
+
+static shift::core::cad::Vec3 ToVec3(const ksl_vec3_t& p) {
+  return {p.x, p.y, p.z};
+}
+
+/* an asset of the one body of the faces of a model, repaired */
+static std::shared_ptr<const shift::core::geometry::CadAsset>
+FinishAsset(std::shared_ptr<shift::core::geometry::CadAsset> asset) {
+  shift::core::cad::Model& m = asset->model;
+  shift::core::cad::Shell shell;
+  shell.closed = true;
+  for(int f = 0; f < static_cast<int>(m.faces.size()); f++) {
+    shell.faces.push_back(f);
+  }
+  m.shells.push_back(shell);
+  shift::core::cad::Body body;
+  body.shells.push_back(0);
+  body.solid = true;
+  m.bodies.push_back(body);
+  asset->report = shift::core::cad::Repair(m);
+  shift::core::cad::PlacedBody placed;
+  placed.body = 0;
+  asset->bodies.push_back(placed);
+  return asset;
+}
+
+/* a line edge of the model between two vertices */
+static int AddLineEdge(shift::core::cad::Model& m, int start, int end) {
+  shift::core::cad::Curve3 line;
+  line.origin = m.vertices[start].point;
+  for(int k = 0; k < 3; k++) {
+    line.direction[k] = m.vertices[end].point[k] - line.origin[k];
+  }
+  m.curves.push_back(line);
+  shift::core::cad::Edge e;
+  e.start = start;
+  e.end = end;
+  e.curve = static_cast<int>(m.curves.size()) - 1;
+  m.edges.push_back(e);
+  return static_cast<int>(m.edges.size()) - 1;
+}
+
+/* the hull of points that lie in a plane or along a line, as a hull with faces:
+thickened by 1e-4 of their extent in the directions they have none; false for a
+single point */
+static bool Thickened(const shift::core::collision_geometry::ConvexHullData& hull,
+                      shift::core::collision_geometry::ConvexHullData& thick) {
+  using namespace shift::core::collision_geometry;
+  if(hull.vertices.empty()) {
+    return false;
+  }
+  ksl_vec3_t lo = hull.vertices[0], hi = hull.vertices[0];
+  for(const auto& v : hull.vertices) {
+    for(int k = 0; k < 3; k++) {
+      lo.at[k] = std::min(lo.at[k], v.at[k]);
+      hi.at[k] = std::max(hi.at[k], v.at[k]);
+    }
+  }
+  ksl_vec3_t diagonal;
+  ksl_subtract_vv(&hi, &lo, &diagonal);
+  const double extent = ksl_vec3_l2norm(&diagonal);
+  if(!(extent > 0.0)) {
+    return false;
+  }
+  ksl_mat3x3_t covariance = Covariance(hull.vertices), axes;
+  Jacobi(covariance, axes);
+  std::vector<ksl_vec3_t> points = hull.vertices;
+  for(int k = 0; k < 3; k++) {
+    if(std::sqrt(std::max(covariance.at[k][k], 0.0)) > 1e-6 * extent) {
+      continue;
+    }
+    std::vector<ksl_vec3_t> both;
+    for(const auto& p : points) {
+      for(double side : {-1e-4, 1e-4}) {
+        ksl_vec3_t q = p;
+        for(int i = 0; i < 3; i++) {
+          q.at[i] += side * extent * axes.v[k].at[i];
+        }
+        both.push_back(q);
+      }
+    }
+    points = both;
+  }
+  if(!ComputeConvexHull(points, thick)) {
+    return false;
+  }
+  ComputeFacePlanes(thick);
+  ComputeFacePolygons(thick);
+  return !thick.polygons.empty();
+}
+
+std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
+shift::core::collision_geometry::MakeHullShape(const ConvexHullData& hull) {
+  if(hull.polygons.empty()) {
+    ConvexHullData thick;
+    return Thickened(hull, thick) ? MakeHullShape(thick) : nullptr;
+  }
+  auto asset = std::make_shared<geometry::CadAsset>();
+  cad::Model& m = asset->model;
+  for(const auto& v : hull.vertices) {
+    cad::Vertex vertex;
+    vertex.point = ToVec3(v);
+    m.vertices.push_back(vertex);
+  }
+  std::map<std::pair<int, int>, int> edges;
+  for(size_t i = 0; i < hull.polygons.size(); i++) {
+    const auto& polygon = hull.polygons[i];
+    const ksl_vec3_t& normal = hull.polygon_normals[i];
+    if(polygon.size() < 3 || ksl_dot_vv(&normal, &normal) == 0.0) {
+      continue;
+    }
+    /* the plane: x along the first side, z out of the hull */
+    ksl_vec3_t x, y;
+    ksl_subtract_vv(&hull.vertices[polygon[1]], &hull.vertices[polygon[0]], &x);
+    ksl_axpy_vv(-ksl_dot_vv(&x, &normal), &normal, &x);
+    ksl_vec3_scale(&x, 1.0 / ksl_vec3_l2norm(&x));
+    ksl_cross_vv(&normal, &x, &y);
+    cad::Surface plane;
+    plane.type = cad::Surface::Type::kPlane;
+    plane.position.origin = ToVec3(hull.vertices[polygon[0]]);
+    plane.position.x = ToVec3(x);
+    plane.position.y = ToVec3(y);
+    plane.position.z = ToVec3(normal);
+    m.surfaces.push_back(plane);
+
+    cad::Loop loop;
+    loop.outer = true;
+    for(size_t k = 0; k < polygon.size(); k++) {
+      const int from = static_cast<int>(polygon[k]);
+      const int to = static_cast<int>(polygon[(k + 1) % polygon.size()]);
+      const auto key = std::minmax(from, to);
+      auto found = edges.find({key.first, key.second});
+      if(found == edges.end()) {
+        found = edges
+                  .insert({{key.first, key.second},
+                           AddLineEdge(m, key.first, key.second)})
+                  .first;
+      }
+      cad::Coedge coedge;
+      coedge.edge = found->second;
+      coedge.orientation = from == key.first;
+      loop.coedges.push_back(coedge);
+    }
+    cad::Face face;
+    face.surface = static_cast<int>(m.surfaces.size()) - 1;
+    face.loops.push_back(loop);
+    m.faces.push_back(face);
+  }
+  return MakeCadContactShape(FinishAsset(asset), 1.0);
+}
+
+std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
+shift::core::collision_geometry::MakeCylinderShape(double radius,
+                                                   double half_length,
+                                                   bool caps) {
+  constexpr int kArcs = 4;
+  auto asset = std::make_shared<geometry::CadAsset>();
+  cad::Model& m = asset->model;
+
+  /* the rims, bottom (0) and top (1): vertices, and arcs between them */
+  int vertices[2][kArcs], arcs[2][kArcs];
+  for(int end = 0; end < 2; end++) {
+    const double z = end ? half_length : -half_length;
+    for(int k = 0; k < kArcs; k++) {
+      const double angle = 2.0 * M_PI * k / kArcs;
+      cad::Vertex v;
+      v.point = {radius * std::cos(angle), radius * std::sin(angle), z};
+      m.vertices.push_back(v);
+      vertices[end][k] = static_cast<int>(m.vertices.size()) - 1;
+    }
+    cad::Curve3 circle;
+    circle.type = cad::Curve3::Type::kConic;
+    circle.origin = {0.0, 0.0, z};
+    circle.a = {radius, 0.0, 0.0};
+    circle.b = {0.0, radius, 0.0};
+    m.curves.push_back(circle);
+    for(int k = 0; k < kArcs; k++) {
+      cad::Edge e;
+      e.start = vertices[end][k];
+      e.end = vertices[end][(k + 1) % kArcs];
+      e.curve = static_cast<int>(m.curves.size()) - 1;
+      m.edges.push_back(e);
+      arcs[end][k] = static_cast<int>(m.edges.size()) - 1;
+    }
+  }
+  const int seam = AddLineEdge(m, vertices[0][0], vertices[1][0]);
+
+  /* the side: round the bottom, up the seam, back round the top and down */
+  cad::Surface side;
+  side.type = cad::Surface::Type::kCylinder;
+  side.radius = radius;
+  side.position.origin = {0.0, 0.0, -half_length};
+  m.surfaces.push_back(side);
+  cad::Loop around;
+  around.outer = true;
+  auto add = [](cad::Loop& loop, int edge, bool orientation) {
+    cad::Coedge coedge;
+    coedge.edge = edge;
+    coedge.orientation = orientation;
+    loop.coedges.push_back(coedge);
+  };
+  for(int k = 0; k < kArcs; k++) {
+    add(around, arcs[0][k], true);
+  }
+  add(around, seam, true);
+  for(int k = kArcs - 1; k >= 0; k--) {
+    add(around, arcs[1][k], false);
+  }
+  add(around, seam, false);
+  cad::Face face;
+  face.surface = 0;
+  face.loops.push_back(around);
+  m.faces.push_back(face);
+
+  if(caps) {
+    for(int end = 0; end < 2; end++) {
+      /* z out of the cylinder */
+      cad::Surface plane;
+      plane.type = cad::Surface::Type::kPlane;
+      plane.position.origin = {0.0, 0.0, end ? half_length : -half_length};
+      plane.position.y = {0.0, end ? 1.0 : -1.0, 0.0};
+      plane.position.z = {0.0, 0.0, end ? 1.0 : -1.0};
+      m.surfaces.push_back(plane);
+      cad::Loop rim;
+      rim.outer = true;
+      for(int k = 0; k < kArcs; k++) {
+        if(end) {
+          add(rim, arcs[1][k], true);
+        } else {
+          add(rim, arcs[0][kArcs - 1 - k], false);
+        }
+      }
+      cad::Face cap;
+      cap.surface = static_cast<int>(m.surfaces.size()) - 1;
+      cap.loops.push_back(rim);
+      m.faces.push_back(cap);
+    }
+  }
+  auto shape = MakeCadContactShape(FinishAsset(asset), 1.0);
+  if(caps) {
+    return shape;
+  }
+  auto bare = std::make_shared<CadContactShape>(*shape);
+  bare->edges.clear();
+  bare->vertices.clear();
+  for(auto& f : bare->faces) {
+    f.edges.clear();
+    f.vertices.clear();
+  }
+  return bare;
 }
 
 /* ------------------------------------------------------------------------ */

@@ -9,8 +9,15 @@
 #include "shift/core/force_module/tire/base.h"
 #include "shift/core/force_module/gear_mesh.h"
 #include "shift/core/force_module/journal_bearing.h"
+#include "shift/core/force_module/applied_load.h"
+#include "shift/core/force_module/joint_force.h"
 #include "shift/core/force_module/lead_screw.h"
 #include "shift/core/force_module/powertrain.h"
+#include "shift/core/force_module/soil_tool.h"
+#include "shift/core/force_module/spline.h"
+#include "shift/core/force_module/spring_damper.h"
+#include "shift/core/force_module/thrust_collar.h"
+#include "shift/core/force_module/terrain_contact.h"
 #include "shift/core/force_module/track.h"
 #include "shift/core/force_module/track_soil.h"
 
@@ -46,6 +53,28 @@ bool shift::core::force_module::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::force_module::Powertrain::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::JointFriction::is_registered() ||
+     !shift::core::force_module::JointMap::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::AppliedLoad::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::TerrainContact::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::SoilTool::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::Spline::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::SpringDamper::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::ThrustCollar::is_registered()) {
     return false;
   }
   if(!shift::core::force_module::Track::is_registered()) {

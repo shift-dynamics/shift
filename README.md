@@ -8,6 +8,61 @@ A dynamics engine and visualization tool for automation and robotics.
 
 Refer to *Shift's* website at <https://shift-dynamics.github.io/shift/> for additional information on how to use the software and API.
 
+## Building and running
+
+*Shift* builds with meson and ninja. The libraries it needs are listed in the [installation guide](https://shift-dynamics.github.io/shift/installation.html).
+
+```bash
+git clone https://github.com/shift-dynamics/shift.git
+cd shift
+meson setup build
+meson compile -C build
+meson test -C build
+```
+
+`build/` is a debug build. For simulation work, keep an optimized build next to it, which is 4–8 times faster:
+
+```bash
+meson setup build-release --buildtype=release -Dcpu=native
+meson compile -C build-release
+```
+
+Run a model from the top of the repository with the command line program, or open it in the 3D viewer:
+
+```bash
+build/shift/main/shift-cli examples/pendulum/pendulum.json
+build/shift/main/shift examples/pendulum/pendulum.json
+```
+
+The viewer is built when Qt 6.7 or later is found. The models in [examples/](examples/readme.rst) show what the software can do, and each of them is also run by the tests.
+
+## Code layout
+
+| Path | Contents |
+|------|----------|
+| `shift/core/` | The dynamics engine, a library with no dependency on the viewer |
+| `shift/gui/` | The Qt 6 3D viewer library: scene, camera, ray tracing, video export |
+| `shift/main/` | The two programs: `shift_cli.cc` (`shift-cli`, no display needed) and `shift.cc` (`shift`, the viewer) |
+| `test/` | The GoogleTest suite, which also simulates the models in `examples/` |
+| `examples/` | Example models, with their meshes and the scripts that generate them |
+| `doc/` | The source of the website (`doc/sphinx`) and developer notes |
+| `assets/` | Textures, icons, geometry and other resources built into the viewer |
+| `scripts/` | Utility scripts for plotting logs, preparing meshes and rendering the documentation images |
+| `subprojects/` | meson wraps for [KSL](https://github.com/shift-dynamics/ksl), the spatial algebra library, and argagg, the command line parser |
+
+Within `shift/core/`:
+
+| Path | Contents |
+|------|----------|
+| `context`, `assembly` | `Context` loads a model, analyzes its topology and owns the simulation; `Assembly` is a container of bodies, joints and other objects, and assemblies can be nested |
+| `substructure`, `topology`, `jacobian` | Kinematic substructures, the run-time arrays of displacements, velocities and accelerations (`topology::DHVA`), and the constraint Jacobian with its split into dependent and independent variables |
+| `body/`, `joint/`, `constraint/` | Fixed, free, rigid and virtual bodies; revolute, prismatic, spherical, screw, gear, float and rigid joints; chord constraints that close kinematic loops |
+| `solver/`, `integrator/` | The RNCA equations of motion solver; the ODE113 and RK4 integrators |
+| `force_module/` | Forces on bodies and joints: springs, bushings, beams, belts, gears, bearings, hydraulics, powertrains, tires, soil and contact |
+| `controller/`, `sensor/`, `logger/` | PID and schedule controllers and 7-DOF inverse kinematics; joint and frame sensors; CSV and HDF5 logs |
+| `geometry/`, `collision_geometry/`, `cad/`, `terrain/`, `light/` | Display geometry and mass properties; shapes and contact detection; STEP files and exact surfaces; elevation maps; lights |
+| `parameter/`, `factory` | Reading and writing objects as JSON, and creating them by their `type` |
+
 
 ## Workflow
 *Shift* loads and analyzes the topology of a mechanism specified in a JSON
@@ -18,8 +73,14 @@ text file.  The analysis is split in to the following steps:
 The following operations are performed once at the beginning of simulation
 and need not be called again, unless the mechanism topology changes:
 
-*   The user-defined body-joint-body information is initially loaded into
-    computer working memory as a linked list.
+*   The user-defined bodies and joints are read into the arrays of the
+    assemblies that contain them, and `shift::core::Context` gathers the ones
+    that take part in the simulation into arrays of its own.
+
+*   Starting from the fixed body, joints are sorted breadth-first into level
+    increasing order along a spanning tree. A joint that reaches a body
+    already in the tree closes a loop: it gets a virtual body and a chord
+    constraint.
 
 *   The topology of the mechanism is analyzed automatically to identify groups
     of overlapping chord loops, which are referred to as *kinematic substructures* -- (referred to as `shift::core::Substructure` in the code)
@@ -27,9 +88,10 @@ and need not be called again, unless the mechanism topology changes:
 *   Bodies and joints are arranged in level increasing order within each
     substructure, thereby block-diagonalizing the Jacobian matrix.
 
-*   To minimize cache misses, data is copied by value from linked-list
-    representation to a struct-of-arrays data structure in contiguous
-    memory in level-increasing order.
+*   To minimize cache misses, the data used at run time is held in a
+    struct of arrays (`shift::core::topology::DHVA`, with the displacements,
+    influence coefficients, velocities and quadratic accelerations) in
+    level-increasing order, and lookup tables give each joint's place in them.
 
 
 ### Run-Time Optimization (RTO)

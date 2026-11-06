@@ -28,8 +28,22 @@ stress after a shear displacement \f$j\f$:
 \f]
 
 with the cohesion \f$c\f$, the friction angle \f$\phi\f$ and the shear
-modulus \f$k_j\f$. The unit weight and the friction angle give the earth pressure on the
-faces of grousers and shoes (Rankine's passive pressure).
+modulus \f$k_j\f$. The unit weight, the friction angle and the friction angle
+\f$\delta\f$ between the soil and a face give the earth pressure on the faces of
+grousers and shoes. Coulomb's theory, for a vertical face and level soil, gives
+the part of the pressure normal to the face, as a share of the weight of the
+soil above, as
+
+\f[
+\kappa_p = \frac{\cos^2\phi}{(1 - s)^2}, \quad
+\kappa_a = \frac{\cos^2\phi}{(1 + s)^2}, \quad
+s = \sqrt{\frac{\sin(\phi + \delta) \sin\phi}{\cos\delta}}
+\f]
+
+for a face pushing into the soil (passive, \f$\kappa_p\f$) and one giving way
+to it (active, \f$\kappa_a\f$). With \f$\delta = 0\f$ these are Rankine's
+\f$\tan^2(\pi/4 \pm \phi/2)\f$. Against a face that does not move the
+coefficient is Jaky's \f$\kappa_0 = 1 - \sin\phi\f$.
 */
 struct SoilProperties {
   double n = 1.0;              //!< sinkage exponent
@@ -39,17 +53,25 @@ struct SoilProperties {
   double friction_angle = 0.0; //!< internal friction angle, radians
   double shear_modulus = 0.01; //!< Janosi-Hanamoto K, m
   double unit_weight = 16000.0; //!< weight per volume, N/m^3
+  double wall_friction = 0.0;   //!< friction angle on a face, radians
+  double passive_coefficient = 0.0; //!< if positive, replaces Coulomb's
 
   /*! \brief Bekker's pressure under a plate of width \f$b\f$ at sinkage
    * \f$z\f$ */
   double Pressure(double b, double z) const;
 
-  /*! \brief Rankine's passive earth-pressure coefficient,
-   * \f$\tan^2(\pi/4 + \phi/2)\f$, with \f$\phi\f$ the friction_angle */
+  /*! \brief the passive earth-pressure coefficient \f$\kappa_p\f$: Coulomb's,
+   * or passive_coefficient if that is given */
   double PassiveCoefficient() const;
 
-  /*! \brief the passive force per width on a vertical face embedded to
-   * depth \f$h\f$ (Rankine, with cohesion):
+  /*! \brief Coulomb's active earth-pressure coefficient \f$\kappa_a\f$ */
+  double ActiveCoefficient() const;
+
+  /*! \brief Jaky's earth-pressure coefficient at rest \f$\kappa_0\f$ */
+  double AtRestCoefficient() const;
+
+  /*! \brief the passive force per width, normal to a vertical face embedded
+   * to depth \f$h\f$, with Bell's term for the cohesion:
    * \f$\frac{1}{2} w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}\f$, with the unit_weight
    * \f$w\f$, the cohesion \f$c\f$ and the coefficient \f$\kappa_p\f$ */
   double PassiveForce(double h) const;
@@ -99,7 +121,8 @@ properties may be given to override it, or a soil given in full
 
 JSON (SI units, angles in radians):
 \code
-"soil": {"name": "lete_sand", "shear_modulus": 0.011, "unit_weight": 15000}
+"soil": {"name": "lete_sand", "shear_modulus": 0.011, "unit_weight": 15000,
+         "wall_friction": 0.27}
 "soil": {"sinkage_exponent": 0.8, "cohesive_modulus": 1e5,
          "frictional_modulus": 5e6, "cohesion": 1300,
          "friction_angle": 0.54, "shear_modulus": 0.01}
@@ -123,7 +146,7 @@ private:
   std::string name_;
   /* NaN: not given */
   double n_, k_c_, k_phi_, cohesion_, friction_angle_, shear_modulus_,
-    unit_weight_;
+    unit_weight_, wall_friction_, passive_coefficient_;
 };
 
 } // namespace force_module

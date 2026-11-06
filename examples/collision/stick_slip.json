@@ -196,6 +196,7 @@
               "geometry_a": "ground",
               "geometry_b": "box",
               "bristle_stiffness": 2000,
+              "bristle_damping": 5,
               "static_friction": 0.6,
               "stribeck_velocity": 0.05
             }

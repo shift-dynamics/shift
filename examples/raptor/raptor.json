@@ -24,11 +24,18 @@
     "integrators": [
       {
         "type": "ode113",
-        "time_span": 10.0,
+        "time_span": 36.0,
         "time_step": 0.02,
         "relative_error": 0.0001,
         "absolute_error": 0.0001,
         "omega_n": 50.0
+      }
+    ],
+    "loggers": [
+      {
+        "type": "csv",
+        "csv_logfile": "raptor.csv",
+        "timestamp_logfile": false
       }
     ]
   },
@@ -47,6 +54,14 @@
         -8.0,
         -8.0,
         -8.0
+      ]
+    },
+    {
+      "name": "terrain",
+      "T": [
+        -30.0,
+        -40.0,
+        0.0
       ]
     }
   ],
@@ -98,6 +113,25 @@
       ]
     }
   ],
+  "terrain": [
+    {
+      "type": "basic",
+      "name": "rolling_ground",
+      "filename": "raptor_terrain.tiff",
+      "parent": [
+        [
+          "fixed"
+        ],
+        "terrain"
+      ],
+      "x_scale": 1.0,
+      "y_scale": 1.0,
+      "coordinate_type": "sae",
+      "interpolation_type": "bicubic",
+      "texture_filename": "qrc:/textures/cracked_sand.jpg",
+      "texture_scale": 4.0
+    }
+  ],
   "assemblies": [
     {
       "name": "raptor",
@@ -112,7 +146,8 @@
             "unloaded_radius": 0.394,
             "width": 0.32,
             "vertical_stiffness": 300000.0,
-            "vertical_damping": 3000.0
+            "vertical_damping": 3000.0,
+            "x_relaxation_length": 0.15
           }
         },
         {
@@ -124,7 +159,8 @@
             "unloaded_radius": 0.394,
             "width": 0.32,
             "vertical_stiffness": 300000.0,
-            "vertical_damping": 3000.0
+            "vertical_damping": 3000.0,
+            "x_relaxation_length": 0.15
           }
         },
         {
@@ -136,7 +172,8 @@
             "unloaded_radius": 0.394,
             "width": 0.32,
             "vertical_stiffness": 300000.0,
-            "vertical_damping": 3000.0
+            "vertical_damping": 3000.0,
+            "x_relaxation_length": 0.15
           }
         },
         {
@@ -148,45 +185,271 @@
             "unloaded_radius": 0.394,
             "width": 0.32,
             "vertical_stiffness": 300000.0,
-            "vertical_damping": 3000.0
+            "vertical_damping": 3000.0,
+            "x_relaxation_length": 0.15
           }
+        },
+        {
+          "type": "powertrain",
+          "name": "drive",
+          "comment": "estimated: 5.2 l supercharged V8 and ten speed automatic",
+          "engine": {
+            "inertia": 0.3,
+            "idle_speed": 75.0,
+            "high_idle_speed": 680.0,
+            "torque_curve": [
+              75,
+              450,
+              200,
+              750,
+              420,
+              868,
+              630,
+              828,
+              680,
+              0
+            ],
+            "friction_curve": [
+              75,
+              -30,
+              680,
+              -150
+            ]
+          },
+          "coupling": {
+            "type": "converter",
+            "capacity": 1500.0,
+            "slip_speed": 20.0,
+            "capacity_curve": [
+              0,
+              11,
+              0.8,
+              14,
+              0.95,
+              30,
+              1.0,
+              300
+            ],
+            "torque_ratio_curve": [
+              0,
+              2.0,
+              0.85,
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "transmission": {
+            "ratios": [
+              4.7,
+              2.99,
+              2.15,
+              1.8,
+              1.52,
+              1.28,
+              1.0,
+              0.85,
+              0.69,
+              0.64
+            ],
+            "reverse_ratio": -4.87,
+            "gear": 1,
+            "clutch_capacity": 2000.0,
+            "slip_speed": 30.0,
+            "input_inertia": 1.0,
+            "output_inertia": 3.0,
+            "shift_time": 0.3,
+            "spin_loss": 0.1
+          },
+          "axles": [
+            {
+              "name": "rear",
+              "left": "left_rear_hub",
+              "right": "right_rear_hub",
+              "direction": -1,
+              "final_drive": 3.73,
+              "shaft_stiffness": 20000.0,
+              "shaft_damping": 50.0,
+              "differential": "limited_slip",
+              "bias_torque": 100.0,
+              "bias_ratio": 0.2
+            }
+          ],
+          "brakes": [
+            {
+              "name": "left_front",
+              "joint": "left_front_hub",
+              "direction": -1,
+              "capacity": 4500.0
+            },
+            {
+              "name": "left_rear",
+              "joint": "left_rear_hub",
+              "direction": -1,
+              "capacity": 3000.0
+            },
+            {
+              "name": "right_front",
+              "joint": "right_front_hub",
+              "direction": -1,
+              "capacity": 4500.0
+            },
+            {
+              "name": "right_rear",
+              "joint": "right_rear_hub",
+              "direction": -1,
+              "capacity": 3000.0
+            }
+          ]
         }
       ],
       "sensors": [
         {
-          "type": "frame",
-          "name": "chassis_Tx_velocity",
-          "body_frame_pair": [
-            "chassis",
-            "origin"
-          ],
-          "quantity": "velocity",
-          "coordinate_system": "local",
-          "dof": "Tx"
+          "type": "joint",
+          "name": "rack_position",
+          "joint": "rack_slide",
+          "quantity": "position"
         }
       ],
       "controllers": [
         {
           "type": "pid",
-          "name": "right_rear_drive",
-          "kp": -100.0,
-          "ki": -400.0,
+          "name": "steering",
+          "kp": 2000000.0,
+          "ki": 4000000.0,
           "kd": 0.0,
-          "target": 15.0,
-          "comment": "rear wheel drive: wheel torque to hold the speed",
-          "sensor": "chassis_Tx_velocity",
-          "joint": "right_rear_hub"
+          "target": 0.0,
+          "sensor": "rack_position",
+          "joint": "rack_slide"
         },
         {
-          "type": "pid",
-          "name": "left_rear_drive",
-          "kp": -100.0,
-          "ki": -400.0,
-          "kd": 0.0,
-          "target": 15.0,
-          "comment": "rear wheel drive: wheel torque to hold the speed",
-          "sensor": "chassis_Tx_velocity",
-          "joint": "left_rear_hub"
+          "type": "schedule",
+          "name": "throttle",
+          "interpolation": "linear",
+          "points": [
+            0,
+            0,
+            0.5,
+            0,
+            1.5,
+            0.5,
+            6.5,
+            0.5,
+            7.5,
+            0.16,
+            30,
+            0.16,
+            30.5,
+            0,
+            36,
+            0
+          ],
+          "targets": [
+            "force_modules/drive/engine/throttle"
+          ]
+        },
+        {
+          "type": "schedule",
+          "name": "gears",
+          "interpolation": "step",
+          "points": [
+            0,
+            1,
+            3,
+            2,
+            5,
+            3,
+            7,
+            4,
+            32,
+            2,
+            34,
+            1
+          ],
+          "targets": [
+            "force_modules/drive/transmission/gear"
+          ]
+        },
+        {
+          "type": "schedule",
+          "name": "lockup",
+          "interpolation": "linear",
+          "points": [
+            0,
+            0,
+            8,
+            0,
+            8.5,
+            1,
+            30,
+            1,
+            30.5,
+            0,
+            36,
+            0
+          ],
+          "targets": [
+            "force_modules/drive/coupling/engagement"
+          ]
+        },
+        {
+          "type": "schedule",
+          "name": "brake_pedal",
+          "interpolation": "linear",
+          "points": [
+            0,
+            0,
+            30.5,
+            0,
+            31.5,
+            0.27,
+            36,
+            0.27
+          ],
+          "targets": [
+            "force_modules/drive/brakes/left_front/pressure",
+            "force_modules/drive/brakes/left_rear/pressure",
+            "force_modules/drive/brakes/right_front/pressure",
+            "force_modules/drive/brakes/right_rear/pressure"
+          ]
+        },
+        {
+          "type": "schedule",
+          "name": "steering_wheel",
+          "interpolation": "cubic",
+          "points": [
+            0,
+            0,
+            9,
+            0,
+            9.8,
+            -0.005,
+            10.6,
+            0,
+            11.4,
+            0.005,
+            12.2,
+            0,
+            14,
+            0,
+            15,
+            0.009,
+            21,
+            0.009,
+            22,
+            0,
+            23,
+            -0.009,
+            28,
+            -0.009,
+            29,
+            0,
+            36,
+            0
+          ],
+          "targets": [
+            "controllers/steering/target"
+          ]
         }
       ],
       "bodies": [
@@ -1558,7 +1821,7 @@
             0
           ],
           "initial_displacement": 0.0,
-          "initial_velocity": 15.0
+          "initial_velocity": 0.0
         },
         {
           "name": "chassis_y",
@@ -1697,10 +1960,6 @@
           ],
           "initial_displacement": 0.0,
           "initial_velocity": 0.0,
-          "stiffness_coefficients": [
-            0.0,
-            300000.0
-          ],
           "damping_coefficients": [
             0.0,
             6000.0
@@ -1801,7 +2060,7 @@
             0
           ],
           "initial_displacement": 0.0,
-          "initial_velocity": -38.0711,
+          "initial_velocity": -0.0,
           "damping_coefficients": [
             0.0,
             0.5
@@ -2056,7 +2315,7 @@
             0
           ],
           "initial_displacement": 0.0,
-          "initial_velocity": -38.0711,
+          "initial_velocity": -0.0,
           "damping_coefficients": [
             0.0,
             0.5
@@ -2393,7 +2652,7 @@
             0
           ],
           "initial_displacement": 0.0,
-          "initial_velocity": -38.0711,
+          "initial_velocity": -0.0,
           "damping_coefficients": [
             0.0,
             0.5
@@ -2648,7 +2907,7 @@
             0
           ],
           "initial_displacement": 0.0,
-          "initial_velocity": -38.0711,
+          "initial_velocity": -0.0,
           "damping_coefficients": [
             0.0,
             0.5

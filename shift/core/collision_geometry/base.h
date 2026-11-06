@@ -1,7 +1,9 @@
 #ifndef SHIFT_COLLISIONGEOMETRY_BASE_H_
 #define SHIFT_COLLISIONGEOMETRY_BASE_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ksl/SE3.h"
@@ -18,6 +20,8 @@ class Base;
 class Context;
 
 namespace collision_geometry {
+
+struct CadContactShape;
 
 /*!
 @brief Abstract CollisionGeometry base class
@@ -83,6 +87,40 @@ public:
   /*! \brief update the absolute displacement of the collision geometry
    * reference frame from the absolute displacement of the body origin */
   void UpdatePose(const ksl_SE3_t& body_origin_pose);
+
+  /*! \brief the geometry as exact faces, edges and vertices, in the frame of
+   * the geometry about CadContactShape::center, for contact with CAD geometry;
+   * null if it has none. Set by SetExactShape once the geometry is loaded */
+  const CadContactShape* get_exact_shape() const {
+    return exact_shape_.get();
+  }
+
+  /*! \brief makes the geometry's exact shape; null if it has none */
+  virtual std::shared_ptr<const CadContactShape> MakeExactShape() const {
+    return nullptr;
+  }
+
+  /*! \brief what geometry of the same exact shape has in common, so that it
+   * shares the shape */
+  virtual const void* ExactShapeKey() const {
+    return this;
+  }
+
+  void SetExactShape(std::shared_ptr<const CadContactShape> shape) {
+    exact_shape_ = std::move(shape);
+  }
+
+  /*! \brief the radius its edges and vertices are taken to be rounded to, for
+   * contact with CAD geometry; 0 for the default, 0.2% of its size */
+  virtual double get_exact_edge_radius() const {
+    return 0.0;
+  }
+
+  /*! \brief the deepest penetration taken for contact with CAD geometry; 0 if
+   * not given */
+  double get_max_depth() const {
+    return max_depth_;
+  }
 
   /*!
   @brief extreme vertex support function
@@ -174,11 +212,13 @@ protected:
   std::vector<std::string> fit_to_;
     std::string material_; //!< contact material name, see get_material
   bool contact_ = true;   //!< see is_contact_enabled
+  double max_depth_ = 0.0; //!< see get_max_depth
 
   ksl_SE3_t d_wrt_body_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   ksl_SE3_t d_absolute_ = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
   double bounding_radius_ = 0.0;
   bool loaded_ = false;
+  std::shared_ptr<const CadContactShape> exact_shape_;
 };
 
 class Modules {

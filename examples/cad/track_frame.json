@@ -25,8 +25,8 @@
     "integrators": [
       {
         "type": "ode113",
-        "relative_error": 1e-06,
-        "absolute_error": 1e-09,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
         "time_span": 2.0,
         "time_step": 0.01
       }
@@ -3572,7 +3572,8 @@
               "friction": 0.3,
               "wear_coefficient": 2e-14
             }
-          ]
+          ],
+          "friction_velocity": 0.03
         },
         {
           "name": "track",

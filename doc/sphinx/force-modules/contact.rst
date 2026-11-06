@@ -53,6 +53,19 @@ depends on the state only. The stiffness depends on the shapes:
   a line of contact (parallel cylinders, a cylinder on a plane, or a NURBS or
   extruded face on a cylinder or plane, as a cam on its roller), stations of
   Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
+  A sphere or an ellipsoid touches CAD geometry the same way, on its exact
+  surfaces: at a point of each face it presses on, with the curvature of the
+  shape and of the face there, or at the edge or vertex it reaches where no
+  face next to it touches. A ball in a hollow has the gap of the two curvatures,
+  and a ball too wide for a hollow stands on its rims. A box, cylinder or convex
+  hull touches CAD geometry as another CAD part does, through faces, edges and
+  vertices of its own: a corner on a face, a cylinder's side along a line, a rim
+  on a face. Its corners and edges are taken as rounded to 0.002 of its size,
+  which sets their Hertz contact. A capsule is the side of a cylinder with a
+  sphere at each end, and as it tilts its line of contact gives way smoothly to
+  the point of the end. All of these use the ``youngs_modulus`` of the materials
+  against CAD geometry, not the ``contact_stiffness``, and a point is limited to
+  the depth of the CAD geometry's ``max_depth``.
 
 A cylinder or a capsule on a plane touches along a line, the lowest
 generator of the cylinder or the segment of the capsule, and a single

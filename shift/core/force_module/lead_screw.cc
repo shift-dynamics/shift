@@ -67,6 +67,29 @@ void shift::core::force_module::LeadScrew::DeclareParameters() {
   DeclareParameter("left_handed", &left_handed_,
                    "the thread is left handed; optional, default false",
                    false);
+  DeclareParameter("bristle_stiffness", &bristle_stiffness_,
+                   "sigma_0, the stiffness of the bristles per unit of normal "
+                   "force (1/m), which makes the friction hold at rest; "
+                   "optional, default 0 (smoothed Coulomb friction)",
+                   false);
+  DeclareParameter("bristle_damping", &bristle_damping_,
+                   "sigma_1, the damping of the bristles per unit of normal "
+                   "force (s/m). With 0 the screw rings on the bristles after "
+                   "a load comes on, with nothing to settle it; optional, "
+                   "default 5",
+                   false);
+  DeclareParameter("viscous_friction", &viscous_friction_,
+                   "sigma_2, friction in proportion to the sliding speed, per "
+                   "unit of normal force (s/m); optional, default 0",
+                   false);
+  DeclareParameter("static_friction", &static_friction_,
+                   "mu_s, the friction coefficient at rest, at least friction; "
+                   "optional, default friction",
+                   false);
+  DeclareParameter("stribeck_velocity", &stribeck_velocity_,
+                   "sliding speed over which the friction falls from the "
+                   "static to friction; optional, default 0.01",
+                   false);
 }
 
 shift::core::force_module::LeadScrew::Attachment
@@ -122,8 +145,10 @@ double shift::core::force_module::LeadScrew::get_lead_angle() const {
 }
 
 bool shift::core::force_module::LeadScrew::is_self_locking() const {
-  return friction_ / std::cos(thread_angle_) >=
-         std::tan(get_lead_angle());
+  const double mu = bristle_stiffness_ > 0.0 && static_friction_ >= 0.0
+                      ? static_friction_
+                      : friction_;
+  return mu / std::cos(thread_angle_) >= std::tan(get_lead_angle());
 }
 
 void shift::core::force_module::LeadScrew::Load() {
@@ -136,6 +161,14 @@ void shift::core::force_module::LeadScrew::Load() {
                "positive (the lead may be negative), friction, damping and "
                "backlash not negative, and thread_angle less than 90 "
                "degrees");
+  }
+  if(bristle_stiffness_ < 0.0 || bristle_damping_ < 0.0 ||
+     viscous_friction_ < 0.0 || !(stribeck_velocity_ > 0.0) ||
+     (static_friction_ >= 0.0 && static_friction_ < friction_)) {
+    throw shift::core::Exception(
+      prefix + "bristle_stiffness, bristle_damping and viscous_friction must "
+               "not be negative, stribeck_velocity must be positive and "
+               "static_friction at least friction");
   }
   if(left_handed_ && lead_ < 0.0) {
     throw shift::core::Exception(prefix + "left_handed and a negative lead "
@@ -151,8 +184,10 @@ void shift::core::force_module::LeadScrew::Load() {
   ksl_vec3_t axis = nut.R.v2, offset;
   ksl_subtract_vv(&screw.t, &nut.t, &offset);
   advance_0_ = ksl_dot_vv(&offset, &axis);
-  equation_count_ = 1; // the relative rotation of the screw about the axis
-  q_0_ = {0.0};
+  /* the relative rotation of the screw about the axis, and the deflection of
+  the bristles */
+  equation_count_ = bristle_stiffness_ > 0.0 ? 2 : 1;
+  q_0_.assign(equation_count_, 0.0);
 }
 
 /* 0 inside |x| < h, x less h beyond with a smooth start (a quadratic over the
@@ -236,14 +271,40 @@ void shift::core::force_module::LeadScrew::Compute(const double* y, double* dy,
   const double normal =
     scale * (stiffness_ * free_deflection + engaged * damping_ * deflection_rate);
   const double axial_part = normal * scale;
-  /* friction along the thread, opposing the sliding */
-  const double sliding = std::sqrt((r * omega) * (r * omega) +
-                                   advance_rate * advance_rate +
-                                   slip_speed_ * slip_speed_);
-  const double friction = friction_ * std::fabs(normal);
-  /* generalized forces on the screw: along the axis and about it */
-  const double force = -axial_part - friction * advance_rate / sliding;
-  const double torque = p * axial_part - friction * r * r * omega / sliding;
+  /* friction along the thread, opposing the sliding; then the generalized
+  forces on the screw, along the axis and about it */
+  double friction, force, torque;
+  stick_ = 0.0;
+  if(bristle_stiffness_ > 0.0) {
+    /* the bristles lie along the thread: the part of the friction along the
+    axis has the sign of the advance of a turn */
+    const double along = p < 0.0 ? -std::sin(lambda) : std::sin(lambda);
+    const double across = std::cos(lambda);
+    const double u = r * omega * across + advance_rate * along;
+    const double z = y[state_offset_ + 1];
+    const double mu_s = static_friction_ >= 0.0 ? static_friction_ : friction_;
+    const double ratio = u / stribeck_velocity_;
+    const double g = friction_ + (mu_s - friction_) * std::exp(-ratio * ratio);
+    const double rate =
+      g > 0.0 ? u - bristle_stiffness_ * std::fabs(u) * z / g : u;
+    if(dy) {
+      dy[state_offset_ + 1] = rate;
+    }
+    const double along_thread =
+      std::fabs(normal) * (bristle_stiffness_ * z + bristle_damping_ * rate +
+                           viscous_friction_ * u);
+    friction = std::fabs(along_thread);
+    force = -axial_part - along_thread * along;
+    torque = p * axial_part - along_thread * r * across;
+    stick_ = mu_s > 0.0 ? bristle_stiffness_ * std::fabs(z) / mu_s : 0.0;
+  } else {
+    const double sliding = std::sqrt((r * omega) * (r * omega) +
+                                     advance_rate * advance_rate +
+                                     slip_speed_ * slip_speed_);
+    friction = friction_ * std::fabs(normal);
+    force = -axial_part - friction * advance_rate / sliding;
+    torque = p * axial_part - friction * r * r * omega / sliding;
+  }
 
   axial_force_ = force;
   torque_ = torque;
@@ -276,12 +337,13 @@ void shift::core::force_module::LeadScrew::Compute(const double* y, double* dy,
 
 std::vector<std::string>
 shift::core::force_module::LeadScrew::get_output_names() const {
-  return {"axial_force", "torque",         "deflection",
-          "normal_force", "friction_force", "turns"};
+  return {"axial_force",  "torque",         "deflection",
+          "normal_force", "friction_force", "turns",
+          "stick"};
 }
 
 void shift::core::force_module::LeadScrew::AppendOutputs(
   std::vector<double>& values) const {
   values.insert(values.end(), {axial_force_, torque_, deflection_,
-                               normal_force_, friction_force_, turns_});
+                               normal_force_, friction_force_, turns_, stick_});
 }

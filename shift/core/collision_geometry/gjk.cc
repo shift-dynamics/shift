@@ -9,6 +9,7 @@ kept per pair of geometries in a ContactPair.
 */
 #include "shift/core/collision_geometry/gjk.h"
 
+#include <algorithm>
 #include <cmath>
 #include <tuple>
 #include <utility>
@@ -461,14 +462,18 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
   return pair.collision;
 }
 
-/* the curvature of a geometry other than CAD geometry at its deepest point,
-for the Hertz contact of CAD geometry with it: 1/radius of a sphere, 0 for
-anything else (its point touches an edge of the CAD geometry's hull) */
-static double OtherCurvature(const shift::core::collision_geometry::Base* g) {
-  if(auto sphere = dynamic_cast<const shift::core::collision_geometry::Sphere*>(g)) {
-    return 1.0 / sphere->get_radius();
+/* a sphere, or an ellipsoid with a volume, whose contact with CAD geometry is
+exact */
+static bool IsRound(const shift::core::collision_geometry::Base* g) {
+  if(dynamic_cast<const shift::core::collision_geometry::Sphere*>(g)) {
+    return true;
   }
-  return 0.0;
+  auto e = dynamic_cast<const shift::core::collision_geometry::Ellipsoid*>(g);
+  if(!e) {
+    return false;
+  }
+  const ksl_vec3_t& axes = e->get_semi_axes();
+  return std::min({axes.x, axes.y, axes.z}) > 0.0;
 }
 
 bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
@@ -483,20 +488,26 @@ bool shift::core::collision_geometry::TestContact(ContactPair& pair) {
                           dynamic_cast<const Plane*>(pair.b))) {
     return CadPlaneContact(pair);
   }
+  if((cad_a && IsRound(pair.b)) || (cad_b && IsRound(pair.a))) {
+    return CadRoundContact(pair);
+  }
+  if((cad_a && pair.b->get_exact_shape()) ||
+     (cad_b && pair.a->get_exact_shape())) {
+    return CadExactContact(pair);
+  }
   if(!TestDeepestPoint(pair)) {
     return pair.collision;
   }
   if(cad_a || cad_b) {
-    /* the convex hull of CAD geometry with other shapes: its deepest point,
-    Hertz contact of an edge of the CAD geometry */
+    /* the convex hull of CAD geometry with a shape that has no exact form: its
+    deepest point, Hertz contact of an edge of the CAD geometry */
     const Cad& cad = cad_a ? *cad_a : *cad_b;
     ContactPoint c;
     c.depth = pair.depth;
     c.point_a = pair.point_a;
     c.point_b = pair.point_b;
     c.normal = pair.normal;
-    c.curvature =
-      1.0 / cad.get_edge_radius() + OtherCurvature(cad_a ? pair.b : pair.a);
+    c.curvature = 1.0 / cad.get_edge_radius();
     pair.manifold.push_back(c);
     pair.point_laws = true;
     return pair.collision;

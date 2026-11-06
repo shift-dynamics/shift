@@ -1,0 +1,230 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "relative_error": 1e-05,
+        "absolute_error": 1e-08,
+        "time_span": 0.7,
+        "time_step": 0.002
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "cam_follower",
+      "bodies": [
+        {
+          "name": "cam",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "cam_nurbs.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.01
+          ],
+          "inertia": {
+            "mass": 5.0,
+            "Ixx": 0.02,
+            "Iyy": 0.02,
+            "Izz": 0.04,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "slider",
+          "geometry": [],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.2,
+            "Ixx": 0.0001,
+            "Iyy": 0.0001,
+            "Izz": 0.0001,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "roller",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "roller.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.01
+          ],
+          "inertia": {
+            "mass": 0.05,
+            "Ixx": 2e-06,
+            "Iyy": 2e-06,
+            "Izz": 2.5e-06,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "cam_shaft",
+          "type": "revolute",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "cam"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_velocity": 10.0
+        },
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "guide"
+          ],
+          "child": [
+            [
+              "slider"
+            ],
+            "origin"
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "roller_pin",
+          "type": "revolute",
+          "parent": [
+            [
+              "slider"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "roller"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "contact",
+          "name": "contact",
+          "materials": [
+            {
+              "name": "steel",
+              "youngs_modulus": 2000000000.0,
+              "poisson_ratio": 0.3,
+              "restitution": 0.5,
+              "friction": 0.1
+            }
+          ]
+        },
+        {
+          "type": "spring_damper",
+          "name": "return_spring",
+          "frames": [
+            [
+              "fixed",
+              "spring_seat"
+            ],
+            [
+              "slider",
+              "origin"
+            ]
+          ],
+          "free_length": 0.06,
+          "stiffness": 5000.0,
+          "damping": 5.0
+        }
+      ]
+    }
+  ],
+  "frames": [
+    {
+      "name": "guide",
+      "T": [
+        0.05,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "spring_seat",
+      "T": [
+        0.09,
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

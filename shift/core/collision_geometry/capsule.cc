@@ -5,6 +5,7 @@
 
 #include "shift/core/collision_geometry/fitting.h"
 #include "shift/core/exception.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/factory.h"
 
 bool shift::core::collision_geometry::Capsule::registered_ =
@@ -92,4 +93,13 @@ void shift::core::collision_geometry::Capsule::Support(
   local = {{k * u.x, k * u.y,
             (u.z >= 0.0 ? half_length_ : -half_length_) + k * u.z}};
   ksl_product_dv(&d_absolute_, &local, &global);
+}
+
+std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
+shift::core::collision_geometry::Capsule::MakeExactShape() const {
+  /* a capsule without a length is a sphere at each end, with no side */
+  if(half_length_ <= 0.0) {
+    return std::make_shared<CadContactShape>();
+  }
+  return MakeCylinderShape(radius_, half_length_, false);
 }

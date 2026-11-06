@@ -47,6 +47,15 @@ bool ConvexHullSphereContact(const ConvexHull& hull, const Sphere& sphere,
                              AnalyticContact& contact);
 
 /*!
+@brief the point of an ellipsoid closest to a point p, inside or outside
+
+p is in the inertial frame; q and the outward unit normal n there are in the
+frame of the ellipsoid. distance is negative if p is inside.
+*/
+void ClosestOnEllipsoid(const Ellipsoid& ellipsoid, const ksl_vec3_t& p,
+                        ksl_vec3_t& q, ksl_vec3_t& n, double& distance);
+
+/*!
 @brief an ellipsoid and a sphere
 
 From the point of the ellipsoid closest to the sphere center, inside or

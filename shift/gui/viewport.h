@@ -60,6 +60,10 @@ class Viewport : public QWindow {
 
 public:
   enum class RenderMode { kRaster, kRayTraced };
+  /*! What the camera holds its transform to: the body itself, or the frame
+   * on the ground under it (Camera::GroundFrame), which shows the body
+   * bounce and tilt */
+  enum class FollowMode { kBody, kGround };
 
   explicit Viewport(QWindow* parent = nullptr);
   ~Viewport() override;
@@ -88,6 +92,15 @@ public:
   /*! \brief look from azimuth and elevation (radians, see Camera) and frame
    * the camera on the current poses */
   void set_view(float azimuth, float elevation);
+  /*! \brief follow a body, index into the poses: from now on the transform
+   * from the camera to the body stays as it is at this moment, and orbiting,
+   * panning and zooming change it. -1 stops following and leaves the camera
+   * where it is. */
+  void set_follow_body(int body, FollowMode mode = FollowMode::kBody);
+  int get_follow_body() const {
+    return follow_body_;
+  }
+
   /*! \brief take the shown poses of the simulation, if they changed */
   void UpdatePoses();
   /*! \brief with set_floor_below_model, lower the floor below the poses
@@ -202,6 +215,8 @@ private:
   bool UpdateLights(QRhiResourceUpdateBatch* batch);
   void RenderRaster(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   void RenderRayTraced(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
+  /*! \brief the frame the camera holds its transform to */
+  QMatrix4x4 FollowFrame(int body, FollowMode mode) const;
   /*! \brief upload the instances (body poses, and the poses of the previous
    * frame for reprojection); returns true if a body moved */
   bool UploadInstances(QRhiResourceUpdateBatch* batch, int instance_count);
@@ -212,6 +227,10 @@ private:
   Simulation* simulation_ = nullptr;
   Poses poses_;
   Camera camera_;
+  int follow_body_ = -1;        /*!< see set_follow_body */
+  FollowMode follow_mode_ = FollowMode::kBody;
+  QMatrix4x4 follow_offset_;    /*!< the motion of the camera in the frame
+                                 * followed, see FollowFrame */
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   bool scene_dirty_ = false;
