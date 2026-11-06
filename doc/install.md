@@ -28,8 +28,8 @@ meson test -C build
 This produces `build/shift/main/shift-cli` and `build/test/shift-test`.
 
 ksl and argagg are pulled in as meson subprojects (see `subprojects/*.wrap`).
-Example models live in `examples/`. After committing new changes to ksl's `master`
-branch, pick them up with:
+Example models live in `examples/`. After pushing new changes to ksl's `master`
+branch on GitHub, pick them up with:
 ```bash
 meson subprojects update ksl
 meson compile -C build

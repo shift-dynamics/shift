@@ -5,4 +5,4 @@ This directory contains the *Shift* `JSON <https://shift-dynamics.github.io/shif
 
 .. image:: slider_crank.png
 
-In *Shift*, this simple mechanism runs 1700 times faster than real time on a desktop workstation.
+In *Shift*, this simple mechanism runs about 2800 times faster than real time on a desktop workstation, in an optimized build.

@@ -9,4 +9,12 @@ The vehicle chassis contains six independent kinematic chord loops and three *ki
 
 .. image:: vehicle_graph.png
 
+Models
+------
+
+* ``vehicle.json``: the chassis with its suspension.
+* ``vehicle_control.json``, ``vehicle_control_magic.json``: the car driven by sensors and PID controllers on Fiala and PAC2002 tires. ``vehicle_control_5mps.json`` and ``vehicle_control_15mps.json`` hold other speeds.
+* ``vehicle_terrain.json``: the car on a rally stage, ``rally_stage.tiff``, made by ``generate_rally_stage.py``.
+* ``tire_fiala.json``, ``tire_pac2002.json``: single tires.
+
 For further information, refer to `<https://search.proquest.com/openview/2b96ee91ebc96f840bdada69a21b7cbe>`_
