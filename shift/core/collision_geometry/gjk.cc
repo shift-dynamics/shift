@@ -348,23 +348,22 @@ static void Assign(shift::core::collision_geometry::ContactPair& pair,
 
 /* the contact of a pair and its deepest point */
 static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair) {
-  using namespace shift::core::collision_geometry;
   /* pairs with a closed form or one dimensional contact: a plane with
   anything, a sphere with a sphere, a convex hull or an ellipsoid, and two
   ellipsoids */
-  AnalyticContact contact;
-  if(auto plane = dynamic_cast<const Plane*>(pair.a)) {
-    PlaneContact(*plane, *pair.b, contact);
+  shift::core::collision_geometry::AnalyticContact contact;
+  if(auto plane = dynamic_cast<const shift::core::collision_geometry::Plane*>(pair.a)) {
+    shift::core::collision_geometry::PlaneContact(*plane, *pair.b, contact);
     Assign(pair, contact, true);
     return pair.collision;
   }
-  if(auto plane = dynamic_cast<const Plane*>(pair.b)) {
-    PlaneContact(*plane, *pair.a, contact);
+  if(auto plane = dynamic_cast<const shift::core::collision_geometry::Plane*>(pair.b)) {
+    shift::core::collision_geometry::PlaneContact(*plane, *pair.a, contact);
     Assign(pair, contact, false);
     return pair.collision;
   }
-  auto sphere_a = dynamic_cast<const Sphere*>(pair.a);
-  auto sphere_b = dynamic_cast<const Sphere*>(pair.b);
+  auto sphere_a = dynamic_cast<const shift::core::collision_geometry::Sphere*>(pair.a);
+  auto sphere_b = dynamic_cast<const shift::core::collision_geometry::Sphere*>(pair.b);
   if(sphere_a && sphere_b) {
     const ksl_vec3_t& ca = sphere_a->get_center();
     const ksl_vec3_t& cb = sphere_b->get_center();
@@ -389,34 +388,34 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
     return pair.collision;
   }
   if(sphere_a || sphere_b) {
-    const Sphere& sphere = sphere_a ? *sphere_a : *sphere_b;
-    const Base* other = sphere_a ? pair.b : pair.a;
+    const shift::core::collision_geometry::Sphere& sphere = sphere_a ? *sphere_a : *sphere_b;
+    const shift::core::collision_geometry::Base* other = sphere_a ? pair.b : pair.a;
     bool handled = false;
-    if(auto hull = dynamic_cast<const ConvexHull*>(other)) {
-      handled = ConvexHullSphereContact(*hull, sphere, contact);
-    } else if(auto ellipsoid = dynamic_cast<const Ellipsoid*>(other)) {
-      handled = EllipsoidSphereContact(*ellipsoid, sphere, contact);
+    if(auto hull = dynamic_cast<const shift::core::collision_geometry::ConvexHull*>(other)) {
+      handled = shift::core::collision_geometry::ConvexHullSphereContact(*hull, sphere, contact);
+    } else if(auto ellipsoid = dynamic_cast<const shift::core::collision_geometry::Ellipsoid*>(other)) {
+      handled = shift::core::collision_geometry::EllipsoidSphereContact(*ellipsoid, sphere, contact);
     }
     if(handled) {
       Assign(pair, contact, sphere_b != nullptr); // the shape is first
       return pair.collision;
     }
   }
-  auto ellipsoid_a = dynamic_cast<const Ellipsoid*>(pair.a);
-  auto ellipsoid_b = dynamic_cast<const Ellipsoid*>(pair.b);
+  auto ellipsoid_a = dynamic_cast<const shift::core::collision_geometry::Ellipsoid*>(pair.a);
+  auto ellipsoid_b = dynamic_cast<const shift::core::collision_geometry::Ellipsoid*>(pair.b);
   if(ellipsoid_a && ellipsoid_b &&
-     EllipsoidEllipsoidContact(*ellipsoid_a, *ellipsoid_b, contact)) {
+     shift::core::collision_geometry::EllipsoidEllipsoidContact(*ellipsoid_a, *ellipsoid_b, contact)) {
     Assign(pair, contact, true);
     return pair.collision;
   }
   /* a convex hull and an ellipsoid: GJK, EPA for a first normal, then the
   exact contact of the hull feature near it */
-  auto hull_a = dynamic_cast<const ConvexHull*>(pair.a);
-  auto hull_b = dynamic_cast<const ConvexHull*>(pair.b);
+  auto hull_a = dynamic_cast<const shift::core::collision_geometry::ConvexHull*>(pair.a);
+  auto hull_b = dynamic_cast<const shift::core::collision_geometry::ConvexHull*>(pair.b);
   if((hull_a && ellipsoid_b) || (hull_b && ellipsoid_a)) {
     const bool hull_first = hull_a != nullptr;
-    const ConvexHull& hull = hull_first ? *hull_a : *hull_b;
-    const Ellipsoid& ellipsoid = hull_first ? *ellipsoid_b : *ellipsoid_a;
+    const shift::core::collision_geometry::ConvexHull& hull = hull_first ? *hull_a : *hull_b;
+    const shift::core::collision_geometry::Ellipsoid& ellipsoid = hull_first ? *ellipsoid_b : *ellipsoid_a;
     if(!Gjk(pair)) {
       return pair.collision;
     }
@@ -424,7 +423,7 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
     does not jump between minima of nearly equal depth */
     const ksl_vec3_t& kept = pair.accepted_normal;
     if(Dot(kept, kept) > 0.0 &&
-       ConvexHullEllipsoidContact(hull, ellipsoid,
+       shift::core::collision_geometry::ConvexHullEllipsoidContact(hull, ellipsoid,
                                   hull_first ? kept : Neg(kept), true,
                                   contact)) {
       Assign(pair, contact, hull_first);
@@ -432,7 +431,7 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
     }
     ComputePenetration(pair);
     if(pair.collision &&
-       ConvexHullEllipsoidContact(hull, ellipsoid,
+       shift::core::collision_geometry::ConvexHullEllipsoidContact(hull, ellipsoid,
                                   hull_first ? pair.normal : Neg(pair.normal),
                                   false, contact)) {
       Assign(pair, contact, hull_first);
@@ -447,7 +446,7 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
     }
     const ksl_vec3_t& kept = pair.accepted_normal;
     if(Dot(kept, kept) > 0.0 &&
-       ConvexHullPairContact(*hull_a, *hull_b, kept, pair.hint_a,
+       shift::core::collision_geometry::ConvexHullPairContact(*hull_a, *hull_b, kept, pair.hint_a,
                              pair.hint_b, contact)) {
       Assign(pair, contact, true);
       return pair.collision;

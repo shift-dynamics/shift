@@ -194,7 +194,7 @@ Geometry and terrain
           :alt: track_loop
      - :source:`examples/cad/track_loop.json`
      - a track of 44 links around a drive sprocket and an idler, resting on
-       the ground, with the sprocket driven at 1 rad/s by a PID controller:
+       soft, damped ground, with the sprocket driven at 1 rad/s by a PID controller:
        contact between the exact STEP surfaces of the links and wheels (a
        benchmark: it is not run in the regular tests)
    * - .. image:: ../images/examples/track_frame.jpg
@@ -202,9 +202,9 @@ Geometry and terrain
           :alt: track_frame
      - :source:`examples/cad/track_frame.json`
      - the same track on the track frame of half of a 20 t excavator, with
-       five track rollers and a carrier roller, free to move forward, up and
-       down and to pitch, so the sprocket drives it along the ground (a
-       benchmark)
+       five track rollers and a carrier roller, on a float joint and held up
+       only by the track on soft, damped ground, so the sprocket drives it
+       along (a benchmark)
    * - .. image:: ../images/examples/cube.jpg
           :width: 220px
           :alt: cube

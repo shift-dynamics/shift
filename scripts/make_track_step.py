@@ -83,6 +83,14 @@ LOOP_E = 2e9                # Young's modulus of the contacts, a hundredth of
                             # seats need steps 10 times smaller with steel's
 LOOP_TIME = 2.0             # s
 
+# the ground under the track: firm soil, far softer than the steel of the links,
+# and with hardly any rebound
+GROUND_E = 5e7              # Young's modulus, Pa
+GROUND_RESTITUTION = 0.1
+GROUND_FRICTION = 0.6       # of the steel of the links on it
+GROUND_MAX_DEPTH = 0.05     # m: the grousers sink about 10 mm into it, and the
+                            # default, 2% of a link, would lose them near that
+
 # the same track on soil, with contact on primitive shapes
 SOIL_PIN_RADIUS = 16.0      # of the sprocket's and idler's pins, between seats
 SOIL_RAIL_OFFSET = 170.0    # of each rail and roller tread from the middle:
@@ -728,14 +736,6 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
          'inertia': inertia(number(idler_mass), number(idler_radial),
                             number(idler_radial), number(idler_axial))},
     ]
-    if not soil:
-        bodies.append(
-            {'name': 'ground', 'geometry': [],
-             'collision_geometry': [{
-                 'name': 'ground', 'type': 'plane',
-                 'normal': [0.0, 0.0, -1.0], 'material': 'steel'}],
-             'center_of_mass': [0.0, 0.0, 0.0],
-             'inertia': inertia(1.0, 1.0, 1.0, 1.0)})
     # rollers in the plane of the wheels (X, Y): track rollers between the
     # sprocket and the idler, their treads on the rails of the bottom links,
     # 50 mm inside the bushings; a carrier roller under the top links' rails
@@ -788,11 +788,12 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
             'inertia': inertia(FRAME_MASS, number(FRAME_MASS * 0.5),
                                number(FRAME_MASS * length ** 2 / 12.0),
                                number(FRAME_MASS * length ** 2 / 12.0))})
-        # slides forward and down, light bodies between joints
-        for name in ('carriage_x', 'carriage_z'):
-            bodies.append({'name': name, 'geometry': [],
-                           'center_of_mass': [0.0, 0.0, 0.0],
-                           'inertia': inertia(1.0, 0.01, 0.01, 0.01)})
+        # on soil, slides forward and down, light bodies between joints
+        if soil:
+            for name in ('carriage_x', 'carriage_z'):
+                bodies.append({'name': name, 'geometry': [],
+                               'center_of_mass': [0.0, 0.0, 0.0],
+                               'inertia': inertia(1.0, 0.01, 0.01, 0.01)})
 
     # a link of steel, from the volumes of its solids, as in the tests
     link_contact = contact
@@ -838,21 +839,28 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
              'T': [number(v) for v in first_bushing],
              'R': [[number(v) for v in row] for row in first_link]}},
     ]
-    if not soil:
-        joints.insert(2, {'name': 'ground_joint', 'type': 'rigid',
-                          'parent': [['fixed'], 'origin'],
-                          'child': [['ground'], 'origin']})
     if frame:
-        joints += [
-            {'name': 'slide_x', 'type': 'prismatic',
-             'parent': [['fixed'], 'frame_start'],
-             'child': [['carriage_x'], 'origin'], 'axis': [1.0, 0.0, 0.0]},
-            {'name': 'slide_z', 'type': 'prismatic',
-             'parent': [['carriage_x'], 'origin'],
-             'child': [['carriage_z'], 'origin'], 'axis': [0.0, 0.0, 1.0]},
-            {'name': 'pitch', 'type': 'revolute',
-             'parent': [['carriage_z'], 'origin'],
-             'child': [['frame'], 'origin'], 'axis': [0.0, 1.0, 0.0]}]
+        if soil:
+            joints += [
+                {'name': 'slide_x', 'type': 'prismatic',
+                 'parent': [['fixed'], 'frame_start'],
+                 'child': [['carriage_x'], 'origin'], 'axis': [1.0, 0.0, 0.0]},
+                {'name': 'slide_z', 'type': 'prismatic',
+                 'parent': [['carriage_x'], 'origin'],
+                 'child': [['carriage_z'], 'origin'], 'axis': [0.0, 0.0, 1.0]},
+                {'name': 'pitch', 'type': 'revolute',
+                 'parent': [['carriage_z'], 'origin'],
+                 'child': [['frame'], 'origin'], 'axis': [0.0, 1.0, 0.0]}]
+        else:
+            # free in all directions: only the track holds it up
+            joints.append(
+                {'name': 'frame_joint', 'type': 'float',
+                 'parent': [['fixed'], 'origin'],
+                 'child': [['frame'], 'origin'],
+                 'initial_displacement': {
+                     'T': [number(v) for v in place((0.0, 0.0, 0.0))],
+                     'R': [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0],
+                           [0.0, 0.0, 1.0]]}})
         for name, _, _, _ in rollers:
             joints.append({'name': name + '_joint', 'type': 'revolute',
                            'parent': [['frame'], name + '_axle'],
@@ -875,6 +883,15 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
     force_modules = [{'name': 'contact', 'type': 'contact',
                       'materials': [steel]}]
     relative_error, absolute_error = 1e-6, 1e-9
+    if not soil:
+        force_modules[0]['materials'].append({
+            'name': 'ground', 'youngs_modulus': GROUND_E,
+            'poisson_ratio': 0.3, 'restitution': GROUND_RESTITUTION,
+            'friction': GROUND_FRICTION})
+        force_modules[0]['pairs'] = [{
+            'materials': ['steel', 'ground'],
+            'restitution': GROUND_RESTITUTION,
+            'friction': GROUND_FRICTION}]
     if soil:
         steel['contact_stiffness'] = SOIL_CONTACT_STIFFNESS
         force_modules.append({
@@ -925,8 +942,8 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
         description += (
             'The wheels, %d track rollers (track_roller.step) and a carrier '
             'roller (carrier_roller.step) are on the track frame of half of '
-            'a 20 t excavator (%.0f kg), free to move forward, up and down '
-            'and to pitch, so the sprocket drives it along the ground. The '
+            'a 20 t excavator (%.0f kg), on a float joint, held up only by '
+            'the track on the ground, so the sprocket drives it along. The '
             'contacts wear (Archard), and the track module logs the sag of '
             'the top spans, the misguide of the links and the side force on '
             'the flanges. ' % (TRACK_ROLLERS, FRAME_MASS))
@@ -936,9 +953,11 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
         'sprocket. Written by scripts/make_track_step.py.')
     if soil:
         description = soil_description
-    if frame:
+    if soil:
         model_frames = [{'name': 'frame_start',
                          'T': [number(v) for v in place((0.0, 0.0, 0.0))]}]
+    elif frame:
+        model_frames = []
     else:
         # the wheels' frames: their axes (z) along the model's y
         model_frames = [
@@ -964,6 +983,13 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
                              'time_span': SOIL_TIME if soil else LOOP_TIME,
                              'time_step': 0.01}]},
         'frames': model_frames,
+    }
+    # a plane of the fixed body, which the viewer draws where it is
+    if not soil:
+        model['collision_geometry'] = [{'name': 'ground', 'type': 'plane',
+                                        'material': 'ground',
+                                        'max_depth': GROUND_MAX_DEPTH}]
+    model.update({
         'assemblies': [{
             'name': 'track',
             'bodies': bodies,
@@ -978,7 +1004,7 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
                              'target': -LOOP_SPEED if soil else LOOP_SPEED,
                              'sensor': 'sprocket_speed',
                              'joint': 'sprocket_joint'}],
-            'force_modules': force_modules}]}
+            'force_modules': force_modules}]})
     with open(path, 'w') as f:
         json.dump(model, f, indent=2)
         f.write('\n')

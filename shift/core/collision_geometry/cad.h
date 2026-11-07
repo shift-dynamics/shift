@@ -86,6 +86,7 @@ struct CadContactEdge {
   int placement = -1;
   std::vector<int> faces; //!< in CadContactShape::faces
   bool sharp = false; //!< a convex edge between two faces at an angle
+  bool smooth = false; //!< a seam of a face, or two faces meeting smoothly
   /*! points along the edge, without its ends, with their parameters */
   std::vector<double> sample_t;
   std::vector<ksl_vec3_t> sample_points;
@@ -229,6 +230,13 @@ outward normals of the first edge's faces, \f$-\underline{n}\f$ among the second
 and the first edge is beyond the second along \f$\underline{n}\f$. Such a crossing
 replaces the contact of each edge with the faces of the other, whose depth is to a
 face that ends there.
+
+Near a sharp edge of a face, within the Hertz radius of a round shape's point, the
+stiffness goes over to that of the edge. A straight edge along a cylinder, of a
+primitive or of another CAD part, touches it along a line.
+
+A straight smooth edge (CadContactEdge::smooth), a seam of a cylinder, say, is
+no contact feature on a flat face: it has no corner, and no deepest point there.
 
 The contact force module (force_module::Contact) applies Hertz contact at each
 point: of a line for line contacts, of the ellipse of the faces' principal

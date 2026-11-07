@@ -25,10 +25,6 @@ shapes from STEP files, closed forms and the forces of a sweep */
 #include "shift/core/context.h"
 #include "shift/core/force_module/contact.h"
 
-using shift::core::collision_geometry::Base;
-using shift::core::collision_geometry::Cad;
-using shift::core::collision_geometry::ContactPair;
-using shift::core::collision_geometry::ContactPoint;
 
 /* box_mm.step: from the origin to these corners */
 static const double kBox[3] = {0.01, 0.02, 0.03};
@@ -88,7 +84,7 @@ public:
 
   /* the contact with the shape at p, turned by the rotation r (rows); the
   points and normal are from the part to the shape, whichever order */
-  const ContactPair& At(const ksl_vec3_t& p, const double r[3][3] = nullptr,
+  const shift::core::collision_geometry::ContactPair& At(const ksl_vec3_t& p, const double r[3][3] = nullptr,
                         bool part_first = true) {
     ksl_SE3_t d;
     for(int k = 0; k < 3; k++) {
@@ -100,17 +96,17 @@ public:
     const ksl_SE3_t identity = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
     part_->UpdatePose(identity);
     shape_->UpdatePose(d);
-    pair_ = ContactPair();
+    pair_ = shift::core::collision_geometry::ContactPair();
     pair_.a = part_first ? part_ : shape_;
     pair_.b = part_first ? shape_ : part_;
     shift::core::collision_geometry::TestContact(pair_);
     return pair_;
   }
 
-  const Cad& part() const {
-    return *static_cast<const Cad*>(part_);
+  const shift::core::collision_geometry::Cad& part() const {
+    return *static_cast<const shift::core::collision_geometry::Cad*>(part_);
   }
-  const Base& shape() const {
+  const shift::core::collision_geometry::Base& shape() const {
     return *shape_;
   }
   /* a point in the frame of the part's geometry */
@@ -122,9 +118,9 @@ public:
 
 private:
   shift::core::Context context_;
-  Base* part_ = nullptr;
-  Base* shape_ = nullptr;
-  ContactPair pair_;
+  shift::core::collision_geometry::Base* part_ = nullptr;
+  shift::core::collision_geometry::Base* shape_ = nullptr;
+  shift::core::collision_geometry::ContactPair pair_;
 };
 
 static std::string SphereKeys(double radius) {
@@ -166,10 +162,10 @@ TEST_F(CadRound, SphereOnAFace) {
   Scene scene("cr_face", "box_mm.step", SphereKeys(r));
   const ksl_vec3_t c = {{0.005, 0.01, kBox[2] + r - depth}};
   for(bool part_first : {true, false}) {
-    const ContactPair& p = scene.At(c, nullptr, part_first);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c, nullptr, part_first);
     ASSERT_TRUE(p.collision);
     ASSERT_EQ(p.manifold.size(), 1u);
-    const ContactPoint& m = p.manifold[0];
+    const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
     EXPECT_NEAR(m.depth, depth, 1e-12);
     EXPECT_NEAR(m.normal.z, part_first ? 1.0 : -1.0, 1e-12);
     EXPECT_NEAR(m.curvature, 1.0 / r, 1e-6);
@@ -193,7 +189,7 @@ TEST_F(CadRound, SphereOnAnEdgeAndACorner) {
   const double r = 0.003, a = 0.002;
   Scene scene("cr_edge", "box_mm.step", SphereKeys(r));
   {
-    const ContactPair& p = scene.At({{kBox[0] + a, 0.01, kBox[2] + a}});
+    const shift::core::collision_geometry::ContactPair& p = scene.At({{kBox[0] + a, 0.01, kBox[2] + a}});
     ASSERT_EQ(p.manifold.size(), 1u);
     EXPECT_NEAR(p.manifold[0].depth, r - a * std::sqrt(2.0), 1e-9);
     EXPECT_NEAR(p.manifold[0].normal.x, std::sqrt(0.5), 1e-7);
@@ -203,7 +199,7 @@ TEST_F(CadRound, SphereOnAnEdgeAndACorner) {
   }
   {
     const double b = 0.0015;
-    const ContactPair& p =
+    const shift::core::collision_geometry::ContactPair& p =
       scene.At({{kBox[0] + b, kBox[1] + b, kBox[2] + b}});
     ASSERT_EQ(p.manifold.size(), 1u);
     EXPECT_NEAR(p.manifold[0].depth, r - b * std::sqrt(3.0), 1e-12);
@@ -239,7 +235,7 @@ TEST_F(CadRound, SphereMatchesTheDistanceToTheBox) {
     }
     const double distance = std::sqrt(squared);
     const double depth = r - distance;
-    const ContactPair& p = scene.At(c);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c);
     SCOPED_TRACE("at " + std::to_string(c.x) + " " + std::to_string(c.y) +
                  " " + std::to_string(c.z));
     if(depth <= 1e-9 || depth > scene.part().get_max_depth() - 1e-9) {
@@ -260,9 +256,9 @@ TEST_F(CadRound, EllipsoidOnAFace) {
   // on the end of its c axis the curvatures are c / a^2 and c / b^2
   const double a = 0.006, b = 0.004, c = 0.002, depth = 1e-4;
   Scene scene("cr_ell_face", "box_mm.step", EllipsoidKeys(a, b, c));
-  const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + c - depth}});
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + c - depth}});
   ASSERT_EQ(p.manifold.size(), 1u);
-  const ContactPoint& m = p.manifold[0];
+  const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
   EXPECT_NEAR(m.depth, depth, 1e-12);
   const double k1 = c / (a * a), k2 = c / (b * b);
   EXPECT_NEAR(m.curvature, 0.5 * (k1 + k2), 1e-6);
@@ -279,7 +275,7 @@ TEST_F(CadRound, TiltedEllipsoidOnAFace) {
   const double reach = std::sqrt(a * a * std::sin(angle) * std::sin(angle) +
                                  c * c * std::cos(angle) * std::cos(angle));
   const double depth = 1e-4;
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{0.005, 0.01, kBox[2] + reach - depth}}, rotation);
   ASSERT_EQ(p.manifold.size(), 1u);
   EXPECT_NEAR(p.manifold[0].depth, depth, 1e-12);
@@ -298,9 +294,9 @@ TEST_F(CadRound, EllipsoidOnAnEdgeIsTheDeepestPointOfTheEdge) {
   Rotation(axis, angle, rotation);
   Scene scene("cr_ell_edge", "box_mm.step", EllipsoidKeys(a, b, c));
   const ksl_vec3_t center = {{kBox[0] + 0.0016, 0.012, kBox[2] + 0.0016}};
-  const ContactPair& p = scene.At(center, rotation);
+  const shift::core::collision_geometry::ContactPair& p = scene.At(center, rotation);
   ASSERT_EQ(p.manifold.size(), 1u);
-  const ContactPoint& m = p.manifold[0];
+  const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
   EXPECT_NEAR(m.point_a.x, kBox[0], 1e-9);
   EXPECT_NEAR(m.point_a.z, kBox[2], 1e-9);
   // deepest along the edge: the gap to the ellipsoid is square to it (y)
@@ -315,10 +311,10 @@ TEST_F(CadRound, SphereOnACylinder) {
   const double radius = 0.0254, r = 0.005, depth = 1e-4;
   Scene scene("cr_cyl", "cylinder_inch.step", SphereKeys(r));
   const double angle = 0.7, at = radius + r - depth;
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{at * std::cos(angle), at * std::sin(angle), 0.03}});
   ASSERT_EQ(p.manifold.size(), 1u);
-  const ContactPoint& m = p.manifold[0];
+  const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
   EXPECT_NEAR(m.depth, depth, 1e-10);
   EXPECT_NEAR(m.normal.x, std::cos(angle), 1e-8);
   const double k1 = 1.0 / r, k2 = 1.0 / r + 1.0 / radius;
@@ -330,7 +326,7 @@ TEST_F(CadRound, SphereOnACylinder) {
 rows of r its rotation, center c) from a part to the shape: the point of the
 shape is on it, its normal there is against the contact's, and the gap is
 along the normal */
-static void ExpectEllipsoidPoint(const ContactPoint& m, const double s[3],
+static void ExpectEllipsoidPoint(const shift::core::collision_geometry::ContactPoint& m, const double s[3],
                                  const double r[3][3], const ksl_vec3_t& c) {
   double x[3], g[3], implicit = 0.0, length = 0.0;
   for(int i = 0; i < 3; i++) {
@@ -367,11 +363,11 @@ TEST_F(CadRound, TiltedEllipsoidOnACylinder) {
   bool found = false;
   for(double x = radius + 0.0065; x > radius; x -= 2e-5) {
     const ksl_vec3_t c = {{x, 0.002, 0.03}};
-    const ContactPair& p = scene.At(c, rotation);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c, rotation);
     if(p.collision) {
       found = true;
       ASSERT_EQ(p.manifold.size(), 1u);
-      const ContactPoint& m = p.manifold[0];
+      const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
       EXPECT_LT(m.depth, 3e-5);
       ExpectEllipsoidPoint(m, s, rotation, c);
       EXPECT_NEAR(std::hypot(m.point_a.x, m.point_a.y), radius, 1e-9);
@@ -386,7 +382,7 @@ TEST_F(CadRound, SphereOnThePoleOfADome) {
   // parameters are singular there
   const double r = 0.004, depth = 1e-4;
   Scene scene("cr_pole", "tube_dome.step", SphereKeys(r));
-  const ContactPair& p = scene.At({{0.0, 0.0, 0.03 + r - depth}});
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{0.0, 0.0, 0.03 + r - depth}});
   ASSERT_TRUE(p.collision);
   ASSERT_GE(p.manifold.size(), 1u);
   EXPECT_NEAR(p.depth, depth, 1e-9);
@@ -398,10 +394,10 @@ TEST_F(CadRound, ThinWallTouchesFromOneSide) {
   // the side the face looks at, and not from behind
   const double r = 0.002, depth = 1e-4;
   Scene scene("cr_wall", "tube_dome.step", SphereKeys(r));
-  const ContactPair& outside =
+  const shift::core::collision_geometry::ContactPair& outside =
     scene.At({{0.01 + r - depth, 0.0, 0.01}});
   const bool from_outside = outside.collision;
-  const ContactPair& inside = scene.At({{0.01 - r + depth, 0.0, 0.01}});
+  const shift::core::collision_geometry::ContactPair& inside = scene.At({{0.01 - r + depth, 0.0, 0.01}});
   EXPECT_NE(from_outside, inside.collision);
 }
 
@@ -425,10 +421,10 @@ TEST_F(CadRound, SphereOnANurbsPatch) {
   Scene scene("cr_nurbs_sphere", "rational_patch.step", SphereKeys(r));
   const double side = PatchSide(scene, r, angle);
   const double at = 1.0 + side * (r - depth);
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{at * std::cos(angle), at * std::sin(angle), 0.5}});
   ASSERT_EQ(p.manifold.size(), 1u);
-  const ContactPoint& m = p.manifold[0];
+  const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
   EXPECT_NEAR(m.depth, depth, 1e-8);
   EXPECT_NEAR(m.normal.x, side * std::cos(angle), 1e-7);
   const double k = 1.0 / r, curved = k + side; // the cylinder's radius is 1
@@ -452,13 +448,13 @@ TEST_F(CadRound, EllipsoidOnANurbsPatch) {
   for(double gap = 0.12; gap > 0.0 && !found; gap -= 0.002) {
     const double at = 1.0 + side * gap;
     const ksl_vec3_t c = {{at * std::cos(angle), at * std::sin(angle), 0.5}};
-    const ContactPair& p = scene.At(c, rotation);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c, rotation);
     if(!p.collision) {
       continue;
     }
     found = true;
     ASSERT_EQ(p.manifold.size(), 1u);
-    const ContactPoint& m = p.manifold[0];
+    const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
     ExpectEllipsoidPoint(m, s, rotation, c);
     EXPECT_NEAR(std::hypot(m.point_a.x, m.point_a.y), 1.0, 1e-8);
   }
@@ -474,10 +470,10 @@ TEST_F(CadRound, SphereInAHollow) {
   // inside the concave seat the gap is curved 1/r - 1/R around it
   const double r = 0.02, depth = 1e-5;
   Scene scene("cr_seat", "sprocket.step", SphereKeys(r));
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{kSeatCenter - kSeatRadius + r - depth, 0.0, 0.0}});
   ASSERT_EQ(p.manifold.size(), 1u);
-  const ContactPoint& m = p.manifold[0];
+  const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
   EXPECT_NEAR(m.depth, depth, 1e-9);
   EXPECT_NEAR(m.normal.x, 1.0, 1e-6);
   const double k1 = 1.0 / r - 1.0 / kSeatRadius, k2 = 1.0 / r;
@@ -493,7 +489,7 @@ TEST_F(CadRound, SphereTooBigForAHollowRestsOnItsRims) {
   bool found = false;
   for(double x = kSeatCenter + r; x > kSeatCenter - kSeatRadius + r && !found;
       x -= 1e-5) {
-    const ContactPair& p = scene.At({{x, 0.0, 0.0}});
+    const shift::core::collision_geometry::ContactPair& p = scene.At({{x, 0.0, 0.0}});
     if(!p.collision) {
       continue;
     }
@@ -507,8 +503,8 @@ TEST_F(CadRound, SphereTooBigForAHollowRestsOnItsRims) {
 }
 
 TEST_F(CadRound, BallSettlesOnTheFaceAtItsHertzDepth) {
-  // z is down, so the ball rests on the face z = 0 of the box, at the depth
-  // at which Hertz's law carries its weight
+  // z is down, so the ball rests on the middle of the face z = 0 of the box, at
+  // the depth at which Hertz's law carries its weight
   const double r = 0.003, mass = 0.1, modulus = 2e9, poisson = 0.3;
   const double stiffness = 4.0 / 3.0 * modulus /
                            (2.0 * (1.0 - poisson * poisson)) * std::sqrt(r);
@@ -524,6 +520,7 @@ TEST_F(CadRound, BallSettlesOnTheFaceAtItsHertzDepth) {
     "integrators": [{"type": "ode113", "relative_error": 1e-7,
                      "absolute_error": 1e-10, "time_span": 0.5,
                      "time_step": 0.01}]},
+    "frames": [{"name": "above", "T": [0.005, 0.01, 0]}],
     "assemblies": [{"name": "m", "bodies": [
     {"name": "part", "geometry": [{"type": "cad", "filename": "box_mm.step"}],
      "collision_geometry": [{"name": "part", "type": "cad",
@@ -540,7 +537,7 @@ TEST_F(CadRound, BallSettlesOnTheFaceAtItsHertzDepth) {
     {"name": "part_joint", "type": "rigid",
      "parent": [["fixed"], "origin"], "child": [["part"], "origin"]},
     {"name": "ball_joint", "type": "prismatic", "axis": [0, 0, 1],
-     "parent": [["fixed"], "origin"], "child": [["ball"], "origin"],
+     "parent": [["fixed"], "above"], "child": [["ball"], "origin"],
      "initial_displacement": )" << -r - 1e-6 << R"(}],
     "force_modules": [{"name": "contact", "type": "contact",
       "materials": [{"name": "steel", "youngs_modulus": )" << modulus
@@ -584,7 +581,7 @@ TEST_F(CadRound, RollingOverAnEdgeHasNoJumpInDepth) {
       c.x = kBox[0] + at;
       c.z = kBox[2] - 0.004 * (s - 1.0);
     }
-    const ContactPair& p = scene.At(c);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c);
     ASSERT_TRUE(p.collision) << s;
     ASSERT_EQ(p.manifold.size(), 1u) << s;
     EXPECT_NEAR(p.manifold[0].depth, depth, 1e-9) << s;
@@ -615,7 +612,7 @@ static std::string RodKeys(const char* type, double radius, double half) {
 }
 
 /* the elastic force of a pair's points, for a modulus E* = 1 */
-static double ElasticForce(const ContactPair& pair) {
+static double ElasticForce(const shift::core::collision_geometry::ContactPair& pair) {
   double force = 0.0;
   for(const auto& c : pair.manifold) {
     double stiffness, exponent;
@@ -669,7 +666,7 @@ TEST_F(CadRound, BoxIsTheSameBoxFromAStepFile) {
     if(!found) {
       continue;
     }
-    const ContactPair& a = primitive.At(center, r);
+    const shift::core::collision_geometry::ContactPair& a = primitive.At(center, r);
     const double depth_a = a.depth;
     const size_t count_a = a.manifold.size();
     const ksl_vec3_t normal_a = a.normal;
@@ -680,7 +677,7 @@ TEST_F(CadRound, BoxIsTheSameBoxFromAStepFile) {
         origin.at[k] -= r[k][j] * half[j];
       }
     }
-    const ContactPair& b = step.At(origin, r);
+    const shift::core::collision_geometry::ContactPair& b = step.At(origin, r);
     SCOPED_TRACE(i);
     ASSERT_TRUE(b.collision);
     EXPECT_EQ(count_a, b.manifold.size());
@@ -696,9 +693,9 @@ TEST_F(CadRound, BoxIsTheSameBoxFromAStepFile) {
 TEST_F(CadRound, BoxOnItsFaceStandsOnFourCorners) {
   const double depth = 1e-5;
   Scene scene("cr_box_flat", "box_mm.step", BoxKeys(0.002, 0.003, 0.004));
-  const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + 0.004 - depth}});
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + 0.004 - depth}});
   ASSERT_EQ(p.manifold.size(), 4u);
-  for(const ContactPoint& m : p.manifold) {
+  for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_NEAR(m.depth, depth, 1e-12);
     EXPECT_NEAR(m.normal.z, 1.0, 1e-12);
   }
@@ -718,7 +715,7 @@ TEST_F(CadRound, BoxCornerOnAFace) {
   }
   const ksl_vec3_t c = {{0.005, 0.01, kBox[2] + reach - depth}};
   for(bool part_first : {true, false}) {
-    const ContactPair& p = scene.At(c, r, part_first);
+    const shift::core::collision_geometry::ContactPair& p = scene.At(c, r, part_first);
     ASSERT_EQ(p.manifold.size(), 1u);
     EXPECT_NEAR(p.manifold[0].depth, depth, 1e-12);
     EXPECT_NEAR(p.manifold[0].normal.z, part_first ? 1.0 : -1.0, 1e-12);
@@ -744,7 +741,7 @@ TEST_F(CadRound, EdgeOfThePartOnAFaceOfABox) {
   // the face's plane at -n . x = reach - depth, center half beyond it
   const double at = reach - depth + half;
   const ksl_vec3_t c = {{-n[0] * at, -n[1] * at, -n[2] * at}};
-  const ContactPair& p = scene.At(c, r);
+  const shift::core::collision_geometry::ContactPair& p = scene.At(c, r);
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, depth, 1e-10);
   for(int k = 0; k < 3; k++) {
@@ -765,11 +762,11 @@ TEST_F(CadRound, BoxFaceOnANurbsPatchIsALine) {
     GTEST_SKIP() << "the patch looks inward: a flat face touches at its edges";
   }
   const double at = 1.0 + half - depth;
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{at * std::cos(angle), at * std::sin(angle), 0.5}}, r);
   ASSERT_GE(p.manifold.size(), 3u);
   double length = 0.0;
-  for(const ContactPoint& m : p.manifold) {
+  for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_GT(m.length, 0.0);
     EXPECT_NEAR(m.depth, depth, 1e-8);
     EXPECT_NEAR(m.normal.x, std::cos(angle), 1e-6);
@@ -814,7 +811,7 @@ TEST_F(CadRound, HullOfAMeshOnAFace) {
   }
   const ksl_vec3_t c = {{0.005 - lowest.x, 0.01 - lowest.y,
                          kBox[2] - depth - lowest.z}};
-  const ContactPair& p = scene.At(c, r);
+  const shift::core::collision_geometry::ContactPair& p = scene.At(c, r);
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, depth, 1e-10);
   EXPECT_NEAR(p.normal.z, 1.0, 1e-9);
@@ -827,11 +824,11 @@ TEST_F(CadRound, CylinderOnAFaceIsALine) {
   const double axis[3] = {1.0, 0.0, 0.0};
   double r[3][3];
   Rotation(axis, 0.5 * M_PI, r);
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{0.005, 0.01, kBox[2] + radius - depth}}, r);
   ASSERT_GE(p.manifold.size(), 3u);
   double length = 0.0;
-  for(const ContactPoint& m : p.manifold) {
+  for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_NEAR(m.depth, depth, 1e-10);
     EXPECT_NEAR(m.normal.z, 1.0, 1e-9);
     length += m.weight * m.length;
@@ -842,10 +839,10 @@ TEST_F(CadRound, CylinderOnAFaceIsALine) {
 TEST_F(CadRound, CylinderOnItsEndStandsOnFourPoints) {
   const double radius = 0.002, half = 0.004, depth = 1e-5;
   Scene scene("cr_cyl_end", "box_mm.step", RodKeys("cylinder", radius, half));
-  const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + half - depth}});
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + half - depth}});
   ASSERT_EQ(p.manifold.size(), 4u);
   double x = 0.0, y = 0.0;
-  for(const ContactPoint& m : p.manifold) {
+  for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_NEAR(m.depth, depth, 1e-11);
     x += m.point_a.x;
     y += m.point_a.y;
@@ -896,13 +893,70 @@ TEST_F(CadRound, CylinderIsTheSameCylinderFromAStepFile) {
     for(int k = 0; k < 3; k++) {
       origin.at[k] -= r[k][2] * half;
     }
-    const ContactPair& b = step.At(origin, r);
+    const shift::core::collision_geometry::ContactPair& b = step.At(origin, r);
     SCOPED_TRACE(i);
     ASSERT_TRUE(b.collision);
     EXPECT_NEAR(depth, b.depth, 1e-8);
     touching++;
   }
   EXPECT_GT(touching, 100);
+}
+
+TEST_F(CadRound, EdgeAlongACylinderOfAStepPart) {
+  // a cylinder coming off the top of the box over its edge along y, 20 mm long:
+  // the edge is a line on it, the same on cylinder_inch.step as on a primitive
+  const double radius = 0.0254, half = 0.0254, depth = 20e-6;
+  Scene primitive("cr_edge_line", "box_mm.step",
+                  RodKeys("cylinder", radius, half));
+  Scene step("cr_edge_line_step", "box_mm.step", R"("type": "cad")", "",
+             R"({"type": "cad", "filename": "cylinder_inch.step"})");
+  const double r[3][3] = {{1, 0, 0}, {0, 0, -1}, {0, 1, 0}}; // axis along -y
+  const double tilt = 0.1;
+  const ksl_vec3_t center = {{kBox[0] + (radius - depth) * std::sin(tilt), 0.01,
+                              kBox[2] + (radius - depth) * std::cos(tilt)}};
+  const ksl_vec3_t origin = {{center.x, center.y + half, center.z}};
+  auto length = [](const shift::core::collision_geometry::ContactPair& pair) {
+    double sum = 0.0;
+    for(const auto& c : pair.manifold) {
+      sum += c.length;
+    }
+    return sum;
+  };
+  const auto& a = primitive.At(center, r);
+  ASSERT_TRUE(a.collision);
+  EXPECT_NEAR(length(a), kBox[1], 1e-6);
+  const auto& b = step.At(origin, r);
+  ASSERT_TRUE(b.collision);
+  EXPECT_NEAR(length(b), kBox[1], 1e-6);
+  EXPECT_NEAR(b.depth, depth, 1e-8);
+}
+
+TEST_F(CadRound, SpinningACylinderChangesNothing) {
+  // cylinder_inch.step just past the edge of the box, its line off the top face
+  // and on the edge: turning it about its axis takes its seam past the face,
+  // flat on it, which must add no point
+  const double radius = 0.0254, half = 0.0254, depth = 20e-6, past = 0.5e-3;
+  Scene step("cr_seam", "box_mm.step", R"("type": "cad")", "",
+             R"({"type": "cad", "filename": "cylinder_inch.step"})");
+  const ksl_vec3_t origin = {
+    {kBox[0] + past, 0.01 + half,
+     kBox[2] + std::sqrt(radius * radius - past * past) - depth}};
+  size_t fewest = 1000, most = 0;
+  double least = HUGE_VAL, greatest = 0.0;
+  for(int i = 0; i < 1800; i++) {
+    const double angle = 2.0 * M_PI * i / 1800.0;
+    const double c = std::cos(angle), s = std::sin(angle);
+    const double r[3][3] = {{c, -s, 0}, {0, 0, -1}, {s, c, 0}}; // axis along -y
+    const auto& pair = step.At(origin, r);
+    ASSERT_TRUE(pair.collision) << i;
+    fewest = std::min(fewest, pair.manifold.size());
+    most = std::max(most, pair.manifold.size());
+    const double force = ElasticForce(pair);
+    least = std::min(least, force);
+    greatest = std::max(greatest, force);
+  }
+  EXPECT_EQ(fewest, most);
+  EXPECT_NEAR(least, greatest, 1e-6 * greatest);
 }
 
 TEST_F(CadRound, EdgeCrossesAnEdge) {
@@ -931,10 +985,10 @@ TEST_F(CadRound, EdgeCrossesAnEdge) {
       center.at[k] = pa[k] + (std::sqrt(2.0) * h - depth) * n[k];
     }
     for(bool part_first : {true, false}) {
-      const ContactPair& p = scene.At(center, r, part_first);
+      const shift::core::collision_geometry::ContactPair& p = scene.At(center, r, part_first);
       SCOPED_TRACE(twist);
       ASSERT_EQ(p.manifold.size(), 1u);
-      const ContactPoint& m = p.manifold[0];
+      const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
       EXPECT_NEAR(m.depth, depth, 1e-11);
       const double sense = part_first ? 1.0 : -1.0;
       const ksl_vec3_t& on_part = part_first ? m.point_a : m.point_b;
@@ -957,7 +1011,7 @@ TEST_F(CadRound, EdgeRadiusOfAShape) {
   for(int j = 0; j < 3; j++) {
     reach += h[j] * std::fabs(r[2][j]);
   }
-  const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + reach - depth}}, r);
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + reach - depth}}, r);
   ASSERT_EQ(p.manifold.size(), 1u);
   EXPECT_NEAR(p.manifold[0].curvature, 1.0 / 0.0005, 1e-6);
 }
@@ -973,7 +1027,7 @@ TEST_F(CadRound, MaxDepthOfAShape) {
   EXPECT_LT(small.At(leaning, r).depth, small.part().get_max_depth());
   Scene deep("cr_depth_b", "box_mm.step",
              BoxKeys(0.002, 0.003, half) + R"(, "max_depth": 0.002)");
-  const ContactPair& p = deep.At(leaning, r);
+  const shift::core::collision_geometry::ContactPair& p = deep.At(leaning, r);
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, depth, 1e-9);
 }
@@ -1003,11 +1057,109 @@ TEST_F(CadRound, FlatHullHasAnExactShape) {
       corner[k] -= 0.01 * std::copysign(1.0, r[2][j]) * r[k][j];
     }
   }
-  const ContactPair& p = scene.At(
+  const shift::core::collision_geometry::ContactPair& p = scene.At(
     {{0.005 - corner[0], 0.01 - corner[1], kBox[2] - corner[2] - depth}}, r);
   ASSERT_TRUE(p.collision);
-  EXPECT_NEAR(p.depth, depth, 1e-6);
+  EXPECT_NEAR(p.depth, depth, 3e-6); // and the plate's thickness, 2.8e-6
   EXPECT_NEAR(p.normal.z, 1.0, 1e-9);
+}
+
+/* the largest change of the elastic force from one pose of a sweep to the next,
+as a share of the greatest force of the sweep: poses from at(0) to at(count) */
+template <typename Pose>
+static double GreatestStep(Scene& scene, int count, Pose at,
+                           double* where = nullptr) {
+  std::vector<double> forces;
+  double peak = 0.0;
+  for(int i = 0; i <= count; i++) {
+    ksl_vec3_t c;
+    double r[3][3];
+    at(i, c, r);
+    forces.push_back(ElasticForce(scene.At(c, r)));
+    peak = std::max(peak, forces.back());
+  }
+  double greatest = 0.0;
+  for(int i = 1; i <= count; i++) {
+    const double step = std::fabs(forces[i] - forces[i - 1]) / peak;
+    if(step > greatest) {
+      greatest = step;
+      if(where) {
+        *where = static_cast<double>(i) / count;
+      }
+    }
+  }
+  return greatest;
+}
+
+TEST_F(CadRound, SweepsOverEdges) {
+  const double depth = 1e-5;
+  double where = 0.0;
+  {
+    // a sphere along the top of the part and off its edge at x = 10 mm
+    const double radius = 0.005;
+    Scene scene("cr_sweep_sphere", "box_mm.step", SphereKeys(radius));
+    const double g = GreatestStep(scene, 2000, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+      Lean(0.0, r);
+      c = {{0.0095 + 1e-3 * i / 2000.0, 0.01, kBox[2] + radius - depth}};
+    }, &where);
+    EXPECT_LT(g, 0.01) << where;
+  }
+  {
+    // a box leaning on one corner, sliding off the part's edge
+    const double h[3] = {0.002, 0.003, 0.004}, axis[3] = {0.6, 0.8, 0.0};
+    Scene scene("cr_sweep_corner", "box_mm.step", BoxKeys(h[0], h[1], h[2]));
+    double r0[3][3];
+    Rotation(axis, 0.5, r0);
+    double reach = 0.0, corner[3] = {0, 0, 0};
+    for(int j = 0; j < 3; j++) {
+      reach += h[j] * std::fabs(r0[2][j]);
+      for(int k = 0; k < 3; k++) {
+        corner[k] -= h[j] * std::copysign(1.0, r0[2][j]) * r0[k][j];
+      }
+    }
+    const double g = GreatestStep(scene, 2000, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+      for(int k = 0; k < 3; k++) for(int j = 0; j < 3; j++) r[k][j] = r0[k][j];
+      c = {{0.0098 + 4e-4 * i / 2000.0 - corner[0], 0.01 - corner[1],
+            kBox[2] + reach - depth}};
+    }, &where);
+    // the corner goes from the depth below the face to the shallower crossing of
+    // its edges with the edge of the face: a step, which is not smoothed
+    EXPECT_LT(g, 0.6) << where;
+  }
+  {
+    // a cylinder standing on its end, tipping
+    const double radius = 0.002, half = 0.004;
+    Scene scene("cr_sweep_rim", "box_mm.step", RodKeys("cylinder", radius, half));
+    const double g = GreatestStep(scene, 2000, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+      const double tilt = 0.02 * i / 2000.0;
+      const double axis[3] = {0.6, 0.8, 0.0};
+      Rotation(axis, tilt, r);
+      c = {{0.005, 0.01, kBox[2] + half * std::cos(tilt) + radius * std::sin(tilt) - depth}};
+    }, &where);
+    EXPECT_LT(g, 0.01) << where;
+  }
+  {
+    // a box on its face, tipping
+    const double h[3] = {0.002, 0.003, 0.004};
+    Scene scene("cr_sweep_box", "box_mm.step", BoxKeys(h[0], h[1], h[2]));
+    const double g = GreatestStep(scene, 2000, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+      const double tilt = 0.02 * i / 2000.0;
+      Lean(tilt, r);
+      c = {{0.005, 0.01, kBox[2] + h[2] * std::cos(tilt) + h[0] * std::sin(tilt) - depth}};
+    }, &where);
+    EXPECT_LT(g, 0.01) << where;
+  }
+  {
+    // a cylinder on its side, over the part's edge, along its axis
+    const double radius = 0.002, half = 0.004;
+    Scene scene("cr_sweep_side", "box_mm.step", RodKeys("cylinder", radius, half));
+    const double g = GreatestStep(scene, 2000, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+      const double axis[3] = {1.0, 0.0, 0.0};
+      Rotation(axis, 0.5 * M_PI, r); // along y
+      c = {{0.0095 + 1e-3 * i / 2000.0, 0.01, kBox[2] + radius - depth}};
+    }, &where);
+    EXPECT_LT(g, 0.01) << where;
+  }
 }
 
 TEST_F(CadRound, ContactWithCadNeedsTheModulus) {
@@ -1055,11 +1207,11 @@ TEST_F(CadRound, CapsuleLyingOnAFaceIsALine) {
   const double axis[3] = {1.0, 0.0, 0.0};
   double r[3][3];
   Rotation(axis, 0.5 * M_PI, r);
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{0.005, 0.01, kBox[2] + radius - depth}}, r);
   ASSERT_GE(p.manifold.size(), 3u);
   double length = 0.0;
-  for(const ContactPoint& m : p.manifold) {
+  for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_GT(m.length, 0.0); // the ends add nothing to the line
     EXPECT_NEAR(m.depth, depth, 1e-10);
     length += m.weight * m.length;
@@ -1071,7 +1223,7 @@ TEST_F(CadRound, CapsuleStandingOnItsTip) {
   const double radius = 0.002, half = 0.004, depth = 1e-5;
   Scene scene("cr_cap_tip", "box_mm.step", RodKeys("capsule", radius, half));
   for(bool part_first : {true, false}) {
-    const ContactPair& p = scene.At(
+    const shift::core::collision_geometry::ContactPair& p = scene.At(
       {{0.005, 0.01, kBox[2] + half + radius - depth}}, nullptr, part_first);
     ASSERT_EQ(p.manifold.size(), 1u);
     EXPECT_NEAR(p.manifold[0].depth, depth, 1e-12);
@@ -1089,10 +1241,10 @@ TEST_F(CadRound, TiltedCapsuleTouchesAtItsHemisphere) {
     double r[3][3];
     Lean(lean, r);
     const double above = half * std::cos(lean) + radius - depth;
-    const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + above}}, r);
+    const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + above}}, r);
     SCOPED_TRACE(lean);
     ASSERT_EQ(p.manifold.size(), 1u);
-    const ContactPoint& m = p.manifold[0];
+    const shift::core::collision_geometry::ContactPoint& m = p.manifold[0];
     EXPECT_NEAR(m.depth, depth, 1e-11);
     EXPECT_NEAR(m.curvature, 1.0 / radius, 1e-6);
     EXPECT_DOUBLE_EQ(m.weight, 1.0);
@@ -1112,7 +1264,7 @@ TEST_F(CadRound, CapsuleTippingUpHasNoJump) {
     double r[3][3];
     Lean(lean, r);
     const double above = half * std::cos(lean) + radius - depth;
-    const ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + above}}, r);
+    const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + above}}, r);
     ASSERT_TRUE(p.collision) << lean;
     const double force = ElasticForce(p);
     if(previous >= 0.0) {
@@ -1130,7 +1282,7 @@ TEST_F(CadRound, CapsuleAcrossAnEdge) {
   Scene scene("cr_cap_edge", "box_mm.step", RodKeys("capsule", radius, half));
   double r[3][3];
   Lean(0.5 * M_PI, r);
-  const ContactPair& p =
+  const shift::core::collision_geometry::ContactPair& p =
     scene.At({{kBox[0] - 1e-3, 0.01, kBox[2] + radius - depth}}, r);
   ASSERT_GE(p.manifold.size(), 1u);
   EXPECT_NEAR(p.depth, depth, 1e-9);
@@ -1153,7 +1305,7 @@ TEST_F(CadRound, CapsuleEndOnACorner) {
     r[k][2] = z[k];
   }
   const double reach = b * std::sqrt(3.0) + half; // from the corner, on the axis
-  const ContactPair& p = scene.At({{kBox[0] + reach * t, kBox[1] + reach * t,
+  const shift::core::collision_geometry::ContactPair& p = scene.At({{kBox[0] + reach * t, kBox[1] + reach * t,
                                     kBox[2] + reach * t}}, r);
   ASSERT_EQ(p.manifold.size(), 1u);
   EXPECT_NEAR(p.manifold[0].depth, radius - b * std::sqrt(3.0), 1e-11);

@@ -575,6 +575,12 @@ public:
    * Bodies in the same rigid group (see GetBodyLoadIndex) are never tested. */
   void ExcludeContact(const body::Base* a, const body::Base* b);
 
+  /*! \brief whether contact between the bodies a and b is not tested, see
+   * ExcludeContact */
+  bool is_contact_excluded(const body::Base* a, const body::Base* b) const {
+    return excluded_contacts_.count(std::minmax(a, b)) > 0;
+  }
+
   /*! \brief give the fixed body a floor, a plane at z = 0 facing up (-z),
    * with contact switched off, unless the model gives the fixed body a plane;
    * the viewer draws the floor at the first plane of the fixed body */

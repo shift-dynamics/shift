@@ -15,9 +15,6 @@
 #include "shift/core/geometry/cad.h"
 #include "shift/core/log.h"
 
-using shift::core::cad::Vec2;
-using shift::core::collision_geometry::CadContactFace;
-using shift::core::collision_geometry::CadContactShape;
 
 bool shift::core::collision_geometry::Cad::registered_ =
   shift::core::Factory<shift::core::collision_geometry::Base>::get()
@@ -71,7 +68,7 @@ void shift::core::collision_geometry::CadBox::Add(const ksl_vec3_t& p) {
   }
 }
 
-void shift::core::collision_geometry::CadBox::Add(const CadBox& b) {
+void shift::core::collision_geometry::CadBox::Add(const shift::core::collision_geometry::CadBox& b) {
   Add(b.lo);
   Add(b.hi);
 }
@@ -84,7 +81,7 @@ void shift::core::collision_geometry::CadBox::Pad(double margin) {
 }
 
 bool shift::core::collision_geometry::CadBox::Overlaps(
-  const CadBox& b) const {
+  const shift::core::collision_geometry::CadBox& b) const {
   for(int k = 0; k < 3; k++) {
     if(lo.at[k] > b.hi.at[k] || b.lo.at[k] > hi.at[k]) {
       return false;
@@ -96,7 +93,7 @@ bool shift::core::collision_geometry::CadBox::Overlaps(
 shift::core::collision_geometry::CadBox
 shift::core::collision_geometry::CadBox::Transformed(
   const ksl_SE3_t& d) const {
-  CadBox out;
+  shift::core::collision_geometry::CadBox out;
   for(int corner = 0; corner < 8; corner++) {
     const ksl_vec3_t p = {{(corner & 1) ? hi.x : lo.x,
                            (corner & 2) ? hi.y : lo.y,
@@ -117,8 +114,8 @@ shift::core::collision_geometry::CadContactShape::model() const {
 }
 
 ksl_vec3_t shift::core::collision_geometry::CadContactShape::Point(
-  int face, const Vec2& uv, ksl_vec3_t* du, ksl_vec3_t* dv) const {
-  const CadContactFace& f = faces[face];
+  int face, const shift::core::cad::Vec2& uv, ksl_vec3_t* du, ksl_vec3_t* dv) const {
+  const shift::core::collision_geometry::CadContactFace& f = faces[face];
   const CadPlacement& place = placements[f.placement];
   const auto& m = model();
   const auto& s = m.surfaces[m.faces[f.face].surface];
@@ -136,7 +133,7 @@ ksl_vec3_t shift::core::collision_geometry::CadContactShape::Point(
 }
 
 ksl_vec3_t shift::core::collision_geometry::CadContactShape::Normal(
-  int face, const Vec2& uv) const {
+  int face, const shift::core::cad::Vec2& uv) const {
   ksl_vec3_t du, dv, n;
   Point(face, uv, &du, &dv);
   ksl_cross_vv(&du, &dv, &n);
@@ -157,10 +154,10 @@ static double Step(double lo, double hi) {
 /* the first and second fundamental forms of a face at (u, v), I = (E, F, G)
 and II = (L, M, N) with the outward normal; false where the face is planar
 (II = 0) or its parameters degenerate */
-static bool FundamentalForms(const CadContactShape& shape, int face,
-                             const Vec2& uv, ksl_vec3_t& du, ksl_vec3_t& dv,
+static bool FundamentalForms(const shift::core::collision_geometry::CadContactShape& shape, int face,
+                             const shift::core::cad::Vec2& uv, ksl_vec3_t& du, ksl_vec3_t& dv,
                              double first[3], double second[3]) {
-  const CadContactFace& f = shape.faces[face];
+  const shift::core::collision_geometry::CadContactFace& f = shape.faces[face];
   const auto& m = shape.model();
   if(m.surfaces[m.faces[f.face].surface].type ==
      shift::core::cad::Surface::Type::kPlane) {
@@ -193,7 +190,7 @@ static bool FundamentalForms(const CadContactShape& shape, int face,
 }
 
 double shift::core::collision_geometry::CadContactShape::MeanCurvature(
-  int face, const Vec2& uv) const {
+  int face, const shift::core::cad::Vec2& uv) const {
   ksl_vec3_t du, dv;
   double I[3], II[3];
   if(!FundamentalForms(*this, face, uv, du, dv, I, II)) {
@@ -206,7 +203,7 @@ double shift::core::collision_geometry::CadContactShape::MeanCurvature(
 }
 
 void shift::core::collision_geometry::CadContactShape::Curvature(
-  int face, const Vec2& uv, const ksl_vec3_t& t1, const ksl_vec3_t& t2,
+  int face, const shift::core::cad::Vec2& uv, const ksl_vec3_t& t1, const ksl_vec3_t& t2,
   double c[3]) const {
   c[0] = c[1] = c[2] = 0.0;
   ksl_vec3_t du, dv;
@@ -234,8 +231,8 @@ void shift::core::collision_geometry::CadContactShape::Curvature(
 }
 
 bool shift::core::collision_geometry::CadContactShape::Project(
-  int face, const ksl_vec3_t& p, Vec2& uv, const Vec2* guess) const {
-  const CadContactFace& f = faces[face];
+  int face, const ksl_vec3_t& p, shift::core::cad::Vec2& uv, const shift::core::cad::Vec2* guess) const {
+  const shift::core::collision_geometry::CadContactFace& f = faces[face];
   const auto& m = model();
   const cad::Vec3 q = placements[f.placement].Invert(p);
   return cad::ProjectToSurface(m, m.surfaces[m.faces[f.face].surface], q, uv,
@@ -243,7 +240,7 @@ bool shift::core::collision_geometry::CadContactShape::Project(
 }
 
 /* the crossing of the side of a polygon by a ray from p along +u */
-static bool Crosses(const std::array<double, 4>& side, const Vec2& p) {
+static bool Crosses(const std::array<double, 4>& side, const shift::core::cad::Vec2& p) {
   const double ua = side[0], va = side[1], ub = side[2], vb = side[3];
   if((va > p[1]) == (vb > p[1])) {
     return false;
@@ -266,7 +263,7 @@ static int Band(const shift::core::collision_geometry::CadContactFace& f,
 /* whether (u, v) is inside a face's trims by the crossings of a ray along
 +u: an odd count is inside, as for an outer loop and its holes */
 static bool InsideTrims(const shift::core::collision_geometry::CadContactFace& f,
-                        const Vec2& p) {
+                        const shift::core::cad::Vec2& p) {
   bool inside = false;
   for(int i : f.bands[Band(f, p[1])]) {
     if(Crosses(f.sides[i], p)) {
@@ -307,9 +304,9 @@ static double InPeriod(double x, double lo, double hi) {
 }
 
 bool shift::core::collision_geometry::CadContactShape::Inside(
-  int face, const Vec2& uv) const {
-  const CadContactFace& f = faces[face];
-  Vec2 p = uv;
+  int face, const shift::core::cad::Vec2& uv) const {
+  const shift::core::collision_geometry::CadContactFace& f = faces[face];
+  shift::core::cad::Vec2 p = uv;
   if(f.periodic_u) {
     p[0] = InPeriod(p[0], f.lo[0], f.hi[0]);
   }
@@ -323,11 +320,11 @@ bool shift::core::collision_geometry::CadContactShape::Inside(
 }
 
 std::vector<std::array<double, 2>>
-shift::core::collision_geometry::CadContactShape::Clip(int face, const Vec2& a,
-                                                       const Vec2& b,
+shift::core::collision_geometry::CadContactShape::Clip(int face, const shift::core::cad::Vec2& a,
+                                                       const shift::core::cad::Vec2& b,
                                                        double inset) const {
-  const CadContactFace& f = faces[face];
-  Vec2 p = a, q = b;
+  const shift::core::collision_geometry::CadContactFace& f = faces[face];
+  shift::core::cad::Vec2 p = a, q = b;
   for(int k = 0; k < 2; k++) {
     if(k == 0 ? f.periodic_u : f.periodic_v) {
       const double mid = 0.5 * (p[k] + q[k]);
@@ -404,9 +401,8 @@ static constexpr int kEdgeSamples = 7;
 
 static void BuildTree(shift::core::collision_geometry::CadContactShape& shape,
                       int node, int first, int count) {
-  using shift::core::collision_geometry::CadBox;
   const auto& faces = shape.faces;
-  CadBox box;
+  shift::core::collision_geometry::CadBox box;
   for(int i = first; i < first + count; i++) {
     box.Add(faces[shape.order[i]].box);
   }
@@ -440,7 +436,7 @@ static void BuildTree(shift::core::collision_geometry::CadContactShape& shape,
 }
 
 void shift::core::collision_geometry::CadContactShape::Query(
-  const CadBox& query, std::vector<int>& found) const {
+  const shift::core::collision_geometry::CadBox& query, std::vector<int>& found) const {
   if(nodes.empty()) {
     return;
   }
@@ -477,8 +473,7 @@ static void MarkSharpEdges(
   const auto& m = shape.model();
   for(auto& edge : shape.edges) {
     const auto& e = m.edges[edge.edge];
-    if(edge.faces.size() != 2 || edge.faces[0] == edge.faces[1] ||
-       e.curve < 0 || !e.has_range) {
+    if(edge.faces.size() != 2 || e.curve < 0 || !e.has_range) {
       continue;
     }
     const auto& curve = m.curves[e.curve];
@@ -505,7 +500,8 @@ static void MarkSharpEdges(
     ksl_vec3_t cross, inward;
     ksl_cross_vv(&n0, &n1, &cross);
     if(ksl_vec3_l2norm(&cross) < 0.05) {
-      continue; // the faces meet smoothly
+      edge.smooth = true; // the faces meet smoothly
+      continue;
     }
     ksl_cross_vv(&tangent, &n0, &inward);
     for(double sense : {1.0, -1.0}) {
@@ -524,7 +520,7 @@ static void MarkSharpEdges(
 std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
 shift::core::collision_geometry::MakeCadContactShape(
   std::shared_ptr<const geometry::CadAsset> asset, double scale) {
-  auto shape = std::make_shared<CadContactShape>();
+  auto shape = std::make_shared<shift::core::collision_geometry::CadContactShape>();
   shape->asset = asset;
   const cad::Model& m = asset->model;
   for(const auto& placed : asset->bodies) {
@@ -551,7 +547,7 @@ shift::core::collision_geometry::MakeCadContactShape(
         if(face.trims.empty()) {
           continue; // not trimmed by Repair: not usable for contact
         }
-        CadContactFace f;
+        shift::core::collision_geometry::CadContactFace f;
         f.face = fi;
         f.placement = static_cast<int>(pi);
         const auto domain = cad::SurfaceDomain(m, m.surfaces[face.surface]);
@@ -561,7 +557,7 @@ shift::core::collision_geometry::MakeCadContactShape(
         f.hi = {-HUGE_VAL, -HUGE_VAL};
         for(const auto& loop : face.trims) {
           f.trims.push_back(cad::TrimPolygon(m, loop, kTrimSegments));
-          for(const Vec2& p : f.trims.back()) {
+          for(const shift::core::cad::Vec2& p : f.trims.back()) {
             for(int k = 0; k < 2; k++) {
               f.lo[k] = std::min(f.lo[k], p[k]);
               f.hi[k] = std::max(f.hi[k], p[k]);
@@ -586,6 +582,9 @@ shift::core::collision_geometry::MakeCadContactShape(
                faces_of_edge.end()) {
               faces_of_edge.push_back(index);
               f.edges.push_back(it->second);
+            } else {
+              /* twice around the same face: its seam */
+              shape->edges[it->second].smooth = true;
             }
             for(int v : {e.start, e.end}) {
               if(v < 0) {
@@ -647,10 +646,10 @@ shift::core::collision_geometry::MakeCadContactShape(
   /* samples of the faces: a grid inside the trims and the points of the
   trims; their bounds, padded by the bulge of a curved face between them */
   for(int fi = 0; fi < static_cast<int>(shape->faces.size()); fi++) {
-    CadContactFace& f = shape->faces[fi];
+    shift::core::collision_geometry::CadContactFace& f = shape->faces[fi];
     for(int i = 0; i < kFaceSamples; i++) {
       for(int j = 0; j < kFaceSamples; j++) {
-        const Vec2 uv{f.lo[0] + (f.hi[0] - f.lo[0]) * (i + 0.5) / kFaceSamples,
+        const shift::core::cad::Vec2 uv{f.lo[0] + (f.hi[0] - f.lo[0]) * (i + 0.5) / kFaceSamples,
                       f.lo[1] + (f.hi[1] - f.lo[1]) * (j + 0.5) / kFaceSamples};
         if(InsideTrims(f, uv)) {
           f.sample_uv.push_back(uv);
@@ -658,12 +657,12 @@ shift::core::collision_geometry::MakeCadContactShape(
       }
     }
     for(const auto& poly : f.trims) {
-      for(const Vec2& uv : poly) {
+      for(const shift::core::cad::Vec2& uv : poly) {
         f.boundary_points.push_back(shape->Point(fi, uv));
         f.box.Add(f.boundary_points.back());
       }
     }
-    for(const Vec2& uv : f.sample_uv) {
+    for(const shift::core::cad::Vec2& uv : f.sample_uv) {
       f.sample_points.push_back(shape->Point(fi, uv));
       f.sample_normals.push_back(shape->Normal(fi, uv));
       f.box.Add(f.sample_points.back());
@@ -786,7 +785,6 @@ thickened by 1e-4 of their extent in the directions they have none; false for a
 single point */
 static bool Thickened(const shift::core::collision_geometry::ConvexHullData& hull,
                       shift::core::collision_geometry::ConvexHullData& thick) {
-  using namespace shift::core::collision_geometry;
   if(hull.vertices.empty()) {
     return false;
   }
@@ -803,8 +801,8 @@ static bool Thickened(const shift::core::collision_geometry::ConvexHullData& hul
   if(!(extent > 0.0)) {
     return false;
   }
-  ksl_mat3x3_t covariance = Covariance(hull.vertices), axes;
-  Jacobi(covariance, axes);
+  ksl_mat3x3_t covariance = shift::core::collision_geometry::Covariance(hull.vertices), axes;
+  shift::core::collision_geometry::Jacobi(covariance, axes);
   std::vector<ksl_vec3_t> points = hull.vertices;
   for(int k = 0; k < 3; k++) {
     if(std::sqrt(std::max(covariance.at[k][k], 0.0)) > 1e-6 * extent) {
@@ -822,18 +820,18 @@ static bool Thickened(const shift::core::collision_geometry::ConvexHullData& hul
     }
     points = both;
   }
-  if(!ComputeConvexHull(points, thick)) {
+  if(!shift::core::collision_geometry::ComputeConvexHull(points, thick)) {
     return false;
   }
-  ComputeFacePlanes(thick);
-  ComputeFacePolygons(thick);
+  shift::core::collision_geometry::ComputeFacePlanes(thick);
+  shift::core::collision_geometry::ComputeFacePolygons(thick);
   return !thick.polygons.empty();
 }
 
 std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
-shift::core::collision_geometry::MakeHullShape(const ConvexHullData& hull) {
+shift::core::collision_geometry::MakeHullShape(const shift::core::collision_geometry::ConvexHullData& hull) {
   if(hull.polygons.empty()) {
-    ConvexHullData thick;
+    shift::core::collision_geometry::ConvexHullData thick;
     return Thickened(hull, thick) ? MakeHullShape(thick) : nullptr;
   }
   auto asset = std::make_shared<geometry::CadAsset>();
@@ -981,7 +979,7 @@ shift::core::collision_geometry::MakeCylinderShape(double radius,
   if(caps) {
     return shape;
   }
-  auto bare = std::make_shared<CadContactShape>(*shape);
+  auto bare = std::make_shared<shift::core::collision_geometry::CadContactShape>(*shape);
   bare->edges.clear();
   bare->vertices.clear();
   for(auto& f : bare->faces) {

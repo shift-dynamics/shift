@@ -8,6 +8,7 @@ and three links of track settling on the sprocket */
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -793,6 +794,29 @@ TEST_F(CadContact, CrossingCylindersHaveNoJump) {
 /* ------------------------------------------------------------------------ */
 /* the track on its frame, and links held by their pins */
 
+TEST_F(CadContact, NeighboringLinksAreNotTested) {
+  // the links of a track overlap where they interlock: the joint between each
+  // pair, the closing joint among them, takes them out of contact detection
+  for(const char* model : {"track_loop.json", "track_frame.json"}) {
+    shift::core::Context context;
+    context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/" + model);
+    std::map<std::string, const shift::core::body::Base*> bodies;
+    for(auto body : context.get_active_articulated_bodies()) {
+      bodies[body->get_name()] = body;
+    }
+    const int links = 44;
+    for(int i = 1; i <= links; i++) {
+      const std::string a = "link" + std::to_string(i);
+      const std::string b = "link" + std::to_string(i % links + 1);
+      ASSERT_TRUE(bodies.count(a) && bodies.count(b)) << model;
+      EXPECT_TRUE(context.is_contact_excluded(bodies[a], bodies[b]))
+        << model << " " << a << " " << b;
+    }
+    EXPECT_FALSE(context.is_contact_excluded(bodies["link1"], bodies["link3"]))
+      << model;
+  }
+}
+
 TEST_F(CadContact, TrackFrameStartsClear) {
   // the benchmark examples/cad/track_frame.json: the loop of 44 links on a
   // frame with five track rollers and a carrier roller, each 0.5 mm off the
@@ -898,6 +922,12 @@ TEST_F(CadContact, LinkHangsOnItsPin) {
   double length = 0.0;
   for(const auto& c : pair.manifold) {
     ASSERT_GT(c.length, 0.0); // a line, no edges or vertices
+    // an edge of the plates reaches 0.77 mm into the neighbor's cylinder in
+    // track_link.step: links on joints are not tested against each other,
+    // but these two have no joint
+    if(c.depth > 0.5e-3) {
+      continue;
+    }
     EXPECT_NEAR(c.depth, depth, 1e-9);
     length += c.length;
     // the pin pushes the bushing's bore up (+x), from link1 to link2 or

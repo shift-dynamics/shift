@@ -60,12 +60,17 @@ depends on the state only. The stiffness depends on the shapes:
   and a ball too wide for a hollow stands on its rims. A box, cylinder or convex
   hull touches CAD geometry as another CAD part does, through faces, edges and
   vertices of its own: a corner on a face, a cylinder's side along a line, a rim
-  on a face. Its corners and edges are taken as rounded to 0.002 of its size,
-  which sets their Hertz contact. A capsule is the side of a cylinder with a
-  sphere at each end, and as it tilts its line of contact gives way smoothly to
-  the point of the end. All of these use the ``youngs_modulus`` of the materials
-  against CAD geometry, not the ``contact_stiffness``, and a point is limited to
-  the depth of the CAD geometry's ``max_depth``.
+  on a face, or two edges crossing. Its corners and edges are taken as rounded
+  to its ``edge_radius``, by default 0.002 of its size, which sets their Hertz
+  contact. A capsule is the side of a cylinder with a sphere at each end, and as
+  it tilts its line of contact gives way smoothly to the point of the end. A
+  cylinder or capsule rolling over the edge of a face keeps its line of contact,
+  along that edge, and so does a cylinder of another STEP part. All of these use the ``youngs_modulus`` of the materials
+  against CAD geometry, not the ``contact_stiffness``. A point deeper than
+  ``max_depth`` is taken to be on the far side of the part: set it on the shape
+  to use another value than the CAD geometry's, 2% of its size by default.
+  Near an edge of a face, within the radius of the Hertz contact patch, a round
+  shape's stiffness goes over smoothly to that of the edge.
 
 A cylinder or a capsule on a plane touches along a line, the lowest
 generator of the cylinder or the segment of the capsule, and a single
