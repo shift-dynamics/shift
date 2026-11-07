@@ -165,14 +165,21 @@ static bool FundamentalForms(const shift::core::collision_geometry::CadContactSh
   }
   shape.Point(face, uv, &du, &dv);
   const ksl_vec3_t n = shape.Normal(face, uv);
-  /* second derivatives by central differences of the first */
+  /* second derivatives by central differences of the first, within the
+  face's bounds: a NURBS surface does not go beyond them */
   const double hu = Step(f.lo[0], f.hi[0]);
   const double hv = Step(f.lo[1], f.hi[1]);
+  const double u = f.periodic_u ? uv[0]
+                                : std::min(std::max(uv[0], f.lo[0] + hu),
+                                           f.hi[0] - hu);
+  const double v = f.periodic_v ? uv[1]
+                                : std::min(std::max(uv[1], f.lo[1] + hv),
+                                           f.hi[1] - hv);
   ksl_vec3_t du_p, dv_p, du_m, dv_m, du_vp, dv_vp, du_vm, dv_vm;
-  shape.Point(face, {uv[0] + hu, uv[1]}, &du_p, &dv_p);
-  shape.Point(face, {uv[0] - hu, uv[1]}, &du_m, &dv_m);
-  shape.Point(face, {uv[0], uv[1] + hv}, &du_vp, &dv_vp);
-  shape.Point(face, {uv[0], uv[1] - hv}, &du_vm, &dv_vm);
+  shape.Point(face, {u + hu, v}, &du_p, &dv_p);
+  shape.Point(face, {u - hu, v}, &du_m, &dv_m);
+  shape.Point(face, {u, v + hv}, &du_vp, &dv_vp);
+  shape.Point(face, {u, v - hv}, &du_vm, &dv_vm);
   ksl_vec3_t duu, duv, dvv;
   for(int k = 0; k < 3; k++) {
     duu.at[k] = (du_p.at[k] - du_m.at[k]) / (2.0 * hu);

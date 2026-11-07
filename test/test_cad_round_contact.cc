@@ -1122,9 +1122,9 @@ TEST_F(CadRound, SweepsOverEdges) {
       c = {{0.0098 + 4e-4 * i / 2000.0 - corner[0], 0.01 - corner[1],
             kBox[2] + reach - depth}};
     }, &where);
-    // the corner goes from the depth below the face to the shallower crossing of
-    // its edges with the edge of the face: a step, which is not smoothed
-    EXPECT_LT(g, 0.6) << where;
+    // the corner gives way to the crossing of its edges with the edge of the
+    // face, over a few microns
+    EXPECT_LT(g, 0.02) << where;
   }
   {
     // a cylinder standing on its end, tipping
@@ -1159,6 +1159,53 @@ TEST_F(CadRound, SweepsOverEdges) {
       c = {{0.0095 + 1e-3 * i / 2000.0, 0.01, kBox[2] + radius - depth}};
     }, &where);
     EXPECT_LT(g, 0.01) << where;
+  }
+}
+
+TEST_F(CadRound, CornerOffAnEdgeHasNoStep) {
+  // boxes leaning any way, each on one corner, sliding off the part's edge: the
+  // corner gives way to the crossing of its edges with the part's edge. A jump
+  // stays as the sweep gets finer, and the steps of a smooth force shrink with it
+  const double depth = 1e-5, h[3] = {0.002, 0.003, 0.004};
+  Scene scene("cr_corner_tilts", "box_mm.step", BoxKeys(h[0], h[1], h[2]));
+  std::mt19937 random(5);
+  std::uniform_real_distribution<double> unit(-1.0, 1.0);
+  for(int trial = 0; trial < 40; trial++) {
+    SCOPED_TRACE(trial);
+    double axis[3] = {unit(random), unit(random), unit(random)};
+    const double length = std::sqrt(axis[0] * axis[0] + axis[1] * axis[1] +
+                                    axis[2] * axis[2]);
+    for(double& a : axis) {
+      a /= length;
+    }
+    double r0[3][3];
+    Rotation(axis, 0.3 + 0.5 * (unit(random) + 1.0), r0);
+    double reach = 0.0, corner[3] = {0, 0, 0};
+    for(int j = 0; j < 3; j++) {
+      reach += h[j] * std::fabs(r0[2][j]);
+      for(int k = 0; k < 3; k++) {
+        corner[k] -= h[j] * std::copysign(1.0, r0[2][j]) * r0[k][j];
+      }
+    }
+    double greatest_force = 0.0;
+    auto sweep = [&](int count) {
+      return GreatestStep(scene, count, [&](int i, ksl_vec3_t& c, double r[3][3]) {
+        for(int k = 0; k < 3; k++) {
+          for(int j = 0; j < 3; j++) {
+            r[k][j] = r0[k][j];
+          }
+        }
+        c = {{0.0098 + 4e-4 * i / count - corner[0], 0.01 - corner[1],
+              kBox[2] + reach - depth}};
+        greatest_force = std::max(greatest_force, ElasticForce(scene.At(c, r)));
+      });
+    };
+    const double coarse = sweep(2000), fine = sweep(16000);
+    // an edge lying nearly flat hands over within 50 nm, near the finer sweep's
+    // 25 nm between poses
+    EXPECT_LT(fine, 0.07);
+    EXPECT_LT(fine, 0.6 * coarse + 1e-3);
+    EXPECT_LT(greatest_force, 5e-10); // the corner's, measured through the top
   }
 }
 

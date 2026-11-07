@@ -50,9 +50,9 @@ depends on the state only. The stiffness depends on the shapes:
   on its corners.
 * **CAD geometry**: each point found on the exact surfaces has its own
   normal and law: Hertz contact where two curved surfaces touch, and, along
-  a line of contact (parallel cylinders, a cylinder on a plane, or a NURBS or
-  extruded face on a cylinder or plane, as a cam on its roller), stations of
-  Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
+  a straight line of contact (parallel cylinders, a cylinder on a plane, a NURBS
+  or extruded face on a cylinder or plane, as a cam on its roller, or two such
+  faces on each other, as tooth flanks), stations of Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
   A sphere or an ellipsoid touches CAD geometry the same way, on its exact
   surfaces: at a point of each face it presses on, with the curvature of the
   shape and of the face there, or at the edge or vertex it reaches where no

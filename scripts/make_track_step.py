@@ -883,6 +883,12 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
     force_modules = [{'name': 'contact', 'type': 'contact',
                       'materials': [steel]}]
     relative_error, absolute_error = 1e-6, 1e-9
+    if not soil and not frame:
+        # the axles are fixed, so the track drags over the ground: faster
+        # creep than this changes how far the sprocket turns (0.2% here, 23%
+        # at 0.1), and tighter tolerances give the same answer, slower
+        relative_error, absolute_error = 1e-4, 1e-4
+        force_modules[0]['friction_velocity'] = 0.03
     if not soil:
         force_modules[0]['materials'].append({
             'name': 'ground', 'youngs_modulus': GROUND_E,

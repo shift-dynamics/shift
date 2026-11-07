@@ -3,11 +3,13 @@ of rational B-spline or extruded faces, against a roller, a flat follower and
 the ground (scripts/make_cam_step.py) */
 #include "gtest/gtest.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "shift/config.h"
@@ -16,7 +18,6 @@ the ground (scripts/make_cam_step.py) */
 #include "shift/core/context.h"
 #include "shift/core/force_module/contact.h"
 
-using shift::core::collision_geometry::ContactPair;
 
 /* the cam of make_cam_step.py */
 static const double kMajor = 0.04;
@@ -50,7 +51,7 @@ public:
 
   /* the contact, with the cam turned by angle about its axis and the
   follower at d */
-  ContactPair& Test(const ksl_SE3_t& follower, double angle = 0.0) {
+  shift::core::collision_geometry::ContactPair& Test(const ksl_SE3_t& follower, double angle = 0.0) {
     ksl_SE3_t d = {{{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}}};
     const double c = std::cos(angle), s = std::sin(angle);
     d.R.at[0][0] = c;
@@ -59,7 +60,7 @@ public:
     d.R.at[1][1] = c;
     cam_->UpdatePose(d);
     follower_->UpdatePose(follower);
-    pair_ = ContactPair();
+    pair_ = shift::core::collision_geometry::ContactPair();
     pair_.a = cam_;
     pair_.b = follower_;
     shift::core::collision_geometry::TestContact(pair_);
@@ -128,7 +129,7 @@ private:
   shift::core::Context context_;
   shift::core::collision_geometry::Base* cam_ = nullptr;
   shift::core::collision_geometry::Base* follower_ = nullptr;
-  ContactPair pair_;
+  shift::core::collision_geometry::ContactPair pair_;
 };
 
 static ksl_SE3_t At(double x, double y, double z = 0.0) {
@@ -141,7 +142,7 @@ static ksl_SE3_t At(double x, double y, double z = 0.0) {
 
 /* the elastic force of a pair's points, sum of w K d^e by the laws of the
 contact force module, for a modulus E* = 1 */
-static double ElasticForce(const ContactPair& pair) {
+static double ElasticForce(const shift::core::collision_geometry::ContactPair& pair) {
   double force = 0.0;
   for(const auto& c : pair.manifold) {
     double stiffness, exponent;
@@ -170,7 +171,7 @@ INSTANTIATE_TEST_SUITE_P(CadLineContact, CamFaces,
                          testing::Values("cam_nurbs", "cam_extrusion"));
 
 /* a line of contact the width of the cam, at depth, along the cam's axis */
-static void ExpectFullLine(const ContactPair& pair, double depth) {
+static void ExpectFullLine(const shift::core::collision_geometry::ContactPair& pair, double depth) {
   ASSERT_TRUE(pair.collision);
   ASSERT_EQ(pair.manifold.size(), 3u);
   double length = 0.0;
@@ -348,6 +349,220 @@ TEST_P(CamFaces, CrossedRollerIsAPoint) {
   ASSERT_EQ(pair.manifold.size(), 1u);
   EXPECT_EQ(pair.manifold[0].length, 0.0);
   EXPECT_NEAR(pair.manifold[0].depth, 20e-6, 1e-9);
+}
+
+/* the pose of a second cam, not turned, touching the cam turned by angle at
+the parameter t of its ellipse, the two overlapping by depth along their common
+normal, and that normal, out of the first cam */
+static ksl_SE3_t Flanks(double t, double angle, double depth, double normal[2]) {
+  double p[2], n[2];
+  Ellipse(t, p, n);
+  const double c = std::cos(angle), s = std::sin(angle);
+  const double px = c * p[0] - s * p[1], py = s * p[0] + c * p[1];
+  normal[0] = c * n[0] - s * n[1];
+  normal[1] = s * n[0] + c * n[1];
+  // the point of the second ellipse whose normal is the opposite one
+  double q[2], m[2];
+  Ellipse(std::atan2(-normal[1] / kMajor, -normal[0] / kMinor), q, m);
+  return At(px - depth * normal[0] - q[0], py - depth * normal[1] - q[1]);
+}
+
+/* both parts curved, of the kinds of surface given */
+class CurvedOnCurved
+  : public testing::TestWithParam<std::pair<const char*, const char*>> {};
+
+INSTANTIATE_TEST_SUITE_P(Faces, CurvedOnCurved,
+                         testing::Values(std::make_pair("cam_extrusion",
+                                                        "cam_extrusion"),
+                                         std::make_pair("cam_nurbs",
+                                                        "cam_nurbs"),
+                                         std::make_pair("cam_nurbs",
+                                                        "cam_extrusion")));
+
+TEST_P(CurvedOnCurved, TipsAreALine) {
+  // two cams tip to tip, a line across their width
+  CamScene scene(GetParam().first, GetParam().second);
+  for(double depth : {1e-4, 1e-5}) {
+    SCOPED_TRACE(depth);
+    const shift::core::collision_geometry::ContactPair& pair = scene.Test(At(2.0 * kMajor - depth, 0.0));
+    ASSERT_TRUE(pair.collision);
+    ExpectFullLine(pair, depth);
+    for(const auto& c : pair.manifold) {
+      EXPECT_NEAR(std::fabs(c.normal.x), 1.0, 1e-6);
+    }
+  }
+}
+
+TEST_P(CurvedOnCurved, FlanksAreALineAtTheirDepth) {
+  // anywhere around the cam, seams apart: a line at the depth along the normal
+  // the two have in common
+  CamScene scene(GetParam().first, GetParam().second);
+  const double angle = 0.7, depth = 1e-5;
+  for(int i = 0; i < 40; i++) {
+    const double t = 2.0 * M_PI * (i + 0.37) / 40.0;
+    SCOPED_TRACE(t);
+    double normal[2];
+    const ksl_SE3_t pose = Flanks(t, angle, depth, normal);
+    const shift::core::collision_geometry::ContactPair& pair = scene.Test(pose, angle);
+      ExpectFullLine(pair, depth);
+    for(const auto& c : pair.manifold) {
+      EXPECT_NEAR(std::fabs(c.normal.x * normal[0] + c.normal.y * normal[1]),
+                  1.0, 1e-6);
+    }
+  }
+}
+
+TEST_P(CurvedOnCurved, FlanksHaveNoJump) {
+  // the force changes smoothly as the line runs over the seams of both
+  CamScene scene(GetParam().first, GetParam().second);
+  const double angle = 0.7, depth = 1e-5;
+  double previous = 0.0, greatest = 0.0, peak = 0.0;
+  for(int i = 0; i <= 4000; i++) {
+    const double t = 2.0 * M_PI * i / 4000.0;
+    double normal[2];
+    const ksl_SE3_t pose = Flanks(t, angle, depth, normal);
+    const double force = ElasticForce(scene.Test(pose, angle));
+    if(i > 0) {
+      greatest = std::max(greatest, std::fabs(force - previous));
+    }
+    previous = force;
+    peak = std::max(peak, force);
+  }
+  ASSERT_GT(peak, 0.0);
+  EXPECT_LT(greatest / peak, 0.02);
+}
+
+/* Flanks, with the second cam then tipped by tilt about the tangent of the
+faces in the plane of the ellipses, through the middle of the line */
+static ksl_SE3_t TiltedFlanks(double t, double angle, double depth, double tilt) {
+  double normal[2];
+  ksl_SE3_t d = Flanks(t, angle, depth, normal);
+  double p[2], n[2];
+  Ellipse(t, p, n);
+  const double c = std::cos(angle), s = std::sin(angle);
+  const double m[3] = {c * p[0] - s * p[1] - depth * normal[0],
+                       s * p[0] + c * p[1] - depth * normal[1], 0.5 * kWidth};
+  const double w[3] = {-normal[1], normal[0], 0.0}; // the axis
+  const double ct = std::cos(tilt), st = std::sin(tilt);
+  const double r[3][3] = {
+    {ct + w[0] * w[0] * (1 - ct), w[0] * w[1] * (1 - ct), st * w[1]},
+    {w[0] * w[1] * (1 - ct), ct + w[1] * w[1] * (1 - ct), -st * w[0]},
+    {-st * w[1], st * w[0], ct}};
+  const double from[3] = {m[0] - d.t.x, m[1] - d.t.y, m[2]};
+  double to[3];
+  for(int i = 0; i < 3; i++) {
+    to[i] = m[i];
+    for(int k = 0; k < 3; k++) {
+      to[i] -= r[i][k] * from[k];
+      d.R.at[k][i] = r[i][k];
+    }
+  }
+  d.t.x = to[0];
+  d.t.y = to[1];
+  d.t.z = to[2];
+  return d;
+}
+
+TEST_P(CurvedOnCurved, TiltedCamLoadsItsEnd) {
+  // the line shortens to one end, and the force has no jump on the way
+  CamScene scene(GetParam().first, GetParam().second);
+  const double angle = 0.7, depth = 1e-5, t = 0.4;
+  double previous = 0.0, greatest = 0.0, peak = 0.0;
+  for(int i = 0; i <= 2000; i++) {
+    const double tilt = 5e-6 * i;
+    const shift::core::collision_geometry::ContactPair& pair = scene.Test(TiltedFlanks(t, angle, depth, tilt), angle);
+    ASSERT_TRUE(pair.collision) << tilt;
+    double deepest = 0.0;
+    for(const auto& p : pair.manifold) {
+      deepest = std::max(deepest, p.depth);
+    }
+    // the end sinks by half the width times the tilt
+    EXPECT_NEAR(deepest, depth + 0.5 * kWidth * tilt,
+                0.3 * 0.5 * kWidth * tilt + 1e-9)
+      << tilt;
+    const double force = ElasticForce(pair);
+    if(i > 0) {
+      greatest = std::max(greatest, std::fabs(force - previous));
+    }
+    previous = force;
+    peak = std::max(peak, force);
+  }
+  ASSERT_GT(peak, 0.0);
+  EXPECT_LT(greatest / peak, 0.02);
+}
+
+TEST_P(CurvedOnCurved, TiltedFlanksHaveNoJump) {
+  // over the seams of both, the line with both ends touching and loading one
+  CamScene scene(GetParam().first, GetParam().second);
+  const double angle = 0.7, depth = 1e-5;
+  for(double tilt : {5e-4, 5e-3}) {
+    SCOPED_TRACE(tilt);
+    double previous = 0.0, greatest = 0.0, peak = 0.0;
+    for(int i = 0; i <= 4000; i++) {
+      const double t = 2.0 * M_PI * i / 4000.0;
+      const shift::core::collision_geometry::ContactPair& pair =
+        scene.Test(TiltedFlanks(t, angle, depth, tilt), angle);
+      const double force = ElasticForce(pair);
+      if(i > 0) {
+        greatest = std::max(greatest, std::fabs(force - previous));
+      }
+      previous = force;
+      peak = std::max(peak, force);
+    }
+    ASSERT_GT(peak, 0.0);
+    EXPECT_LT(greatest / peak, 0.02);
+  }
+}
+
+TEST_P(CurvedOnCurved, ApartThereIsNoContact) {
+  CamScene scene(GetParam().first, GetParam().second);
+  EXPECT_FALSE(scene.Test(At(2.0 * kMajor + 1e-4, 0.0)).collision);
+}
+
+/* the pose of a second cam square to the first, its straight lines across the
+first's, turned by turn about its own axis, its tip by depth in the first's */
+static ksl_SE3_t Crossed(double turn, double depth) {
+  const double reach = std::hypot(kMajor * std::cos(turn),
+                                  kMinor * std::sin(turn));
+  ksl_SE3_t d = At(kMajor + reach - depth, 0.5 * kWidth, 0.5 * kWidth);
+  const double c = std::cos(turn), s = std::sin(turn);
+  // columns: its x and y in the plane of x and z, and its z along -y
+  d.R.at[0][0] = c;
+  d.R.at[0][1] = 0.0;
+  d.R.at[0][2] = s;
+  d.R.at[1][0] = -s;
+  d.R.at[1][1] = 0.0;
+  d.R.at[1][2] = c;
+  d.R.at[2][0] = 0.0;
+  d.R.at[2][1] = -1.0;
+  d.R.at[2][2] = 0.0;
+  return d;
+}
+
+TEST_P(CurvedOnCurved, CrossedCamsAreAPoint) {
+  // their straight lines cross, so a point, not a line
+  CamScene scene(GetParam().first, GetParam().second);
+  const shift::core::collision_geometry::ContactPair& pair = scene.Test(Crossed(0.1, 1e-5));
+  ASSERT_TRUE(pair.collision);
+  ASSERT_EQ(pair.manifold.size(), 1u);
+  EXPECT_EQ(pair.manifold.front().length, 0.0);
+  EXPECT_NEAR(pair.manifold.front().depth, 1e-5, 1e-7);
+}
+
+TEST_P(CurvedOnCurved, CrossedCamsHaveNoJumpOverASeam) {
+  // the point runs over the seam at the tip of the second cam
+  CamScene scene(GetParam().first, GetParam().second);
+  double previous = 0.0, greatest = 0.0, peak = 0.0;
+  for(int i = -1000; i <= 1000; i++) {
+    const double force = ElasticForce(scene.Test(Crossed(1e-5 * i, 1e-5)));
+    if(i > -1000) {
+      greatest = std::max(greatest, std::fabs(force - previous));
+    }
+    previous = force;
+    peak = std::max(peak, force);
+  }
+  ASSERT_GT(peak, 0.0);
+  EXPECT_LT(greatest / peak, 0.02);
 }
 
 /* the distance along x of the center of a roller touching the cam turned by

@@ -575,6 +575,12 @@ public:
    * Bodies in the same rigid group (see GetBodyLoadIndex) are never tested. */
   void ExcludeContact(const body::Base* a, const body::Base* b);
 
+  /*! \brief the number of times contact has been detected, once for each
+   * evaluation of the forces */
+  long get_contact_detection_calls() const {
+    return contact_detection_calls_;
+  }
+
   /*! \brief whether contact between the bodies a and b is not tested, see
    * ExcludeContact */
   bool is_contact_excluded(const body::Base* a, const body::Base* b) const {

@@ -450,6 +450,45 @@ TEST_F(CadContact, LinksSettleOnTheSprocket) {
   }
 }
 
+/* the number of contact detections in a track model run to time_span, read
+from the benchmark's file */
+static long ContactCalls(const std::string& model, double time_span) {
+  const std::string dir = std::string(SHIFT_EXAMPLES_DIR) + "/cad";
+  std::ifstream in(dir + "/" + model);
+  std::stringstream text;
+  text << in.rdbuf();
+  std::string json = text.str();
+  auto replace = [&](const std::string& from, const std::string& to) {
+    const size_t at = json.find(from);
+    EXPECT_NE(at, std::string::npos) << from;
+    if(at != std::string::npos) {
+      json.replace(at, from.size(), to);
+    }
+  };
+  replace("\"time_span\": 2.0", "\"time_span\": " + std::to_string(time_span));
+  replace("\"include_directories\": [\n      \".\"\n    ]",
+          "\"include_directories\": [\"" + dir + "\"]");
+  const std::string path = testing::TempDir() + "/short_" + model;
+  {
+    std::ofstream file(path);
+    file << json;
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  return context.get_contact_detection_calls();
+}
+
+TEST_F(CadContact, TrackBenchmarksDoNotStall) {
+  // a force that jumps, as a point coming and going, makes the integrator
+  // crawl: the benchmarks past the times they did, by the count of force
+  // evaluations, which is the same on every run: 5776 and 12544 when written,
+  // and 14626 for track_frame with the seam of a cylinder as a feature
+  EXPECT_LT(ContactCalls("track_frame.json", 0.6), 7000L);
+  EXPECT_LT(ContactCalls("track_loop.json", 0.6), 15000L);
+}
+
 TEST_F(CadContact, TrackLoopCloses) {
   // the benchmark examples/cad/track_loop.json, x forward and z down, the
   // axles along y: its 44 links close around the sprocket and the idler, and nothing
