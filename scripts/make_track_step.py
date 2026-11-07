@@ -912,7 +912,7 @@ def track_loop(path, pitch_radius, frame=False, soil=False):
         # tighter tolerances than these only chase the chatter of the contacts,
         # and take the integrator far longer
         relative_error, absolute_error = 1e-4, 1e-4
-        force_modules[0]['friction_velocity'] = 0.03
+        force_modules[0]['friction_velocity'] = 0.1
         to_bushing = rail  # from a rail to the bushings' line
         force_modules.append({
             'name': 'track', 'type': 'track', 'frame': 'frame',

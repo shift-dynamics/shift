@@ -3484,7 +3484,7 @@
               "friction": 0.6
             }
           ],
-          "friction_velocity": 0.03
+          "friction_velocity": 0.1
         },
         {
           "name": "track",

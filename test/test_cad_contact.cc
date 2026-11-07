@@ -305,6 +305,58 @@ TEST_F(CadContact, BushingInSeatIsALine) {
   }
 }
 
+TEST_F(CadContact, LineOverASeamHasNoPointsAtItsEnds) {
+  // a bushing rolling over the seam where a seat runs smoothly into its flank,
+  // with a seam of its own nearby: the rims of the sprocket reach into the
+  // bushing's other half, but that is the end of the same thin overlap, and
+  // the contact is the same line on either side of the seams
+  const double depth = 1.4e-4, seat_end = M_PI - 68.0 * M_PI / 180.0;
+  Track t;
+  t.links = 1;
+  shift::core::Context context;
+  Load(context, "cad_seam", t);
+  context.DetectContacts(); // sets the poses of the geometry
+  shift::core::collision_geometry::Base* sprocket = nullptr;
+  shift::core::collision_geometry::Base* link = nullptr;
+  for(auto g : context.get_active_collision_geometry()) {
+    (g->get_name() == "sprocket" ? sprocket : link) = g;
+  }
+  ASSERT_NE(sprocket, nullptr);
+  ASSERT_NE(link, nullptr);
+  for(double offset : {0.085, 0.05, -0.05, -0.085}) {
+    for(int i = -20; i <= 20; i++) {
+      const double a = seat_end + 1e-3 * i;
+      SCOPED_TRACE(testing::Message() << "offset " << offset << " i " << i);
+      // the link's -x, and the bushing's seam, offset from the contact; its
+      // pin and shoe away from the sprocket
+      const double b = a + offset;
+      const double reach = kSeatRadius - kBushingRadius + depth;
+      ksl_SE3_t d;
+      d.t = {{kPitchRadius + reach * std::cos(a), reach * std::sin(a), 0.0}};
+      const ksl_vec3_t x = {{-std::cos(b), -std::sin(b), 0.0}};
+      const ksl_vec3_t y = {{0.0, 0.0, -1.0}};
+      const ksl_vec3_t z = {{-x.y, x.x, 0.0}};
+      for(int k = 0; k < 3; k++) {
+        d.R.at[0][k] = x.at[k];
+        d.R.at[1][k] = y.at[k];
+        d.R.at[2][k] = z.at[k];
+      }
+      link->UpdatePose(d);
+      shift::core::collision_geometry::ContactPair pair;
+      pair.a = sprocket;
+      pair.b = link;
+      shift::core::collision_geometry::TestContact(pair);
+      ASSERT_TRUE(pair.collision);
+      double length = 0.0;
+      for(const auto& c : pair.manifold) {
+        EXPECT_GT(c.length, 0.0);
+        length += c.length;
+      }
+      EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+    }
+  }
+}
+
 TEST_F(CadContact, GrousersOnTheGround) {
   // a link upside down, its grousers' tips 0.2 mm into the ground: the
   // corners of the tips of the three grousers
@@ -922,8 +974,9 @@ TEST_F(CadContact, LinkHangsOnItsPin) {
   double length = 0.0;
   for(const auto& c : pair.manifold) {
     ASSERT_GT(c.length, 0.0); // a line, no edges or vertices
-    // an edge of the plates reaches 0.77 mm into the neighbor's cylinder in
-    // track_link.step: links on joints are not tested against each other,
+    // the end of link2's shoe on the round end of link1's outer plate: 0.25 mm
+    // apart with the pins centered, 0.77 mm deep with link2 moved down by the
+    // clearance and depth. Links on joints are not tested against each other,
     // but these two have no joint
     if(c.depth > 0.5e-3) {
       continue;

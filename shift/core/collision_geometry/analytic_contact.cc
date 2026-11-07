@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 #include "shift/core/collision_geometry/convex_hull.h"
@@ -441,13 +442,16 @@ static double MinimizeSeparation(const Sym3& ga, const Sym3& gb,
       step[0] = -k * g[0] * 0.1;
       step[1] = -k * g[1] * 0.1;
     }
-    /* backtrack until the distance decreases */
+    /* backtrack until the distance decreases. It is flat at the minimum, so
+    near it a good step changes it by no more than rounding: only the
+    gradient above can still tell, and the distance must not stop Newton */
+    const double rounding = 8.0 * std::numeric_limits<double>::epsilon() * scale;
     bool improved = false;
     for(int halving = 0; halving < 30 && !improved; halving++) {
       ksl_vec3_t trial = Add(n, Add(Scale(step[0], e1), Scale(step[1], e2)));
       trial = Scale(1.0 / std::sqrt(Dot(trial, trial)), trial);
       const double trial_depth = distance(trial);
-      if(trial_depth <= depth) {
+      if(trial_depth <= depth + rounding) {
         n = trial;
         depth = trial_depth;
         improved = true;

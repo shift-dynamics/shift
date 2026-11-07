@@ -2154,16 +2154,40 @@ static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a,
     }
     return false;
   };
-  /* whether any of faces touches a face smoothly next to face of the other
-  side: an edge reaching into face is then the end of that contact */
+  /* whether any of faces, or a face smoothly next to one of them, touches
+  other, a face of the other side */
+  auto touches_or_beside = [&](const std::vector<int>& faces, int other, bool on_a) {
+    if(touches(faces, other, on_a)) {
+      return true;
+    }
+    const shift::core::collision_geometry::CadContactShape& shape = *(on_a ? a : b).shape;
+    for(int f : faces) {
+      for(int e : shape.faces[f].edges) {
+        if(!shape.edges[e].sharp && touches(shape.edges[e].faces, other, on_a)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  /* whether a contact reaches over a smooth seam to an edge of faces in face
+  of the other side: faces, or a face smoothly next to one of them, touch face
+  or a face smoothly next to it. The edge is then the end of that contact, on
+  either side of the seam */
   auto touches_beside = [&](const std::vector<int>& faces, int face, bool on_a) {
+    if(touching_a.empty()) {
+      return false;
+    }
+    if(touches_or_beside(faces, face, on_a)) {
+      return true;
+    }
     const shift::core::collision_geometry::CadContactShape& shape = *(on_a ? b : a).shape;
     for(int e : shape.faces[face].edges) {
       if(shape.edges[e].sharp) {
         continue;
       }
       for(int f : shape.edges[e].faces) {
-        if(f != face && touches(faces, f, on_a)) {
+        if(f != face && touches_or_beside(faces, f, on_a)) {
           return true;
         }
       }
