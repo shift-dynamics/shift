@@ -18,6 +18,10 @@ display and ImageMagick; windows appear as it renders.
   drawn by shift, with the samples of the map (black) and the boundaries of
   the cells (orange) from shift-doc-figures terrain, and terrain_section.png:
   the height, slope and second derivative of both along one row of samples
+- broadphase.png: bunnies with their bounding spheres (purple) and the
+  margins about them (grey), the candidate pairs of shift's broad phase (red)
+  and, below them, the intervals of the enlarged spheres along the axis of the
+  sweep, from shift-doc-figures broadphase
 - surface_<type>.png: a face of each type of STEP surface, drawn by the viewer
   from the exact surface, with lines of constant u (blue) and of constant v
   (orange) inside its trims, its boundary (dark), the axes of its frame
@@ -29,6 +33,7 @@ contact tests (test/contact/make_figures.py).
 """
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -471,6 +476,130 @@ def terrain_section(bicubic, bilinear, per_cell, target):
     pyplot.close(figure)
 
 
+# (x, y, yaw in degrees) of the bunnies of the broad phase figure: a group of
+# three, a pair whose bounding spheres overlap, a pair whose spheres overlap
+# only with their margins, and two alone
+BUNNIES = [(0.0, 0.0, 0), (0.3, 0.05, 70), (0.12, 0.3, 160),
+           (0.95, 0.0, 30), (1.27, 0.08, 200),
+           (0.55, 0.75, 110), (1.0, 0.8, 300),
+           (1.75, 0.55, 45), (-0.55, 0.75, 250)]
+SPHERE_COLOR = (0.72, 0.48, 1.0)
+MARGIN_COLOR = (0.6, 0.6, 0.6)
+CANDIDATE_COLOR = (0.85, 0.06, 0.08)
+
+
+def bunny_model(work, overlay):
+    """the bunnies on float joints, each with a convex hull fitted to it, and
+    the overlay meshes on the fixed body"""
+    link = os.path.join(work, 'stanford_bunny.obj')
+    if not os.path.exists(link):
+        os.symlink(BUNNY, link)
+        # light grey in place of the bunny's dark glaze, to be seen through
+        # the spheres
+        with open(os.path.join(work, 'stanford_bunny.mtl'), 'w') as file:
+            file.write('newmtl bunny\nKd 0.7 0.7 0.7\nKs 0.2 0.2 0.2\n'
+                       'Ns 30\n')
+    model = figures.write_model(work, overlay, 'broadphase')
+    with open(model) as file:
+        m = json.load(file)
+    assembly = m['assemblies'][0]
+    for k, (x, y, yaw) in enumerate(BUNNIES):
+        a = math.radians(yaw)
+        turn = numpy.array([[math.cos(a), -math.sin(a), 0.0],
+                            [math.sin(a), math.cos(a), 0.0],
+                            [0.0, 0.0, 1.0]])
+        name = 'bunny%d' % k
+        assembly['bodies'].append({
+            'name': name,
+            'geometry': [{'type': 'mesh', 'filename': ['stanford_bunny.obj']}],
+            'collision_geometry': [{'name': name, 'type': 'convex_hull'}],
+            'center_of_mass': [0.0, 0.0, 0.0],
+            'inertia': {'mass': 1.0, 'Ixx': 1.0, 'Iyy': 1.0, 'Izz': 1.0,
+                        'Ixy': 0.0, 'Iyz': 0.0, 'Izx': 0.0}})
+        assembly['joints'].append({
+            'name': 'float%d' % k, 'type': 'float',
+            'parent': [['fixed'], 'origin'], 'child': [[name], 'origin'],
+            'initial_displacement': {'R': (turn @ UPRIGHT).tolist(),
+                                     'T': [x, y, 0.0]},
+            'initial_velocity': [0.0] * 6})
+    with open(model, 'w') as file:
+        json.dump(m, file)
+    return model
+
+
+def broadphase_figure(work, directory):
+    model = bunny_model(work, [])
+    data = os.path.join(work, 'broadphase.json')
+    subprocess.run([TOOL, 'broadphase', model, data], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(data) as file:
+        phase = json.load(file)
+    bounded = [k for k, g in enumerate(phase['geometry'])
+               if g['radius'] is not None]
+    spheres, margins, centers, links, bars = (figures.Mesh() for _ in range(5))
+    for k in bounded:
+        g = phase['geometry'][k]
+        c = numpy.array(g['center'])
+        smooth_ball(spheres, c, g['radius'])
+        smooth_ball(margins, c, g['radius'] + g['margin'])
+        figures.add_ball(centers, c, 0.018)
+    # the candidates among the bunnies; each is also a candidate with the
+    # floor, a plane, which is not drawn
+    for a, b in phase['candidates']:
+        if a in bounded and b in bounded:
+            figures.add_tube(links, numpy.array(
+                [phase['geometry'][a]['center'],
+                 phase['geometry'][b]['center']]), 0.014)
+    # the intervals of the enlarged spheres along the axis of the sweep, in
+    # the order of their lower ends, between the bunnies and the camera
+    axis = phase['sweep_axis']
+    other = (axis + 1) % 3
+    rows = sorted(bounded, key=lambda k: phase['geometry'][k]['center'][axis]
+                  - phase['geometry'][k]['radius']
+                  - phase['geometry'][k]['margin'])
+    front = max(phase['geometry'][k]['center'][other] +
+                phase['geometry'][k]['radius'] +
+                phase['geometry'][k]['margin'] for k in bounded) + 0.12
+    for row, k in enumerate(rows):
+        g = phase['geometry'][k]
+        reach = g['radius'] + g['margin']
+        ends = []
+        for end in (-reach, reach):
+            p = numpy.zeros(3)
+            p[axis] = g['center'][axis] + end
+            p[other] = front + 0.07 * row
+            ends.append(p)
+        figures.add_tube(bars, numpy.array(ends), 0.016)
+    overlay = [spheres.write(work, 'bounding', SPHERE_COLOR, 0.22),
+               margins.write(work, 'margins', MARGIN_COLOR, 0.12),
+               centers.write(work, 'centers', NET_COLOR, 1.0),
+               links.write(work, 'candidates', CANDIDATE_COLOR, 1.0),
+               bars.write(work, 'intervals', SPHERE_COLOR, 1.0)]
+    model = bunny_model(work, overlay)
+    points = [g['center'] for g in phase['geometry'] if g['radius']]
+    center, radius = bounds(points + [[0.6, front + 0.07 * len(rows), 0.0]])
+    image = os.path.join(work, 'broadphase.png')
+    figures.SIZE = (1000, 640)
+    # from +y, so that +x is to the right with +z down
+    figures.render(model, image, (90, 62), center, 0.6 * radius)
+    shutil.copy(image, os.path.join(directory, 'broadphase.png'))
+    print('broadphase.png', flush=True)
+
+
+def smooth_ball(mesh, center, radius, rows=32, columns=64):
+    """a sphere of quads with the normals of the sphere"""
+    for i in range(rows):
+        for j in range(columns):
+            corners, normals = [], []
+            for a, b in ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)):
+                t, p = math.pi * a / rows, 2.0 * math.pi * b / columns
+                n = numpy.array([math.sin(t) * math.cos(p),
+                                 math.sin(t) * math.sin(p), math.cos(t)])
+                corners.append(center + radius * n)
+                normals.append(n)
+            mesh.add(corners, normals)
+
+
 def main():
     directory = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         ROOT, 'doc', 'sphinx', 'contact', 'figures')
@@ -481,6 +610,8 @@ def main():
             shapes_figure(work, directory)
         if not only or 'meshes' in only:
             meshes_figure(work, directory)
+        if not only or 'broadphase' in only:
+            broadphase_figure(work, directory)
         if not only or 'terrain' in only:
             terrain_figure(work, directory)
         if not only or 'topology' in only:

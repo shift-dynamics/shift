@@ -15,3 +15,4 @@ files. The contact laws applied at the points of contact are described with the
    :maxdepth: 2
 
    surfaces
+   detection

@@ -563,6 +563,28 @@ public:
     return contacts_;
   }
 
+  /*! \brief margin of each geometry of get_contact_geometry() at the last
+   * broad phase, by which its bounding sphere is enlarged (0 for a plane) */
+  const std::vector<double>& get_contact_margins() const {
+    return contact_margins_;
+  }
+
+  /*! \brief the candidate pairs of the last broad phase, as indices into
+   * get_contact_geometry() */
+  std::vector<std::pair<int, int>> get_contact_candidates() const {
+    std::vector<std::pair<int, int>> pairs;
+    for(const auto& candidate : contact_candidates_) {
+      pairs.emplace_back(candidate.a, candidate.b);
+    }
+    return pairs;
+  }
+
+  /*! \brief axis of the fixed reference frame (0, 1, 2 for x, y, z) of the
+   * sweep of the last broad phase */
+  int get_sweep_axis() const {
+    return sweep_axis_;
+  }
+
   /*! \brief active collision geometry, loaded or not, available once the
    * objects are activated */
   const std::vector<collision_geometry::Base*>&

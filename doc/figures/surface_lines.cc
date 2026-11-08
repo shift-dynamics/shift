@@ -7,6 +7,7 @@ make_figures.py renders them with the viewer.
   shift-doc-figures step <file.step> <out.json> [lines per parameter]
   shift-doc-figures fit <model.json> <out.json>
   shift-doc-figures terrain <model.json> <out.json> [points per cell]
+  shift-doc-figures broadphase <model.json> <out.json>
 
 Lengths are in meters. Each shape is placed at its own position along x, as
 listed in Shapes(). For a STEP file every face of every body gives its surface
@@ -17,7 +18,10 @@ fitted to the meshes of its body as the model is loaded, is written as
 polygons in the fixed reference frame, and the triangles of the meshes of their
 bodies as shift loaded them, in the frame of the body. For a model with a
 basic terrain, its samples, its control points and its surface over the map, each
-point with its slopes and its curvatures along x and y, in the terrain frame. */
+point with its slopes and its curvatures along x and y, in the terrain frame.
+For a model with collision geometry, the broad phase of its contact detection
+at its initial state: the center, bounding radius and margin of each geometry,
+the axis of the sweep, the candidate pairs and the pairs in contact. */
 
 #include <algorithm>
 #include <cmath>
@@ -548,6 +552,45 @@ static int Terrain(const std::string& model, const std::string& path,
   return 0;
 }
 
+static int BroadPhase(const std::string& model, const std::string& path) {
+  shift::core::Context context;
+  context.LoadJSON(model);
+  context.UpdateD();
+  context.DetectContacts();
+  const auto& geometry = context.get_contact_geometry();
+  const auto& margins = context.get_contact_margins();
+  std::ofstream out(path);
+  out << "{\"sweep_axis\":" << context.get_sweep_axis() << ",\"geometry\":[";
+  for(size_t i = 0; i < geometry.size(); i++) {
+    out << (i ? "," : "") << "{\"name\":\"" << geometry[i]->get_name()
+        << "\",\"center\":" << Point(geometry[i]->get_d_absolute().t)
+        << ",\"radius\":"
+        << (std::isfinite(geometry[i]->get_bounding_radius())
+              ? Number(geometry[i]->get_bounding_radius())
+              : std::string("null")) // a plane
+        << ",\"margin\":" << Number(margins[i]) << "}";
+  }
+  out << "],\"candidates\":[";
+  bool first = true;
+  for(const auto& [a, b] : context.get_contact_candidates()) {
+    out << (first ? "" : ",") << "[" << a << "," << b << "]";
+    first = false;
+  }
+  out << "],\"contacts\":[";
+  first = true;
+  for(auto pair : context.get_contacts()) {
+    int a = -1, b = -1;
+    for(size_t i = 0; i < geometry.size(); i++) {
+      if(geometry[i] == pair->a) a = static_cast<int>(i);
+      if(geometry[i] == pair->b) b = static_cast<int>(i);
+    }
+    out << (first ? "" : ",") << "[" << a << "," << b << "]";
+    first = false;
+  }
+  out << "]}\n";
+  return 0;
+}
+
 int main(int argc, char** argv) {
   const std::string mode = argc > 1 ? argv[1] : "";
   if(mode == "shapes" && argc == 3) {
@@ -562,12 +605,16 @@ int main(int argc, char** argv) {
   if(mode == "terrain" && (argc == 4 || argc == 5)) {
     return Terrain(argv[2], argv[3], argc == 5 ? std::atoi(argv[4]) : 16);
   }
+  if(mode == "broadphase" && argc == 4) {
+    return BroadPhase(argv[2], argv[3]);
+  }
   std::fprintf(stderr,
                "usage: shift-doc-figures shapes <out.json>\n"
                "       shift-doc-figures step <file.step> <out.json> "
                "[lines per parameter]\n"
                "       shift-doc-figures fit <model.json> <out.json>\n"
                "       shift-doc-figures terrain <model.json> <out.json> "
-               "[points per cell]\n");
+               "[points per cell]\n"
+               "       shift-doc-figures broadphase <model.json> <out.json>\n");
   return 1;
 }
