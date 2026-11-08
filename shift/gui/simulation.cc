@@ -133,6 +133,7 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
                        shift::gui::TextureLoader& textures,
                        shift::gui::Scene& scene) {
   constexpr int kMaximumMeshSamples = 513; // per side
+  constexpr int kMinimumMeshSamples = 257; // per side
   const double x_extent = terrain.get_x_extent();
   const double y_extent = terrain.get_y_extent();
   if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
@@ -168,10 +169,15 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
   mesh.normal_scale = float(terrain.get_normal_scale());
   mesh.triplanar = true; // along the world axes: the mesh is on the fixed body
   mesh.texture_scale = float(terrain.get_texture_scale());
-  /* twice the resolution of the control points, at most
-  kMaximumMeshSamples a side */
-  const int mesh_x = std::clamp(2 * (t.width - 1) + 1, 2, kMaximumMeshSamples);
-  const int mesh_y = std::clamp(2 * (t.height - 1) + 1, 2, kMaximumMeshSamples);
+  /* twice the resolution of the control points, and at least
+  kMinimumMeshSamples a side so that the curvature of a small map is drawn
+  smoothly, at most kMaximumMeshSamples a side */
+  const int mesh_x = std::clamp(
+    std::max(2 * (t.width - 1) + 1, kMinimumMeshSamples), 2,
+    kMaximumMeshSamples);
+  const int mesh_y = std::clamp(
+    std::max(2 * (t.height - 1) + 1, kMinimumMeshSamples), 2,
+    kMaximumMeshSamples);
   const QMatrix3x3 rotation = pose.normalMatrix();
   mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
   mesh.bounds_max = -mesh.bounds_min;

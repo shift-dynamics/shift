@@ -38,6 +38,8 @@ COLORS = [(0.35, 0.52, 0.74), (0.85, 0.66, 0.36), (0.50, 0.68, 0.48),
 PLANE_COLOR = (0.72, 0.72, 0.68)
 COMPUTED = (0.85, 0.06, 0.08)
 OPACITY = 0.28
+# the font of the text of the documentation (the alabaster theme's font_family)
+FONT = 'Georgia'
 MOST_QUADS = 800000
 SIZE = (480, 400)
 SAMPLES = 48
@@ -471,7 +473,8 @@ def draw(path, directory):
             note += '     |     close up, %s across' % size(2.0 * half)
         subprocess.run(
             ['magick', *images, '+append', '+repage', '-background', 'white',
-             '-gravity', 'south', '-splice', '0x44', '-pointsize', '14', '-fill',
+             '-gravity', 'south', '-splice', '0x44', '-font', FONT,
+             '-pointsize', '14', '-fill',
              '#d00f14', '-annotate', '+0+22', 'computed: ' + describe(record),
              '-fill', '#555555', '-pointsize', '12', '-annotate', '+0+5', note,
              '-quality', '86', target], check=True)
@@ -508,7 +511,7 @@ def draw_grid(name, paths, directory):
                 ['magick', os.path.join(work, '%d.jpg' % k), '-gravity',
                  'south', '-chop', '0x44', '-resize', '480x', '-gravity',
                  'north', '-background', 'white', '-splice', '0x40',
-                 '-pointsize', '15', '-fill', '#222222', '-annotate', '+0+3',
+                 '-font', FONT, '-pointsize', '15', '-fill', '#222222', '-annotate', '+0+3',
                  label(k), '-pointsize', '13', '-fill', '#d00f14',
                  '-annotate', '+0+21', computed, tile], check=True)
             tiles.append(tile)

@@ -214,6 +214,9 @@ void shift::core::terrain::Basic::Load() {
       z_[size_t(j) * nx_ + i] = sae ? value : -value;
     }
   }
+  if(bicubic_) {
+    SolveControlPoints();
+  }
   /* the texture only changes the look: draw without it if it is missing */
   texture_path_.clear();
   if(!texture_filename_.empty()) {
@@ -264,10 +267,97 @@ double shift::core::terrain::Basic::get_y_extent() const {
   return (ny_ - 1) * y_scale_;
 }
 
+/*!
+The bicubic surface at sample k of a row is (c[k - 1] + 4 c[k] + c[k + 1]) / 6,
+from the basis of LocalZ at s = 0. Beyond the map the control points are
+extrapolated linearly, c[-1] = 2 c[0] - c[1] and c[n] = 2 c[n - 1] - c[n - 2]
+(see ControlZ): the natural end condition, a second derivative of zero at the
+edges, under which the surface at the first and last samples is c[0] and
+c[n - 1]. Setting the surface to the samples z[k] gives the tridiagonal system
+
+  c[0] = z[0],  (c[k - 1] + 4 c[k] + c[k + 1]) / 6 = z[k],  c[n - 1] = z[n - 1]
+
+diagonally dominant, solved by the Thomas algorithm along each row and then
+along each column, since the surface is a tensor product. Samples on a plane
+give control points on the same plane, so a plane is reproduced exactly.
+*/
+void shift::core::terrain::Basic::SolveControlPoints() {
+  control_ = z_;
+  auto solve = [](std::vector<double>& c, size_t start, size_t stride,
+                  long n) {
+    if(n < 3) {
+      return; // c = z
+    }
+    auto at = [&](long k) -> double& { return c[start + size_t(k) * stride]; };
+    /* the interior rows times 6, [1 4 1], with c[0] and c[n - 1] known:
+    forward elimination of k = 1 .. n - 2, then back substitution */
+    std::vector<double> upper(n, 0.0), right(n, 0.0);
+    right[0] = at(0);
+    for(long k = 1; k <= n - 2; k++) {
+      const double denominator = 4.0 - upper[k - 1];
+      upper[k] = 1.0 / denominator;
+      right[k] = (6.0 * at(k) - right[k - 1]) / denominator;
+    }
+    /* the last interior row also has c[n - 1] on its right */
+    for(long k = n - 2; k >= 1; k--) {
+      const double next = at(k + 1);
+      at(k) = right[k] - upper[k] * next;
+    }
+  };
+  for(long j = 0; j < ny_; j++) {
+    solve(control_, size_t(j) * nx_, 1, nx_);
+  }
+  for(long i = 0; i < nx_; i++) {
+    solve(control_, size_t(i), size_t(nx_), ny_);
+  }
+}
+
+/*!
+Bilinear: the sample, clamped to the map. Bicubic: the control point, and
+beyond the map one control point more along each axis, extrapolated linearly
+from the two at the edge, which is held further out, so that beyond the map the
+surface continues along its slope at the edge for about a cell and then levels
+off.
+*/
 double shift::core::terrain::Basic::ControlZ(long i, long j) const {
-  i = std::clamp(i, 0L, nx_ - 1);
-  j = std::clamp(j, 0L, ny_ - 1);
-  return z_[size_t(j) * nx_ + i];
+  const std::vector<double>& c = get_control_points();
+  if(!bicubic_) {
+    i = std::clamp(i, 0L, nx_ - 1);
+    j = std::clamp(j, 0L, ny_ - 1);
+    return c[size_t(j) * nx_ + i];
+  }
+  /* the indices and weights of the control points of the map that give
+  index k along an axis of n */
+  auto along = [](long k, long n, long index[2], double weight[2]) {
+    if(n < 2 || (k >= 0 && k < n)) {
+      index[0] = index[1] = std::clamp(k, 0L, n - 1);
+      weight[0] = 1.0;
+      weight[1] = 0.0;
+    } else if(k < 0) {
+      index[0] = 0;
+      index[1] = 1;
+      weight[0] = 2.0;
+      weight[1] = -1.0;
+    } else {
+      index[0] = n - 1;
+      index[1] = n - 2;
+      weight[0] = 2.0;
+      weight[1] = -1.0;
+    }
+  };
+  long ii[2], jj[2];
+  double wi[2], wj[2];
+  along(i, nx_, ii, wi);
+  along(j, ny_, jj, wj);
+  double z = 0.0;
+  for(int b = 0; b < 2; b++) {
+    for(int a = 0; a < 2; a++) {
+      if(wi[a] != 0.0 && wj[b] != 0.0) {
+        z += wi[a] * wj[b] * c[size_t(jj[b]) * nx_ + ii[a]];
+      }
+    }
+  }
+  return z;
 }
 
 double shift::core::terrain::Basic::LocalZ(double x, double y, double& z_x,

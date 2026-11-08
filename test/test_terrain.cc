@@ -15,6 +15,7 @@ resting on it */
 #include "shift/core/body/base.h"
 #include "shift/core/context.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/basic.h"
 
 /* a single channel 32 bit float TIFF, sample(row, column) */
 static void WriteTiff(const std::string& path, int width, int height,
@@ -133,7 +134,7 @@ static const char* kTerrainFrame =
             [0.0, 0.0, 1.0]]})";
 
 /* a plane z = a x + b y + c of the terrain frame is reproduced exactly by
-both interpolations, the cubic B-spline away from the edges of the map */
+both interpolations, including the cells at the edges of the map */
 TEST(Terrain, PlaneQuery) {
   const double a = 0.05, b = -0.08, c = 0.1; // dz/dx, dz/dy, z(0, 0)
   const std::string file = "terrain_plane.tiff";
@@ -150,7 +151,8 @@ TEST(Terrain, PlaneQuery) {
     const auto* terrain = context.get_active_terrain()[0];
     const double cos30 = std::sqrt(3.0) / 2.0, sin30 = 0.5;
     for(const auto& local : std::vector<std::pair<double, double>>{
-          {1.3, 0.9}, {4.71, 2.02}, {7.5, 3.0}, {2.0, 1.5}}) {
+          {1.3, 0.9}, {4.71, 2.02}, {7.5, 3.0}, {2.0, 1.5}, {0.1, 0.05},
+          {9.4, 3.7}}) {
       const double x = local.first, y = local.second;
       /* a point 1 m above the surface, in the inertial frame */
       const double z = a * x + b * y + c;
@@ -168,6 +170,52 @@ TEST(Terrain, PlaneQuery) {
       EXPECT_NEAR(normal.z, 1.0 / length, 1e-6);
     }
   }
+  std::remove((testing::TempDir() + "/" + file).c_str());
+}
+
+/* the bicubic surface passes through every sample of the map, including
+those of its edges and corners, and is C2 continuous across the boundaries of
+the cells: its slope and second derivative are the same on both sides */
+TEST(Terrain, BicubicInterpolatesTheSamples) {
+  const int columns = 9, rows = 7;
+  const double dx = 0.5, dy = 0.25;
+  /* a fixed pattern of samples, from a constant seed */
+  std::vector<float> samples(columns * rows);
+  unsigned state = 12345u;
+  for(auto& sample : samples) {
+    state = state * 1664525u + 1013904223u;
+    sample = float(0.3 * (state >> 8) / double(1u << 24));
+  }
+  const std::string file = "terrain_samples.tiff";
+  WriteTiff(testing::TempDir() + "/" + file, columns, rows,
+            [&](int row, int column) { return samples[row * columns + column]; });
+  shift::core::Context context;
+  LoadWheel(context, "samples", Terrain(file, ""),
+            R"({"name": "terrain", "T": [0.0, 0.0, 0.0]})", -0.345, 0.0);
+  ASSERT_EQ(context.get_active_terrain().size(), 1u);
+  const auto* terrain = dynamic_cast<const shift::core::terrain::Basic*>(
+    context.get_active_terrain()[0]);
+  ASSERT_NE(terrain, nullptr);
+  ASSERT_TRUE(terrain->is_bicubic());
+  double z_x, z_y;
+  for(int row = 0; row < rows; row++) {
+    for(int column = 0; column < columns; column++) {
+      EXPECT_NEAR(terrain->LocalZ(column * dx, row * dy, z_x, z_y),
+                  samples[row * columns + column], 1e-12)
+        << row << " " << column;
+    }
+  }
+  /* across the boundary x = 2 dx, along the line y = 1.3 dy: the slope on
+  each side, and the second derivative from the slopes on each side */
+  const double x = 2.0 * dx, y = 1.3 * dy, h = 1e-6;
+  auto slope = [&](double at) {
+    terrain->LocalZ(at, y, z_x, z_y);
+    return z_x;
+  };
+  EXPECT_NEAR(slope(x - h), slope(x + h), 1e-5);
+  const double left = (slope(x - h) - slope(x - 3.0 * h)) / (2.0 * h);
+  const double right = (slope(x + 3.0 * h) - slope(x + h)) / (2.0 * h);
+  EXPECT_NEAR(left, right, 1e-4 * (1.0 + std::fabs(left)));
   std::remove((testing::TempDir() + "/" + file).c_str());
 }
 

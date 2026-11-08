@@ -28,11 +28,15 @@ coordinate_type:
 interpolation_type:
 - "bilinear": the surface passes through the control points, and is only C0
   continuous (its normal jumps between cells)
-- "bicubic" (default): a uniform cubic B-spline over the control points. It
-  passes near but not through them and is C2 continuous, so tire forces on
-  it change smoothly.
+- "bicubic" (default): the natural cubic spline that interpolates the
+  samples, a uniform cubic B-spline whose control points are solved for when
+  the map is loaded so that the surface passes through every sample. It is C2
+  continuous, so tire forces on it change smoothly, and reproduces a plane
+  exactly.
 
-Beyond the map the surface continues with the samples of its edges.
+Beyond the map the bilinear surface continues with the samples of its edges.
+The bicubic surface continues along its slope at the edges for about a cell,
+and then levels off.
 
 \\code
 "terrain": [{"type": "basic", "name": "hills", "filename": "hills.tiff",
@@ -76,9 +80,16 @@ public:
    * control point (the first is at the origin) */
   double get_x_extent() const;
   double get_y_extent() const;
-  /*! \brief the control points as z (down) of the terrain frame,
-   * get_x_samples() along x by get_y_samples() along y, x fastest */
+  /*! \brief the control points of the surface as z (down) of the terrain
+   * frame, get_x_samples() along x by get_y_samples() along y, x fastest:
+   * the B-spline control points that interpolate the samples for the bicubic
+   * surface, the samples themselves for the bilinear */
   const std::vector<double>& get_control_points() const {
+    return bicubic_ ? control_ : z_;
+  }
+  /*! \brief the samples of the map as z (down) of the terrain frame, laid
+   * out as get_control_points(); the surface passes through them */
+  const std::vector<double>& get_samples() const {
     return z_;
   }
   /*! \brief spacing of the control points along x and y (m) */
@@ -124,8 +135,13 @@ private:
   /*! \brief path of a file next to the model file or in an include
    * directory */
   std::string FindFile(const std::string& name) const;
-  /*! \brief control point at sample (i, j) along the x and y axes of the
-   * terrain frame, clamped to the map, as z (down) */
+  /*! \brief solve for the control points of the B-spline that interpolates
+   * the samples */
+  void SolveControlPoints();
+  /*! \brief control point (i, j) along the x and y axes of the terrain
+   * frame as z (down): beyond the map, the sample of its edge for the
+   * bilinear surface, and for the bicubic the control point extrapolated
+   * linearly by one more along each axis */
   double ControlZ(long i, long j) const;
 
   std::string texture_filename_;
@@ -139,9 +155,11 @@ private:
   std::string coordinate_type_ = "sae";
   std::string interpolation_type_ = "bicubic";
 
-  /* the control points as z (down) of the terrain frame, nx along x by ny
-  along y, x fastest */
+  /* the samples of the map as z (down) of the terrain frame, nx along x by
+  ny along y, x fastest */
   std::vector<double> z_;
+  /* the control points of the bicubic surface, laid out as z_ */
+  std::vector<double> control_;
   long nx_ = 0;
   long ny_ = 0;
   bool bicubic_ = true;

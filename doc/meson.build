@@ -1,3 +1,5 @@
+subdir('figures')
+
 doxygen = find_program('doxygen', required: get_option('docs'))
 if not doxygen.found()
   subdir_done()
