@@ -913,6 +913,9 @@ bool shift::gui::Workspace::AdvanceImage() {
   } else {
     viewport_->FrameScene();
   }
+  if(request.set_frame) {
+    viewport_->FrameSphere(request.frame_center, request.frame_radius);
+  }
   if(!request.follow_body.isEmpty()) {
     viewport_->set_follow_body(follow, request.follow_ground
                                          ? Viewport::FollowMode::kGround

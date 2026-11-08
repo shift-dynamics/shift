@@ -30,6 +30,7 @@ struct SceneMesh {
   QVector3D albedo{0.6f, 0.6f, 0.6f};
   float roughness = 0.6f;
   float metallic = 0.f;
+  float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
 
   // texture layers in Scene::texture_layers, -1 if none; texture values
   // multiply the factors above

@@ -36,6 +36,21 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
     }
     request.size = QSize(width, height);
   }
+  if(parser.isSet("frame")) {
+    const QStringList frame = parser.value("frame").split(',');
+    double values[4] = {0.0, 0.0, 0.0, 0.0};
+    bool all = frame.size() == 4;
+    for(int i = 0; all && i < 4; i++) {
+      values[i] = frame[i].toDouble(&all);
+    }
+    if(!all || !(values[3] > 0.0)) {
+      error = "--frame takes X,Y,Z,RADIUS, with a radius above 0";
+      return false;
+    }
+    request.set_frame = true;
+    request.frame_center = QVector3D(values[0], values[1], values[2]);
+    request.frame_radius = float(values[3]);
+  }
   if(parser.isSet("view")) {
     const QStringList view = parser.value("view").split(',');
     bool ok_elevation = false;
@@ -84,6 +99,10 @@ int main(int argc, char* argv[]) {
      "with --image: camera azimuth about +z from +x towards +y, and "
      "elevation above the x-y plane, in degrees",
      "AZIMUTH,ELEVATION"},
+    {"frame",
+     "with --image: frame this sphere of the scene, not all of it, in the "
+     "inertial frame",
+     "X,Y,Z,RADIUS"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
     {"follow",

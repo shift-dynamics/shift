@@ -139,8 +139,9 @@ struct RtInstance {
   int32_t offsets[4]; // x = root node, y..w = texture layers as in
                       // MaterialUniforms
   float previous_body_to_world[16]; // pose in the previous frame
+  float optical[4]; // x = opacity
 };
-static_assert(sizeof(RtInstance) == 272);
+static_assert(sizeof(RtInstance) == 288);
 
 struct DenoiseUniforms {
   float previous_view_projection[16];
@@ -331,6 +332,14 @@ void shift::gui::Viewport::FrameScene() {
     camera_.Frame(box_min, box_max);
     UpdateEnvironment();
   }
+  rt_frame_ = 0;
+  update();
+}
+
+void shift::gui::Viewport::FrameSphere(const QVector3D& center, float radius) {
+  const QVector3D reach(radius, radius, radius);
+  camera_.Frame(center - reach, center + reach);
+  UpdateEnvironment();
   rt_frame_ = 0;
   update();
 }
@@ -1817,6 +1826,7 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
                    instances[i].box_min, instances[i].box_max);
       CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
       CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
+      instances[i].optical[0] = mesh.opacity;
     } else {
       // CAD geometry: its triangles are scaled, its faces may have colors
       const SceneCad& cad = scene.cads[instance.mesh_index - mesh_count];
@@ -1827,6 +1837,7 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       instances[i].material[1] = cad.roughness;
       instances[i].material[2] = 0.f;
       instances[i].material[3] = 1.f;
+      instances[i].optical[0] = 1.f;
       instances[i].offsets[1] = instances[i].offsets[2] =
         instances[i].offsets[3] = -1;
     }

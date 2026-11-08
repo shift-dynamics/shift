@@ -8,6 +8,7 @@
 #include <QElapsedTimer>
 #include <QMainWindow>
 #include <QSize>
+#include <QVector3D>
 
 class QAction;
 class QCheckBox;
@@ -83,6 +84,9 @@ public:
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
+    bool set_frame = false;    /*!< frame this sphere, not the whole scene */
+    QVector3D frame_center;    /*!< of the sphere, inertial frame */
+    float frame_radius = 1.f;  /*!< of the sphere */
   };
 
   /*! \brief render the open model at request.time to an image file and

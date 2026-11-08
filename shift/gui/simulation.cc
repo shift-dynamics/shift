@@ -104,6 +104,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
      data.material_index < static_cast<int>(materials.size())) {
     const auto& material = materials[data.material_index];
     mesh.albedo = QVector3D(material.Kd[0], material.Kd[1], material.Kd[2]);
+    mesh.opacity = std::clamp(material.opacity, 0.f, 1.f);
     // use the metallic-roughness value if given, otherwise map the
     // Blinn-Phong exponent to an approximately equivalent GGX roughness
     const float roughness = material.roughness >= 0.f

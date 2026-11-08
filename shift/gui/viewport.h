@@ -89,6 +89,9 @@ public:
 
   /*! \brief frame the camera on the current poses */
   void FrameScene();
+
+  /*! \brief frame a sphere of the scene, to look closely at a part of it */
+  void FrameSphere(const QVector3D& center, float radius);
   /*! \brief look from azimuth and elevation (radians, see Camera) and frame
    * the camera on the current poses */
   void set_view(float azimuth, float elevation);
