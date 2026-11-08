@@ -1086,6 +1086,10 @@ static bool SectionResidual(const CurvedLine& c, double s, const shift::core::ca
   return true;
 }
 
+/* how far the normals of two faces must oppose each other, as the cosine of
+the angle from opposite, for a curved face to touch along a section */
+static constexpr double kOpposed = 0.5;
+
 /* the cross section of a curved face on a cylinder or plane at the station
 s: the deepest point of the curve, by Newton's method from the last one, and
 inside the bounds of the face, as a NURBS surface does not extend beyond them.
@@ -1150,7 +1154,7 @@ static double CurvedSection(const void* data, double s, ksl_vec3_t& pa,
   const ksl_vec3_t p = SidePoint(*c.curved, c.face, uv);
   const double depth = OtherDepth(c, p, q, outward);
   if(depth == -HUGE_VAL || c.beyond ||
-     Dot(SideNormal(*c.curved, c.face, uv), outward) > -0.5) {
+     Dot(SideNormal(*c.curved, c.face, uv), outward) > -kOpposed) {
     return -HUGE_VAL;
   }
   c.uv = uv;
@@ -1328,6 +1332,46 @@ static bool CurvedFaceLine(CurvedLine& c, const shift::core::cad::Vec2& seed,
   if(!(s1 > s0) || !CurvedOverlap(c, s0, s1, o)) {
     return true;
   }
+  /* a line that bends: the stations cut it along its chord, from the tangent
+  at the seed only if that is near it */
+  const double straightness = 1e-9 * curved.shape->size;
+  bool bent = false;
+  for(int pass = 0; pass < 2; pass++) {
+    ksl_vec3_t ends[2], middle, pb, normal;
+    if(CurvedSection(&c, o.lo + 1e-6 * (o.hi - o.lo), ends[0], pb, normal) ==
+         -HUGE_VAL ||
+       CurvedSection(&c, o.hi - 1e-6 * (o.hi - o.lo), ends[1], pb, normal) ==
+         -HUGE_VAL ||
+       CurvedSection(&c, 0.5 * (o.lo + o.hi), middle, pb, normal) == -HUGE_VAL) {
+      break;
+    }
+    ksl_vec3_t chord = Sub(ends[1], ends[0]);
+    const double span = ksl_vec3_l2norm(&chord);
+    if(!(span > 0.0)) {
+      break;
+    }
+    ksl_vec3_scale(&chord, 1.0 / span);
+    const ksl_vec3_t off = Sub(middle, ends[0]);
+    const ksl_vec3_t bow = Axpy(off, -Dot(off, chord), chord);
+    if(ksl_vec3_l2norm(&bow) <= straightness) {
+      break;
+    }
+    bent = true;
+    c.direction = chord;
+    c.origin = ends[0];
+    FaceRange(curved, fc, c.origin, c.direction, s0, s1);
+    if(other) {
+      double o0, o1;
+      FaceRange(*other, fo, c.origin, c.direction, o0, o1);
+      other_ends[0] = o0 > s0;
+      other_ends[1] = o1 < s1;
+      s0 = std::max(s0, o0);
+      s1 = std::min(s1, o1);
+    }
+    if(!(s1 > s0) || !CurvedOverlap(c, s0, s1, o)) {
+      return true;
+    }
+  }
   const size_t before = points.size();
   const double length = s1 - s0;
   const double inset = 1e-6 * length;
@@ -1421,12 +1465,41 @@ static bool CurvedFaceLine(CurvedLine& c, const shift::core::cad::Vec2& seed,
       pieces = Intersect(pieces,
                          in_range(other->shape->Clip(fo, uv0, uv1, kSeam)));
     }
+    const size_t first = points.size();
     LinePoints(nullptr, -1, nullptr, -1, c.direction, o, CurvedSection, &c,
                max_depth, line, points, &pieces);
+    if(bent) {
+      /* a station's length is along the line, not its chord */
+      const double step = 1e-4 * (o.hi - o.lo);
+      for(size_t i = first; i < points.size(); i++) {
+        const ksl_vec3_t at = c.curved_is_a ? points[i].point_a : points[i].point_b;
+        const double s = Dot(Sub(at, c.origin), c.direction);
+        ksl_vec3_t p0, p1, pb, normal;
+        if(CurvedSection(&c, s - step, p0, pb, normal) != -HUGE_VAL &&
+           CurvedSection(&c, s + step, p1, pb, normal) != -HUGE_VAL) {
+          const ksl_vec3_t along = Sub(p1, p0);
+          points[i].length *= ksl_vec3_l2norm(&along) / (2.0 * step);
+        }
+      }
+    }
   }
   /* two curved faces find a line on a seam to within their normals */
   c.repeated = DropRepeated(points, before,
                             (c.other_side ? 1e-5 : 1e-9) * curved.shape->size);
+  /* a section counts only where the faces oppose each other by kOpposed: as
+  they turn away the contact goes smoothly, so that the end of a roller tipping
+  over from its side to its end face has no jump at that angle */
+  ksl_vec3_t pa, pb, normal;
+  const double back = o.deepest > 0.5 * (s0 + s1) ? -inset : inset;
+  if(CurvedSection(&c, o.deepest, pa, pb, normal) != -HUGE_VAL ||
+     CurvedSection(&c, o.deepest + back, pa, pb, normal) != -HUGE_VAL) {
+    const double opposed = (c.curved_is_a ? 1.0 : -1.0) *
+                           Dot(SideNormal(curved, fc, c.uv), normal);
+    const double share = SmoothStep((opposed - kOpposed) / 0.4);
+    for(size_t i = before; i < points.size(); i++) {
+      points[i].weight *= share;
+    }
+  }
   return true;
 }
 
@@ -2797,9 +2870,11 @@ static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a,
     const shift::core::collision_geometry::CadContactShape& other = *(edge.on_a ? b : a).shape;
     const auto& edge_faces = own.edges[edge.feature].faces;
     for(const FeatureInFace& corner : corner_points) {
+      if(corner.on_a == edge.on_a) {
+        continue;
+      }
       const auto& corner_faces = other.vertices[corner.feature].faces;
-      if(corner.on_a != edge.on_a &&
-         std::find(edge_faces.begin(), edge_faces.end(), corner.face) != edge_faces.end() &&
+      if(std::find(edge_faces.begin(), edge_faces.end(), corner.face) != edge_faces.end() &&
          std::find(corner_faces.begin(), corner_faces.end(), edge.face) != corner_faces.end()) {
         repeated.push_back(edge.point);
         break;

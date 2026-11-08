@@ -12,6 +12,7 @@ rest depth of a capsule, a cylinder and a box on the ground */
 #include <sstream>
 #include <vector>
 
+#include "test/contact/contact_record.h"
 #include "shift/core/body/base.h"
 #include "shift/core/collision_geometry/box.h"
 #include "shift/core/collision_geometry/capsule.h"
@@ -77,6 +78,8 @@ template <class T>
 static std::unique_ptr<T> Fitted(const std::vector<ksl_vec3_t>& points) {
   auto g = std::make_unique<T>();
   g->FitToPoints(points);
+  g->UpdatePose(Pose(V(0, 0, 0), V(1, 0, 0), 0.0));
+  shift::test::RecordShape(*g);
   return g;
 }
 
@@ -259,7 +262,7 @@ static void CheckLine(bool is_capsule, const ksl_vec3_t& plane_normal,
   shift::core::collision_geometry::ContactPair pair;
   pair.a = plane.get();
   pair.b = shape.get();
-  shift::core::collision_geometry::TestContact(pair);
+  shift::test::TestContact(pair);
   const ksl_vec3_t c = shape->get_d_absolute().t;
   const ksl_vec3_t a = Axis(*shape);
   const ksl_vec3_t n = plane->get_normal();
@@ -329,7 +332,7 @@ TEST(ContactPrimitives, LineContactIsContinuousAsTheShapeTilts) {
       shift::core::collision_geometry::ContactPair pair;
       pair.a = plane.get();
       pair.b = shape.get();
-      shift::core::collision_geometry::TestContact(pair);
+      shift::test::TestContact(pair);
       double force = 0.0;
       if(pair.collision && !pair.manifold.empty()) {
         force = pair.manifold[0].length * pair.manifold[0].depth;
@@ -404,6 +407,7 @@ static double RestDepth(const std::string& shape, double offset, double mass,
     throw;
   }
   context.Simulate();
+  shift::test::RecordContacts(context);
   for(auto body : context.get_active_articulated_bodies()) {
     if(body->get_name() == "block") {
       return -context.get_body_origin_pose(body).t.z - offset;

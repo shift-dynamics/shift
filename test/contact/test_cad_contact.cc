@@ -13,6 +13,7 @@ and three links of track settling on the sprocket */
 #include <string>
 #include <vector>
 
+#include "test/contact/contact_record.h"
 #include "shift/config.h"
 #include "shift/core/body/base.h"
 #include "shift/core/cad/step_reader.h"
@@ -268,6 +269,7 @@ TEST_F(CadContact, NothingTouchesAtTheSeats) {
   shift::core::Context context;
   Load(context, "cad_clear", t);
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   for(auto pair : context.get_contacts()) {
     ADD_FAILURE() << pair->a->get_name() << " and " << pair->b->get_name()
                   << " touch";
@@ -285,6 +287,7 @@ TEST_F(CadContact, BushingInSeatIsALine) {
     shift::core::Context context;
     Load(context, "cad_seat", t);
     context.DetectContacts();
+    shift::test::RecordContacts(context);
     ASSERT_EQ(context.get_contacts().size(), 1u);
     const auto& pair = *context.get_contacts()[0];
     ASSERT_TRUE(pair.point_laws);
@@ -316,6 +319,7 @@ TEST_F(CadContact, LineOverASeamHasNoPointsAtItsEnds) {
   shift::core::Context context;
   Load(context, "cad_seam", t);
   context.DetectContacts(); // sets the poses of the geometry
+  shift::test::RecordContacts(context);
   shift::core::collision_geometry::Base* sprocket = nullptr;
   shift::core::collision_geometry::Base* link = nullptr;
   for(auto g : context.get_active_collision_geometry()) {
@@ -345,7 +349,7 @@ TEST_F(CadContact, LineOverASeamHasNoPointsAtItsEnds) {
       shift::core::collision_geometry::ContactPair pair;
       pair.a = sprocket;
       pair.b = link;
-      shift::core::collision_geometry::TestContact(pair);
+      shift::test::TestContact(pair);
       ASSERT_TRUE(pair.collision);
       double length = 0.0;
       for(const auto& c : pair.manifold) {
@@ -370,6 +374,7 @@ TEST_F(CadContact, GrousersOnTheGround) {
   shift::core::Context context;
   Load(context, "cad_grousers", t);
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   EXPECT_EQ(context.get_contacts().size(), 1u);
   auto pairs = Between(context, "link1", "ground");
   ASSERT_EQ(pairs.size(), 1u);
@@ -394,6 +399,7 @@ TEST_F(CadContact, ToothTipOnTheGround) {
   shift::core::Context context;
   Load(context, "cad_tip", t);
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   auto pairs = Between(context, "sprocket", "ground");
   ASSERT_EQ(pairs.size(), 1u);
   double length = 0.0;
@@ -417,6 +423,7 @@ TEST_F(CadContact, LinksSettleOnTheSprocket) {
   shift::core::Context context;
   Load(context, "cad_settle", t);
   context.Simulate();
+  shift::test::RecordContacts(context);
   double up = 0.0;
   int lines = 0;
   for(auto pair : context.get_contacts()) {
@@ -477,6 +484,7 @@ static long ContactCalls(const std::string& model, double time_span) {
   context.LoadJSON(path);
   std::remove(path.c_str());
   context.Simulate();
+  shift::test::RecordContacts(context);
   return context.get_contact_detection_calls();
 }
 
@@ -535,6 +543,7 @@ TEST_F(CadContact, TrackLoopCloses) {
   EXPECT_NEAR(q.y, 0.0, 1e-12);
   EXPECT_NEAR(context.get_body_origin_pose(first).R.at[1][1], 1.0, 1e-12);
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   for(auto pair : context.get_contacts()) {
     ADD_FAILURE() << pair->a->get_name() << " touches "
                   << pair->b->get_name() << " at "
@@ -567,11 +576,10 @@ TEST(HertzEllipse, EllipticIntegrals) {
 }
 
 TEST(HertzEllipse, FactorAndElongation) {
-  using shift::core::collision_geometry::HertzEllipseFactor;
   double elongation;
-  EXPECT_EQ(HertzEllipseFactor(1.0, &elongation), 1.0); // a circle
+  EXPECT_EQ(shift::core::collision_geometry::HertzEllipseFactor(1.0, &elongation), 1.0); // a circle
   EXPECT_EQ(elongation, 1.0);
-  EXPECT_NEAR(HertzEllipseFactor(1.0 + 1e-6), 1.0, 1e-5);
+  EXPECT_NEAR(shift::core::collision_geometry::HertzEllipseFactor(1.0 + 1e-6), 1.0, 1e-5);
   /* against the curve fits of Hamrock and Brewe (1983), within their
   accuracy: the axes' ratio a / b = 1.0339 alpha^0.636, and the
   stiffness from their deflection,
@@ -581,7 +589,7 @@ TEST(HertzEllipse, FactorAndElongation) {
   double previous = 1.0;
   for(double alpha : {1.5, 2.0, 5.0, 10.0, 30.0}) {
     SCOPED_TRACE(alpha);
-    const double g = HertzEllipseFactor(alpha, &elongation);
+    const double g = shift::core::collision_geometry::HertzEllipseFactor(alpha, &elongation);
     const double k = 1.0339 * std::pow(alpha, 0.636);
     const double integral_e = 1.0003 + 0.5968 / alpha;
     const double integral_f = 1.5277 + 0.6023 * std::log(alpha);
@@ -596,7 +604,7 @@ TEST(HertzEllipse, FactorAndElongation) {
   B / A = (E / (1 - e^2) - K) / (K - E), e^2 = 1 - (b / a)^2 */
   for(double alpha : {100.0, 1e4}) {
     SCOPED_TRACE(alpha);
-    EXPECT_GT(HertzEllipseFactor(alpha, &elongation), previous);
+    EXPECT_GT(shift::core::collision_geometry::HertzEllipseFactor(alpha, &elongation), previous);
     const double complement = 1.0 / (elongation * elongation);
     double k, e, k_minus_e;
     shift::core::collision_geometry::CompleteEllipticIntegrals(
@@ -691,6 +699,7 @@ static void LoadWheels(shift::core::Context& context, const std::string& name,
   std::remove(path.c_str());
   context.UpdateD();
   context.DetectContacts();
+  shift::test::RecordContacts(context);
 }
 
 /* the contact of the geometries of a model of idlers (in the order of
@@ -727,7 +736,7 @@ public:
     pair_ = shift::core::collision_geometry::ContactPair();
     pair_.a = geometry_[0];
     pair_.b = geometry_[1];
-    shift::core::collision_geometry::TestContact(pair_);
+    shift::test::TestContact(pair_);
     return pair_;
   }
 
@@ -917,6 +926,7 @@ TEST_F(CadContact, TrackFrameStartsClear) {
   context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/track_frame.json");
   context.UpdateD();
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   for(auto pair : context.get_contacts()) {
     ADD_FAILURE() << pair->a->get_name() << " touches "
                   << pair->b->get_name() << ", deepest " << pair->depth;
@@ -1007,6 +1017,7 @@ TEST_F(CadContact, LinkHangsOnItsPin) {
   std::remove(path.c_str());
   context.UpdateD();
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   ASSERT_EQ(context.get_contacts().size(), 1u);
   const auto& pair = *context.get_contacts()[0];
   ASSERT_TRUE(pair.point_laws);

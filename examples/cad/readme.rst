@@ -12,4 +12,9 @@ Models
 * ``track_frame.json``: the same track on the track frame of half of a 20 t excavator, with five track rollers and a carrier roller. The frame is on a float joint, held up only by the track on soft, damped ground, so the sprocket drives it along. Also a benchmark.
 * ``track_frame_soil.json``: one track of a 20 t excavator driving over dry sand. Its contacts are on spheres and boxes, with the STEP parts only drawn.
 
+Parts
+-----
+
+* ``gear_tooth.step`` and ``ring_sector.step``: a tooth of a spur gear with involute flanks and a bent ring, used by the contact tests and written by ``scripts/make_contact_step.py``.
+
 See the `contact <https://shift-dynamics.github.io/shift/force-modules/contact.html>`_ page of the documentation.

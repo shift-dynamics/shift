@@ -12,6 +12,7 @@ the ground (scripts/make_cam_step.py) */
 #include <utility>
 #include <vector>
 
+#include "test/contact/contact_record.h"
 #include "shift/config.h"
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/gjk.h"
@@ -63,7 +64,7 @@ public:
     pair_ = shift::core::collision_geometry::ContactPair();
     pair_.a = cam_;
     pair_.b = follower_;
-    shift::core::collision_geometry::TestContact(pair_);
+    shift::test::TestContact(pair_);
     return pair_;
   }
 
@@ -295,12 +296,13 @@ TEST_P(CamFaces, TiltedRollerLoadsItsEnd) {
 }
 
 TEST_P(CamFaces, TiltingRollerHasNoJump) {
-  // from level, through end loading, to the rim of the roller
+  // from level, through end loading, to the rim of the roller, and on past
+  // 30 and 60 degrees, where its end face and side turn from the cam
   CamScene scene(GetParam(), "roller");
   const double depth = 0.4e-6;
   double previous = 0.0, previous_theta = 0.0;
   bool line = false, rim = false;
-  for(double theta = 1e-5; theta < 0.5; theta *= 1.01) {
+  for(double theta = 1e-5; theta < 1.2; theta *= 1.01) {
     SCOPED_TRACE(theta);
     const auto& pair = scene.Test(Tilted(theta, depth));
     const double force = ElasticForce(pair);
@@ -565,6 +567,124 @@ TEST_P(CurvedOnCurved, CrossedCamsHaveNoJumpOverASeam) {
   EXPECT_LT(greatest / peak, 0.02);
 }
 
+/* a spur gear of 20 teeth of module 5 mm and a pressure angle of 20 degrees:
+scripts/make_contact_step.py */
+static const double kPitchRadius = 0.05;
+static const double kPressureAngle = 20.0 * M_PI / 180.0;
+static const double kBaseRadius = kPitchRadius * std::cos(kPressureAngle);
+static const double kHalfTooth = M_PI / 40.0;
+
+/* the second tooth, on a gear 100 mm from the first, the first turned by phi
+from the pitch point and the second with it, then on by lead into the first */
+static ksl_SE3_t Meshing(double phi, double lead) {
+  ksl_SE3_t d = At(2.0 * kPitchRadius, 0.0);
+  const double turn = M_PI - kHalfTooth - phi + lead;
+  const double c = std::cos(turn), s = std::sin(turn);
+  d.R.at[0][0] = c;
+  d.R.at[0][1] = s;
+  d.R.at[1][0] = -s;
+  d.R.at[1][1] = c;
+  return d;
+}
+
+TEST(GearToothContact, FlanksMeshAlongALine) {
+  // rolling through the mesh: a line across the width, at the depth of the
+  // lead on the base circle, its normal along the line of action, and passing
+  // through the pitch point at phi = 0
+  CamScene scene("gear_tooth", "gear_tooth");
+  const double lead = 2e-4, depth = kBaseRadius * lead;
+  for(int i = -10; i <= 10; i++) {
+    const double phi = 0.01 * i;
+    SCOPED_TRACE(phi);
+    const auto& pair = scene.Test(Meshing(phi, lead), phi - kHalfTooth);
+    ASSERT_TRUE(pair.collision);
+    ASSERT_EQ(pair.manifold.size(), 3u);
+    double length = 0.0;
+    for(const auto& c : pair.manifold) {
+      length += c.length;
+      EXPECT_NEAR(c.depth, depth, 2e-6);
+      EXPECT_NEAR(std::fabs(c.normal.x * std::sin(kPressureAngle) +
+                            c.normal.y * std::cos(kPressureAngle)),
+                  1.0, 1e-3);
+      // on the line of action, from the pitch point along the base circle
+      const double along = (c.point_a.x - kPitchRadius) * std::cos(kPressureAngle) -
+                           c.point_a.y * std::sin(kPressureAngle);
+      EXPECT_NEAR(along, 0.0, 1e-5);
+    }
+    EXPECT_NEAR(length, kWidth, 1e-9);
+  }
+}
+
+TEST(GearToothContact, MeshHasNoJump) {
+  CamScene scene("gear_tooth", "gear_tooth");
+  const double lead = 2e-4;
+  double previous = 0.0, greatest = 0.0, peak = 0.0;
+  for(int i = -1000; i <= 1000; i++) {
+    const double phi = 1e-4 * i;
+    const double force =
+      ElasticForce(scene.Test(Meshing(phi, lead), phi - kHalfTooth));
+    if(i > -1000) {
+      greatest = std::max(greatest, std::fabs(force - previous));
+    }
+    previous = force;
+    peak = std::max(peak, force);
+  }
+  ASSERT_GT(peak, 0.0);
+  EXPECT_LT(greatest / peak, 0.02);
+}
+
+TEST(GearToothContact, BacklashHasNoContact) {
+  CamScene scene("gear_tooth", "gear_tooth");
+  EXPECT_FALSE(scene.Test(Meshing(0.03, -2e-4), 0.03 - kHalfTooth).collision);
+}
+
+/* the plane z = at, its solid beyond it */
+static ksl_SE3_t GroundAtZ(double at) {
+  ksl_SE3_t d = At(0.0, 0.0, at);
+  d.R.at[0][0] = 0.0;
+  d.R.at[0][2] = 1.0;
+  d.R.at[2][0] = -1.0;
+  d.R.at[2][2] = 0.0;
+  return d;
+}
+
+TEST(BentLine, RingOnAPlaneIsAQuarterCircle) {
+  // examples/cad/ring_sector.step: a tube of radius 8 mm bent to 30 mm over a
+  // quarter of a turn. The line bends with it: its stations are on the circle,
+  // at the depth, and their lengths add up to the arc
+  const double radius = 0.03, tube = 0.008, depth = 1e-5;
+  CamScene scene("ring_sector", "", true);
+  const auto& pair = scene.Test(GroundAtZ(tube - depth));
+  ASSERT_TRUE(pair.collision);
+  ASSERT_EQ(pair.manifold.size(), 3u);
+  double length = 0.0;
+  for(const auto& c : pair.manifold) {
+    EXPECT_GT(c.length, 0.0);
+    EXPECT_NEAR(c.depth, depth, 1e-9);
+    EXPECT_NEAR(std::fabs(c.normal.z), 1.0, 1e-6);
+    EXPECT_NEAR(std::hypot(c.point_a.x, c.point_a.y), radius, 1e-7);
+    length += c.length;
+  }
+  EXPECT_NEAR(length, 0.5 * M_PI * radius, 0.01 * 0.5 * M_PI * radius);
+}
+
+TEST(BentLine, TurningRingHasNoJump) {
+  const double tube = 0.008, depth = 1e-5;
+  CamScene scene("ring_sector", "", true);
+  double previous = 0.0, greatest = 0.0, peak = 0.0;
+  for(int i = 0; i <= 400; i++) {
+    const double force =
+      ElasticForce(scene.Test(GroundAtZ(tube - depth), 0.0157 * i));
+    if(i > 0) {
+      greatest = std::max(greatest, std::fabs(force - previous));
+    }
+    previous = force;
+    peak = std::max(peak, force);
+  }
+  ASSERT_GT(peak, 0.0);
+  EXPECT_LT(greatest / peak, 0.02);
+}
+
 /* the distance along x of the center of a roller touching the cam turned by
 angle: where the curve parallel to the ellipse at the roller's radius crosses
 the x axis, on its +x side */
@@ -604,6 +724,7 @@ TEST(CadLineContact, FollowerRidesTheCam) {
     samples++;
   });
   context.Simulate();
+  shift::test::RecordContacts(context);
   EXPECT_GT(samples, 50);
   EXPECT_GT(std::fabs(turned), 2.0 * M_PI);
   // to within the contact's deflection under the spring, of the 15 mm lift

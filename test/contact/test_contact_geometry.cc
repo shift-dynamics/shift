@@ -1,6 +1,6 @@
 /* Contact data of collision geometry pairs: penetration depth, normal and
 contact points from GJK + EPA (collision_geometry/epa.h), on shapes of known
-size fitted with Base::FitToPoints */
+size fitted with shift::core::collision_geometry::Base::FitToPoints */
 #include "gtest/gtest.h"
 
 #include <algorithm>
@@ -9,20 +9,13 @@ size fitted with Base::FitToPoints */
 #include <random>
 #include <vector>
 
+#include "test/contact/contact_record.h"
 #include "shift/core/collision_geometry/analytic_contact.h"
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/gjk.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/collision_geometry/sphere.h"
-
-using shift::core::collision_geometry::Base;
-using shift::core::collision_geometry::ContactPair;
-using shift::core::collision_geometry::ConvexHull;
-using shift::core::collision_geometry::Ellipsoid;
-using shift::core::collision_geometry::Plane;
-using shift::core::collision_geometry::Sphere;
-using shift::core::collision_geometry::TestContact;
 
 static ksl_vec3_t V(double x, double y, double z) {
   return {{x, y, z}};
@@ -79,20 +72,20 @@ static std::vector<ksl_vec3_t> EllipsoidPoints(double a, double b, double c,
 }
 
 template <class T>
-static std::unique_ptr<Base> Make(const std::vector<ksl_vec3_t>& points) {
+static std::unique_ptr<shift::core::collision_geometry::Base> Make(const std::vector<ksl_vec3_t>& points) {
   auto g = std::make_unique<T>();
   g->FitToPoints(points);
   return g;
 }
 
-static ContactPair Collide(Base& a, const ksl_SE3_t& pose_a, Base& b,
+static shift::core::collision_geometry::ContactPair Collide(shift::core::collision_geometry::Base& a, const ksl_SE3_t& pose_a, shift::core::collision_geometry::Base& b,
                         const ksl_SE3_t& pose_b) {
   a.UpdatePose(pose_a);
   b.UpdatePose(pose_b);
-  ContactPair pair;
+  shift::core::collision_geometry::ContactPair pair;
   pair.a = &a;
   pair.b = &b;
-  TestContact(pair);
+  shift::test::TestContact(pair);
   return pair;
 }
 
@@ -104,7 +97,7 @@ static ksl_SE3_t Moved(ksl_SE3_t pose, const ksl_vec3_t& n, double distance) {
 }
 
 /* the extreme projection of a geometry along a direction */
-static double Extent(Base& g, const ksl_vec3_t& d) {
+static double Extent(shift::core::collision_geometry::Base& g, const ksl_vec3_t& d) {
   ksl_vec3_t local, global;
   int hint = 0;
   g.Support(d, local, global, hint);
@@ -112,9 +105,9 @@ static double Extent(Base& g, const ksl_vec3_t& d) {
 }
 
 TEST(ContactGeometry, BoxFaceContact) {
-  auto a = Make<ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
-  auto b = Make<ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
-  const ContactPair p =
+  auto a = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
+  auto b = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
+  const shift::core::collision_geometry::ContactPair p =
     Collide(*a, Pose(V(0, 0, 0)), *b, Pose(V(0.9, 0.1, 0.05)));
   ASSERT_TRUE(p.collision);
   EXPECT_TRUE(p.depth_converged);
@@ -128,10 +121,10 @@ TEST(ContactGeometry, BoxFaceContact) {
 }
 
 TEST(ContactGeometry, SpheresAnalytic) {
-  auto a = Make<Sphere>(EllipsoidPoints(1, 1, 1));
-  auto b = Make<Sphere>(EllipsoidPoints(1, 1, 1));
-  const double r = static_cast<Sphere&>(*a).get_radius();
-  const ContactPair p =
+  auto a = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(1, 1, 1));
+  auto b = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(1, 1, 1));
+  const double r = static_cast<shift::core::collision_geometry::Sphere&>(*a).get_radius();
+  const shift::core::collision_geometry::ContactPair p =
     Collide(*a, Pose(V(0, 0, 0)), *b, Pose(V(0, 2 * r - 0.2, 0)));
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, 0.2, 1e-12);
@@ -141,13 +134,13 @@ TEST(ContactGeometry, SpheresAnalytic) {
 
 TEST(ContactGeometry, SphereOnBoxFace) {
   // a sphere through GJK and EPA (the pair is not two spheres)
-  auto box = Make<ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
-  auto ball = Make<Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
-  const auto& sphere = static_cast<Sphere&>(*ball);
+  auto box = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
+  const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
   const double r = sphere.get_radius();
   // the fitted sphere center is not exactly the origin of its points
   const double cz = sphere.get_d_wrt_body().t.z;
-  const ContactPair p =
+  const shift::core::collision_geometry::ContactPair p =
     Collide(*box, Pose(V(0, 0, 0)), *ball,
             Pose(V(0.1, -0.2, 0.5 + r - cz - 0.05)));
   ASSERT_TRUE(p.collision);
@@ -158,9 +151,9 @@ TEST(ContactGeometry, SphereOnBoxFace) {
 }
 
 TEST(ContactGeometry, CoincidentBoxesSeparateThroughAFace) {
-  auto a = Make<ConvexHull>(BoxPoints(0.5, 0.3, 0.2));
-  auto b = Make<ConvexHull>(BoxPoints(0.5, 0.3, 0.2));
-  const ContactPair p = Collide(*a, Pose(V(0, 0, 0)), *b, Pose(V(0, 0, 0)));
+  auto a = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.3, 0.2));
+  auto b = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.3, 0.2));
+  const shift::core::collision_geometry::ContactPair p = Collide(*a, Pose(V(0, 0, 0)), *b, Pose(V(0, 0, 0)));
   ASSERT_TRUE(p.collision);
   // the shortest way out is along z, through the thinnest dimension
   EXPECT_NEAR(p.depth, 0.4, 1e-9);
@@ -169,11 +162,11 @@ TEST(ContactGeometry, CoincidentBoxesSeparateThroughAFace) {
 
 TEST(ContactGeometry, SphereCenterInsideBox) {
   // the nearest face of the box is +y, 0.1 from the center
-  auto box = Make<ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
-  auto ball = Make<Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
-  const auto& sphere = static_cast<Sphere&>(*ball);
+  auto box = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
+  const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
   const ksl_vec3_t c = sphere.get_d_wrt_body().t;
-  const ContactPair p = Collide(*box, Pose(V(0, 0, 0)), *ball,
+  const shift::core::collision_geometry::ContactPair p = Collide(*box, Pose(V(0, 0, 0)), *ball,
                                 Pose(V(0.05 - c.x, 0.4 - c.y, -c.z)));
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, sphere.get_radius() + 0.1, 1e-12);
@@ -184,12 +177,12 @@ TEST(ContactGeometry, SphereCenterInsideBox) {
 
 TEST(ContactGeometry, SphereOnBoxEdge) {
   // the center beyond an edge of the box: the normal is diagonal
-  auto box = Make<ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
-  auto ball = Make<Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
-  const auto& sphere = static_cast<Sphere&>(*ball);
+  auto box = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.5, 0.5, 0.5));
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
+  const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
   const ksl_vec3_t c = sphere.get_d_wrt_body().t;
   const double k = 0.1 / std::sqrt(2.0);
-  const ContactPair p = Collide(*box, Pose(V(0, 0, 0)), *ball,
+  const shift::core::collision_geometry::ContactPair p = Collide(*box, Pose(V(0, 0, 0)), *ball,
                                 Pose(V(0.5 + k - c.x, 0.5 + k - c.y, -c.z)));
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, sphere.get_radius() - 0.1, 1e-12);
@@ -202,10 +195,10 @@ TEST(ContactGeometry, SphereOnBoxEdge) {
 TEST(ContactGeometry, SphereOnEllipsoidAxes) {
   // outside the ellipsoid along a principal axis, its closest point is the
   // end of that axis
-  auto shape = Make<Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
-  auto ball = Make<Sphere>(EllipsoidPoints(0.1, 0.1, 0.1));
-  const auto& ellipsoid = static_cast<Ellipsoid&>(*shape);
-  const auto& sphere = static_cast<Sphere&>(*ball);
+  auto shape = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.1, 0.1, 0.1));
+  const auto& ellipsoid = static_cast<shift::core::collision_geometry::Ellipsoid&>(*shape);
+  const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
   const ksl_SE3_t& frame = ellipsoid.get_d_wrt_body();
   const ksl_vec3_t c = sphere.get_d_wrt_body().t;
   const double r = sphere.get_radius();
@@ -218,7 +211,7 @@ TEST(ContactGeometry, SphereOnEllipsoidAxes) {
       for(int k = 0; k < 3; k++) {
         t.at[k] = frame.t.at[k] + side * distance * u.at[k] - c.at[k];
       }
-      const ContactPair p = Collide(*shape, Pose(V(0, 0, 0)), *ball, Pose(t));
+      const shift::core::collision_geometry::ContactPair p = Collide(*shape, Pose(V(0, 0, 0)), *ball, Pose(t));
       ASSERT_TRUE(p.collision) << axis << " " << side;
       EXPECT_NEAR(p.depth, 0.02, 1e-12) << axis << " " << side;
       EXPECT_NEAR(Dot(p.normal, u), side, 1e-12) << axis << " " << side;
@@ -230,9 +223,9 @@ TEST(ContactGeometry, EllipsoidsAlongAxes) {
   // equal, aligned ellipsoids with centers 2 a - 0.02 apart along a principal
   // axis overlap by 0.02 along it, the ends of the axis being the contact
   // points
-  auto first = Make<Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
-  auto second = Make<Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
-  const auto& ellipsoid = static_cast<Ellipsoid&>(*first);
+  auto first = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
+  auto second = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
+  const auto& ellipsoid = static_cast<shift::core::collision_geometry::Ellipsoid&>(*first);
   const ksl_SE3_t& frame = ellipsoid.get_d_wrt_body();
   for(int axis = 0; axis < 3; axis++) {
     for(double side : {1.0, -1.0}) {
@@ -242,7 +235,7 @@ TEST(ContactGeometry, EllipsoidsAlongAxes) {
         const double distance = 2.0 * a + gap;
         const ksl_SE3_t pose_b = Pose(
           V(side * distance * u.x, side * distance * u.y, side * distance * u.z));
-        const ContactPair p =
+        const shift::core::collision_geometry::ContactPair p =
           Collide(*first, Pose(V(0, 0, 0)), *second, pose_b);
         ASSERT_TRUE(p.success);
         ASSERT_EQ(p.collision, gap < 0.0) << axis << " " << side << " " << gap;
@@ -260,7 +253,7 @@ TEST(ContactGeometry, EllipsoidsAlongAxes) {
 
 /* the penetration depth by brute force: the least translation separating a
 and b over a dense set of directions, polished by sampling around the best */
-static double BruteForceDepth(Base& a, Base& b, ksl_vec3_t& best) {
+static double BruteForceDepth(shift::core::collision_geometry::Base& a, shift::core::collision_geometry::Base& b, ksl_vec3_t& best) {
   auto distance = [&](const ksl_vec3_t& n) {
     return Extent(a, n) + Extent(b, V(-n.x, -n.y, -n.z));
   };
@@ -311,8 +304,8 @@ TEST(ContactGeometry, EllipsoidPairsGlobalDepth) {
   int tested = 0;
   for(const auto& sa : shapes) {
     for(const auto& sb : shapes) {
-      auto a = Make<Ellipsoid>(EllipsoidPoints(sa.x, sa.y, sa.z));
-      auto b = Make<Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
+      auto a = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sa.x, sa.y, sa.z));
+      auto b = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
       for(int trial = 0; trial < 12; trial++) {
         ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
         ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
@@ -324,7 +317,7 @@ TEST(ContactGeometry, EllipsoidPairsGlobalDepth) {
         const ksl_SE3_t pose_b =
           Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
                axis_b, 3.0 * unit(random));
-        const ContactPair p = Collide(*a, pose_a, *b, pose_b);
+        const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
         ksl_vec3_t n;
         const double depth = BruteForceDepth(*a, *b, n);
         ASSERT_EQ(p.collision, depth > 0.0) << "trial " << trial;
@@ -357,19 +350,19 @@ static std::vector<ksl_vec3_t> IrregularPoints(int count, unsigned seed) {
 }
 
 /* random overlapping poses of hulls and ellipsoids: the exact contact (see
-ConvexHullEllipsoidContact) is the global least separating translation */
+shift::core::collision_geometry::ConvexHullEllipsoidContact) is the global least separating translation */
 TEST(ContactGeometry, HullEllipsoidGlobalDepth) {
   const ksl_vec3_t shapes[] = {V(0.4, 0.25, 0.15), V(0.5, 0.06, 0.06),
                                V(0.3, 0.3, 0.03), V(0.2, 0.2, 0.2)};
-  std::vector<std::unique_ptr<Base>> hulls;
-  hulls.push_back(Make<ConvexHull>(BoxPoints(0.3, 0.2, 0.1)));
-  hulls.push_back(Make<ConvexHull>(IrregularPoints(60, 3)));
+  std::vector<std::unique_ptr<shift::core::collision_geometry::Base>> hulls;
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.3, 0.2, 0.1)));
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(60, 3)));
   std::mt19937 random(11);
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
   for(auto& hull : hulls) {
     for(const auto& sb : shapes) {
-      auto ellipsoid = Make<Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
+      auto ellipsoid = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
       for(int trial = 0; trial < 12; trial++) {
         ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
         ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
@@ -381,7 +374,7 @@ TEST(ContactGeometry, HullEllipsoidGlobalDepth) {
         const ksl_SE3_t pose_b =
           Pose(V(0.35 * unit(random), 0.35 * unit(random), 0.35 * unit(random)),
                axis_b, 3.0 * unit(random));
-        const ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
+        const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
         ksl_vec3_t n;
         const double depth = BruteForceDepth(*hull, *ellipsoid, n);
         if(std::fabs(depth) < 1e-6) {
@@ -427,12 +420,10 @@ the same from any start of its walk, and continuous in the poses, to the
 precision of the arithmetic (EPA's normal on a curved surface is only good
 to the square root of its tolerance, about 1e-3) */
 TEST(ContactGeometry, HullEllipsoidSmooth) {
-  using shift::core::collision_geometry::AnalyticContact;
-  using shift::core::collision_geometry::ConvexHullEllipsoidContact;
-  auto hull = Make<ConvexHull>(IrregularPoints(60, 5));
-  auto ellipsoid = Make<Ellipsoid>(EllipsoidPoints(0.25, 0.15, 0.1));
-  auto& h = static_cast<ConvexHull&>(*hull);
-  auto& e = static_cast<Ellipsoid&>(*ellipsoid);
+  auto hull = Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(60, 5));
+  auto ellipsoid = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.25, 0.15, 0.1));
+  auto& h = static_cast<shift::core::collision_geometry::ConvexHull&>(*hull);
+  auto& e = static_cast<shift::core::collision_geometry::Ellipsoid&>(*ellipsoid);
   std::mt19937 random(13);
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
@@ -444,7 +435,7 @@ TEST(ContactGeometry, HullEllipsoidSmooth) {
     const ksl_SE3_t pose_b =
       Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
            V(0, 0, 1), 3.0 * unit(random));
-    const ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
+    const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
     if(!p.collision || p.depth < 1e-3) {
       continue;
     }
@@ -453,15 +444,15 @@ TEST(ContactGeometry, HullEllipsoidSmooth) {
     for(int s = 0; s < 3; s++) {
       ksl_vec3_t start = p.normal;
       start.at[s] += 0.2;
-      AnalyticContact c;
-      ASSERT_TRUE(ConvexHullEllipsoidContact(h, e, start, false, c)) << trial;
+      shift::core::collision_geometry::AnalyticContact c;
+      ASSERT_TRUE(shift::core::collision_geometry::ConvexHullEllipsoidContact(h, e, start, false, c)) << trial;
       EXPECT_EQ(c.depth, p.depth) << trial;
       for(int i = 0; i < 3; i++) {
         EXPECT_EQ(c.normal.at[i], p.normal.at[i]) << trial;
       }
     }
     // moved by 1e-8, the normal and the points move by about as little
-    const ContactPair q =
+    const shift::core::collision_geometry::ContactPair q =
       Collide(*hull, pose_a, *ellipsoid, Moved(pose_b, V(0.6, 0.0, 0.8), 1e-8));
     ASSERT_TRUE(q.collision);
     EXPECT_NEAR(q.depth, p.depth, 1e-7) << trial;
@@ -474,15 +465,13 @@ TEST(ContactGeometry, HullEllipsoidSmooth) {
 }
 
 /* random overlapping hull pairs: from EPA's normal, the exact contact (see
-ConvexHullPairContact) is the minimum EPA found, d at its normal exactly, and
+shift::core::collision_geometry::ConvexHullPairContact) is the minimum EPA found, d at its normal exactly, and
 a minimum of d */
 TEST(ContactGeometry, HullPairMatchesEpa) {
-  using shift::core::collision_geometry::AnalyticContact;
-  using shift::core::collision_geometry::ConvexHullPairContact;
-  std::vector<std::unique_ptr<Base>> hulls;
-  hulls.push_back(Make<ConvexHull>(BoxPoints(0.3, 0.2, 0.1)));
-  hulls.push_back(Make<ConvexHull>(IrregularPoints(60, 3)));
-  hulls.push_back(Make<ConvexHull>(IrregularPoints(40, 8)));
+  std::vector<std::unique_ptr<shift::core::collision_geometry::Base>> hulls;
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.3, 0.2, 0.1)));
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(60, 3)));
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(40, 8)));
   std::mt19937 random(17);
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
@@ -502,14 +491,14 @@ TEST(ContactGeometry, HullPairMatchesEpa) {
         const ksl_SE3_t pose_b =
           Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
                axis_b, 3.0 * unit(random));
-        const ContactPair p = Collide(*a, pose_a, *b, pose_b);
+        const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
         if(!p.collision || p.depth < 1e-4) {
           continue;
         }
-        AnalyticContact c;
+        shift::core::collision_geometry::AnalyticContact c;
         int hint_a = 0, hint_b = 0;
-        ASSERT_TRUE(ConvexHullPairContact(static_cast<ConvexHull&>(*a),
-                                          static_cast<ConvexHull&>(*b),
+        ASSERT_TRUE(shift::core::collision_geometry::ConvexHullPairContact(static_cast<shift::core::collision_geometry::ConvexHull&>(*a),
+                                          static_cast<shift::core::collision_geometry::ConvexHull&>(*b),
                                           p.normal, hint_a, hint_b, c))
           << "trial " << trial;
         ASSERT_TRUE(c.collision);
@@ -539,31 +528,31 @@ TEST(ContactGeometry, HullPairMatchesEpa) {
 
 /* two overlapping boxes separate along x by 0.3 or along y by 0.2999: the
 deepest point is the y minimum, but a pair whose last accepted step was in
-the x minimum keeps it (ContactPair::accepted_normal) */
+the x minimum keeps it (shift::core::collision_geometry::ContactPair::accepted_normal) */
 TEST(ContactGeometry, HullPairKeepsMinimum) {
-  auto a = Make<ConvexHull>(BoxPoints(0.2, 0.2, 0.2));
-  auto b = Make<ConvexHull>(BoxPoints(0.2, 0.2, 0.2));
+  auto a = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.2, 0.2, 0.2));
+  auto b = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.2, 0.2, 0.2));
   const ksl_SE3_t pose_a = Pose(V(0, 0, 0));
   const ksl_SE3_t pose_b = Pose(V(0.1, 0.1001, 0.0));
-  const ContactPair fresh = Collide(*a, pose_a, *b, pose_b);
+  const shift::core::collision_geometry::ContactPair fresh = Collide(*a, pose_a, *b, pose_b);
   ASSERT_TRUE(fresh.collision);
   EXPECT_NEAR(fresh.depth, 0.2999, 1e-6);
   EXPECT_NEAR(fresh.normal.y, 1.0, 1e-6);
   for(const ksl_vec3_t& kept : {V(1, 0, 0), V(1, 0.01, 0.0)}) {
-    ContactPair pair;
+    shift::core::collision_geometry::ContactPair pair;
     pair.a = a.get();
     pair.b = b.get();
     pair.accepted_normal = kept;
-    TestContact(pair);
+    shift::test::TestContact(pair);
     ASSERT_TRUE(pair.collision);
     EXPECT_NEAR(pair.depth, 0.3, 1e-12);
     EXPECT_NEAR(pair.normal.x, 1.0, 1e-12);
   }
 }
 
-static std::unique_ptr<Plane> MakePlane(const ksl_vec3_t& normal,
+static std::unique_ptr<shift::core::collision_geometry::Plane> MakePlane(const ksl_vec3_t& normal,
                                         double offset) {
-  auto plane = std::make_unique<Plane>();
+  auto plane = std::make_unique<shift::core::collision_geometry::Plane>();
   plane->SetPlane(normal, offset);
   return plane;
 }
@@ -571,11 +560,11 @@ static std::unique_ptr<Plane> MakePlane(const ksl_vec3_t& normal,
 TEST(ContactGeometry, SphereOnGround) {
   // ground at z = 0, up is -z; a sphere center r - 0.05 above it
   auto ground = MakePlane(V(0, 0, -1), 0.0);
-  auto ball = Make<Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
-  const auto& sphere = static_cast<Sphere&>(*ball);
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.2, 0.2, 0.2));
+  const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
   const ksl_vec3_t c = sphere.get_d_wrt_body().t;
   const double r = sphere.get_radius();
-  const ContactPair p = Collide(*ground, Pose(V(0, 0, 0)), *ball,
+  const shift::core::collision_geometry::ContactPair p = Collide(*ground, Pose(V(0, 0, 0)), *ball,
                                 Pose(V(0.3 - c.x, -c.y, -(r - 0.05) - c.z)));
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, 0.05, 1e-12);
@@ -584,7 +573,7 @@ TEST(ContactGeometry, SphereOnGround) {
   EXPECT_NEAR(p.point_a.x, 0.3, 1e-12);
   EXPECT_NEAR(p.point_b.z, 0.05, 1e-12);
   // the sphere as a, the plane as b: the normal from a to b reverses
-  const ContactPair q =
+  const shift::core::collision_geometry::ContactPair q =
     Collide(*ball, Pose(V(0.3 - c.x, -c.y, -(r - 0.05) - c.z)), *ground,
             Pose(V(0, 0, 0)));
   ASSERT_TRUE(q.collision);
@@ -608,10 +597,10 @@ TEST(ContactGeometry, ShapesOnTiltedPlane) {
   const ksl_vec3_t n = plane->get_normal();
   const double offset = Dot(n, plane->get_point());
 
-  auto hull = Make<ConvexHull>(BoxPoints(0.4, 0.25, 0.15));
-  auto ellipsoid = Make<Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
-  auto ball = Make<Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
-  for(Base* shape : {hull.get(), ellipsoid.get(), ball.get()}) {
+  auto hull = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.4, 0.25, 0.15));
+  auto ellipsoid = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
+  for(shift::core::collision_geometry::Base* shape : {hull.get(), ellipsoid.get(), ball.get()}) {
     int tested = 0;
     for(int trial = 0; trial < 50; trial++) {
       ksl_vec3_t axis = V(unit(random), unit(random), unit(random));
@@ -628,9 +617,9 @@ TEST(ContactGeometry, ShapesOnTiltedPlane) {
       // the lowest point along n, by brute force over the shape's points
       std::vector<ksl_vec3_t> points;
       if(shape == hull.get()) {
-        points = static_cast<ConvexHull&>(*hull).get_hull().vertices;
+        points = static_cast<shift::core::collision_geometry::ConvexHull&>(*hull).get_hull().vertices;
       } else if(shape == ellipsoid.get()) {
-        const auto& e = static_cast<Ellipsoid&>(*ellipsoid);
+        const auto& e = static_cast<shift::core::collision_geometry::Ellipsoid&>(*ellipsoid);
         const ksl_SE3_t& frame = e.get_d_wrt_body();
         for(const auto& u : EllipsoidPoints(e.get_semi_axes().x,
                                             e.get_semi_axes().y,
@@ -642,7 +631,7 @@ TEST(ContactGeometry, ShapesOnTiltedPlane) {
       }
       double lowest = HUGE_VAL;
       if(shape == ball.get()) {
-        const auto& sphere = static_cast<Sphere&>(*ball);
+        const auto& sphere = static_cast<shift::core::collision_geometry::Sphere&>(*ball);
         lowest = Dot(n, sphere.get_center()) - sphere.get_radius();
       }
       for(const auto& x : points) {
@@ -652,7 +641,7 @@ TEST(ContactGeometry, ShapesOnTiltedPlane) {
       }
       const double expected = offset - lowest;
 
-      const ContactPair p = Collide(*plane, plane_pose, *shape, pose);
+      const shift::core::collision_geometry::ContactPair p = Collide(*plane, plane_pose, *shape, pose);
       const double tolerance = shape == ellipsoid.get() ? 2e-4 : 1e-12;
       if(std::fabs(expected) < tolerance) {
         continue; // touching, either answer is right
@@ -679,7 +668,7 @@ TEST(ContactGeometry, PlanePairs) {
   // overlap in a slab 0.1 thick
   auto ground = MakePlane(V(0, 0, -1), 0.0);
   auto ceiling = MakePlane(V(0, 0, 1), 0.1);
-  const ContactPair p =
+  const shift::core::collision_geometry::ContactPair p =
     Collide(*ground, Pose(V(0, 0, 0)), *ceiling, Pose(V(0.5, 0, 0)));
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, 0.1, 1e-12);
@@ -697,7 +686,7 @@ TEST(ContactGeometry, PlanePairs) {
     Collide(*ground, Pose(V(0, 0, 0)), *wall, Pose(V(0, 0, 0))).collision);
 }
 
-static double ManifoldDepth(const ContactPair& p, double& lowest) {
+static double ManifoldDepth(const shift::core::collision_geometry::ContactPair& p, double& lowest) {
   double deepest = 0.0;
   lowest = HUGE_VAL;
   for(const auto& c : p.manifold) {
@@ -715,9 +704,9 @@ TEST(ContactGeometry, ManifoldBoxOnPlane) {
   // flat: the four bottom corners; on an edge (tilted 45 degrees about x):
   // the two corners of the edge; curved shapes keep one point
   auto ground = MakePlane(V(0, 0, -1), 0.0);
-  auto box = Make<ConvexHull>(BoxPoints(0.1, 0.1, 0.1));
+  auto box = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.1, 0.1, 0.1));
   double lowest;
-  ContactPair flat =
+  shift::core::collision_geometry::ContactPair flat =
     Collide(*ground, Pose(V(0, 0, 0)), *box, Pose(V(0, 0, -0.1 + 0.01)));
   ASSERT_TRUE(flat.collision);
   ASSERT_EQ(flat.manifold.size(), 4u);
@@ -725,15 +714,15 @@ TEST(ContactGeometry, ManifoldBoxOnPlane) {
   EXPECT_NEAR(lowest, 0.01, 1e-12);
 
   const double h = 0.1 * std::sqrt(2.0);
-  ContactPair edge = Collide(*ground, Pose(V(0, 0, 0)), *box,
+  shift::core::collision_geometry::ContactPair edge = Collide(*ground, Pose(V(0, 0, 0)), *box,
                              Pose(V(0, 0, -h + 0.01), V(1, 0, 0), M_PI / 4));
   ASSERT_TRUE(edge.collision);
   ASSERT_EQ(edge.manifold.size(), 2u);
   EXPECT_NEAR(ManifoldDepth(edge, lowest), 0.01, 1e-12);
   EXPECT_NEAR(lowest, 0.01, 1e-12);
 
-  auto ball = Make<Sphere>(EllipsoidPoints(0.1, 0.1, 0.1));
-  const ContactPair round =
+  auto ball = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.1, 0.1, 0.1));
+  const shift::core::collision_geometry::ContactPair round =
     Collide(*ground, Pose(V(0, 0, 0)), *ball, Pose(V(0, 0, -0.09)));
   ASSERT_TRUE(round.collision);
   EXPECT_EQ(round.manifold.size(), 1u);
@@ -743,11 +732,11 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
   // a small box on a large one: face on face gives the four corners of the
   // small face, turned 45 degrees about the normal still four; lying on an
   // edge, two
-  auto base = Make<ConvexHull>(BoxPoints(1.0, 1.0, 0.1));
-  auto box = Make<ConvexHull>(BoxPoints(0.1, 0.1, 0.1));
+  auto base = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(1.0, 1.0, 0.1));
+  auto box = Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.1, 0.1, 0.1));
   double lowest;
   for(double turn : {0.0, M_PI / 4}) {
-    const ContactPair p = Collide(*base, Pose(V(0, 0, 0)), *box,
+    const shift::core::collision_geometry::ContactPair p = Collide(*base, Pose(V(0, 0, 0)), *box,
                                   Pose(V(0.3, 0.2, -0.2 + 0.01), V(0, 0, 1), turn));
     ASSERT_TRUE(p.collision);
     ASSERT_EQ(p.manifold.size(), 4u) << turn;
@@ -758,7 +747,7 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
     }
   }
   const double h = 0.1 * std::sqrt(2.0);
-  const ContactPair edge =
+  const shift::core::collision_geometry::ContactPair edge =
     Collide(*base, Pose(V(0, 0, 0)), *box,
             Pose(V(0, 0, -0.1 - h + 0.01), V(1, 0, 0), M_PI / 4));
   ASSERT_TRUE(edge.collision);
@@ -768,7 +757,7 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
 
   // overhanging the edge of the base: the corners beyond it are clipped to
   // its side, the manifold stays on the base's top face
-  const ContactPair overhang = Collide(*base, Pose(V(0, 0, 0)), *box,
+  const shift::core::collision_geometry::ContactPair overhang = Collide(*base, Pose(V(0, 0, 0)), *box,
                                        Pose(V(1.05, 0, -0.2 + 0.01)));
   ASSERT_TRUE(overhang.collision);
   ASSERT_EQ(overhang.manifold.size(), 4u);
@@ -781,14 +770,14 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
 /* every pairing of the three types at random overlapping poses */
 class ContactGeometryPairs : public testing::TestWithParam<int> {
 protected:
-  std::unique_ptr<Base> MakeShape(int type) {
+  std::unique_ptr<shift::core::collision_geometry::Base> MakeShape(int type) {
     switch(type) {
       case 0:
-        return Make<ConvexHull>(BoxPoints(0.4, 0.25, 0.15));
+        return Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.4, 0.25, 0.15));
       case 1:
-        return Make<Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
+        return Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
       default:
-        return Make<Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
+        return Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
     }
   }
 };
@@ -810,7 +799,7 @@ TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
     const ksl_SE3_t pose_b =
       Pose(V(0.4 * unit(random), 0.4 * unit(random), 0.4 * unit(random)),
            axis_b, 3.0 * unit(random));
-    const ContactPair p = Collide(*a, pose_a, *b, pose_b);
+    const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
     if(!p.collision) {
       continue;
     }
@@ -843,7 +832,7 @@ TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
                   1e-5);
     }
     // swapping the geometries reverses the normal
-    const ContactPair q = Collide(*b, pose_b, *a, pose_a);
+    const shift::core::collision_geometry::ContactPair q = Collide(*b, pose_b, *a, pose_a);
     ASSERT_TRUE(q.collision);
     EXPECT_NEAR(q.depth, p.depth, 1e-5);
     EXPECT_NEAR(Dot(q.normal, p.normal), -1.0, 1e-4);

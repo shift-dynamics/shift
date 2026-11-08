@@ -13,6 +13,8 @@ points, Hunt and Crossley's force, friction, and a slope of an elevation map */
 
 #include <gtest/gtest.h>
 
+#include "test/contact/contact_record.h"
+#include "ksl/SE3.h"
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/force_module/terrain_contact.h"
@@ -96,10 +98,21 @@ static ksl_vec3_t RunToEnd(shift::core::Context& context) {
   context.set_state_observer(
     [&last](double, const std::vector<double>& y) { last = y; });
   context.Simulate();
+  shift::test::RecordContacts(context);
   std::copy(last.begin(), last.end(), context.get_q().begin());
   context.UpdateDHVA();
   auto body = context.FindActiveBody("body", nullptr);
-  return context.get_body_origin_pose(body, context.get_dhva()).t;
+  const ksl_SE3_t pose = context.get_body_origin_pose(body, context.get_dhva());
+  // the four points of the model, where they ended up; up is -z
+  std::vector<ksl_vec3_t> points;
+  for(const ksl_vec3_t& p : {ksl_vec3_t{{0.2, 0.2, 0.0}}, ksl_vec3_t{{0.2, -0.2, 0.0}},
+                             ksl_vec3_t{{-0.2, -0.2, 0.0}}, ksl_vec3_t{{-0.2, 0.2, 0.0}}}) {
+    ksl_vec3_t placed;
+    ksl_product_dv(&pose, &p, &placed);
+    points.push_back(placed);
+  }
+  shift::test::RecordPoints(points, ksl_vec3_t{{0.0, 0.0, -1.0}});
+  return pose.t;
 }
 
 TEST(TerrainContact, ABodyRestsOnItsPoints) {

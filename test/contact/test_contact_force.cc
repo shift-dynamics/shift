@@ -9,6 +9,7 @@ convex hull */
 #include <sstream>
 #include <string>
 
+#include "test/contact/contact_record.h"
 #include "shift/config.h"
 #include "shift/core/body/base.h"
 #include "shift/core/integrator/base.h"
@@ -117,6 +118,7 @@ static void RunDrop(shift::core::Context& context, const std::string& name,
   }
   if(simulate) {
     context.Simulate();
+    shift::test::RecordContacts(context);
   }
 }
 
@@ -410,6 +412,7 @@ TEST_P(CollisionExampleStart, NothingOverlaps) {
   shift::core::Context context;
   context.LoadJSON(CollisionExampleFile(GetParam()));
   context.DetectContacts();
+  shift::test::RecordContacts(context);
   for(auto pair : context.get_contacts()) {
     ADD_FAILURE() << pair->a->get_name() << " and " << pair->b->get_name()
                   << " overlap at t = 0";
@@ -439,6 +442,7 @@ TEST_P(CollisionExample, BodiesRestOnTheGround) {
   EXPECT_EQ(ground, 0.0);
   context.get_active_integrators()[0]->set_time_span(3.0);
   context.Simulate();
+  shift::test::RecordContacts(context);
 
   size_t on_ground = 0;
   for(auto pair : context.get_contacts()) {

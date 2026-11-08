@@ -13,8 +13,6 @@ fit_to) */
 #include "shift/core/collision_geometry/sphere.h"
 #include "shift/core/context.h"
 
-using shift::core::collision_geometry::Base;
-
 /* a model of free bodies, given as JSON text for the bodies and joints */
 static std::string WriteModel(const std::string& name,
                               const std::string& bodies,
@@ -70,7 +68,7 @@ static std::string FloatJoint(const std::string& body) {
 static const std::string kBunny =
   R"({"name": "visual", "type": "mesh", "filename": ["stanford_bunny.obj"]})";
 
-static const Base* Find(const shift::core::Context& context,
+static const shift::core::collision_geometry::Base* Find(const shift::core::Context& context,
                         const std::string& name) {
   for(auto geometry : context.get_contact_geometry()) {
     if(geometry->get_name() == name) {
@@ -80,7 +78,7 @@ static const Base* Find(const shift::core::Context& context,
   return nullptr;
 }
 
-static double Extent(const Base& g, const ksl_vec3_t& d) {
+static double Extent(const shift::core::collision_geometry::Base& g, const ksl_vec3_t& d) {
   ksl_vec3_t local, global;
   int hint = 0;
   g.Support(d, local, global, hint);
@@ -129,14 +127,14 @@ TEST(CollisionGeometryInput, DimensionsAndPose) {
     static_cast<const shift::core::collision_geometry::Ellipsoid*>(egg);
   EXPECT_DOUBLE_EQ(ellipsoid->get_semi_axes().x, 0.3);
   EXPECT_DOUBLE_EQ(egg->get_d_wrt_body().t.z, -0.5);
-  const_cast<Base*>(egg)->UpdatePose(identity);
+  const_cast<shift::core::collision_geometry::Base*>(egg)->UpdatePose(identity);
   EXPECT_NEAR(Extent(*egg, {{0, 1, 0}}), 0.3, 1e-12);
   EXPECT_NEAR(Extent(*egg, {{1, 0, 0}}), 0.2, 1e-12);
   EXPECT_NEAR(Extent(*egg, {{0, 0, 1}}), -0.5 + 0.1, 1e-12);
 
   auto box = Find(context, "box");
   ASSERT_NE(box, nullptr);
-  const_cast<Base*>(box)->UpdatePose(identity);
+  const_cast<shift::core::collision_geometry::Base*>(box)->UpdatePose(identity);
   EXPECT_NEAR(Extent(*box, {{1, 0, 0}}), 1.1, 1e-12);
   EXPECT_NEAR(Extent(*box, {{-1, 0, 0}}), -0.9, 1e-12);
   EXPECT_NEAR(Extent(*box, {{0, 1, 0}}), 0.2, 1e-12);

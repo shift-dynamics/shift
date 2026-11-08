@@ -16,6 +16,7 @@ shapes from STEP files, closed forms and the forces of a sweep */
 
 #include "ksl/SE3.h"
 #include "ksl/vec3.h"
+#include "test/contact/contact_record.h"
 #include "shift/config.h"
 #include "shift/core/cad/step_reader.h"
 #include "shift/core/collision_geometry/base.h"
@@ -99,7 +100,7 @@ public:
     pair_ = shift::core::collision_geometry::ContactPair();
     pair_.a = part_first ? part_ : shape_;
     pair_.b = part_first ? shape_ : part_;
-    shift::core::collision_geometry::TestContact(pair_);
+    shift::test::TestContact(pair_);
     return pair_;
   }
 
@@ -557,6 +558,7 @@ TEST_F(CadRound, BallSettlesOnTheFaceAtItsHertzDepth) {
     rate = y[1];
   });
   context.Simulate();
+  shift::test::RecordContacts(context);
   EXPECT_LT(std::fabs(rate), 1e-4);
   EXPECT_NEAR(z, -r + depth, 0.02 * depth);
 }
@@ -1409,6 +1411,7 @@ static void Settle(const std::string& shape, const std::string& rotation,
     rate = y[1];
   });
   context.Simulate();
+  shift::test::RecordContacts(context);
 }
 
 TEST_F(CadRound, ShapesSettleOnAFace) {
