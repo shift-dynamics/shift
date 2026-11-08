@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <tuple>
 #include <set>
 
 
@@ -341,9 +342,11 @@ void shift::gui::Simulation::Load(const std::string& filename) {
       scene_.instances.push_back({static_cast<int>(m), body});
     }
   }
-  /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset)
-  and scale, drawn once per body */
-  std::map<std::pair<const shift::core::geometry::CadAsset*, double>, int>
+  /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset),
+  scale, color and opacity, drawn once per body */
+  std::map<std::tuple<const shift::core::geometry::CadAsset*, double,
+                      std::vector<double>, double>,
+           int>
     asset_cads;
   for(size_t i = 0; i < bodies_.size(); i++) {
     for(auto& geometry : bodies_[i]->get_geometry()) {
@@ -351,13 +354,21 @@ void shift::gui::Simulation::Load(const std::string& filename) {
       if(!cad || !cad->is_active() || !cad->get_asset()) {
         continue;
       }
-      const auto key = std::make_pair(cad->get_asset(), cad->get_scale());
+      const auto key = std::make_tuple(cad->get_asset(), cad->get_scale(),
+                                       cad->get_color(), cad->get_opacity());
       auto [it, inserted] = asset_cads.try_emplace(key, 0);
       if(inserted) {
         it->second = static_cast<int>(scene_.cads.size());
         scene_.cads.push_back(MakeSceneCad(cad->get_asset()->model,
                                            cad->get_asset()->bodies,
                                            cad->get_scale()));
+        auto& scene_cad = scene_.cads.back();
+        const auto& color = cad->get_color();
+        if(color.size() == 3) {
+          scene_cad.albedo =
+            QVector3D(float(color[0]), float(color[1]), float(color[2]));
+        }
+        scene_cad.opacity = float(cad->get_opacity());
       }
       scene_.cads[it->second].bodies.push_back(static_cast<int>(i));
     }

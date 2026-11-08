@@ -22,6 +22,10 @@ display and ImageMagick; windows appear as it renders.
   margins about them (grey), the candidate pairs of shift's broad phase (red)
   and, below them, the intervals of the enlarged spheres along the axis of the
   sweep, from shift-doc-figures broadphase
+- boxtree.png: a track link with the boxes of its box tree, level by level,
+  and stepcontact.png: the steps of the contact of two links, the second on
+  the pin of the first: their root boxes, the faces whose boxes overlap, and
+  the points of contact, all from shift-doc-figures cadpair
 - surface_<type>.png: a face of each type of STEP surface, drawn by the viewer
   from the exact surface, with lines of constant u (blue) and of constant v
   (orange) inside its trims, its boundary (dark), the axes of its frame
@@ -600,6 +604,175 @@ def smooth_ball(mesh, center, radius, rows=32, columns=64):
             mesh.add(corners, normals)
 
 
+# the second link of a track on the pin of the first, as in the test
+# CadContact.LinkHangsOnItsPin: its bushing sunk on the pin by the clearance
+# (20 mm bore, 19 mm pin) and 20 um more
+LINK_PITCH = 0.19
+LINK_SINK = 0.001 + 20e-6
+LINK_TURN = [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+LINK_COLORS = [(0.62, 0.64, 0.68), (0.35, 0.52, 0.74)]
+
+
+def link_model(work, overlay, opacity=(1.0, 1.0), count=2):
+    """the two links, the second on the pin of the first, with the overlay
+    meshes on the fixed body"""
+    link = os.path.join(work, 'track_link.step')
+    if not os.path.exists(link):
+        os.symlink(os.path.join(CAD, 'track_link.step'), link)
+    model = figures.write_model(work, overlay, 'links')
+    with open(model) as file:
+        m = json.load(file)
+    assembly = m['assemblies'][0]
+    for k in range(count):
+        name = 'link%d' % (k + 1)
+        assembly['bodies'].append({
+            'name': name,
+            'geometry': [{'type': 'cad', 'filename': 'track_link.step',
+                          'color': list(LINK_COLORS[k]),
+                          'opacity': opacity[k]}],
+            'collision_geometry': [{'name': name, 'type': 'cad'}],
+            'center_of_mass': [0.0974, 0.0, 0.0359],
+            'inertia': {'mass': 38.06, 'Ixx': 0.75, 'Iyy': 0.15, 'Izz': 0.8,
+                        'Ixy': 0.0, 'Iyz': 0.0, 'Izx': 0.0}})
+        assembly['joints'].append({
+            'name': name + '_joint', 'type': 'rigid' if k == 0 else 'float',
+            'parent': [['fixed'], 'origin'], 'child': [[name], 'origin'],
+            'initial_displacement': {
+                'R': LINK_TURN,
+                'T': [0.0, 0.0, 0.0] if k == 0 else [-LINK_SINK, LINK_PITCH,
+                                                     0.0]}})
+        if k == 1:
+            assembly['joints'][-1]['initial_velocity'] = [0.0] * 6
+    with open(model, 'w') as file:
+        json.dump(m, file)
+    return model
+
+
+def cad_pair_data(work):
+    model = link_model(work, [])
+    data = os.path.join(work, 'cadpair.json')
+    subprocess.run([TOOL, 'cadpair', model, data], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(data) as file:
+        return json.load(file)
+
+
+BOX_COLOR = (0.95, 0.55, 0.10)
+# neighbouring boxes of one level of the tree in turn
+LEVEL_COLORS = [(0.95, 0.55, 0.10), (0.10, 0.45, 0.90), (0.15, 0.70, 0.25),
+                (0.85, 0.15, 0.55)]
+TALL = (400, 560)
+
+
+def to_world(side, points):
+    R = numpy.array(side['pose']['R'])
+    return numpy.array(points) @ R.T + numpy.array(side['pose']['t'])
+
+
+def add_box(mesh, side, box, radius):
+    """the twelve edges of a box of a side's frame, in world coordinates"""
+    lo, hi = numpy.array(box[0]), numpy.array(box[1])
+    corner = lambda k: numpy.where([(k >> a) & 1 for a in range(3)], hi, lo)
+    for k in range(8):
+        for a in range(3):
+            if not (k >> a) & 1:
+                ends = to_world(side, [corner(k), corner(k | (1 << a))])
+                figures.add_tube(mesh, ends, radius)
+
+
+def boxtree_figure(work, directory, data):
+    side = data['a']
+    every = to_world(side, [p for f in side['faces'] for loop in f['loops']
+                            for p in loop])
+    center, scene = bounds(every)
+    tube = 0.004 * scene
+    panels = []
+    deepest = max(n['depth'] for n in side['nodes'])
+    # the boxes of the first level coincide with the root: each half of the
+    # faces holds a plate that spans the length of the link
+    for level in (0, 2, 3, deepest):
+        boxes = [figures.Mesh() for _ in LEVEL_COLORS]
+        nodes = [n for n in side['nodes'] if n['depth'] == level]
+        for i, node in enumerate(nodes):
+            add_box(boxes[i % len(boxes)], side, node['box'], tube)
+        name = 'boxtree_%d' % level
+        geometry = [m.write(work, '%s_%d' % (name, i), LEVEL_COLORS[i], 1.0)
+                    for i, m in enumerate(boxes) if m.faces]
+        model = link_model(work, geometry, count=1)
+        image = os.path.join(work, name + '.png')
+        figures.SIZE = TALL
+        figures.render(model, image, (35, 25), center, 0.55 * scene)
+        panels.append(image)
+    lettered(panels, work, 'boxtree', os.path.join(directory, 'boxtree.png'))
+    print('boxtree.png (deepest level %d)' % deepest, flush=True)
+
+
+def stepcontact_figure(work, directory, data):
+    a, b = data['a'], data['b']
+    every = numpy.concatenate([
+        to_world(s, [p for f in s['faces'] for loop in f['loops'] for p in loop])
+        for s in (a, b)])
+    center, scene = bounds(every)
+    tube = 0.003 * scene
+    panels = []
+    # (a) the root boxes of the two links
+    roots = [figures.Mesh(), figures.Mesh()]
+    for k, s in enumerate((a, b)):
+        add_box(roots[k], s, s['nodes'][0]['box'], tube)
+    geometry = [roots[0].write(work, 'root_a', BOX_COLOR, 1.0),
+                roots[1].write(work, 'root_b', LINK_COLORS[1], 1.0)]
+    panels.append(step_render(work, 'step_roots', geometry, (0.55, 0.35),
+                              center, scene))
+    # (b) the boxes of the faces of each link that are in a candidate pair
+    faces_a = sorted({fa for fa, fb in data['candidates']})
+    faces_b = sorted({fb for fa, fb in data['candidates']})
+    boxes = [figures.Mesh(), figures.Mesh()]
+    for fa in faces_a:
+        add_box(boxes[0], a, a['faces'][fa]['box'], 0.6 * tube)
+    for fb in faces_b:
+        # the box of b's face in a's frame, as it is tested against a's tree
+        add_box(boxes[1], a, data['b_boxes_in_a'][fb], 0.6 * tube)
+    geometry = [boxes[0].write(work, 'boxes_a', BOX_COLOR, 1.0),
+                boxes[1].write(work, 'boxes_b', LINK_COLORS[1], 1.0)]
+    panels.append(step_render(work, 'step_boxes', geometry, (0.55, 0.35),
+                              center, scene))
+    # (c) the outlines of the faces in candidate pairs
+    outlines = [figures.Mesh(), figures.Mesh()]
+    for k, (s, faces) in enumerate(((a, faces_a), (b, faces_b))):
+        for f in faces:
+            for loop in s['faces'][f]['loops']:
+                figures.add_tube(outlines[k], to_world(s, loop), 0.6 * tube)
+    geometry = [outlines[0].write(work, 'outlines_a', BOX_COLOR, 1.0),
+                outlines[1].write(work, 'outlines_b', (0.10, 0.25, 0.85), 1.0)]
+    # the faces and points of contact lie about the pin
+    pin = numpy.array([c['point_a'] for c in data['contacts']])
+    near, reach = bounds(pin)
+    reach = max(1.8 * reach, 0.32 * scene)
+    panels.append(step_render(work, 'step_faces', geometry, (0.35, 0.2),
+                              near, reach))
+    # (d) the points of contact and their normals
+    points, arrows = figures.Mesh(), figures.Mesh()
+    for c in data['contacts']:
+        p = numpy.array(c['point_a'])
+        figures.add_ball(points, p, 0.015 * reach)
+        figures.add_arrow(arrows, p, c['normal'], 0.15 * reach, 0.006 * reach)
+    geometry = [points.write(work, 'points', figures.COMPUTED, 1.0),
+                arrows.write(work, 'normals', figures.COMPUTED, 1.0)]
+    panels.append(step_render(work, 'step_points', geometry, (0.35, 0.2),
+                              near, reach))
+    lettered(panels, work, 'stepcontact',
+             os.path.join(directory, 'stepcontact.png'))
+    print('stepcontact.png', flush=True)
+
+
+def step_render(work, name, geometry, opacity, center, scene):
+    model = link_model(work, geometry, opacity=opacity)
+    image = os.path.join(work, name + '.png')
+    figures.SIZE = TALL
+    figures.render(model, image, (35, 25), center, 0.75 * scene)
+    return image
+
+
 def main():
     directory = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         ROOT, 'doc', 'sphinx', 'contact', 'figures')
@@ -612,6 +785,12 @@ def main():
             meshes_figure(work, directory)
         if not only or 'broadphase' in only:
             broadphase_figure(work, directory)
+        if not only or 'boxtree' in only or 'stepcontact' in only:
+            data = cad_pair_data(work)
+            if not only or 'boxtree' in only:
+                boxtree_figure(work, directory, data)
+            if not only or 'stepcontact' in only:
+                stepcontact_figure(work, directory, data)
         if not only or 'terrain' in only:
             terrain_figure(work, directory)
         if not only or 'topology' in only:

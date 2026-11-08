@@ -8,6 +8,7 @@ make_figures.py renders them with the viewer.
   shift-doc-figures fit <model.json> <out.json>
   shift-doc-figures terrain <model.json> <out.json> [points per cell]
   shift-doc-figures broadphase <model.json> <out.json>
+  shift-doc-figures cadpair <model.json> <out.json>
 
 Lengths are in meters. Each shape is placed at its own position along x, as
 listed in Shapes(). For a STEP file every face of every body gives its surface
@@ -21,7 +22,11 @@ basic terrain, its samples, its control points and its surface over the map, eac
 point with its slopes and its curvatures along x and y, in the terrain frame.
 For a model with collision geometry, the broad phase of its contact detection
 at its initial state: the center, bounding radius and margin of each geometry,
-the axis of the sweep, the candidate pairs and the pairs in contact. */
+the axis of the sweep, the candidate pairs and the pairs in contact. For a
+model with two CAD collision geometries, the steps of their contact: for each,
+its pose, box tree and faces (boxes and trim loops on the surface); the boxes
+of the second's faces in the frame of the first, the pairs of faces whose
+boxes overlap, and the points of contact. */
 
 #include <algorithm>
 #include <cmath>
@@ -36,6 +41,7 @@ the axis of the sweep, the candidate pairs and the pairs in contact. */
 #include "shift/core/cad/repair.h"
 #include "shift/core/cad/step_reader.h"
 #include "shift/core/collision_geometry/box.h"
+#include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
 #include "shift/core/collision_geometry/cylinder.h"
@@ -591,6 +597,126 @@ static int BroadPhase(const std::string& model, const std::string& path) {
   return 0;
 }
 
+static std::string Box(const shift::core::collision_geometry::CadBox& box) {
+  return "[" + Point(box.lo) + "," + Point(box.hi) + "]";
+}
+
+static std::string Pose(const ksl_SE3_t& d) {
+  std::ostringstream out;
+  out << "{\"R\":[";
+  for(int r = 0; r < 3; r++) {
+    out << (r ? "," : "") << Point(d.R.v0.at[r], d.R.v1.at[r], d.R.v2.at[r]);
+  }
+  out << "],\"t\":" << Point(d.t) << "}";
+  return out.str();
+}
+
+/* a CAD geometry: its pose, the boxes of its tree with their depth, and its
+faces, each with its box and its trim loops on the surface, in its frame */
+static std::string CadSide(const shift::core::collision_geometry::Cad& cad) {
+  const auto& shape = cad.get_shape();
+  std::ostringstream out;
+  out << "{\"name\":\"" << cad.get_name() << "\",\"pose\":"
+      << Pose(cad.get_d_absolute()) << ",\"nodes\":[";
+  std::vector<std::pair<int, int>> stack{{0, 0}}; // node, depth
+  bool first = true;
+  while(!stack.empty() && !shape.nodes.empty()) {
+    const auto [k, depth] = stack.back();
+    stack.pop_back();
+    const auto& node = shape.nodes[k];
+    out << (first ? "" : ",") << "{\"box\":" << Box(node.box)
+        << ",\"depth\":" << depth << ",\"leaf\":"
+        << (node.left < 0 ? "true" : "false") << "}";
+    first = false;
+    if(node.left >= 0) {
+      stack.push_back({node.right, depth + 1});
+      stack.push_back({node.left, depth + 1});
+    }
+  }
+  out << "],\"faces\":[";
+  for(size_t f = 0; f < shape.faces.size(); f++) {
+    out << (f ? "," : "") << "{\"box\":" << Box(shape.faces[f].box)
+        << ",\"loops\":[";
+    const auto& trims = shape.faces[f].trims;
+    for(size_t l = 0; l < trims.size(); l++) {
+      out << (l ? "," : "") << "[";
+      for(size_t k = 0; k <= trims[l].size(); k++) {
+        const auto& uv = trims[l][k % trims[l].size()];
+        out << (k ? "," : "") << Point(shape.Point(static_cast<int>(f), uv));
+      }
+      out << "]";
+    }
+    out << "]}";
+  }
+  out << "]}";
+  return out.str();
+}
+
+static int CadPair(const std::string& model, const std::string& path) {
+  shift::core::Context context;
+  context.LoadJSON(model);
+  context.UpdateD();
+  context.DetectContacts();
+  const shift::core::collision_geometry::Cad *a = nullptr, *b = nullptr;
+  for(const auto& [i, j] : context.get_contact_candidates()) {
+    auto ca = dynamic_cast<const shift::core::collision_geometry::Cad*>(
+      context.get_contact_geometry()[i]);
+    auto cb = dynamic_cast<const shift::core::collision_geometry::Cad*>(
+      context.get_contact_geometry()[j]);
+    if(ca && cb) {
+      a = ca;
+      b = cb;
+      break;
+    }
+  }
+  if(!a) {
+    std::fprintf(stderr, "no pair of CAD geometries in %s\n", model.c_str());
+    return 1;
+  }
+  /* b's frame in a's, and the boxes of b's faces in a's frame tested against
+  a's tree, as CadCadContact does */
+  ksl_SE3_t b_in_a;
+  ksl_product_dinvd(&a->get_d_absolute(), &b->get_d_absolute(), &b_in_a);
+  const auto& shape_a = a->get_shape();
+  const auto& shape_b = b->get_shape();
+  std::ofstream out(path);
+  out << "{\"a\":" << CadSide(*a) << ",\"b\":" << CadSide(*b)
+      << ",\"roots_overlap\":"
+      << (shape_a.box.Overlaps(shape_b.box.Transformed(b_in_a)) ? "true"
+                                                                  : "false")
+      << ",\"b_boxes_in_a\":[";
+  for(size_t f = 0; f < shape_b.faces.size(); f++) {
+    out << (f ? "," : "") << Box(shape_b.faces[f].box.Transformed(b_in_a));
+  }
+  out << "],\"candidates\":[";
+  bool first = true;
+  for(int fb = 0; fb < static_cast<int>(shape_b.faces.size()); fb++) {
+    std::vector<int> found;
+    shape_a.Query(shape_b.faces[fb].box.Transformed(b_in_a), found);
+    for(int fa : found) {
+      out << (first ? "" : ",") << "[" << fa << "," << fb << "]";
+      first = false;
+    }
+  }
+  out << "],\"contacts\":[";
+  first = true;
+  for(auto pair : context.get_contacts()) {
+    if(pair->a != a || pair->b != b) {
+      continue;
+    }
+    for(const auto& c : pair->manifold) {
+      out << (first ? "" : ",") << "{\"point_a\":" << Point(c.point_a)
+          << ",\"point_b\":" << Point(c.point_b)
+          << ",\"normal\":" << Point(c.normal)
+          << ",\"depth\":" << Number(c.depth)
+          << ",\"length\":" << Number(c.length) << "}";
+      first = false;
+    }
+  }
+  out << "]}\n";
+  return 0;
+}
+
 int main(int argc, char** argv) {
   const std::string mode = argc > 1 ? argv[1] : "";
   if(mode == "shapes" && argc == 3) {
@@ -608,6 +734,9 @@ int main(int argc, char** argv) {
   if(mode == "broadphase" && argc == 4) {
     return BroadPhase(argv[2], argv[3]);
   }
+  if(mode == "cadpair" && argc == 4) {
+    return CadPair(argv[2], argv[3]);
+  }
   std::fprintf(stderr,
                "usage: shift-doc-figures shapes <out.json>\n"
                "       shift-doc-figures step <file.step> <out.json> "
@@ -615,6 +744,7 @@ int main(int argc, char** argv) {
                "       shift-doc-figures fit <model.json> <out.json>\n"
                "       shift-doc-figures terrain <model.json> <out.json> "
                "[points per cell]\n"
-               "       shift-doc-figures broadphase <model.json> <out.json>\n");
+               "       shift-doc-figures broadphase <model.json> <out.json>\n"
+               "       shift-doc-figures cadpair <model.json> <out.json>\n");
   return 1;
 }

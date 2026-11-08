@@ -69,12 +69,25 @@ public:
     return filename_;
   }
 
+  /*! \brief color (linear RGB) of the faces without a color of their own in
+   * the file, empty for the viewer's default */
+  const std::vector<double>& get_color() const {
+    return color_;
+  }
+
+  /*! \brief opacity in the ray tracer, 1 for opaque */
+  double get_opacity() const {
+    return opacity_;
+  }
+
 private:
   void DeclareParameters() override;
   static bool registered_;
   std::string filename_;
   std::string part_;
   double scale_ = 1.0;
+  std::vector<double> color_;
+  double opacity_ = 1.0;
   std::shared_ptr<const CadAsset> asset_;
 };
 

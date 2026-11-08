@@ -1837,7 +1837,7 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       instances[i].material[1] = cad.roughness;
       instances[i].material[2] = 0.f;
       instances[i].material[3] = 1.f;
-      instances[i].optical[0] = 1.f;
+      instances[i].optical[0] = cad.opacity;
       instances[i].offsets[1] = instances[i].offsets[2] =
         instances[i].offsets[3] = -1;
     }

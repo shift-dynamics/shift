@@ -70,6 +70,16 @@ Bounding volume hierarchies
     body is built once, in the coordinate system of the body, and remains valid
     as the body moves.
 
+    In an *axis aligned box tree*, the bounding volume of each node is the
+    smallest box whose edges are parallel to the coordinate axes and which
+    encloses the objects below it. Two such boxes overlap if and only if their
+    intervals overlap along each of the three axes, which requires six
+    comparisons. When the objects are transformed into another coordinate
+    system, the box of the transformed box encloses them, though less tightly
+    than the original box :cite:`vandenbergen1997`. *Shift* uses an axis
+    aligned box tree over the faces of each STEP part, as described in
+    :ref:`Contact of STEP Parts <stepcontactsection>`.
+
 A surface given as a regular grid of samples, such as the elevation map of a
 terrain, needs none of these structures: the grid is its own index, and the
 cell under a point is found directly from the point's coordinates.
@@ -180,19 +190,181 @@ hull is found by a search over its edges that begins at the support vertex of
 the previous evaluation :cite:`cameron1997`. Between nearby states, both
 searches end after few steps.
 
-For a pair of STEP parts, an axis aligned box tree over the faces of each part
-is built once, when the model is loaded, in the coordinate system of the part.
-The boxes of the faces of the second part are transformed into the coordinate
-system of the first, each as the axis aligned box that bounds the transformed
-box, and each is tested against the tree of the first part. The pairs of faces
-whose boxes overlap are then tested on their surfaces, by Newton's method on
-the parameters :math:`(u, v)` of the faces, or by slicing a line of contact
-along its length.
+The contact of two STEP parts is described in
+:ref:`Contact of STEP Parts <stepcontactsection>`.
 
 The candidate pairs are independent of one another. When the tests of the
 previous evaluation took longer than 100 μs, they are distributed among the
 processor's threads; the results are collected in the order of the candidates,
 so that they do not depend on the number of threads.
+
+
+.. _stepcontactsection:
+
+Contact of STEP Parts
+---------------------
+
+Box tree
+^^^^^^^^
+
+When the model is loaded, each face of a STEP part is sampled on a grid of
+parameters :math:`(u, v)` inside its trim loops and along the loops
+themselves. The box of the face is the axis aligned box of these samples in the
+coordinate system of the part; the box of a curved face is enlarged by a tenth
+of its diagonal, so that it also encloses the surface between the samples.
+
+The tree is built from the root down. The box of a node encloses the boxes of
+its faces. A node of more than two faces is divided along the longest edge of
+its box: the faces are ordered by the centers of their boxes along that axis,
+and the half with the lower centers forms the first child, the remainder the
+second. A node of one or two faces is a leaf. Dividing at the median keeps the
+tree balanced, so that a part of :math:`n` faces has a tree of depth
+:math:`\lceil \log_2 (n/2) \rceil`. The tree is built once, in the coordinate
+system of the part, and is not changed as the part moves.
+
+.. _boxtree:
+
+.. figure:: figures/boxtree.png
+    :width: 100%
+
+    The box tree of a track link of 60 faces, 63 nodes and depth 5: (a) the
+    root; (b) the four boxes at depth 2; (c) the eight boxes at depth 3; (d)
+    the 32 leaves, each of one or two faces. Neighboring boxes of a level are
+    drawn in different colors. The two boxes at depth 1 coincide with the
+    root, since each half of the faces includes a plate that spans the length
+    of the link.
+
+A query of the tree with a box visits the nodes from the root. A node whose box
+does not overlap the query box is skipped together with all of its
+descendants; at a leaf, the box of each face is tested against the query box,
+and the faces whose boxes overlap are returned.
+
+Steps of the contact
+^^^^^^^^^^^^^^^^^^^^
+
+Let :math:`i` and :math:`j` denote the coordinate systems of the two parts of
+a pair, and :math:`\Phi_{ij}^{ij} = \Phi_{0i}^{0i\,-1}\,\Phi_{0j}^{0j}` the
+displacement of :math:`j` relative to :math:`i`. The points of contact of the
+pair are found in the following steps, all in the coordinate system
+:math:`i`.
+
+#. The root box of part :math:`j` is transformed into :math:`i`. Its eight
+   corners are transformed by :math:`\Phi_{ij}^{ij}`, and the axis aligned box
+   of the transformed corners is tested against the root box of part
+   :math:`i`. If the boxes are apart, the parts do not touch.
+
+#. The box of each face of part :math:`j` is transformed into :math:`i` in the
+   same manner, and the tree of part :math:`i` is queried with it. Each face
+   of part :math:`i` returned by the query forms a *candidate pair* with the
+   face of part :math:`j`.
+
+#. Each candidate pair of faces is tested on its surfaces, according to the
+   types of the surfaces:
+
+   * two cylinders, or a plane and a cylinder: a line of contact along the
+     axis of the cylinder, divided into segments where the faces overlap
+     within their trims;
+   * two planes: no contact of the faces themselves, since their contact is
+     found at their edges and vertices in the steps that follow;
+   * a curved face and a plane or cylinder: a line of contact, traced across
+     the curved face by slicing it along its length;
+   * any other pair: a single point. The pair of sample points deepest in one
+     another with opposed normals provides the starting values of the four
+     parameters :math:`\underline{x} = (u_i, v_i, u_j, v_j)`, and Newton's
+     method solves the conditions of a common normal,
+
+     .. math::
+         :label: eq:common_normal
+
+         \underline{g}(\underline{x}) =
+         \begin{Bmatrix}
+         (\underline{p}_i - \underline{p}_j)^T\,\underline{p}_{i,u} \\
+         (\underline{p}_i - \underline{p}_j)^T\,\underline{p}_{i,v} \\
+         \underline{n}_i^T\,\underline{p}_{j,u} \\
+         \underline{n}_i^T\,\underline{p}_{j,v}
+         \end{Bmatrix} = \underline{0}
+
+     where :math:`\underline{p}_i = \underline{p}_i(u_i, v_i)` and
+     :math:`\underline{p}_j = \underline{p}_j(u_j, v_j)` are the points of the
+     two surfaces, Eq. :eq:`eq:face_normal` gives the normal
+     :math:`\underline{n}_i`, and the subscripts :math:`u` and :math:`v`
+     denote partial derivatives. The first two conditions place
+     :math:`\underline{p}_j` on the normal of face :math:`i` through
+     :math:`\underline{p}_i`, and the last two make the normal of face
+     :math:`i` normal to face :math:`j`. The depth of penetration is
+     :math:`(\underline{p}_i - \underline{p}_j)^T\,\underline{n}_i`. Two
+     curved faces touching along a line, as the flanks of gear teeth do, are
+     also traced as a line from the solution.
+
+#. Sharp edges of either part that lie along a cylindrical face of the other,
+   where no face of the edge touches that cylinder, form lines of contact.
+
+#. Sharp edges of the two parts that cross one another form points of
+   contact, where no face of either edge touches a face of the other.
+
+#. Edges and vertices of the faces of each candidate pair that penetrate a face
+   of the other part form points of contact, where none of their faces touches
+   a face of the other part. For these tests the box of each face is enlarged
+   by the deepest penetration admitted, so that an edge or vertex inside the
+   other part is found.
+
+#. Points repeated by neighboring faces, such as those on either side of the
+   seam of a cylinder, are removed.
+
+#. The points and normals are transformed into the fixed reference frame by
+   :math:`\Phi_{0i}^{0i}`.
+
+A point is accepted only where its depth of penetration is positive and less
+than a *deepest penetration* :math:`\delta_{max}`, 2 % of the size of the
+part unless the collision geometry specifies another value in ``max_depth``. A deeper point would more
+likely be on the far side of the other part than inside it.
+
+.. _stepcontact:
+
+.. figure:: figures/stepcontact.png
+    :width: 100%
+
+    The steps of the contact of two track links, the bushing of the second
+    (blue) resting on the pin of the first (gray), without a joint between
+    them: (a) the root boxes of the two links overlap; (b) the boxes of the
+    faces of each link that form the 92 candidate pairs, those of the second
+    link transformed into the coordinate system of the first; (c) the outlines
+    of the faces in candidate pairs, close to the pin; (d) the 15 points of
+    contact and their normals. Nine points are segments of the lines of
+    contact of the pin with the bores of the bushing and of the inner plates,
+    190 mm in all; six are the contact of the shoe of the second link with the
+    end of a plate of the first.
+
+Several points of contact
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A pair of STEP parts may touch at any number of points and lines at once. All
+points of the pair, from every candidate pair of faces and every edge and
+vertex, form one manifold, and each point carries its own depth of
+penetration, normal, curvatures of the two surfaces and, for a segment of a
+line, its length. The force module applies its contact law at each point
+separately, so that two parts touching in separate places, such as a pin in a
+bushing while a shoe rests on a plate in Fig. :num:`stepcontact`, receive
+separate forces at each place. A convex shape, by contrast, has a single region
+of contact with another convex shape, and its manifold lies in one plane.
+
+A peg in a hole
+^^^^^^^^^^^^^^^
+
+Because each face of a STEP part is tested by itself, concave faces such as
+the bore of a hole take part in contact as convex faces do. A peg in a hole
+touches the bore along a line of contact between the outer cylinder of the
+peg and the inner cylinder of the bore, and, while entering the hole, touches
+its rim at the edges of the faces. The pin in the bushing of
+Fig. :num:`stepcontact` is a peg in a hole of 1 mm clearance. The same
+contact is not available for meshes or fitted shapes: a convex hull or
+ellipsoid fitted to a part with a hole fills the hole.
+
+The deepest penetration :math:`\delta_{max}` limits the use. A peg whose
+initial position penetrates the wall of the hole by more than
+:math:`\delta_{max}` produces no point there, and is not pushed out. Models
+are therefore assembled with the peg clear of the wall, or with
+:math:`\delta_{max}` increased.
 
 
 Coordinate Systems

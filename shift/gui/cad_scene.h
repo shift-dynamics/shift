@@ -87,6 +87,7 @@ struct SceneCad {
   QVector3D albedo{0.7f, 0.7f, 0.72f};
   float roughness = 0.4f;
   float metallic = 0.f;
+  float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
   QVector3D bounds_min; //!< body coordinates (scaled)
   QVector3D bounds_max;
 
