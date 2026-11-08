@@ -488,6 +488,275 @@ static void PlaneLineManifold(const shift::core::collision_geometry::Plane& plan
   pair.point_laws = true;
 }
 
+/* the closest points of the segments p0 p1 and q0 q1 (Ericson, Real-Time
+Collision Detection, 5.1.9) */
+static void ClosestOfSegments(const ksl_vec3_t& p0, const ksl_vec3_t& p1,
+                              const ksl_vec3_t& q0, const ksl_vec3_t& q1,
+                              ksl_vec3_t& on_p, ksl_vec3_t& on_q) {
+  const ksl_vec3_t d1 = {{p1.x - p0.x, p1.y - p0.y, p1.z - p0.z}};
+  const ksl_vec3_t d2 = {{q1.x - q0.x, q1.y - q0.y, q1.z - q0.z}};
+  const ksl_vec3_t r = {{p0.x - q0.x, p0.y - q0.y, p0.z - q0.z}};
+  const double a = ksl_dot_vv(&d1, &d1), e = ksl_dot_vv(&d2, &d2);
+  const double f = ksl_dot_vv(&d2, &r);
+  double s = 0.0, t = 0.0;
+  if(a <= 0.0 && e <= 0.0) {
+    s = t = 0.0;
+  } else if(a <= 0.0) {
+    t = std::clamp(f / e, 0.0, 1.0);
+  } else {
+    const double c = ksl_dot_vv(&d1, &r);
+    if(e <= 0.0) {
+      s = std::clamp(-c / a, 0.0, 1.0);
+    } else {
+      const double b = ksl_dot_vv(&d1, &d2);
+      const double denominator = a * e - b * b;
+      s = denominator > 0.0 ? std::clamp((b * f - c * e) / denominator, 0.0, 1.0)
+                            : 0.0;
+      t = (b * s + f) / e;
+      if(t < 0.0) {
+        t = 0.0;
+        s = std::clamp(-c / a, 0.0, 1.0);
+      } else if(t > 1.0) {
+        t = 1.0;
+        s = std::clamp((b - c) / a, 0.0, 1.0);
+      }
+    }
+  }
+  for(int k = 0; k < 3; k++) {
+    on_p.at[k] = p0.at[k] + s * d1.at[k];
+    on_q.at[k] = q0.at[k] + t * d2.at[k];
+  }
+}
+
+/*
+The unit direction out of a convex hull toward a segment outside it (the
+axis of a cylinder or a capsule), from the closest points of the two: the
+closest point of the hull is on a face (a segment's end over the face's
+inside) or on an edge (the closest points of the segment and the edge). The
+side of a capsule, and of a cylinder, is its axis grown by the radius, so
+this is the exact normal of their contact on the side, where that of EPA
+is only as good as the square root of its tolerance; it is unique and
+continuous in the poses. False if the segment touches or enters the hull.
+*/
+static bool SegmentNormal(const shift::core::collision_geometry::ConvexHull& hull,
+                          const ksl_vec3_t& p0, const ksl_vec3_t& p1,
+                          ksl_vec3_t& n) {
+  const auto& data = hull.get_hull();
+  const ksl_SE3_t& pose = hull.get_d_absolute();
+  const ksl_vec3_t d = {{p1.x - p0.x, p1.y - p0.y, p1.z - p0.z}};
+  double s1 = 0.0, s2 = 1.0; // the part of the segment inside the hull
+  double best = HUGE_VAL;
+  ksl_vec3_t on_segment = p0, on_hull = p0;
+  auto keep = [&](const ksl_vec3_t& x, const ksl_vec3_t& y) {
+    const ksl_vec3_t gap = {{x.x - y.x, x.y - y.y, x.z - y.z}};
+    const double squared = ksl_dot_vv(&gap, &gap);
+    if(squared < best) {
+      best = squared;
+      on_segment = x;
+      on_hull = y;
+    }
+  };
+  std::vector<ksl_vec3_t> polygon;
+  for(size_t f = 0; f < data.polygons.size(); f++) {
+    const ksl_vec3_t nf = Rotate(pose, data.polygon_normals[f]);
+    polygon.clear();
+    for(auto i : data.polygons[f]) {
+      polygon.push_back(ToWorld(pose, data.vertices[i]));
+    }
+    const double of = ksl_dot_vv(&nf, &polygon[0]);
+    const double h0 = ksl_dot_vv(&nf, &p0) - of;
+    const double slope = ksl_dot_vv(&nf, &d);
+    if(slope > 0.0) {
+      s2 = std::min(s2, -h0 / slope);
+    } else if(slope < 0.0) {
+      s1 = std::max(s1, -h0 / slope);
+    } else if(h0 > 0.0) {
+      s2 = -1.0;
+    }
+    for(const ksl_vec3_t* end : {&p0, &p1}) {
+      const double h = ksl_dot_vv(&nf, end) - of;
+      if(h <= 0.0) {
+        continue;
+      }
+      const ksl_vec3_t foot = {{end->x - h * nf.x, end->y - h * nf.y,
+                                end->z - h * nf.z}};
+      bool inside = true;
+      for(size_t i = 0; i < polygon.size() && inside; i++) {
+        const ksl_vec3_t& a = polygon[i];
+        const ksl_vec3_t& b = polygon[(i + 1) % polygon.size()];
+        const ksl_vec3_t edge = {{b.x - a.x, b.y - a.y, b.z - a.z}};
+        const ksl_vec3_t to = {{foot.x - a.x, foot.y - a.y, foot.z - a.z}};
+        ksl_vec3_t cross;
+        ksl_cross_vv(&edge, &to, &cross);
+        inside = ksl_dot_vv(&cross, &nf) >= 0.0;
+      }
+      if(inside) {
+        keep(*end, foot);
+      }
+    }
+    for(size_t i = 0; i < polygon.size(); i++) {
+      ksl_vec3_t x, y;
+      ClosestOfSegments(p0, p1, polygon[i], polygon[(i + 1) % polygon.size()],
+                        x, y);
+      keep(x, y);
+    }
+  }
+  if(s2 >= s1 || !(best > 0.0) || best == HUGE_VAL) {
+    return false;
+  }
+  const double distance = std::sqrt(best);
+  for(int k = 0; k < 3; k++) {
+    n.at[k] = (on_segment.at[k] - on_hull.at[k]) / distance;
+  }
+  return true;
+}
+
+/*
+A cylinder or a capsule on a face of a convex hull touches along a line too,
+and the hull's faces bound it. With the unit normal n out of the hull
+(toward the shape), the lowest point of the shape at station s of its axis,
+q(s) = c + s a + r_eff w (w the unit direction of PlaneLineManifold's
+lowest point), is inside the hull where n_f . q(s) <= o_f for every face f
+(outward normal n_f, offset o_f): an interval of s, clipped to |s| <= h. Its
+depth there is the distance along n to where the line q(s) + t n leaves the
+hull,
+
+  depth(s) = min over the faces with n_f . n > 0 of (o_f - n_f . q(s)) / (n_f . n),
+
+the lower envelope of lines in s, so piecewise linear and concave. Each
+piece, a trapezoid, is a point of the manifold as for a plane: its length,
+its mean depth, at its centroid. On a face (n its normal) there is one piece,
+the line clipped by the face's edges; as the shape rolls over an edge, n
+turns from one face toward the other and the edge binds instead, without a
+jump in the force. On a plane (a hull of one face) this is PlaneLineManifold.
+n is SegmentNormal's while the axis is outside the hull, else the pair's.
+*/
+static void HullLineManifold(const shift::core::collision_geometry::ConvexHull& hull,
+                             const ksl_vec3_t& center, const ksl_vec3_t& axis,
+                             double half_length, double radius, bool capsule,
+                             bool hull_is_a,
+                             shift::core::collision_geometry::ContactPair& pair) {
+  const auto& data = hull.get_hull();
+  if(data.polygons.empty() ||
+     data.polygon_normals.size() != data.polygons.size() ||
+     data.polygon_offsets.size() != data.polygons.size()) {
+    return;
+  }
+  const ksl_SE3_t& pose = hull.get_d_absolute();
+  /* the normal out of the hull: exact from the axis while it is outside the
+  hull, else EPA's */
+  ksl_vec3_t n = hull_is_a ? pair.normal
+                           : ksl_vec3_t{{-pair.normal.x, -pair.normal.y,
+                                         -pair.normal.z}};
+  {
+    ksl_vec3_t p0, p1, exact;
+    for(int k = 0; k < 3; k++) {
+      p0.at[k] = center.at[k] - half_length * axis.at[k];
+      p1.at[k] = center.at[k] + half_length * axis.at[k];
+    }
+    if(SegmentNormal(hull, p0, p1, exact)) {
+      n = exact;
+    }
+  }
+  const ksl_vec3_t normal_ab =
+    hull_is_a ? n : ksl_vec3_t{{-n.x, -n.y, -n.z}};
+  /* the lowest point of the shape's section at a station, from its axis
+  point: r w, w along -n for a capsule, along the part of -n across the
+  axis for a cylinder */
+  const double g = ksl_dot_vv(&n, &axis);
+  const double across = std::sqrt(std::max(1.0 - g * g, 0.0));
+  ksl_vec3_t w = {{-n.x, -n.y, -n.z}};
+  if(!capsule) {
+    if(across > 1e-12) {
+      for(int k = 0; k < 3; k++) {
+        w.at[k] = -(n.at[k] - g * axis.at[k]) / across;
+      }
+    } else {
+      w = {{0.0, 0.0, 0.0}}; // on its end: the axis point
+    }
+  }
+  const ksl_vec3_t q0 = {{center.x + radius * w.x, center.y + radius * w.y,
+                          center.z + radius * w.z}};
+
+  /* the stations inside the hull, and the exit lines t = alpha + beta s */
+  double s1 = -half_length, s2 = half_length;
+  std::vector<double> alpha, beta;
+  for(size_t f = 0; f < data.polygons.size(); f++) {
+    const ksl_vec3_t nf = Rotate(pose, data.polygon_normals[f]);
+    const double of = data.polygon_offsets[f] + ksl_dot_vv(&nf, &pose.t);
+    /* <= 0 inside; a point within rounding of the face's plane is inside,
+    so a line in the plane is not cut where the rounding of its offset and
+    slope cross */
+    const double at_0 = ksl_dot_vv(&nf, &q0) - of -
+                        1e-12 * (std::fabs(of) + half_length + radius);
+    const double slope = ksl_dot_vv(&nf, &axis);
+    if(slope > 0.0) {
+      s2 = std::min(s2, -at_0 / slope);
+    } else if(slope < 0.0) {
+      s1 = std::max(s1, -at_0 / slope);
+    } else if(at_0 > 0.0) {
+      return;
+    }
+    const double along = ksl_dot_vv(&nf, &n);
+    if(along > 1e-12) {
+      alpha.push_back(-at_0 / along);
+      beta.push_back(-slope / along);
+    }
+  }
+  if(!(s2 > s1) || alpha.empty()) {
+    return;
+  }
+
+  /* walk the lower envelope from s1 to s2 */
+  auto exit_line = [&](double s, double& depth) {
+    size_t best = 0;
+    depth = HUGE_VAL;
+    for(size_t f = 0; f < alpha.size(); f++) {
+      const double t = alpha[f] + beta[f] * s;
+      if(t < depth || (t == depth && beta[f] < beta[best])) {
+        depth = t;
+        best = f;
+      }
+    }
+    return best;
+  };
+  double s = s1;
+  for(size_t piece = 0; piece <= alpha.size() && s < s2; piece++) {
+    double d_start;
+    const size_t f = exit_line(s, d_start);
+    /* where a line falling faster crosses it */
+    double s_end = s2;
+    for(size_t k = 0; k < alpha.size(); k++) {
+      if(beta[k] < beta[f]) {
+        const double cross = (alpha[k] - alpha[f]) / (beta[f] - beta[k]);
+        if(cross > s && cross < s_end) {
+          s_end = cross;
+        }
+      }
+    }
+    const double d1 = std::max(d_start, 0.0);
+    const double d2 = std::max(alpha[f] + beta[f] * s_end, 0.0);
+    const double length = s_end - s;
+    const double sum = d1 + d2;
+    if(length > 0.0 && sum > 0.0) {
+      const double s_c = s + length * (d1 + 2.0 * d2) / (3.0 * sum);
+      shift::core::collision_geometry::ContactPoint point;
+      point.depth = 0.5 * sum;
+      point.length = length;
+      ksl_vec3_t on_shape, on_hull;
+      for(int k = 0; k < 3; k++) {
+        on_shape.at[k] = q0.at[k] + s_c * axis.at[k];
+        on_hull.at[k] = on_shape.at[k] + point.depth * n.at[k];
+      }
+      point.point_a = hull_is_a ? on_hull : on_shape;
+      point.point_b = hull_is_a ? on_shape : on_hull;
+      point.normal = normal_ab;
+      pair.manifold.push_back(point);
+    }
+    s = s_end;
+  }
+}
+
 void shift::core::collision_geometry::ComputeManifold(ContactPair& pair) {
   pair.manifold.clear();
   auto plane_a = dynamic_cast<const Plane*>(pair.a);
@@ -517,6 +786,27 @@ void shift::core::collision_geometry::ComputeManifold(ContactPair& pair) {
   if(line) {
     pair.point_laws = true;
     return;
+  }
+  /* a cylinder or a capsule on a convex hull: the line of its faces, or the
+  single deepest point (and its law) where the line has no length */
+  for(auto [hull, other, hull_is_a] :
+      {std::tuple{hull_a, pair.b, true}, std::tuple{hull_b, pair.a, false}}) {
+    if(!hull) {
+      continue;
+    }
+    if(auto cylinder = dynamic_cast<const Cylinder*>(other)) {
+      HullLineManifold(*hull, cylinder->get_d_absolute().t,
+                       cylinder->get_axis(), cylinder->get_half_length(),
+                       cylinder->get_radius(), false, hull_is_a, pair);
+    } else if(auto capsule = dynamic_cast<const Capsule*>(other)) {
+      HullLineManifold(*hull, capsule->get_d_absolute().t,
+                       capsule->get_axis(), capsule->get_half_length(),
+                       capsule->get_radius(), true, hull_is_a, pair);
+    }
+    if(!pair.manifold.empty()) {
+      pair.point_laws = true;
+      return;
+    }
   }
   if(plane_a && hull_b) {
     PlaneHullManifold(*plane_a, *hull_b, true, pair.hint_b, pair);

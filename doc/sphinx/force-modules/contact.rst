@@ -36,11 +36,11 @@ depends on the state only. The stiffness depends on the shapes:
   :math:`n = 3/2`, with :math:`1/e^* = (1-\nu_a^2)/e_a + (1-\nu_b^2)/e_b`
   from the materials' ``youngs_modulus`` and ``poisson_ratio`` and
   :math:`1/r^*` the sum of the curvatures at the contact points.
-* **Cylinders and capsules on a plane**: Hertz line contact
-  :cite:`johnson1985`, :math:`f = \tfrac{\pi}{4} e^* l d` at depth
+* **Cylinders and capsules on a plane, a box or a convex hull**: Hertz line
+  contact :cite:`johnson1985`, :math:`f = \tfrac{\pi}{4} e^* l d` at depth
   :math:`d` over a length :math:`l` of the line (see below), :math:`n = 1`.
-  Against any other shape they touch as if round, with Hertz contact of the
-  radius of the cylinder or capsule at the deepest point.
+  Against a sphere, an ellipsoid or each other they touch as if round, with
+  Hertz contact of the radius of the cylinder or capsule at the deepest point.
 * **Boxes and convex hulls**: a linear spring, :math:`n = 1`, at each
   point of the contact patch, with :math:`k` the ``contact_stiffness``, the
   stiffness of one point (a box resting on its face stands on four of them). The
@@ -96,6 +96,27 @@ moves along the line as the shape tilts, so the force is continuous in the
 state and gives the restoring moment. A cylinder standing on a flat end is
 carried by its rim, as by a line of zero length that grows with the depth:
 use a box or a convex hull for flat faces.
+
+On a box or a convex hull the faces bound the line. The lowest point of the
+shape at a station is inside the hull over an interval of stations, and its
+depth there is the distance along the normal :math:`\underline{n}` out of the
+hull to where it leaves the hull, the least over the faces the normal points
+out of,
+
+.. math::
+
+   d(s) = \min_f \frac{o_f - \underline{n}_f \cdot \underline{q}(s)}
+                       {\underline{n}_f \cdot \underline{n}}
+
+with :math:`\underline{q}(s)` the lowest point and :math:`\underline{n}_f`
+and :math:`o_f` the normal and offset of face :math:`f`. Each face gives a
+depth linear in :math:`s`, so :math:`d(s)` is made of straight pieces, each
+one point as on a plane. On a face there is one piece, the line cut where it
+crosses the face's edges; as the shape rolls over an edge, the normal turns
+from one face toward the other and the edge carries the line, without a jump
+in the force. The normal is that of the closest points of the hull and the
+shape's axis, exact while the axis is outside the hull (the side of the shape
+is its axis grown by the radius).
 
 The damping :math:`c` is given as ``damping``, or follows from the
 coefficient of restitution :math:`r` as the damping of a mass on a linear

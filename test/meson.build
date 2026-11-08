@@ -50,7 +50,7 @@ test_sources = [
   'test_spline.cc',
   'test_spring_damper.cc',
   'test_thrust_collar.cc',
-  'test_stick_slip.cc',
+  'contact/test_stick_slip.cc',
   'test_powertrain.cc',
 ]
 test_deps = [shift_core_dep, gtest_dep]

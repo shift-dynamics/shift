@@ -10,8 +10,9 @@ build/test/shift-test --gtest_filter='CadRound.*'     # one group
 | File | What it tests |
 |------|---------------|
 | `test_contact_geometry.cc` | Depth, normal and points of convex shapes and planes |
-| `test_contact_primitives.cc` | Cylinders, capsules and boxes: fits, support points, line contact on a plane |
-| `test_contact_force.cc` | `force_module::Contact` in simulation, and the collision examples |
+| `test_contact_primitives.cc` | Cylinders, capsules and boxes: fits, support points, line contact on a plane or a box |
+| `test_contact_force.cc` | `force_module::Contact` in simulation, combining two materials, and the collision examples |
+| `test_stick_slip.cc` | Stick-slip friction, the bristle model of `force_module::Contact` |
 | `test_terrain_contact.cc` | `force_module::TerrainContact` on elevation maps |
 | `test_cad_round_contact.cc` | Other shapes on the exact surfaces of STEP parts |
 | `test_cad_contact.cc` | The sprocket, track links and idlers, and Hertz contact of an ellipse |
@@ -134,7 +135,7 @@ Two boxes that can separate by 0.3 along x or 0.2999 along y: a new pair takes t
 
 ### `AllTypes/ContactGeometryPairs.MinimumTranslationSeparates`
 
-All nine pairings of hull, ellipsoid and sphere at random poses: moving one shape by the depth along the normal separates them. The figure shows the first pairing.
+All 36 pairings of hull, ellipsoid, sphere, box, cylinder and capsule at random poses: moving one shape by the depth along the normal separates them, by a little less does not, and swapping the shapes reverses the normal. The pairs of a cylinder or a capsule with anything but a plane find their depth with GJK and EPA, which only this test checks. The figure shows every pairing, at its last trial with the most points; a cylinder or a capsule on a hull or a box has a line.
 
 ![MinimumTranslationSeparates](images/AllTypes_ContactGeometryPairs.MinimumTranslationSeparates.jpg)
 
@@ -178,9 +179,10 @@ A box on a box, turned to several angles: four points on the surface where the f
 
 Shapes given by their dimensions. The first tests check their fit to points and their
 support function, the farthest point in a direction, on which all of their contact is
-built. The others check a cylinder or capsule on a plane, whose contact is a line
-carried by three stations with weights, against a numerical integration of the Hertz
-force along the line.
+built. The others check a cylinder or capsule on a plane or on a box, whose contact is
+a line carried by one point with its length, at the middle of the Hertz force along it:
+against a numerical integration of that force, against the same line on a plane, and
+for jumps as the shape slides, tilts or rolls over an edge of the box.
 
 ### `ContactPrimitives.CylinderFitsItsPoints`
 
@@ -218,6 +220,30 @@ The force has no jump as a shape tilts from a line to a point.
 
 ![LineContactIsContinuousAsTheShapeTilts](images/ContactPrimitives.LineContactIsContinuousAsTheShapeTilts.jpg)
 
+### `ContactPrimitives.LineOnABoxFaceIsTheLineOnAPlane`
+
+A cylinder or a capsule on the top face of a box, clear of its edges, in three poses: the same point, length, depth and normal as on the plane of the face, with the box first or second in the pair.
+
+![LineOnABoxFaceIsTheLineOnAPlane](images/ContactPrimitives.LineOnABoxFaceIsTheLineOnAPlane.jpg)
+
+### `ContactPrimitives.LineOverTheEdgeOfABoxIsCut`
+
+Lying flat across the edge of a box, half of the shape is over the face: the line is cut at the edge, to half the length, centered on that half.
+
+![LineOverTheEdgeOfABoxIsCut](images/ContactPrimitives.LineOverTheEdgeOfABoxIsCut.jpg)
+
+### `ContactPrimitives.LineRollingOverTheEdgeOfABoxHasNoJump`
+
+A shape parallel to an edge of a box, 2 mm deep, slides to the edge and rolls 69 degrees around it: the force stays that of the full length at 2 mm, to 1e-11. The normal comes from the closest points of the box and the shape's axis, exact where that of EPA is not.
+
+![LineRollingOverTheEdgeOfABoxHasNoJump](images/ContactPrimitives.LineRollingOverTheEdgeOfABoxHasNoJump.jpg)
+
+### `ContactPrimitives.LineTiltingOffTheEndOfABoxHasNoJump`
+
+Lying across the edge of a box and tilting, the end over the face rises out of contact: the force falls to zero without a jump. The figure shows the last pose, with the line nearly gone.
+
+![LineTiltingOffTheEndOfABoxHasNoJump](images/ContactPrimitives.LineTiltingOffTheEndOfABoxHasNoJump.jpg)
+
 ### `ContactPrimitives.CapsuleLyingOnTheGroundRestsOnALine`
 
 A capsule simulated to rest on the ground, at the depth of Hertz line contact.
@@ -229,6 +255,12 @@ A capsule simulated to rest on the ground, at the depth of Hertz line contact.
 The same for a cylinder.
 
 ![CylinderLyingOnTheGroundRestsOnALine](images/ContactPrimitives.CylinderLyingOnTheGroundRestsOnALine.jpg)
+
+### `ContactPrimitives.LinesLyingOnABoxRestAsOnTheGround`
+
+A capsule and a cylinder simulated to rest on a box settle at the depth of Hertz line contact, as on the ground. The figure shows the cylinder.
+
+![LinesLyingOnABoxRestAsOnTheGround](images/ContactPrimitives.LinesLyingOnABoxRestAsOnTheGround.jpg)
 
 ### `ContactPrimitives.BoxRestsOnItsCorners`
 
@@ -296,6 +328,18 @@ A tilted box settles flat on four points, on the ground and on a box.
 
 ![TiltedBoxSettles](images/ContactForce.TiltedBoxSettles.jpg)
 
+### `ContactForce.FrictionCombineRules`
+
+A box (friction 0.2) sliding on the ground (friction 0.8), with each rule that combines the friction of two materials: geometric mean (the default), arithmetic mean, minimum, maximum and product. It slows exactly as on materials that both have the combined value, and at about that value times g.
+
+![FrictionCombineRules](images/ContactForce.FrictionCombineRules.jpg)
+
+### `ContactForce.RestitutionCombineRules`
+
+A box (restitution 0.7) dropped on the ground (0.95), with each rule: it rebounds exactly as on materials that both have the combined restitution, and to about that value. It ends in the air at the top of its rebound.
+
+![RestitutionCombineRules](images/ContactForce.RestitutionCombineRules.jpg)
+
 ### `ContactForce.JointedBodiesExcluded`
 
 A ball joined to the ground by a revolute joint overlaps it: no contact, unless the model asks for jointed bodies to be tested.
@@ -313,6 +357,73 @@ The five bunnies of the collision example come to rest on the ground.
 The five skulls of the collision example do the same.
 
 ![BodiesRestOnTheGround](images/Skulls_CollisionExample.BodiesRestOnTheGround.jpg)
+
+## Stick-slip friction
+
+The bristle model of the contact module: friction that holds a body still below the limit
+of static friction, which regularized Coulomb friction cannot. Each test sets a box on a
+plane tilted about y, its four corners on linear springs, and lists the pair in
+`stick_slip`, or gives every pair the same bristles with `stick_slip_all`.
+
+### `StickSlip.AHeldBodyDoesNotCreepWhereRegularizedFrictionDoes`
+
+On a slope of 0.2 under friction 0.5, regularized Coulomb friction lets the box creep at 4.4 mm/s; with bristles it holds.
+
+![AHeldBodyDoesNotCreepWhereRegularizedFrictionDoes](images/StickSlip.AHeldBodyDoesNotCreepWhereRegularizedFrictionDoes.jpg)
+
+### `StickSlip.TheDeflectionOfTheBristlesCarriesTheLoad`
+
+At rest the bristles of the four corners are deflected alike, by the slope over their stiffness, so that they carry the part of the weight along the slope.
+
+![TheDeflectionOfTheBristlesCarriesTheLoad](images/StickSlip.TheDeflectionOfTheBristlesCarriesTheLoad.jpg)
+
+### `StickSlip.BeyondTheLimitItSlidesAtTheAccelerationOfCoulombFriction`
+
+On a slope of 0.8 against friction 0.5 the box slides, at g cos(slope) (tan(slope) - friction).
+
+![BeyondTheLimitItSlidesAtTheAccelerationOfCoulombFriction](images/StickSlip.BeyondTheLimitItSlidesAtTheAccelerationOfCoulombFriction.jpg)
+
+### `StickSlip.StaticFrictionAboveTheCoulombFrictionHoldsWhereCoulombSlides`
+
+On a slope of 0.8, past Coulomb friction of 0.5 but within static friction of 0.9: the box holds.
+
+![StaticFrictionAboveTheCoulombFrictionHoldsWhereCoulombSlides](images/StickSlip.StaticFrictionAboveTheCoulombFrictionHoldsWhereCoulombSlides.jpg)
+
+### `StickSlip.APairNotListedKeepsItsStatelessFriction`
+
+A pair not listed has no bristles: the module adds no states and no outputs.
+
+![APairNotListedKeepsItsStatelessFriction](images/StickSlip.APairNotListedKeepsItsStatelessFriction.jpg)
+
+### `StickSlip.TheBristleDampingStopsABodyWalkingDownTheSlope`
+
+A box set rocking on the slope settles and stays, with bristle damping.
+
+![TheBristleDampingStopsABodyWalkingDownTheSlope](images/StickSlip.TheBristleDampingStopsABodyWalkingDownTheSlope.jpg)
+
+### `StickSlipAll.EveryPairHoldsWithoutBeingListed`
+
+The bristles of `stick_slip_all` hold the box where the same bristles, listed for its pair, do.
+
+![EveryPairHoldsWithoutBeingListed](images/StickSlipAll.EveryPairHoldsWithoutBeingListed.jpg)
+
+### `StickSlipAll.ThePairsGetTheFrictionOfTheirMaterials`
+
+Past the static limit of 0.6 (0.5 times 1.2) the box slides, at the acceleration of the Coulomb friction of its materials.
+
+![ThePairsGetTheFrictionOfTheirMaterials](images/StickSlipAll.ThePairsGetTheFrictionOfTheirMaterials.jpg)
+
+### `StickSlipAll.AListedPairKeepsItsOwnBristles`
+
+A pair listed in `stick_slip` keeps its own bristles and takes none of the shared sets.
+
+![AListedPairKeepsItsOwnBristles](images/StickSlipAll.AListedPairKeepsItsOwnBristles.jpg)
+
+### `StickSlipAll.ASetGoesBackWhenThePairHasLeft`
+
+The box leaves the plane at once: its pair takes a shared set of bristles, gives it back when they have relaxed, and the set is free at the end. It ends in the air.
+
+![ASetGoesBackWhenThePairHasLeft](images/StickSlipAll.ASetGoesBackWhenThePairHasLeft.jpg)
 
 ## Terrain
 
@@ -860,6 +971,9 @@ These check input or arithmetic, so there is no contact to draw.
 | `CollisionGeometryInput.DimensionsAndPose` | Collision geometry given by dimensions and placed by a pose reads as written. |
 | `CollisionGeometryInput.FitToNamedMeshes` | Geometry fitted to the meshes named in `fit_to`. |
 | `CollisionGeometryInput.InvalidCombinations` | Combinations of input that make no sense are refused. |
+| `ContactForce.UnknownCombineRule` | A `friction_combine` or `restitution_combine` that names no rule is refused. |
+| `StickSlip.WhatItRefuses` | A pair naming a missing geometry, a zero bristle stiffness, a static friction below the Coulomb friction, or a pair listed twice is refused with a message that says which; a valid pair loads. |
+| `StickSlipAll.WhatItRefuses` | `stick_slip_all` with a static ratio below 1, a static friction below the Coulomb friction, is refused. |
 | `ContactForce.InvalidMaterials` | A missing material, a bad restitution and a missing stiffness are refused. |
 | `HertzEllipse.EllipticIntegrals` | The elliptic integrals of Hertz contact, against tabulated values. |
 | `HertzEllipse.FactorAndElongation` | The factor and elongation of a contact ellipse, against closed forms. |
@@ -876,6 +990,13 @@ renders. The records of the track models are over 1 GB each.
 
 ```bash
 mkdir -p /tmp/contact
-SHIFT_CONTACT_RECORD=/tmp/contact build-release/test/shift-test --gtest_filter='CadRound*:CadContact*:CadLineContact*:*CamFaces*:*CurvedOnCurved*:GearToothContact*:BentLine*:ContactGeometry*:ContactPrimitives*:ContactForce*:Collision*:TerrainContact*:HertzEllipse*:AllTypes/ContactGeometryPairs*:Bunnies/CollisionExample.*:Skulls/CollisionExample.*'
+SHIFT_CONTACT_RECORD=/tmp/contact build-release/test/shift-test --gtest_filter='CadRound*:CadContact*:CadLineContact*:*CamFaces*:*CurvedOnCurved*:GearToothContact*:BentLine*:ContactGeometry*:ContactPrimitives*:ContactForce*:Collision*:TerrainContact*:HertzEllipse*:StickSlip*:AllTypes/ContactGeometryPairs*:Bunnies/CollisionExample.*:Skulls/CollisionExample.*'
 python3 test/contact/make_figures.py /tmp/contact test/contact/images
+```
+
+The text of this file is in `readme_data.py`. `make_readme.py` writes it, and checks that
+every test here is listed and every figure exists:
+
+```bash
+python3 test/contact/make_readme.py
 ```

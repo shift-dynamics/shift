@@ -14,7 +14,8 @@ scene on the left and the contact close up on the right, the bodies transparent 
 that it can be seen between them. Red is what was computed: a ball for a point, a tube along a line of contact with a white
 ball at each station, a thin plate for points that share a normal and so bound a
 surface, and an arrow for the normal. Of the variants of a parameterized test only
-the first is drawn. The viewer needs a display, and shows a window as it renders.
+the first is drawn, except for the tests of GRIDS, whose variants are different
+shapes: each is drawn, in a grid with a label. The viewer needs a display, and shows a window as it renders.
 SHIFT_BUILD names the build directory (default: build-release).
 """
 
@@ -239,13 +240,18 @@ def add_plate(mesh, outline, normal, thickness):
 
 
 def long_axis(contact, geometry):
-    """the longest direction of the solid of a pair"""
+    """the longest direction of the more elongated solid of a pair (a cylinder
+    or a capsule on a box, not the box)"""
+    best, axis = 0.0, None
     for g in geometry:
         if 'quads' in g and g['name'] in (contact['a'], contact['b']):
             v = vertices_of(g)
-            return numpy.linalg.svd(v - v.mean(axis=0),
-                                    full_matrices=False)[2][0]
-    return None
+            _, sizes, directions = numpy.linalg.svd(v - v.mean(axis=0),
+                                                    full_matrices=False)
+            elongation = sizes[0] / max(sizes[1], 1e-300)
+            if elongation > best:
+                best, axis = elongation, directions[0]
+    return axis
 
 
 def reach_of(contact, geometry):
@@ -472,6 +478,51 @@ def draw(path, directory):
     return name
 
 
+# tests whose variants are different shapes: every variant drawn, in a grid
+# with a label each, from the variant's index
+PAIR_TYPES = ['hull', 'ellipsoid', 'sphere', 'box', 'cylinder', 'capsule']
+GRIDS = {
+    'AllTypes_ContactGeometryPairs.MinimumTranslationSeparates':
+        lambda k: '%s and %s' % (PAIR_TYPES[k // 6], PAIR_TYPES[k % 6]),
+}
+
+
+def draw_grid(name, paths, directory):
+    """every variant of a test, its whole scene and close up, in a grid of
+    six across, each labelled"""
+    label = GRIDS[name]
+    index = lambda p: int(re.search(r'_(\d+)\.json$', p).group(1))
+    with tempfile.TemporaryDirectory() as work:
+        tiles = []
+        for path in sorted(paths, key=index):
+            k = index(path)
+            copy = os.path.join(work, '%s.json' % k)
+            os.symlink(os.path.abspath(path), copy)
+            draw(copy, work)
+            with open(path) as file:
+                computed = describe(json.load(file))
+            tile = os.path.join(work, 'tile%02d.jpg' % k)
+            # the panels without their caption, too small to read here, and
+            # the pair and what was computed above them
+            subprocess.run(
+                ['magick', os.path.join(work, '%d.jpg' % k), '-gravity',
+                 'south', '-chop', '0x44', '-resize', '480x', '-gravity',
+                 'north', '-background', 'white', '-splice', '0x40',
+                 '-pointsize', '15', '-fill', '#222222', '-annotate', '+0+3',
+                 label(k), '-pointsize', '13', '-fill', '#d00f14',
+                 '-annotate', '+0+21', computed, tile], check=True)
+            tiles.append(tile)
+        rows = []
+        for r in range(0, len(tiles), 6):
+            row = os.path.join(work, 'row%02d.jpg' % r)
+            subprocess.run(['magick', *tiles[r:r + 6], '+append', row],
+                           check=True)
+            rows.append(row)
+        subprocess.run(['magick', *rows, '-append', '-quality', '82',
+                        os.path.join(directory, name + '.jpg')], check=True)
+    return name
+
+
 def first_variants(paths):
     """of the variants name_0, name_1 of a test, the first"""
     chosen = {}
@@ -484,11 +535,18 @@ def first_variants(paths):
 def main():
     records, directory = sys.argv[1], sys.argv[2]
     os.makedirs(directory, exist_ok=True)
-    paths = first_variants(glob.glob(os.path.join(records, '*.json')))
+    every = glob.glob(os.path.join(records, '*.json'))
     only = sys.argv[3:]
     if only:
-        paths = [p for p in paths if any(o in p for o in only)]
-    for path in paths:
+        every = [p for p in every if any(o in p for o in only)]
+    for name in GRIDS:
+        variants = [p for p in every
+                    if re.sub(r'_\d+$', '', os.path.splitext(
+                        os.path.basename(p))[0]) == name]
+        if variants:
+            print(draw_grid(name, variants, directory), flush=True)
+            every = [p for p in every if p not in variants]
+    for path in first_variants(every):
         print(draw(path, directory), flush=True)
 
 

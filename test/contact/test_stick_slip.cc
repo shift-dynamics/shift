@@ -14,6 +14,7 @@ Coulomb friction */
 #include <string>
 #include <vector>
 
+#include "test/contact/contact_record.h"
 #include "shift/core/body/base.h"
 #include "shift/core/context.h"
 #include "shift/core/force_module/contact.h"
@@ -123,6 +124,7 @@ static void RunIncline(shift::core::Context& context, const Incline& incline,
       [last_state](double, const std::vector<double>& y) { *last_state = y; });
   }
   context.Simulate();
+  shift::test::RecordContacts(context);
 }
 
 static shift::core::body::Base* Box(shift::core::Context& context) {

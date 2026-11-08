@@ -345,9 +345,198 @@ TEST(ContactPrimitives, LineContactIsContinuousAsTheShapeTilts) {
   }
 }
 
-/* a body on a float joint above a ground plane (z down), simulated to rest */
+/* a cylinder or capsule of radius 0.1 and half length 0.5 */
+static std::unique_ptr<shift::core::collision_geometry::Base> LineShape(
+  bool is_capsule) {
+  if(is_capsule) {
+    return Fitted<shift::core::collision_geometry::Capsule>(CylinderPoints(0.1, 0.5));
+  }
+  return Fitted<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.1, 0.5));
+}
+
+/* the radius and half length of a LineShape */
+static void LineSize(const shift::core::collision_geometry::Base& shape,
+                     double& r, double& h) {
+  if(auto capsule = dynamic_cast<const shift::core::collision_geometry::Capsule*>(&shape)) {
+    r = capsule->get_radius();
+    h = capsule->get_half_length();
+  } else {
+    auto& cylinder = dynamic_cast<const shift::core::collision_geometry::Cylinder&>(shape);
+    r = cylinder.get_radius();
+    h = cylinder.get_half_length();
+  }
+}
+
+/* a box 2 x 2 x 1 whose top face is z = 0 (z down, the face's outward normal
+-z), its edges at x = +-1 and y = +-1 */
+static std::unique_ptr<shift::core::collision_geometry::Box> TableBox() {
+  std::vector<ksl_vec3_t> corners;
+  for(int i = 0; i < 8; i++) {
+    corners.push_back(V((i & 1) ? 1.0 : -1.0, (i & 2) ? 1.0 : -1.0,
+                        (i & 4) ? 0.5 : -0.5));
+  }
+  auto box = Fitted<shift::core::collision_geometry::Box>(corners);
+  box->UpdatePose(Pose(V(0, 0, 0.5), V(1, 0, 0), 0.0));
+  shift::test::RecordShape(*box);
+  return box;
+}
+
+static shift::core::collision_geometry::ContactPair Touch(
+  shift::core::collision_geometry::Base& a,
+  shift::core::collision_geometry::Base& b) {
+  shift::core::collision_geometry::ContactPair pair;
+  pair.a = &a;
+  pair.b = &b;
+  shift::test::TestContact(pair);
+  return pair;
+}
+
+/* the line law's load L d summed over the points of a manifold */
+static double LineLoad(const shift::core::collision_geometry::ContactPair& pair) {
+  double load = 0.0;
+  if(pair.collision && pair.point_laws) {
+    for(const auto& c : pair.manifold) {
+      load += c.weight * c.length * c.depth;
+    }
+  }
+  return load;
+}
+
+TEST(ContactPrimitives, LineOnABoxFaceIsTheLineOnAPlane) {
+  /* a cylinder or a capsule on the top face of a box, clear of its edges,
+  touches as it would the plane of the face: the same point, length and
+  depth, with the box as either geometry of the pair */
+  auto box = TableBox();
+  auto plane = std::make_unique<shift::core::collision_geometry::Plane>();
+  plane->SetPlane(V(0, 0, -1), 0.0);
+  plane->UpdatePose(Pose(V(0, 0, 0), V(1, 0, 0), 0.0));
+  for(bool is_capsule : {false, true}) {
+    auto shape = LineShape(is_capsule);
+    for(const ksl_SE3_t& pose :
+        {Pose(V(0.1, 0.2, -0.098), V(0, 1, 0), M_PI / 2),
+         Pose(V(0.0, 0.0, -0.25), V(0, 1, 0), M_PI / 2 - 0.5),
+         Pose(V(-0.2, 0.3, -0.12), V(0.3, 1, 0), M_PI / 2 - 0.1)}) {
+      shape->UpdatePose(pose);
+      const auto on_plane = Touch(*plane, *shape);
+      ASSERT_TRUE(on_plane.collision);
+      ASSERT_EQ(on_plane.manifold.size(), 1u);
+      const auto& expected = on_plane.manifold[0];
+      for(bool box_first : {true, false}) {
+        const auto pair = box_first ? Touch(*box, *shape) : Touch(*shape, *box);
+        ASSERT_TRUE(pair.collision);
+        ASSERT_TRUE(pair.point_laws);
+        ASSERT_EQ(pair.manifold.size(), 1u);
+        const auto& point = pair.manifold[0];
+        EXPECT_NEAR(point.length, expected.length, 1e-9);
+        EXPECT_NEAR(point.depth, expected.depth, 1e-9);
+        const ksl_vec3_t& on_shape = box_first ? point.point_b : point.point_a;
+        const ksl_vec3_t& on_box = box_first ? point.point_a : point.point_b;
+        for(int k = 0; k < 3; k++) {
+          EXPECT_NEAR(on_shape.at[k], expected.point_b.at[k], 1e-9);
+          EXPECT_NEAR(on_box.at[k], expected.point_a.at[k], 1e-9);
+          /* the normal is from a to b */
+          EXPECT_NEAR(point.normal.at[k],
+                      (box_first ? 1.0 : -1.0) * expected.normal.at[k], 1e-9);
+        }
+      }
+    }
+  }
+}
+
+TEST(ContactPrimitives, LineOverTheEdgeOfABoxIsCut) {
+  /* lying flat along x, 2 mm deep, its center on the edge x = 1: the half
+  over the face touches, a line of length h centered at x = 1 - h / 2 */
+  auto box = TableBox();
+  for(bool is_capsule : {false, true}) {
+    auto shape = LineShape(is_capsule);
+    double r, h;
+    LineSize(*shape, r, h);
+    shape->UpdatePose(Pose(V(1.0, 0.3, -(r - 0.002)), V(0, 1, 0), M_PI / 2));
+    const auto pair = Touch(*box, *shape);
+    ASSERT_TRUE(pair.collision);
+    ASSERT_TRUE(pair.point_laws);
+    ASSERT_EQ(pair.manifold.size(), 1u);
+    const auto& point = pair.manifold[0];
+    EXPECT_NEAR(point.length, h, 1e-9);
+    EXPECT_NEAR(point.depth, 0.002, 1e-9);
+    EXPECT_NEAR(point.point_b.x, 1.0 - 0.5 * h, 1e-9);
+    EXPECT_NEAR(point.point_b.z, 0.002, 1e-9);
+    EXPECT_NEAR(point.point_a.z, 0.0, 1e-9);
+  }
+}
+
+TEST(ContactPrimitives, LineRollingOverTheEdgeOfABoxHasNoJump) {
+  /* a cylinder or capsule parallel to the edge x = 1, 2 mm deep, slides to
+  the edge and rolls around it: the load L d never jumps, and around the
+  edge it is the full length at the depth of the edge in the shape */
+  auto box = TableBox();
+  const double depth = 0.002;
+  for(bool is_capsule : {false, true}) {
+    auto shape = LineShape(is_capsule);
+    double r, h;
+    LineSize(*shape, r, h);
+    double previous = -1.0;
+    const int steps = 2000;
+    for(int i = 0; i <= steps; i++) {
+      const double u = 2.0 * i / steps - 1.0; // -1 to 1
+      ksl_vec3_t center;
+      if(u < 0.0) {
+        center = V(1.0 + 0.2 * u, 0.0, -(r - depth));
+      } else {
+        const double phi = 1.2 * u; // around the edge, to about 69 degrees
+        center = V(1.0 + (r - depth) * std::sin(phi), 0.0,
+                   -(r - depth) * std::cos(phi));
+      }
+      shape->UpdatePose(Pose(center, V(1, 0, 0), M_PI / 2)); // axis along y
+      const auto pair = Touch(*box, *shape);
+      ASSERT_TRUE(pair.collision) << "u " << u;
+      const double load = LineLoad(pair);
+      EXPECT_NEAR(load, 2.0 * h * depth, 1e-11) << "u " << u;
+      if(previous >= 0.0) {
+        EXPECT_LT(std::fabs(load - previous), 1e-11) << "u " << u;
+      }
+      previous = load;
+    }
+  }
+}
+
+TEST(ContactPrimitives, LineTiltingOffTheEndOfABoxHasNoJump) {
+  /* lying along x across the edge x = 1 and tilting about y, the end over
+  the face rising out: the load falls to zero without a jump */
+  auto box = TableBox();
+  for(bool is_capsule : {false, true}) {
+    auto shape = LineShape(is_capsule);
+    double r, h;
+    LineSize(*shape, r, h);
+    double previous = -1.0;
+    for(int i = 0; i <= 2000; i++) {
+      const double tilt = 0.05 * i / 2000;
+      shape->UpdatePose(
+        Pose(V(1.1, 0.0, -(r - 0.002)), V(0, 1, 0), M_PI / 2 - tilt));
+      const auto pair = Touch(*box, *shape);
+      const double load = LineLoad(pair);
+      if(previous >= 0.0) {
+        /* it falls by about 3e-6 a step: a jump would be of the order of
+        the whole load, 1e-3 */
+        EXPECT_LT(std::fabs(load - previous), 1e-5) << "tilt " << tilt;
+      }
+      previous = load;
+    }
+  }
+}
+
+/* the ground of RestDepth: a plane, or a box 2 x 2 x 1 whose top face is the
+plane z = 0 */
+static const char* kPlaneGround = R"({"name": "ground", "type": "plane",
+                               "material": "ground"})";
+static const char* kBoxGround = R"({"name": "ground", "type": "box",
+  "half_extents": [1.0, 1.0, 0.5], "pose": {"T": [0.0, 0.0, 0.5]},
+  "material": "ground"})";
+
+/* a body on a float joint above a ground (z down), simulated to rest */
 static double RestDepth(const std::string& shape, double offset, double mass,
-                        const std::string& rotation = "") {
+                        const std::string& rotation = "",
+                        const std::string& ground = kPlaneGround) {
   const std::string path = testing::TempDir() + "/primitive_rest.json";
   std::ostringstream model;
   model.precision(17);
@@ -366,8 +555,7 @@ static double RestDepth(const std::string& shape, double offset, double mass,
   "assemblies": [{"name": "rest",
     "bodies": [
       {"name": "ground", "geometry": [],
-       "collision_geometry": [{"name": "ground", "type": "plane",
-                               "material": "ground"}],
+       "collision_geometry": [)" << ground << R"(],
        "center_of_mass": [0, 0, 0],
        "inertia": {"mass": 1.0, "Ixx": 1.0, "Iyy": 1.0, "Izz": 1.0,
                    "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}},
@@ -441,6 +629,27 @@ TEST(ContactPrimitives, CylinderLyingOnTheGroundRestsOnALine) {
         "pose": {"R": [[0, 0, 1], [0, 1, 0], [-1, 0, 0]]}})",
     r, 2.0);
   EXPECT_NEAR(-height, depth, 5e-3 * depth);
+}
+
+TEST(ContactPrimitives, LinesLyingOnABoxRestAsOnTheGround) {
+  /* a capsule and a cylinder lying on the top face of a box settle as they
+  do on a plane: m g = pi/4 E* L d over the length of the line */
+  const double capsule_depth =
+    10.0 * 9.81 / (M_PI / 4.0 * kModulus * 2.0 * 0.3);
+  const double capsule = RestDepth(
+    R"({"name": "capsule", "type": "capsule", "radius": 0.05,
+        "half_length": 0.3, "material": "block",
+        "pose": {"R": [[0, 0, 1], [0, 1, 0], [-1, 0, 0]]}})",
+    0.05, 10.0, "", kBoxGround);
+  EXPECT_NEAR(-capsule, capsule_depth, 5e-3 * capsule_depth);
+  const double cylinder_depth =
+    2.0 * 9.81 / (M_PI / 4.0 * kModulus * 2.0 * 0.2);
+  const double cylinder = RestDepth(
+    R"({"name": "cylinder", "type": "cylinder", "radius": 0.04,
+        "half_length": 0.2, "material": "block",
+        "pose": {"R": [[0, 0, 1], [0, 1, 0], [-1, 0, 0]]}})",
+    0.04, 2.0, "", kBoxGround);
+  EXPECT_NEAR(-cylinder, cylinder_depth, 5e-3 * cylinder_depth);
 }
 
 TEST(ContactPrimitives, BoxRestsOnItsCorners) {

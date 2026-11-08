@@ -28,6 +28,11 @@ struct Drop {
   double restitution = 0.5;
   std::string damping = ""; //!< e.g. ", \"damping\": 0" of both materials
   double friction = 0.5;
+  /*! the ground's restitution and friction, if not negative; else those of
+   * the ball */
+  double ground_restitution = -1.0;
+  double ground_friction = -1.0;
+  std::string module_keys = ""; //!< e.g. "\"friction_combine\": \"minimum\", "
   std::string extra_material = "";
   std::string joint = ""; //!< the ball's joint, a float joint if empty
   bool exclude_jointed_bodies = true;
@@ -89,13 +94,16 @@ static void RunDrop(shift::core::Context& context, const std::string& name,
   }
   model << R"(
     ],
-    "force_modules": [{"name": "contact", "type": "contact",
-      "exclude_jointed_bodies": )"
+    "force_modules": [{"name": "contact", "type": "contact", )"
+        << drop.module_keys << R"("exclude_jointed_bodies": )"
         << (drop.exclude_jointed_bodies ? "true" : "false") << R"(,
       "materials": [
         {"name": "ground", "youngs_modulus": 1e7, "poisson_ratio": 0.3,
          "restitution": )"
-        << drop.restitution << drop.damping << R"(, "friction": )" << drop.friction
+        << (drop.ground_restitution >= 0.0 ? drop.ground_restitution
+                                           : drop.restitution)
+        << drop.damping << R"(, "friction": )"
+        << (drop.ground_friction >= 0.0 ? drop.ground_friction : drop.friction)
         << R"(, "contact_stiffness": 1e5},
         {"name": "ball", "youngs_modulus": 1e7, "poisson_ratio": 0.3,
          "restitution": )"
@@ -366,6 +374,105 @@ TEST(ContactForce, JointedBodiesExcluded) {
     RunDrop(context, exclude ? "excluded" : "included", drop);
     EXPECT_EQ(context.get_contacts().empty(), exclude);
   }
+}
+
+/* the rules that combine the friction or the restitution of two materials,
+the value each gives for 0.2 and 0.8 (friction) or 0.7 and 0.95
+(restitution), and the module's key that selects it, empty for the default
+(the geometric mean) */
+struct CombineRule {
+  const char* name;
+  double friction;
+  double restitution;
+};
+
+static const CombineRule kCombineRules[] = {
+  {"", 0.4, 0.8154753215150045},
+  {"geometric_mean", 0.4, 0.8154753215150045},
+  {"arithmetic_mean", 0.5, 0.825},
+  {"minimum", 0.2, 0.7},
+  {"maximum", 0.8, 0.95},
+  {"product", 0.16, 0.665}};
+
+static std::string CombineKey(const char* setting, const char* rule) {
+  if(rule[0] == '\0') {
+    return "";
+  }
+  return std::string("\"") + setting + "\": \"" + rule + "\", ";
+}
+
+/* the speed of a box launched sliding along the ground at 2 m/s, after 0.2 s */
+static double SlideSpeed(const std::string& name, const Drop& base) {
+  Drop drop = base;
+  drop.shape = R"({"name": "box", "type": "convex_hull",
+                   "half_extents": [0.1, 0.1, 0.1], "material": "ball"})";
+  drop.inertia = 1.0 / 6.0 * 0.04;
+  drop.height = 0.0;
+  drop.velocity = "[2.0, 0, 0, 0, 0, 0]";
+  drop.restitution = 0.2;
+  drop.time_span = 0.2;
+  shift::core::Context context;
+  RunDrop(context, name, drop);
+  return Velocity(context).x;
+}
+
+TEST(ContactForce, FrictionCombineRules) {
+  /* a box (friction 0.2) sliding on the ground (0.8) slows as it does on
+  materials that both have the combined friction, the same law: to
+  rounding, and at about mu g */
+  for(const auto& rule : kCombineRules) {
+    Drop mixed;
+    mixed.friction = 0.2;
+    mixed.ground_friction = 0.8;
+    mixed.module_keys = CombineKey("friction_combine", rule.name);
+    const double speed = SlideSpeed("friction_combine", mixed);
+    Drop same; // the default rule, the geometric mean, keeps equal values
+    same.friction = rule.friction;
+    EXPECT_NEAR(speed, SlideSpeed("friction_combined", same), 1e-6)
+      << rule.name;
+    EXPECT_NEAR(speed, 2.0 - rule.friction * kGravity * 0.2, 0.02)
+      << rule.name;
+  }
+}
+
+TEST(ContactForce, RestitutionCombineRules) {
+  /* a box (restitution 0.7) dropped flat on the ground (0.95) rebounds as
+  on materials that both have the combined restitution: to rounding, and to
+  about that restitution */
+  for(const auto& rule : kCombineRules) {
+    auto rebound = [&](double ball, double ground, const char* key) {
+      Drop drop;
+      drop.shape = R"({"name": "box", "type": "convex_hull",
+                       "half_extents": [0.1, 0.1, 0.1], "material": "ball"})";
+      drop.inertia = 1.0 / 6.0 * 0.04;
+      drop.height = 0.1;
+      drop.restitution = ball;
+      drop.ground_restitution = ground;
+      drop.module_keys = CombineKey("restitution_combine", key);
+      const double v_in = std::sqrt(2.0 * kGravity * drop.height);
+      drop.time_span = std::sqrt(2.0 * drop.height / kGravity) +
+                       rule.restitution * v_in / kGravity;
+      shift::core::Context context;
+      RunDrop(context, "restitution_combine", drop);
+      return std::sqrt(Height(context, drop) / drop.height);
+    };
+    const double mixed = rebound(0.7, 0.95, rule.name);
+    /* the default rule, the geometric mean, keeps equal values */
+    EXPECT_NEAR(mixed, rebound(rule.restitution, rule.restitution, ""), 1e-6)
+      << rule.name;
+    EXPECT_NEAR(mixed, rule.restitution, 0.02) << rule.name;
+  }
+}
+
+TEST(ContactForce, UnknownCombineRule) {
+  Drop drop;
+  drop.module_keys = R"("friction_combine": "harmonic_mean", )";
+  shift::core::Context context;
+  EXPECT_ANY_THROW(RunDrop(context, "unknown_rule", drop, false));
+  Drop restitution;
+  restitution.module_keys = R"("restitution_combine": "median", )";
+  shift::core::Context context2;
+  EXPECT_ANY_THROW(RunDrop(context2, "unknown_rule", restitution, false));
 }
 
 TEST(ContactForce, InvalidMaterials) {

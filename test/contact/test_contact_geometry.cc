@@ -11,7 +11,10 @@ size fitted with shift::core::collision_geometry::Base::FitToPoints */
 
 #include "test/contact/contact_record.h"
 #include "shift/core/collision_geometry/analytic_contact.h"
+#include "shift/core/collision_geometry/box.h"
+#include "shift/core/collision_geometry/capsule.h"
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/gjk.h"
 #include "shift/core/collision_geometry/plane.h"
@@ -53,6 +56,19 @@ static std::vector<ksl_vec3_t> BoxPoints(double hx, double hy, double hz) {
   for(int i = 0; i < 8; i++) {
     points.push_back(V((i & 1) ? hx : -hx, (i & 2) ? hy : -hy,
                        (i & 4) ? hz : -hz));
+  }
+  return points;
+}
+
+/* the rims of a cylinder of radius r and half length h along z (the segment
+ends of a capsule of radius r), as points that fit it exactly */
+static std::vector<ksl_vec3_t> CylinderPoints(double r, double h) {
+  std::vector<ksl_vec3_t> points;
+  for(int k = 0; k < 64; k++) {
+    const double a = 2.0 * M_PI * k / 64;
+    for(double z : {-h, h}) {
+      points.push_back(V(r * std::cos(a), r * std::sin(a), z));
+    }
   }
   return points;
 }
@@ -767,7 +783,12 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
   }
 }
 
-/* every pairing of the three types at random overlapping poses */
+/* every pairing of the shape types at random overlapping poses: those with
+a closed form (sphere, ellipsoid, hull and box among themselves) and the
+cylinder and the capsule, whose pairs with anything but a plane are GJK and
+EPA */
+static const int kPairTypes = 6;
+
 class ContactGeometryPairs : public testing::TestWithParam<int> {
 protected:
   std::unique_ptr<shift::core::collision_geometry::Base> MakeShape(int type) {
@@ -776,15 +797,21 @@ protected:
         return Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.4, 0.25, 0.15));
       case 1:
         return Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.4, 0.25, 0.15));
-      default:
+      case 2:
         return Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.3, 0.3, 0.3));
+      case 3:
+        return Make<shift::core::collision_geometry::Box>(BoxPoints(0.35, 0.2, 0.25));
+      case 4:
+        return Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.2, 0.35));
+      default:
+        return Make<shift::core::collision_geometry::Capsule>(CylinderPoints(0.15, 0.25));
     }
   }
 };
 
 TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
-  auto a = MakeShape(GetParam() / 3);
-  auto b = MakeShape(GetParam() % 3);
+  auto a = MakeShape(GetParam() / kPairTypes);
+  auto b = MakeShape(GetParam() % kPairTypes);
   std::mt19937 random(GetParam() + 1);
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
@@ -840,5 +867,6 @@ TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
   EXPECT_GT(tested, 10);
 }
 
-/* 0..8: hull, ellipsoid, sphere for a times the same for b */
-INSTANTIATE_TEST_SUITE_P(AllTypes, ContactGeometryPairs, testing::Range(0, 9));
+/* hull, ellipsoid, sphere, box, cylinder, capsule for a times the same for b */
+INSTANTIATE_TEST_SUITE_P(AllTypes, ContactGeometryPairs,
+                         testing::Range(0, kPairTypes * kPairTypes));
