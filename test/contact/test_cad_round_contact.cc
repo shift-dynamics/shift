@@ -974,11 +974,11 @@ TEST_F(CadRound, EdgeCrossesAnEdge) {
   const double c = std::sqrt(0.5);
   const double n[3] = {c, 0.0, c}, pa[3] = {kBox[0], 0.01, kBox[2]};
   for(double twist : {0.0, 0.3, -0.5}) {
-    // the box's edge along d, across y and n; its faces either side of -n
+    // the box's edge across w and n, turned by twist from e about n; its
+    // faces either side of -n
     const double e[3] = {c, 0.0, -c}; // y, e and n are a right-handed frame
-    double d[3], w[3];
+    double w[3];
     for(int k = 0; k < 3; k++) {
-      d[k] = std::cos(twist) * e[k] + std::sin(twist) * (k == 1 ? 1.0 : 0.0);
       w[k] = std::cos(twist) * (k == 1 ? 1.0 : 0.0) - std::sin(twist) * e[k];
     }
     double r[3][3];
