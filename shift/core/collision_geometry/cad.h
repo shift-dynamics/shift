@@ -73,6 +73,12 @@ struct CadContactFace {
   std::vector<cad::Vec2> sample_uv;
   std::vector<ksl_vec3_t> sample_points;
   std::vector<ksl_vec3_t> sample_normals;
+  /*! the samples are the cells of a grid of sample_nu by sample_nv over the
+   * bounds of the trims that lie inside them: sample_cell, v fastest, holds
+   * the index of each cell's sample, -1 for a cell outside the trims */
+  int sample_nu = 0;
+  int sample_nv = 0;
+  std::vector<int> sample_cell;
   /*! the points of the trim polygons, in the frame of the geometry */
   std::vector<ksl_vec3_t> boundary_points;
   CadBox box; //!< bounds the face, in the frame of the geometry

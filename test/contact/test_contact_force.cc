@@ -35,7 +35,8 @@ struct Drop {
   std::string module_keys = ""; //!< e.g. "\"friction_combine\": \"minimum\", "
   std::string extra_material = "";
   std::string joint = ""; //!< the ball's joint, a float joint if empty
-  bool exclude_jointed_bodies = true;
+  /*! the contact module's disabled_pairs, e.g. [["ground", "ball"]] */
+  std::string disabled_pairs = "[]";
   std::string ground = R"({"name": "ground", "type": "plane",
                            "material": "ground"})";
   double time_span = 1.0;
@@ -95,8 +96,8 @@ static void RunDrop(shift::core::Context& context, const std::string& name,
   model << R"(
     ],
     "force_modules": [{"name": "contact", "type": "contact", )"
-        << drop.module_keys << R"("exclude_jointed_bodies": )"
-        << (drop.exclude_jointed_bodies ? "true" : "false") << R"(,
+        << drop.module_keys << R"("disabled_pairs": )"
+        << drop.disabled_pairs << R"(,
       "materials": [
         {"name": "ground", "youngs_modulus": 1e7, "poisson_ratio": 0.3,
          "restitution": )"
@@ -359,16 +360,16 @@ TEST(ContactForce, TiltedBoxSettles) {
   }
 }
 
-TEST(ContactForce, JointedBodiesExcluded) {
+TEST(ContactForce, DisabledPairsAreNotTested) {
   // the ball, joined to the ground by a revolute joint about the vertical,
-  // overlaps it: no contact unless jointed bodies are tested
+  // overlaps it: the joint leaves the pair tested, unless it is disabled
   for(bool exclude : {true, false}) {
     Drop drop;
     drop.shape = R"({"name": "ball", "type": "sphere", "radius": 0.1,
                      "material": "ball", "pose": {"T": [0, 0, -0.05]}})";
     drop.joint = R"({"name": "ball_joint", "type": "revolute",
        "parent": [["ground"], "origin"], "child": [["ball"], "origin"]})";
-    drop.exclude_jointed_bodies = exclude;
+    drop.disabled_pairs = exclude ? R"([["ground", "ball"]])" : "[]";
     drop.time_span = 0.001;
     shift::core::Context context;
     RunDrop(context, exclude ? "excluded" : "included", drop);

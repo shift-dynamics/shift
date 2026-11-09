@@ -22,10 +22,14 @@ display and ImageMagick; windows appear as it renders.
   margins about them (grey), the candidate pairs of shift's broad phase (red)
   and, below them, the intervals of the enlarged spheres along the axis of the
   sweep, from shift-doc-figures broadphase
-- boxtree.png: a track link with the boxes of its box tree, level by level,
-  and stepcontact.png: the steps of the contact of two links, the second on
-  the pin of the first: their root boxes, the faces whose boxes overlap, and
-  the points of contact, all from shift-doc-figures cadpair
+- boxtree.png: the plate with a hole of scripts/make_peg_step.py with the
+  boxes of its box tree, level by level, and stepcontact.png: the steps of the
+  contact of the peg wedged in the hole, the end of its shaft against the wall
+  and its side against the rim: their root boxes, the faces whose boxes
+  overlap, and the points of contact, all from shift-doc-figures cadpair
+- torusslot.png: the torus of scripts/make_channel_step.py standing in the
+  slot of its channel, and its two points of contact on the flanks of the
+  slot, of one pair of faces, from shift-doc-figures cadpair
 - surface_<type>.png: a face of each type of STEP surface, drawn by the viewer
   from the exact surface, with lines of constant u (blue) and of constant v
   (orange) inside its trims, its boundary (dark), the axes of its frame
@@ -607,49 +611,71 @@ def smooth_ball(mesh, center, radius, rows=32, columns=64):
 # the second link of a track on the pin of the first, as in the test
 # CadContact.LinkHangsOnItsPin: its bushing sunk on the pin by the clearance
 # (20 mm bore, 19 mm pin) and 20 um more
-LINK_PITCH = 0.19
-LINK_SINK = 0.001 + 20e-6
-LINK_TURN = [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
-LINK_COLORS = [(0.62, 0.64, 0.68), (0.35, 0.52, 0.74)]
+PEG_COLORS = [(0.62, 0.64, 0.68), (0.35, 0.52, 0.74)]
+# the peg of scripts/make_peg_step.py, tilted by PEG_TILT about x and wedged in
+# the hole of the plate: the rim of the end of its shaft against the wall of
+# the hole (-y), its side against the rim of the hole at the top of the plate
+# (+y), each PEG_SINK deep
+PEG_TILT = math.radians(4.0)
+PEG_SINK = 10e-6
+SHAFT_RADIUS, SHAFT_LENGTH, HOLE_RADIUS = 0.010, 0.050, 0.0105
 
 
-def link_model(work, overlay, opacity=(1.0, 1.0), count=2):
-    """the two links, the second on the pin of the first, with the overlay
-    meshes on the fixed body"""
-    link = os.path.join(work, 'track_link.step')
-    if not os.path.exists(link):
-        os.symlink(os.path.join(CAD, 'track_link.step'), link)
-    model = figures.write_model(work, overlay, 'links')
+def peg_pose():
+    c, s = math.cos(PEG_TILT), math.sin(PEG_TILT)
+    rotation = [[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]]
+    # the axis meets the top of the plate (z = 0, z down) at y0, and runs
+    # along (0, -s, c): its side there is at y0 + r / c, against the rim
+    y0 = HOLE_RADIUS + PEG_SINK - SHAFT_RADIUS / c
+    # the rim of the end, a length L along the axis, at y0 - L s - r c
+    length = (y0 - SHAFT_RADIUS * c + HOLE_RADIUS + PEG_SINK) / s
+    # the origin, at the underside of the head, SHAFT_LENGTH - L back along it
+    back = SHAFT_LENGTH - length
+    return rotation, [0.0, y0 + back * s, -back * c]
+
+
+def peg_model(work, overlay, opacity=(1.0, 1.0), count=2):
+    """the plate and the peg wedged in its hole (only the plate if count is
+    1), with the overlay meshes on the fixed body"""
+    for part in ('plate_hole.step', 'peg.step'):
+        path = os.path.join(work, part)
+        if not os.path.exists(path):
+            os.symlink(os.path.join(CAD, part), path)
+    model = figures.write_model(work, overlay, 'peg')
     with open(model) as file:
         m = json.load(file)
     assembly = m['assemblies'][0]
-    for k in range(count):
-        name = 'link%d' % (k + 1)
+    rotation, translation = peg_pose()
+    parts = [('plate', 'plate_hole.step', [0, 0, 0.01], 0.94,
+              [5e-4, 5e-4, 1e-3]),
+             ('peg', 'peg.step', [0, 0, 0.0165732], 0.173814,
+              [6.2407e-5, 6.2407e-5, 1.26302e-5])]
+    for k, (name, part, com, mass, inertia) in enumerate(parts[:count]):
         assembly['bodies'].append({
             'name': name,
-            'geometry': [{'type': 'cad', 'filename': 'track_link.step',
-                          'color': list(LINK_COLORS[k]),
+            'geometry': [{'type': 'cad', 'filename': part,
+                          'color': list(PEG_COLORS[k]),
                           'opacity': opacity[k]}],
             'collision_geometry': [{'name': name, 'type': 'cad'}],
-            'center_of_mass': [0.0974, 0.0, 0.0359],
-            'inertia': {'mass': 38.06, 'Ixx': 0.75, 'Iyy': 0.15, 'Izz': 0.8,
-                        'Ixy': 0.0, 'Iyz': 0.0, 'Izx': 0.0}})
-        assembly['joints'].append({
-            'name': name + '_joint', 'type': 'rigid' if k == 0 else 'float',
-            'parent': [['fixed'], 'origin'], 'child': [[name], 'origin'],
-            'initial_displacement': {
-                'R': LINK_TURN,
-                'T': [0.0, 0.0, 0.0] if k == 0 else [-LINK_SINK, LINK_PITCH,
-                                                     0.0]}})
+            'center_of_mass': com,
+            'inertia': {'mass': mass, 'Ixx': inertia[0], 'Iyy': inertia[1],
+                        'Izz': inertia[2], 'Ixy': 0.0, 'Iyz': 0.0,
+                        'Izx': 0.0}})
+        joint = {'name': name + '_joint', 'type': 'rigid' if k == 0 else 'float',
+                 'parent': [['fixed'], 'origin'], 'child': [[name], 'origin'],
+                 'initial_displacement': {
+                     'R': [[1, 0, 0], [0, 1, 0], [0, 0, 1]] if k == 0 else rotation,
+                     'T': [0.0, 0.0, 0.0] if k == 0 else translation}}
         if k == 1:
-            assembly['joints'][-1]['initial_velocity'] = [0.0] * 6
+            joint['initial_velocity'] = [0.0] * 6
+        assembly['joints'].append(joint)
     with open(model, 'w') as file:
         json.dump(m, file)
     return model
 
 
 def cad_pair_data(work):
-    model = link_model(work, [])
+    model = peg_model(work, [])
     data = os.path.join(work, 'cadpair.json')
     subprocess.run([TOOL, 'cadpair', model, data], check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -681,30 +707,38 @@ def add_box(mesh, side, box, radius):
 
 
 def boxtree_figure(work, directory, data):
-    side = data['a']
-    every = to_world(side, [p for f in side['faces'] for loop in f['loops']
-                            for p in loop])
+    """the plate's root box and its leaves, then the leaves of the peg's tree
+    with the peg in the hole"""
+    plate, peg = data['a'], data['b']
+    every = numpy.concatenate([
+        to_world(s, [p for f in s['faces'] for loop in f['loops'] for p in loop])
+        for s in (plate, peg)])
     center, scene = bounds(every)
-    tube = 0.004 * scene
+    tube = 0.003 * scene
     panels = []
-    deepest = max(n['depth'] for n in side['nodes'])
-    # the boxes of the first level coincide with the root: each half of the
-    # faces holds a plate that spans the length of the link
-    for level in (0, 2, 3, deepest):
+    for k, (side, level, count) in enumerate(
+            ((plate, 0, 1), (plate, None, 1), (peg, None, 2))):
+        deepest = max(n['depth'] for n in side['nodes'])
+        level = deepest if level is None else level
         boxes = [figures.Mesh() for _ in LEVEL_COLORS]
         nodes = [n for n in side['nodes'] if n['depth'] == level]
         for i, node in enumerate(nodes):
             add_box(boxes[i % len(boxes)], side, node['box'], tube)
-        name = 'boxtree_%d' % level
+        name = 'boxtree_%d' % k
         geometry = [m.write(work, '%s_%d' % (name, i), LEVEL_COLORS[i], 1.0)
                     for i, m in enumerate(boxes) if m.faces]
-        model = link_model(work, geometry, count=1)
+        model = peg_model(work, geometry,
+                          opacity=(1.0, 1.0) if count == 1 else (0.3, 1.0),
+                          count=count)
         image = os.path.join(work, name + '.png')
         figures.SIZE = TALL
-        figures.render(model, image, (35, 25), center, 0.55 * scene)
+        figures.render(model, image, (35, 35), center, 0.9 * scene)
         panels.append(image)
+        print('boxtree (%s): %d nodes at depth %d of %d' %
+              (side['name'] if 'name' in side else k, len(nodes), level, deepest),
+              flush=True)
     lettered(panels, work, 'boxtree', os.path.join(directory, 'boxtree.png'))
-    print('boxtree.png (deepest level %d)' % deepest, flush=True)
+    print('boxtree.png', flush=True)
 
 
 def stepcontact_figure(work, directory, data):
@@ -715,15 +749,15 @@ def stepcontact_figure(work, directory, data):
     center, scene = bounds(every)
     tube = 0.003 * scene
     panels = []
-    # (a) the root boxes of the two links
+    # (a) the root boxes of the two parts
     roots = [figures.Mesh(), figures.Mesh()]
     for k, s in enumerate((a, b)):
         add_box(roots[k], s, s['nodes'][0]['box'], tube)
     geometry = [roots[0].write(work, 'root_a', BOX_COLOR, 1.0),
-                roots[1].write(work, 'root_b', LINK_COLORS[1], 1.0)]
+                roots[1].write(work, 'root_b', PEG_COLORS[1], 1.0)]
     panels.append(step_render(work, 'step_roots', geometry, (0.55, 0.35),
                               center, scene))
-    # (b) the boxes of the faces of each link that are in a candidate pair
+    # (b) the boxes of the faces of each part that are in a candidate pair
     faces_a = sorted({fa for fa, fb in data['candidates']})
     faces_b = sorted({fb for fa, fb in data['candidates']})
     boxes = [figures.Mesh(), figures.Mesh()]
@@ -733,7 +767,7 @@ def stepcontact_figure(work, directory, data):
         # the box of b's face in a's frame, as it is tested against a's tree
         add_box(boxes[1], a, data['b_boxes_in_a'][fb], 0.6 * tube)
     geometry = [boxes[0].write(work, 'boxes_a', BOX_COLOR, 1.0),
-                boxes[1].write(work, 'boxes_b', LINK_COLORS[1], 1.0)]
+                boxes[1].write(work, 'boxes_b', PEG_COLORS[1], 1.0)]
     panels.append(step_render(work, 'step_boxes', geometry, (0.55, 0.35),
                               center, scene))
     # (c) the outlines of the faces in candidate pairs
@@ -744,29 +778,127 @@ def stepcontact_figure(work, directory, data):
                 figures.add_tube(outlines[k], to_world(s, loop), 0.6 * tube)
     geometry = [outlines[0].write(work, 'outlines_a', BOX_COLOR, 1.0),
                 outlines[1].write(work, 'outlines_b', (0.10, 0.25, 0.85), 1.0)]
-    # the faces and points of contact lie about the pin
-    pin = numpy.array([c['point_a'] for c in data['contacts']])
-    near, reach = bounds(pin)
-    reach = max(1.8 * reach, 0.32 * scene)
-    panels.append(step_render(work, 'step_faces', geometry, (0.35, 0.2),
+    # the faces and points of contact lie about the hole
+    touching = numpy.array([c['point_a'] for c in data['contacts']])
+    near, reach = bounds(touching)
+    reach = max(2.6 * reach, 0.45 * scene)
+    panels.append(step_render(work, 'step_faces', geometry, (0.15, 0.3),
                               near, reach))
     # (d) the points of contact and their normals
     points, arrows = figures.Mesh(), figures.Mesh()
     for c in data['contacts']:
         p = numpy.array(c['point_a'])
-        figures.add_ball(points, p, 0.015 * reach)
-        figures.add_arrow(arrows, p, c['normal'], 0.15 * reach, 0.006 * reach)
+        figures.add_ball(points, p, 0.03 * reach)
+        figures.add_arrow(arrows, p, c['normal'], 0.3 * reach, 0.012 * reach)
     geometry = [points.write(work, 'points', figures.COMPUTED, 1.0),
                 arrows.write(work, 'normals', figures.COMPUTED, 1.0)]
-    panels.append(step_render(work, 'step_points', geometry, (0.35, 0.2),
+    panels.append(step_render(work, 'step_points', geometry, (0.15, 0.3),
                               near, reach))
     lettered(panels, work, 'stepcontact',
              os.path.join(directory, 'stepcontact.png'))
     print('stepcontact.png', flush=True)
 
 
+TORUS_COLORS = [(0.62, 0.64, 0.68), (0.85, 0.66, 0.36)]
+# the torus of scripts/make_channel_step.py standing in the slot of the
+# channel on its straight start at x = TORUS_X, its axis along y, sunk by
+# TORUS_SINK below the height at which it first touches the flanks
+TORUS_X = 0.1
+TORUS_SINK = 20e-6
+STANDING = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+
+
+def torus_model(work, overlay, z, opacity=(1.0, 1.0)):
+    """the channel and the torus standing in its slot with its center at
+    height z, with the overlay meshes on the fixed body"""
+    for part in ('channel.step', 'torus.step'):
+        path = os.path.join(work, part)
+        if not os.path.exists(path):
+            os.symlink(os.path.join(CAD, part), path)
+    model = figures.write_model(work, overlay, 'torus')
+    with open(model) as file:
+        m = json.load(file)
+    assembly = m['assemblies'][0]
+    mass = 2.0 * math.pi ** 2 * 0.04 * 0.01 ** 2 * 7850.0
+    parts = [('channel', 'channel.step', [0.4, 0.015, 0.0], 30.0,
+              [0.01, 1.6, 1.6]),
+             ('torus', 'torus.step', [0.0, 0.0, 0.0], mass,
+              [mass * (0.5 * 0.04 ** 2 + 0.625 * 0.01 ** 2)] * 2 +
+              [mass * (0.04 ** 2 + 0.75 * 0.01 ** 2)])]
+    for k, (name, part, com, body_mass, inertia) in enumerate(parts):
+        assembly['bodies'].append({
+            'name': name,
+            'geometry': [{'type': 'cad', 'filename': part,
+                          'color': list(TORUS_COLORS[k]),
+                          'opacity': opacity[k]}],
+            'collision_geometry': [{'name': name, 'type': 'cad'}],
+            'center_of_mass': com,
+            'inertia': {'mass': body_mass, 'Ixx': inertia[0],
+                        'Iyy': inertia[1], 'Izz': inertia[2], 'Ixy': 0.0,
+                        'Iyz': 0.0, 'Izx': 0.0}})
+        joint = {'name': name + '_joint', 'type': 'rigid' if k == 0 else 'float',
+                 'parent': [['fixed'], 'origin'], 'child': [[name], 'origin'],
+                 'initial_displacement': {
+                     'R': [[1, 0, 0], [0, 1, 0], [0, 0, 1]] if k == 0 else STANDING,
+                     'T': [0.0, 0.0, 0.0] if k == 0 else [TORUS_X, 0.0, z]}}
+        if k == 1:
+            joint['initial_velocity'] = [0.0] * 6
+        assembly['joints'].append(joint)
+    with open(model, 'w') as file:
+        json.dump(m, file)
+    return model
+
+
+def torus_contacts(work, z):
+    model = torus_model(work, [], z)
+    data = os.path.join(work, 'toruspair.json')
+    subprocess.run([TOOL, 'cadpair', model, data], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(data) as file:
+        return json.load(file)['contacts']
+
+
+def torusslot_figure(work, directory):
+    """(a) the torus standing in the slot of the channel; (b) the section of
+    the slot and of the tube, seen along the slot, with the two points of
+    contact of the one pair of faces and their normals"""
+    # the height of first touch, by bisection on shift's contact
+    apart, deep = -0.08, -0.05
+    for _ in range(40):
+        z = 0.5 * (apart + deep)
+        if torus_contacts(work, z):
+            deep = z
+        else:
+            apart = z
+    contacts = torus_contacts(work, apart + TORUS_SINK)
+    assert len(contacts) == 2, contacts
+    panels = []
+    figures.SIZE = (780, 420)
+    model = torus_model(work, [], apart)
+    image = os.path.join(work, 'torus_whole.png')
+    figures.render(model, image, (-60, 30), [0.38, 0.015, -0.03], 0.19)
+    panels.append(image)
+    touching = numpy.array([c['point_a'] for c in contacts])
+    near = touching.mean(axis=0)
+    reach = 0.022
+    points, arrows = figures.Mesh(), figures.Mesh()
+    for c in contacts:
+        p = numpy.array(c['point_a'])
+        figures.add_ball(points, p, 0.03 * reach)
+        figures.add_arrow(arrows, p, c['normal'], 0.3 * reach, 0.012 * reach)
+    geometry = [points.write(work, 'torus_points', figures.COMPUTED, 1.0),
+                arrows.write(work, 'torus_normals', figures.COMPUTED, 1.0)]
+    model = torus_model(work, geometry, apart + TORUS_SINK, opacity=(0.3, 0.45))
+    image = os.path.join(work, 'torus_points.png')
+    figures.SIZE = (420, 420)
+    figures.render(model, image, (180, 8), near + [0.0, 0.0, -0.006], reach)
+    panels.append(image)
+    lettered(panels, work, 'torusslot', os.path.join(directory, 'torusslot.png'))
+    print('torusslot.png', flush=True)
+
+
 def step_render(work, name, geometry, opacity, center, scene):
-    model = link_model(work, geometry, opacity=opacity)
+    model = peg_model(work, geometry, opacity=opacity)
     image = os.path.join(work, name + '.png')
     figures.SIZE = TALL
     figures.render(model, image, (35, 25), center, 0.75 * scene)
@@ -791,6 +923,8 @@ def main():
                 boxtree_figure(work, directory, data)
             if not only or 'stepcontact' in only:
                 stepcontact_figure(work, directory, data)
+        if not only or 'torusslot' in only:
+            torusslot_figure(work, directory)
         if not only or 'terrain' in only:
             terrain_figure(work, directory)
         if not only or 'topology' in only:

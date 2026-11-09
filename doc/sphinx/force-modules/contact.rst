@@ -14,6 +14,17 @@ for the pair.
 Contact detection is off unless ``model_parameters`` turns it on with
 ``"enable_contact_detection": true``.
 
+Every pair of bodies with collision geometry is tested for contact, unless
+the module lists it in ``disabled_pairs``, by the names of the two bodies.
+A joint does not take its bodies out of contact: bodies joined by a joint
+whose geometries overlap at the joint, or are not meant to touch, are listed.
+In a track, each link is listed with its neighbour, as the revolute joint
+between them carries their contact:
+
+.. code-block:: json
+
+   "disabled_pairs": [["link1", "link2"], ["link2", "link3"], ["link44", "link1"]]
+
 Normal force
 ------------
 
@@ -29,7 +40,11 @@ MSC Adams, scaled by the point's weight :math:`w`:
 
 The damping coefficient ramps up from zero at first touch to :math:`c` at
 the depth :math:`h` (``damping_depth``), so the force is continuous and
-depends on the state only. The stiffness depends on the shapes:
+depends on the state only. A contact that rests far shallower than :math:`h`
+is almost undamped, and the parts ring on each other: the line of contact of
+the rim of a steel part lying flat on a face, for one, rests a few nanometres
+deep, against the default :math:`h` of 0.1 mm. Such a model sets :math:`h`
+below its resting depth. The stiffness depends on the shapes:
 
 * **Spheres, ellipsoids and planes**: Hertz contact :cite:`johnson1985` at
   the deepest point, :math:`k = \tfrac{4}{3} e^* \sqrt{r^*}`,

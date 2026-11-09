@@ -72,7 +72,7 @@ the contact at the end of the run.""", [
  ("ContactForce.TiltedBoxSettles", None, "A tilted box settles flat on four points, on the ground and on a box."),
  ("ContactForce.FrictionCombineRules", None, "A box (friction 0.2) sliding on the ground (friction 0.8), with each rule that combines the friction of two materials: geometric mean (the default), arithmetic mean, minimum, maximum and product. It slows exactly as on materials that both have the combined value, and at about that value times g."),
  ("ContactForce.RestitutionCombineRules", None, "A box (restitution 0.7) dropped on the ground (0.95), with each rule: it rebounds exactly as on materials that both have the combined restitution, and to about that value. It ends in the air at the top of its rebound."),
- ("ContactForce.JointedBodiesExcluded", None, 'A ball joined to the ground by a revolute joint overlaps it: no contact, unless the model asks for jointed bodies to be tested.'),
+ ('ContactForce.DisabledPairsAreNotTested', None, "A ball joined to the ground by a revolute joint overlaps it: the joint leaves the pair tested, and the contact module's `disabled_pairs` takes it out of contact."),
  ("Bunnies_CollisionExample.BodiesRestOnTheGround", None, "The five bunnies of the collision example come to rest on the ground."),
  ("Skulls_CollisionExample.BodiesRestOnTheGround", None, "The five skulls of the collision example do the same."),
 ]),
@@ -133,13 +133,13 @@ tests make the same shape as a STEP part and require the same contact.""", [
  ("CadRound.BoxFaceOnANurbsPatchIsALine", None, "A flat face on the curved patch: a line."),
  ("CadRound.HullOfAMeshOnAFace", None, "The convex hull of a mesh on a face."),
  ("CadRound.CylinderOnAFaceIsALine", None, "A cylinder lying on a face: a line of three points."),
- ("CadRound.CylinderOnItsEndStandsOnFourPoints", None, "A cylinder on its end: four points around the circle of contact."),
+ ('CadRound.CylinderOnItsEndStandsOnItsRim', None, 'A cylinder on its end: its rim, four arcs, lies in the face, a line of contact all round it, centered on the axis.'),
  ("CadRound.CylinderIsTheSameCylinderFromAStepFile", None, "A cylinder by its dimensions and from a STEP file have the same contact at many poses."),
  ("CadRound.EdgeAlongACylinderOfAStepPart", None, "An edge of the part along a cylinder: a line the length of the edge."),
  ("CadRound.SpinningACylinderChangesNothing", None, "A cylinder spun about its own axis keeps the same contact, whatever its seam does."),
  ("CadRound.EdgeCrossesAnEdge", None, "Two edges that cross touch at a point, with a normal square to both."),
  ("CadRound.EdgeRadiusOfAShape", None, "The radius given to the edges of a shape is the curvature of a contact on an edge."),
- ("CadRound.MaxDepthOfAShape", None, 'By default a part stops looking at 2% of its size. A larger `max_depth` finds a deeper contact.'),
+ ('CadRound.MaxDepthOfAShape', None, 'A corner 1 mm into a part whose `max_depth` is 0.75 mm, 2% of its size by default, is found at its depth, as with a `max_depth` of 2 mm: the search goes deeper where a point is inside the part to its depth.'),
  ("CadRound.FlatHullHasAnExactShape", None, "A hull with flat faces has an exact shape of six faces."),
  ("CadRound.SweepsOverEdges", None, "Shapes swept over edges: the force has no jump."),
  ("CadRound.CornerOffAnEdgeHasNoStep", None, "Forty boxes leaning at random, each on one corner, sliding off an edge: the corner gives way to the crossing of its edges with the part's edge, and the steps of the force shrink as the sweep gets finer, so none is a jump."),
@@ -150,6 +150,18 @@ tests make the same shape as a STEP part and require the same contact.""", [
  ("CadRound.CapsuleAcrossAnEdge", None, "A capsule lying across an edge."),
  ("CadRound.CapsuleEndOnACorner", None, "The end of a capsule on a corner: one point."),
  ("CadRound.ShapesSettleOnAFace", None, "Each shape simulated to rest on a face."),
+]),
+('A torus in a slot: one pair of faces touching in two places', """The torus and channel of `scripts/make_channel_step.py`. The channel is a block with a
+slot swept along an S-shaped cubic B-spline path. The section of the slot is a single
+B-spline curve, two walls joined by flanks that meet at the bottom, so the slot is one
+face. The torus, 40 mm in major radius and 10 mm in minor radius, stands in the slot and
+rests on both flanks. Both points lie on one face of the torus, so they belong to one pair
+of faces. That pair has a starting point for each local maximum of depth on the samples of
+either face, and each starting point is climbed along its face before Newton's method.""", [
+ ('CadRound.TorusInASlotRestsOnBothFlanks', None, 'The torus 20 µm below where it first touches: two points, one on each flank, mirrored in the plane of the torus, at the same depth, with normals up and towards each other.'),
+ ('CadRound.TorusOffTheMiddleOfASlotStillRestsOnBothFlanks', None, "The torus moved 8 µm across the slot: deeper in one flank and shallower in the other, the change in each depth being the move along that point's normal. The shallower point is still found."),
+ ('CadRound.TurnedTorusKeepsBothPointsInTheSlot', None, 'The torus turned about its axis through a full turn in 400 poses, 10 µm deep. The points on the flanks cross every part of its outer faces and the seams between them, and at each pose both are found, at one depth.'),
+ ('CadRound.TorusRollsAlongTheChannel', None, 'The torus rolls at 1 m/s from the straight start through the S-bend, steered by the walls, and into the straight end. It stays upright and at its resting height, follows the 30 mm offset of the bend to within the 1.5 mm clearance of the slot, and gains no energy.'),
 ]),
 ("A track on its sprocket", """The sprocket, links and idlers of `examples/cad`. These are the parts the contact was
 written for: cylinders in seats, grousers on the ground, seams between faces.""", [
@@ -166,6 +178,8 @@ written for: cylinders in seats, grousers on the ground, seams between faces."""
  ("CadContact.CrossingCylindersHaveNoJump", None, "Two idlers tread to tread, turning from parallel to crossed: from a line to a point with no jump."),
  ("CadContact.TrackFrameStartsClear", None, 'The 44 links on the track frame, its rollers 0.5 mm off the rails: nothing touches, and the sag, misguide and side force outputs start as expected.'),
  ("CadContact.LinkHangsOnItsPin", None, "Two links with no joint: the second's bushing on the first's pin, sunk through the clearance and 20 micrometres more. The pin touches the bore of the bushing and of the inner plates, 190 mm in all."),
+ ('CadContact.PegDropsIntoItsHole', None, "A peg (`scripts/make_peg_step.py`), a shaft of 20 mm diameter under a head of 32 mm, tilted by 4 degrees over a hole of 21 mm diameter through a plate, falls into the hole. The wall and the rim of the hole straighten it, and its head comes to rest level on the plate and at rest, the shaft within the clearance of the hole. The rim of the head lies in the plate's face, and the rim of the hole in the head's: a line of contact around each holds the head level. The model's `damping_depth` is 1 nm, below the 10 to 20 nm at which the head rests."),
+ ('CadContact.PegInTheWallIsPushedOut', None, "The peg upright, its shaft 2 mm into the wall of the hole, deeper than the pair's `max_depth` of 1.5 mm. The surfaces overlap along the wall: a line of contact along it, 2 mm deep, its normal across the hole, pushes the shaft back within the clearance in 5 ms."),
 ]),
 ("Lines on curved faces: a cam", """An elliptical cam (`scripts/make_cam_step.py`) against a roller, a flat follower and the
 ground. Each test runs twice, with the side of the cam as a rational B-spline and as an
@@ -205,7 +219,7 @@ radius bent to 30 mm over a quarter turn, whose line of contact with a plane is 
 ]
 
 NO_FIGURE = [
- ("CadContact.NeighboringLinksAreNotTested", "Links joined by a pin are excluded from contact. This checks the list of pairs, so nothing touches."),
+ ('CadContact.NeighboringLinksAreNotTested', 'Each link of the track models is listed with its neighbour in `disabled_pairs`, the closing pair among them, and so is not tested for contact; links two apart are. This checks the list of pairs, so nothing touches.'),
  ("CadRound.ContactWithCadNeedsTheModulus", "A model with CAD contact and no elastic modulus is refused when it loads."),
  ("CollisionGeometryInput.DimensionsAndPose", "Collision geometry given by dimensions and placed by a pose reads as written."),
  ("CollisionGeometryInput.FitToNamedMeshes", "Geometry fitted to the meshes named in `fit_to`."),

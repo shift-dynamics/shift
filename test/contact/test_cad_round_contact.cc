@@ -838,19 +838,23 @@ TEST_F(CadRound, CylinderOnAFaceIsALine) {
   EXPECT_NEAR(length, 2.0 * half, 1e-9);
 }
 
-TEST_F(CadRound, CylinderOnItsEndStandsOnFourPoints) {
+TEST_F(CadRound, CylinderOnItsEndStandsOnItsRim) {
+  // the rim, four arcs, lies in the face: a line of contact all round it,
+  // about the axis
   const double radius = 0.002, half = 0.004, depth = 1e-5;
   Scene scene("cr_cyl_end", "box_mm.step", RodKeys("cylinder", radius, half));
   const shift::core::collision_geometry::ContactPair& p = scene.At({{0.005, 0.01, kBox[2] + half - depth}});
-  ASSERT_EQ(p.manifold.size(), 4u);
-  double x = 0.0, y = 0.0;
+  ASSERT_GE(p.manifold.size(), 4u);
+  double length = 0.0, x = 0.0, y = 0.0;
   for(const shift::core::collision_geometry::ContactPoint& m : p.manifold) {
     EXPECT_NEAR(m.depth, depth, 1e-11);
-    x += m.point_a.x;
-    y += m.point_a.y;
+    length += m.length;
+    x += m.length * m.point_a.x;
+    y += m.length * m.point_a.y;
   }
-  EXPECT_NEAR(x / 4.0, 0.005, 1e-12);
-  EXPECT_NEAR(y / 4.0, 0.01, 1e-12);
+  EXPECT_NEAR(length, 2.0 * M_PI * radius, 1e-9);
+  EXPECT_NEAR(x / length, 0.005, 1e-9);
+  EXPECT_NEAR(y / length, 0.01, 1e-9);
 }
 
 TEST_F(CadRound, CylinderIsTheSameCylinderFromAStepFile) {
@@ -1019,14 +1023,18 @@ TEST_F(CadRound, EdgeRadiusOfAShape) {
 }
 
 TEST_F(CadRound, MaxDepthOfAShape) {
-  // the part's own default stops at 2% of its size, 0.75 mm
+  // the part's own default, 2% of its size, 0.75 mm, is shallower than the
+  // corner: the corner is in the part, and found as deep with either
   const double half = 0.004, depth = 0.001;
   double r[3][3];
   Lean(0.2, r);
   const ksl_vec3_t leaning = {{0.005, 0.01, kBox[2] + half * std::cos(0.2) +
                                               0.002 * std::sin(0.2) - depth}};
   Scene small("cr_depth_a", "box_mm.step", BoxKeys(0.002, 0.003, half));
-  EXPECT_LT(small.At(leaning, r).depth, small.part().get_max_depth());
+  ASSERT_LT(small.part().get_max_depth(), depth);
+  const shift::core::collision_geometry::ContactPair& found = small.At(leaning, r);
+  ASSERT_TRUE(found.collision);
+  EXPECT_NEAR(found.depth, depth, 1e-9);
   Scene deep("cr_depth_b", "box_mm.step",
              BoxKeys(0.002, 0.003, half) + R"(, "max_depth": 0.002)");
   const shift::core::collision_geometry::ContactPair& p = deep.At(leaning, r);
@@ -1064,6 +1072,213 @@ TEST_F(CadRound, FlatHullHasAnExactShape) {
   ASSERT_TRUE(p.collision);
   EXPECT_NEAR(p.depth, depth, 3e-6); // and the plate's thickness, 2.8e-6
   EXPECT_NEAR(p.normal.z, 1.0, 1e-9);
+}
+
+/* torus.step standing in the slot of channel.step (scripts/make_channel_step.py)
+on its straight start, along x: the torus's axis along y, the bottom of its
+tube over the slot's bottom at x = kTorusX */
+static const double kTorusX = 0.1;
+
+/* the torus's rotation, rows: its x down (the bottom of the tube at u = 0, in
+the middle of an outer face), its z, the axis, along y */
+static const double kStanding[3][3] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
+
+/* the height (z, down) of the torus's center at which it first touches the
+slot, standing in it at y */
+static double FirstTouch(Scene& scene, double y) {
+  double apart = -0.08, deep = -0.05;
+  for(int i = 0; i < 60; i++) {
+    const double z = 0.5 * (apart + deep);
+    (scene.At({{kTorusX, y, z}}, kStanding).collision ? deep : apart) = z;
+  }
+  return apart;
+}
+
+TEST_F(CadRound, TorusInASlotRestsOnBothFlanks) {
+  // the section of the slot is one B-spline curve, so the slot is one face, and
+  // the tube touches its two flanks, either side of the slot's bottom, on one
+  // face of the torus: two points of the one pair of faces, mirrored in the
+  // plane of the torus
+  Scene scene("cr_torus_slot", "channel.step", R"("type": "cad")", "",
+              R"({"type": "cad", "filename": "torus.step"})");
+  const double z = FirstTouch(scene, 0.0), sink = 20e-6;
+  const auto& p = scene.At({{kTorusX, 0.0, z + sink}}, kStanding);
+  ASSERT_TRUE(p.collision);
+  ASSERT_EQ(p.manifold.size(), 2u);
+  const auto& left = p.manifold[0].point_a.y > 0.0 ? p.manifold[0] : p.manifold[1];
+  const auto& right = &left == &p.manifold[0] ? p.manifold[1] : p.manifold[0];
+  EXPECT_GT(left.point_a.y, 0.005);
+  EXPECT_NEAR(left.point_a.y, -right.point_a.y, 1e-9);
+  EXPECT_NEAR(left.point_a.x, kTorusX, 1e-8);
+  EXPECT_NEAR(right.point_a.x, kTorusX, 1e-8);
+  EXPECT_NEAR(left.point_a.z, right.point_a.z, 1e-9);
+  EXPECT_NEAR(left.depth, right.depth, 1e-9);
+  // the normals, from the slot to the torus, up and in towards each other
+  EXPECT_NEAR(left.normal.y, -right.normal.y, 1e-9);
+  EXPECT_LT(left.normal.y, -0.3);
+  EXPECT_LT(left.normal.z, -0.3);
+  // sunk by sink, each flank is in by sink along its normal, less the change of
+  // the gap as the points move along the curved faces, of the order of sink
+  // squared over their radii of curvature
+  EXPECT_NEAR(left.depth, -sink * left.normal.z, 1e-7);
+}
+
+TEST_F(CadRound, TorusOffTheMiddleOfASlotStillRestsOnBothFlanks) {
+  // moved a little across the slot, the torus is deeper in one flank than the
+  // other: the shallower point is found too, its depth less by the move along
+  // the normals
+  Scene scene("cr_torus_aside", "channel.step", R"("type": "cad")", "",
+              R"({"type": "cad", "filename": "torus.step"})");
+  const double z = FirstTouch(scene, 0.0), sink = 20e-6, aside = 8e-6;
+  const auto& centered = scene.At({{kTorusX, 0.0, z + sink}}, kStanding);
+  ASSERT_EQ(centered.manifold.size(), 2u);
+  const double depth = centered.manifold[0].depth;
+  const auto& p = scene.At({{kTorusX, aside, z + sink}}, kStanding);
+  ASSERT_TRUE(p.collision);
+  ASSERT_EQ(p.manifold.size(), 2u);
+  for(const auto& c : p.manifold) {
+    // the torus moved by aside along y: in deeper where the normal is along -y
+    EXPECT_NEAR(c.depth, depth - aside * c.normal.y, 1e-8);
+  }
+}
+
+TEST_F(CadRound, TurnedTorusKeepsBothPointsInTheSlot) {
+  // the torus turned about its axis through a full turn in 400 poses, sunk by
+  // 10 um: the points on the flanks cross every part of its outer faces and
+  // the seams between them, and at each pose both are found, at one depth
+  Scene scene("cr_torus_turned", "channel.step", R"("type": "cad")", "",
+              R"({"type": "cad", "filename": "torus.step"})");
+  const double z = FirstTouch(scene, 0.0), sink = 10e-6;
+  const auto& start = scene.At({{kTorusX, 0.0, z + sink}}, kStanding);
+  ASSERT_EQ(start.manifold.size(), 2u);
+  const double depth = start.manifold[0].depth;
+  int both = 0;
+  for(int i = 0; i < 400; i++) {
+    // turned about its axis, y, by angle: R_y(angle) times the standing
+    // rotation, rows
+    const double angle = 2.0 * M_PI * i / 400.0, c = std::cos(angle),
+                 s = std::sin(angle);
+    const double turn[3][3] = {{c, 0, s}, {0, 1, 0}, {-s, 0, c}};
+    double r[3][3];
+    for(int j = 0; j < 3; j++) {
+      for(int k = 0; k < 3; k++) {
+        r[j][k] = 0.0;
+        for(int l = 0; l < 3; l++) {
+          r[j][k] += turn[j][l] * kStanding[l][k];
+        }
+      }
+    }
+    const auto& p = scene.At({{kTorusX, 0.0, z + sink}}, r);
+    SCOPED_TRACE(i);
+    EXPECT_EQ(p.manifold.size(), 2u);
+    if(p.manifold.size() == 2u) {
+      both++;
+      for(const auto& m : p.manifold) {
+        EXPECT_NEAR(m.depth, depth, 1e-9);
+      }
+    }
+  }
+  EXPECT_EQ(both, 400);
+}
+
+/* torus.step, steel, its mass and inertia those of a solid torus of 40 mm
+major and 10 mm minor radius: 2 pi^2 R r^2 rho, I about the axis
+m (R^2 + 3/4 r^2), about a diameter m (R^2 / 2 + 5/8 r^2) */
+static const double kTorusMass = 2.0 * M_PI * M_PI * 0.04 * 0.01 * 0.01 * 7850.0;
+static const double kTorusAxial = kTorusMass * (0.04 * 0.04 + 0.75 * 0.01 * 0.01);
+static const double kTorusDiametral =
+  kTorusMass * (0.5 * 0.04 * 0.04 + 0.625 * 0.01 * 0.01);
+
+/* the torus standing in the slot of the channel at x = kTorusX, its center at
+height z, rolling along x at speed: turning about its axis (y) so that the
+points at radius off its center, where it rests on the flanks, do not slip */
+static std::string RollingTorusModel(double z, double speed, double radius,
+                                     double time_span) {
+  std::ostringstream m;
+  m.precision(17);
+  m << R"({"model_parameters": {"version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0, 0, 9.81], "include_directories": [")"
+    << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true, "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "relative_error": 1e-6,
+                     "absolute_error": 1e-9, "time_span": )"
+    << time_span << R"(, "time_step": 0.01}]},
+    "assemblies": [{"name": "m", "bodies": [
+    {"name": "channel",
+     "geometry": [{"type": "cad", "filename": "channel.step"}],
+     "collision_geometry": [{"name": "channel", "type": "cad",
+                             "material": "steel"}],
+     "center_of_mass": [0.4, 0.015, 0],
+     "inertia": {"mass": 30, "Ixx": 0.01, "Iyy": 1.6, "Izz": 1.6, "Ixy": 0,
+                 "Iyz": 0, "Izx": 0}},
+    {"name": "torus",
+     "geometry": [{"type": "cad", "filename": "torus.step"}],
+     "collision_geometry": [{"name": "torus", "type": "cad",
+                             "material": "steel"}],
+     "center_of_mass": [0, 0, 0],
+     "inertia": {"mass": )" << kTorusMass << R"(, "Ixx": )" << kTorusDiametral
+    << R"(, "Iyy": )" << kTorusDiametral << R"(, "Izz": )" << kTorusAxial
+    << R"(, "Ixy": 0, "Iyz": 0, "Izx": 0}}],
+    "joints": [
+    {"name": "channel_joint", "type": "rigid",
+     "parent": [["fixed"], "origin"], "child": [["channel"], "origin"]},
+    {"name": "torus_joint", "type": "float",
+     "parent": [["fixed"], "origin"], "child": [["torus"], "origin"],
+     "initial_displacement": {"T": [)"
+    << kTorusX << ", 0, " << z << R"(], "R": [[0, 1, 0], [0, 0, 1], [1, 0, 0]]},
+     "initial_velocity": [0, )"
+    << speed << R"(, 0, 0, 0, )" << -speed / radius << R"(]}],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "damping_depth": 1e-6,
+      "materials": [{"name": "steel", "youngs_modulus": 2e9,
+                     "poisson_ratio": 0.3, "restitution": 0.3,
+                     "friction": 0.3}]}]}]})";
+  const std::string path = testing::TempDir() + "/cr_torus_rolls.json";
+  std::ofstream file(path);
+  file << m.str();
+  return path;
+}
+
+TEST_F(CadRound, TorusRollsAlongTheChannel) {
+  // the torus rolls at 1 m/s along the slot, on its two flanks, through the
+  // S-bend of 30 mm between x = 200 and 600 mm and on into the straight end:
+  // the walls of the slot steer it, and it stays upright and in the slot,
+  // still rolling, with no energy gained
+  Scene scene("cr_torus_start", "channel.step", R"("type": "cad")", "",
+              R"({"type": "cad", "filename": "torus.step"})");
+  const double z = FirstTouch(scene, 0.0);
+  const auto& start = scene.At({{kTorusX, 0.0, z + 1e-6}}, kStanding);
+  ASSERT_EQ(start.manifold.size(), 2u);
+  // the rolling radius: from the center down to the points on the flanks
+  const double radius = start.manifold[0].point_a.z - z;
+  const double speed = 1.0, time_span = 0.6;
+  const std::string path = RollingTorusModel(z, speed, radius, time_span);
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  const double energy = 0.5 * kTorusMass * speed * speed +
+                        0.5 * kTorusAxial * std::pow(speed / radius, 2.0);
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  ksl_SE3_t d{};
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "torus") {
+      d = context.get_body_origin_pose(body);
+    }
+  }
+  // on along the straight end, 30 mm across from the start, within the slot's
+  // clearance of 1.5 mm
+  EXPECT_GT(d.t.x, 0.6);
+  EXPECT_NEAR(d.t.y, 0.03, 0.0015);
+  // standing: its axis (the third column of R) level, its center as high as
+  // where it rests on the flanks
+  EXPECT_LT(std::fabs(d.R.v2.z), std::sin(2.0 * M_PI / 180.0));
+  EXPECT_NEAR(d.t.z, z, 1e-4);
+  // rolling still, and no energy gained (it is as high as it started)
+  EXPECT_GT(context.KineticEnergy(), 0.8 * energy);
+  EXPECT_LT(context.KineticEnergy(), energy * (1.0 + 1e-3));
 }
 
 /* the largest change of the elastic force from one pose of a sweep to the next,
@@ -1361,7 +1576,10 @@ TEST_F(CadRound, CapsuleEndOnACorner) {
 }
 
 /* a body of shape settling onto the top of the part (z up here is -z: the face
-z = 0 of box_mm.step, as the ball above); where it comes to rest */
+z = 0 of box_mm.step, as the ball above); where it comes to rest. The damping
+of the contact law is fully applied from 1 nm of penetration: a cylinder on its
+end rests on a line of contact around its rim, a few nm deep, where the default
+damping_depth, 0.1 mm, applies almost none */
 static void Settle(const std::string& shape, const std::string& rotation,
                    double height, double& z, double& rate) {
   std::ostringstream m;
@@ -1395,6 +1613,7 @@ static void Settle(const std::string& shape, const std::string& rotation,
      "parent": [["fixed"], "start"], "child": [["body"], "origin"],
      "initial_displacement": )" << -height - 1e-6 << R"(}],
     "force_modules": [{"name": "contact", "type": "contact",
+      "damping_depth": 1e-9,
       "materials": [{"name": "steel", "youngs_modulus": 2e9,
                      "poisson_ratio": 0.3, "restitution": 0.1,
                      "friction": 0.3}]}]}]})";

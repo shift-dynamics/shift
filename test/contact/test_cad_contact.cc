@@ -211,6 +211,13 @@ static std::string TrackModel(const Track& t) {
   m << R"(
     ],
     "force_modules": [{"name": "contact", "type": "contact",
+      "disabled_pairs": [)";
+  // each link is joined to its neighbour by a revolute joint, not contact
+  for(int i = 2; i <= t.links; i++) {
+    m << (i > 2 ? ", " : "") << R"([")" << "link" << i - 1 << R"(", "link)"
+      << i << R"("])";
+  }
+  m << R"(],
       "materials": [{"name": "steel", "youngs_modulus": )"
     << t.youngs_modulus << R"(, "poisson_ratio": 0.3,
                      "restitution": 0.3, "friction": 0.3}]}]
@@ -895,8 +902,9 @@ TEST_F(CadContact, CrossingCylindersHaveNoJump) {
 /* the track on its frame, and links held by their pins */
 
 TEST_F(CadContact, NeighboringLinksAreNotTested) {
-  // the links of a track overlap where they interlock: the joint between each
-  // pair, the closing joint among them, takes them out of contact detection
+  // the links of a track overlap where they interlock, and the revolute joint
+  // between each pair carries their contact: the models list each link with
+  // its neighbour, the closing pair among them, in disabled_pairs
   for(const char* model : {"track_loop.json", "track_frame.json"}) {
     shift::core::Context context;
     context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/" + model);
@@ -1038,4 +1046,160 @@ TEST_F(CadContact, LinkHangsOnItsPin) {
     EXPECT_NEAR(std::fabs(c.normal.x), 1.0, 1e-9);
   }
   EXPECT_NEAR(length, 0.19, 1e-9);
+}
+
+/* steel (7850 kg/m^3): the shaft (10 mm radius, 50 mm) and the head (16 mm
+radius, 8 mm) of the peg of scripts/make_peg_step.py, about z, the origin at the
+underside of the head */
+static const double kPegMass = 0.173814;
+/* radial clearance of the shaft in the hole of the plate */
+static const double kPegClearance = 0.0005;
+
+/* the model of the peg over the plate with the hole (the plate's top at z = 0,
+gravity +z, down), the peg at t with its axis turned by tilt about x, for
+time_span; written to a file of the test's directory, whose path it returns.
+The damping of the contact law is fully applied from 1 nm of penetration: the
+rims of the head and of the hole lying on the faces of the other, lines of
+contact around them, the head rests 10 to 20 nm deep, where the default
+damping_depth, 0.1 mm, applies almost none, and the head would rock on the
+plate */
+static std::string PegModel(const std::string& name, const double t[3],
+                            double tilt, double time_span) {
+  const std::string path = testing::TempDir() + "/" + name + ".json";
+  std::ofstream file(path);
+  file.precision(17);
+  file << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, )"
+       << kGravity << R"(],
+    "include_directories": [")"
+       << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": )"
+       << time_span << R"(, "time_step": 0.01}]
+  },
+  "assemblies": [{"name": "pair",
+    "bodies": [
+      {"name": "plate",
+       "geometry": [{"type": "cad", "filename": "plate_hole.step"}],
+       "collision_geometry": [{"name": "plate", "type": "cad",
+                               "material": "steel"}],
+       "center_of_mass": [0, 0, 0.01],
+       "inertia": {"mass": 0.94, "Ixx": 5e-4, "Iyy": 5e-4, "Izz": 1e-3,
+                   "Ixy": 0, "Iyz": 0, "Izx": 0}},
+      {"name": "peg",
+       "geometry": [{"type": "cad", "filename": "peg.step"}],
+       "collision_geometry": [{"name": "peg", "type": "cad",
+                               "material": "steel"}],
+       "center_of_mass": [0, 0, 0.0165732],
+       "inertia": {"mass": )"
+       << kPegMass << R"(, "Ixx": 6.2407e-5, "Iyy": 6.2407e-5,
+                   "Izz": 1.26302e-5, "Ixy": 0, "Iyz": 0, "Izx": 0}}
+    ],
+    "joints": [
+      {"name": "plate_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["plate"], "origin"],
+       "initial_displacement": {"T": [0, 0, 0],
+                                "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}},
+      {"name": "peg_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["peg"], "origin"],
+       "initial_displacement": {"T": [)"
+       << t[0] << ", " << t[1] << ", " << t[2] << R"(],
+                                "R": [[1, 0, 0], [0, )"
+       << std::cos(tilt) << ", " << -std::sin(tilt) << "], [0, "
+       << std::sin(tilt) << ", " << std::cos(tilt) << R"(]]},
+       "initial_velocity": [0, 0, 0, 0, 0, 0]}
+    ],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "damping_depth": 1e-9,
+      "materials": [{"name": "steel", "youngs_modulus": 2e9,
+                     "poisson_ratio": 0.3, "restitution": 0.1,
+                     "friction": 0.1}]}]
+  }]
+})";
+  return path;
+}
+
+static ksl_SE3_t PegPose(shift::core::Context& context) {
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "peg") {
+      return context.get_body_origin_pose(body);
+    }
+  }
+  ADD_FAILURE() << "no peg";
+  return ksl_SE3_t{};
+}
+
+TEST_F(CadContact, PegDropsIntoItsHole) {
+  // the peg tilted by 4 degrees, the middle of the end of its shaft 2 mm
+  // above the hole, falls into it: the end of the shaft and its side meet the
+  // wall and the rim of the hole, which straighten it, and the head comes to
+  // rest flat on the plate. The rim of the head and the rim of the hole each
+  // lie in the other's face, a line of contact around each that holds the
+  // head level
+  const double tilt = 4.0 * M_PI / 180.0;
+  const double drop = 0.002, shaft = 0.05;
+  const double t[3] = {0.0, shaft * std::sin(tilt),
+                       -drop - shaft * std::cos(tilt)};
+  const std::string path = PegModel("peg_in_hole", t, tilt, 0.3);
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  const ksl_SE3_t d = PegPose(context);
+  // the underside of the head on the plate, sunk by little
+  EXPECT_GT(d.t.z, 0.0);
+  EXPECT_LT(d.t.z, 2e-5);
+  // the shaft within the clearance of the hole
+  EXPECT_LT(std::hypot(d.t.x, d.t.y), kPegClearance);
+  // level: the axis of the peg (the third column of R) along z
+  EXPECT_GT(d.R.v2.z, std::cos(0.1 * M_PI / 180.0));
+  // at rest: the plate carries the weight of the peg. Its kinetic energy is
+  // that of a fall of under 1 um
+  EXPECT_LT(context.KineticEnergy(), 1e-6 * kPegMass * kGravity);
+}
+
+TEST_F(CadContact, PegInTheWallIsPushedOut) {
+  // the peg upright, its shaft 2 mm into the wall of the hole (the shaft's
+  // axis 2.5 mm off the hole's), the underside of its head 1 mm over the
+  // plate: deeper than the pair's max_depth, 1.5 mm, but the surfaces overlap
+  // along the wall, and its line of contact pushes the peg out
+  const double t[3] = {0.0, 0.0025, -0.001};
+  shift::core::Context start;
+  const std::string at_start = PegModel("peg_in_wall", t, 0.0, 1e-6);
+  start.LoadJSON(at_start);
+  std::remove(at_start.c_str());
+  start.Simulate();
+  auto pairs = Between(start, "plate", "peg");
+  ASSERT_EQ(pairs.size(), 1u);
+  const auto* pair = pairs[0];
+  // the pair's max_depth, the lesser of the two parts'
+  ASSERT_LT(std::min(pair->a->get_max_depth(), pair->b->get_max_depth()),
+            0.002);
+  double length = 0.0;
+  for(const auto& c : pair->manifold) {
+    // along the wall, at the depth of the overlap (less what the peg moves in
+    // 1 us), the normal from the plate into the shaft, -y
+    EXPECT_NEAR(c.depth, 0.002, 1e-6);
+    const double sense = pair->a->get_name() == "plate" ? 1.0 : -1.0;
+    EXPECT_NEAR(sense * c.normal.y, -1.0, 1e-9);
+    length += c.length;
+  }
+  // a line along the wall, away from its ends by the depth
+  EXPECT_GT(length, 0.75 * 0.02);
+
+  const std::string path = PegModel("peg_in_wall", t, 0.0, 0.005);
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  // the shaft back within the clearance of the hole
+  const ksl_SE3_t d = PegPose(context);
+  EXPECT_LT(std::fabs(d.t.y), kPegClearance);
 }

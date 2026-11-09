@@ -60,6 +60,35 @@ static double Dot(const ksl_vec3_t& a, const ksl_vec3_t& b) {
   return ksl_dot_vv(&a, &b);
 }
 
+/* the points found beyond the reach of a test of two shapes, in a's frame:
+ShapeOverlap searches again, deeper, when one of them is a point of contact
+(not far beyond the reach, and deepest in the other shape where it is). A
+thread each, as pairs are tested in parallel */
+static thread_local std::vector<shift::core::collision_geometry::ContactPoint> beyond_reach;
+
+/* whether the point of a and the point of b, depth apart, are within the reach
+of the test, max_depth; a point beyond it is kept in beyond_reach */
+static bool Within(const ksl_vec3_t& point_a, const ksl_vec3_t& point_b,
+                   double depth, double max_depth) {
+  if(depth <= max_depth) {
+    return true;
+  }
+  if(depth < 4.0 * max_depth && beyond_reach.size() < 64) {
+    shift::core::collision_geometry::ContactPoint c;
+    c.depth = depth;
+    c.point_a = point_a;
+    c.point_b = point_b;
+    c.normal = Scaled(Sub(point_a, point_b), 1.0 / depth);
+    beyond_reach.push_back(c);
+  }
+  return false;
+}
+
+static bool Within(const shift::core::collision_geometry::ContactPoint& c,
+                   double max_depth) {
+  return Within(c.point_a, c.point_b, c.depth, max_depth);
+}
+
 /* ------------------------------------------------------------------------ */
 /* the faces of a side, in a's frame */
 
@@ -368,7 +397,7 @@ static void LinePoints(const shift::core::collision_geometry::CadSideOfPair* a, 
       shift::core::collision_geometry::ContactPoint c;
       c.depth = section(data, center + kStations[i] * half, c.point_a,
                         c.point_b, c.normal);
-      if(c.depth > 0.0 && c.depth <= max_depth) {
+      if(c.depth > 0.0 && Within(c, max_depth)) {
         c.length = kStationWeights[i] * half;
         c.weight = weight;
         points.push_back(c);
@@ -589,7 +618,7 @@ static void CylinderCylinder(const shift::core::collision_geometry::CadSideOfPai
     shift::core::collision_geometry::ContactPoint p;
     p.depth = CylinderSection(&c, o.deepest, p.point_a, p.point_b, p.normal);
     shift::core::cad::Vec2 uva, uvb;
-    if(p.depth <= max_depth && SideProject(a, fa, p.point_a, uva) &&
+    if(Within(p, max_depth) && SideProject(a, fa, p.point_a, uva) &&
        SideProject(b, fb, p.point_b, uvb) && a.shape->Inside(fa, uva) &&
        b.shape->Inside(fb, uvb)) {
       GapCurvature(a, fa, uva, &b, fb, uvb, p.normal, p);
@@ -713,7 +742,7 @@ static void PlaneCylinderLine(const PlaneCylinder& base,
       InsideOrOnEdge(cylinder, fc, uvc) &&
       (!plane || (SideProject(*plane, fp, on_plane, uv) &&
                   plane->shape->Inside(fp, uv)));
-    if(inside && r.depth <= max_depth) {
+    if(inside && Within(r, max_depth)) {
       r.curvature = 1.0 / edge_radius;
       r.weight = 1.0 - line;
       points.push_back(r);
@@ -844,47 +873,235 @@ static void GapCurvature(const shift::core::collision_geometry::CadSideOfPair& a
   c.curvature_ratio = k2 > 0.0 ? k2 / k1 : 1.0;
 }
 
-/* the pair of sample points of two faces deepest in each other with opposed
-normals, x = (u_a, v_a, u_b, v_b); false if the faces are apart */
-static bool SeedPoint(const shift::core::collision_geometry::CadSideOfPair& a, int fa, const shift::core::collision_geometry::CadSideOfPair& b,
-                      int fb, double max_depth, double* x) {
-  const auto& face_a = a.shape->faces[fa];
-  const auto& face_b = b.shape->faces[fb];
-  double best = -HUGE_VAL;
-  for(size_t i = 0; i < face_a.sample_uv.size(); i++) {
-    const ksl_vec3_t pa = SidePosition(a, face_a.sample_points[i]);
-    const ksl_vec3_t na = SideVector(a, face_a.sample_normals[i]);
-    for(size_t j = 0; j < face_b.sample_uv.size(); j++) {
-      const ksl_vec3_t nb = SideVector(b, face_b.sample_normals[j]);
-      if(Dot(na, nb) > -0.5) {
+static double FaceDepth(const shift::core::collision_geometry::CadSideOfPair& side,
+                        int face, const ksl_vec3_t& p,
+                        const shift::core::cad::Vec2* guess,
+                        shift::core::cad::Vec2& uv, ksl_vec3_t& q,
+                        ksl_vec3_t& outward, bool& beyond);
+
+/* a starting point of NewtonPoint: the parameters x = (u_a, v_a, u_b, v_b) of
+a sample of one of two faces and of its foot on the other, and its score, the
+depth of the sample under the other face */
+struct FaceSeed {
+  double score = -HUGE_VAL;
+  double x[4] = {0.0, 0.0, 0.0, 0.0};
+  bool of_b = false; //!< a local maximum of b's samples, not of a's
+};
+
+/* the most starting points taken for two faces: the deepest, then one for
+each other region in which they may touch */
+static constexpr int kMaxSeeds = 8;
+
+/* the spacing of the samples of a face: its diagonal over the samples along
+its longer side */
+static double SampleSpacing(const shift::core::collision_geometry::CadContactFace& f) {
+  const ksl_vec3_t d = Sub(f.box.hi, f.box.lo);
+  return ksl_vec3_l2norm(&d) / std::max({f.sample_nu, f.sample_nv, 1});
+}
+
+/* whether sample i of face f scores at least as high as each of its
+neighbours on the grid of samples, the lower index winning a tie */
+static bool LocalMaximum(const shift::core::collision_geometry::CadContactFace& f,
+                         const std::vector<double>& score, int i, int ci,
+                         int cj) {
+  for(int di = -1; di <= 1; di++) {
+    for(int dj = -1; dj <= 1; dj++) {
+      const int ni = ci + di, nj = cj + dj;
+      if((di == 0 && dj == 0) || ni < 0 || nj < 0 || ni >= f.sample_nu ||
+         nj >= f.sample_nv) {
         continue;
       }
-      const ksl_vec3_t d = Sub(pa, SidePosition(b, face_b.sample_points[j]));
-      const double depth = Dot(d, na);
-      const ksl_vec3_t lateral = Axpy(d, -depth, na);
-      const double score = depth - ksl_vec3_l2norm(&lateral);
-      if(score > best) {
-        best = score;
-        x[0] = face_a.sample_uv[i][0];
-        x[1] = face_a.sample_uv[i][1];
-        x[2] = face_b.sample_uv[j][0];
-        x[3] = face_b.sample_uv[j][1];
+      const int k = f.sample_cell[ni * f.sample_nv + nj];
+      if(k >= 0 && (score[k] > score[i] || (score[k] == score[i] && k < i))) {
+        return false;
       }
     }
   }
+  return true;
+}
+
+/* the starting points of the search for the contact of two faces, deepest
+first. Each sample of either face is scored with the sample of the other face,
+of opposed normal, under which it lies deepest, less their offset across the
+normal: the faces are apart if no score reaches the threshold. Each sample
+that does is projected on the other face from that partner for its depth under
+it, and each local maximum of the depth on the grid of samples of either face
+is a seed: two faces touching in separate places have a maximum near each.
+Only samples near the other face are scored */
+static void FaceSeeds(const shift::core::collision_geometry::CadSideOfPair& a, int fa,
+                      const shift::core::collision_geometry::CadSideOfPair& b, int fb,
+                      double max_depth, std::vector<FaceSeed>& seeds) {
+  seeds.clear();
+  const auto& face_a = a.shape->faces[fa];
+  const auto& face_b = b.shape->faces[fb];
   /* samples are a grid's spacing apart, and none lies on a face's edges: the
   nearest of two faces touching near their ends may be this far off along
   and across the faces, on both */
-  auto spacing = [](const shift::core::collision_geometry::CadContactFace& f) {
-    const ksl_vec3_t d = Sub(f.box.hi, f.box.lo);
-    return ksl_vec3_l2norm(&d) / 8.0;
+  const double slack = 2.0 * (SampleSpacing(face_a) + SampleSpacing(face_b));
+  const double threshold = -max_depth - slack;
+  shift::core::collision_geometry::CadBox near_b = face_b.box.Transformed(b.d);
+  shift::core::collision_geometry::CadBox near_a = face_a.box.Transformed(a.d);
+  near_b.Pad(4.0 * max_depth + slack);
+  near_a.Pad(4.0 * max_depth + slack);
+  auto inside = [](const shift::core::collision_geometry::CadBox& box, const ksl_vec3_t& p) {
+    for(int k = 0; k < 3; k++) {
+      if(p.at[k] < box.lo.at[k] || p.at[k] > box.hi.at[k]) {
+        return false;
+      }
+    }
+    return true;
   };
-  return best != -HUGE_VAL &&
-         best >= -max_depth - 2.0 * (spacing(face_a) + spacing(face_b));
+  thread_local std::vector<int> near_ia, near_jb;
+  thread_local std::vector<ksl_vec3_t> pa, na, pb, nb;
+  near_ia.clear();
+  near_jb.clear();
+  pa.clear();
+  na.clear();
+  pb.clear();
+  nb.clear();
+  for(size_t i = 0; i < face_a.sample_uv.size(); i++) {
+    const ksl_vec3_t p = SidePosition(a, face_a.sample_points[i]);
+    if(inside(near_b, p)) {
+      near_ia.push_back(static_cast<int>(i));
+      pa.push_back(p);
+      na.push_back(SideVector(a, face_a.sample_normals[i]));
+    }
+  }
+  for(size_t j = 0; j < face_b.sample_uv.size(); j++) {
+    const ksl_vec3_t p = SidePosition(b, face_b.sample_points[j]);
+    if(inside(near_a, p)) {
+      near_jb.push_back(static_cast<int>(j));
+      pb.push_back(p);
+      nb.push_back(SideVector(b, face_b.sample_normals[j]));
+    }
+  }
+  if(near_ia.empty() || near_jb.empty()) {
+    return;
+  }
+  /* each sample's best score and partner */
+  thread_local std::vector<double> score_a, score_b;
+  thread_local std::vector<int> partner_a, partner_b;
+  score_a.assign(face_a.sample_uv.size(), -HUGE_VAL);
+  score_b.assign(face_b.sample_uv.size(), -HUGE_VAL);
+  partner_a.assign(face_a.sample_uv.size(), -1);
+  partner_b.assign(face_b.sample_uv.size(), -1);
+  FaceSeed best;
+  for(size_t ii = 0; ii < near_ia.size(); ii++) {
+    const int i = near_ia[ii];
+    for(size_t jj = 0; jj < near_jb.size(); jj++) {
+      const int j = near_jb[jj];
+      if(Dot(na[ii], nb[jj]) > -0.5) {
+        continue;
+      }
+      const ksl_vec3_t d = Sub(pa[ii], pb[jj]);
+      const double depth = Dot(d, na[ii]);
+      const ksl_vec3_t lateral = Axpy(d, -depth, na[ii]);
+      const double score = depth - ksl_vec3_l2norm(&lateral);
+      if(score > score_a[i]) {
+        score_a[i] = score;
+        partner_a[i] = j;
+      }
+      if(score > score_b[j]) {
+        score_b[j] = score;
+        partner_b[j] = i;
+      }
+      if(score > best.score) {
+        best.score = score;
+        best.x[0] = face_a.sample_uv[i][0];
+        best.x[1] = face_a.sample_uv[i][1];
+        best.x[2] = face_b.sample_uv[j][0];
+        best.x[3] = face_b.sample_uv[j][1];
+      }
+    }
+  }
+  if(best.score == -HUGE_VAL || best.score < threshold) {
+    return;
+  }
+  /* the depth of each sample, that scores above the threshold, under the
+  other face, from its partner: the score of a sample paired with one a
+  spacing away is too coarse to show where the faces touch, the depth is
+  not. Then each local maximum of the depth on either face's grid */
+  thread_local std::vector<double> depth_a, depth_b;
+  thread_local std::vector<shift::core::cad::Vec2> foot_a, foot_b;
+  auto depths = [&](const shift::core::collision_geometry::CadSideOfPair& side,
+                    int face, const shift::core::collision_geometry::CadSideOfPair& other,
+                    int other_face, const std::vector<int>& near,
+                    const std::vector<double>& score,
+                    const std::vector<int>& partner, std::vector<double>& depth,
+                    std::vector<shift::core::cad::Vec2>& foot) {
+    const auto& f = side.shape->faces[face];
+    const auto& g = other.shape->faces[other_face];
+    depth.assign(f.sample_uv.size(), -HUGE_VAL);
+    foot.resize(f.sample_uv.size());
+    for(int i : near) {
+      if(score[i] < threshold) {
+        continue;
+      }
+      ksl_vec3_t q, outward;
+      bool beyond = false;
+      const double d =
+        FaceDepth(other, other_face, SidePosition(side, f.sample_points[i]),
+                  &g.sample_uv[partner[i]], foot[i], q, outward, beyond);
+      if(!beyond && Dot(SideVector(side, f.sample_normals[i]), outward) < -0.5) {
+        depth[i] = d;
+      }
+    }
+  };
+  depths(a, fa, b, fb, near_ia, score_a, partner_a, depth_a, foot_a);
+  depths(b, fb, a, fa, near_jb, score_b, partner_b, depth_b, foot_b);
+  auto maxima = [&](const shift::core::collision_geometry::CadContactFace& f,
+                    const std::vector<double>& depth,
+                    const std::vector<shift::core::cad::Vec2>& foot, bool of_a) {
+    for(int ci = 0; ci < f.sample_nu; ci++) {
+      for(int cj = 0; cj < f.sample_nv; cj++) {
+        const int i = f.sample_cell[ci * f.sample_nv + cj];
+        if(i < 0 || depth[i] < threshold || !LocalMaximum(f, depth, i, ci, cj)) {
+          continue;
+        }
+        FaceSeed seed;
+        seed.score = depth[i];
+        const shift::core::cad::Vec2& own = f.sample_uv[i];
+        seed.x[0] = of_a ? own[0] : foot[i][0];
+        seed.x[1] = of_a ? own[1] : foot[i][1];
+        seed.x[2] = of_a ? foot[i][0] : own[0];
+        seed.x[3] = of_a ? foot[i][1] : own[1];
+        seed.of_b = !of_a;
+        seeds.push_back(seed);
+      }
+    }
+  };
+  maxima(face_a, depth_a, foot_a, true);
+  maxima(face_b, depth_b, foot_b, false);
+  if(seeds.empty()) {
+    seeds.push_back(best);
+  }
+  std::stable_sort(seeds.begin(), seeds.end(),
+                   [](const FaceSeed& p, const FaceSeed& q) {
+                     return p.score > q.score;
+                   });
+  if(seeds.size() > static_cast<size_t>(kMaxSeeds)) {
+    seeds.resize(kMaxSeeds);
+  }
+}
+
+/* whether the depth of two faces is greatest at a point of contact c found by
+NewtonPoint, not at a saddle of it: the gap between them curves away from the
+point in every direction, or not at all in one */
+static bool DeepestNear(const shift::core::collision_geometry::CadSideOfPair& a, int fa,
+                        const shift::core::collision_geometry::CadSideOfPair& b, int fb,
+                        const double* x) {
+  ksl_vec3_t t1, t2;
+  double h[3];
+  const shift::core::cad::Vec2 uva{x[0], x[1]}, uvb{x[2], x[3]};
+  GapTensor(a, fa, uva, &b, fb, uvb, SideNormal(a, fa, uva), t1, t2, h);
+  const double mean = 0.5 * (h[0] + h[2]);
+  const double spread =
+    std::sqrt(0.25 * (h[0] - h[2]) * (h[0] - h[2]) + h[1] * h[1]);
+  return mean - spread >= -1e-3 * std::fabs(mean + spread);
 }
 
 /* the deepest point of two faces in contact: Newton's method on CommonNormal,
-from the sample points x of SeedPoint. Faces
+from the sample points x of a FaceSeed. Faces
 touching along a line have no single deepest point, and a singular system:
 damping, a share of its diagonal, then keeps each step to the nearest point of
 the line. It does not change where the gradient is zero */
@@ -965,7 +1182,7 @@ static bool NewtonPoint(const shift::core::collision_geometry::CadSideOfPair& a,
   const ksl_vec3_t lateral = Axpy(d, -depth, na);
   /* the normals of a deepest point are opposite: a search stopped at a face's
   bound, with the deepest point beyond it, has not found one */
-  if(Dot(na, nb) > -1.0 + 1e-10 || !(depth > 0.0) || depth > max_depth ||
+  if(Dot(na, nb) > -1.0 + 1e-10 || !(depth > 0.0) || !Within(pa, pb, depth, max_depth) ||
      ksl_vec3_l2norm(&lateral) > 0.05 * depth) {
     return false;
   }
@@ -1411,7 +1628,7 @@ static bool CurvedFaceLine(CurvedLine& c, const shift::core::cad::Vec2& seed,
     if(r.depth == -HUGE_VAL) {
       r.depth = CurvedSection(&c, station, r.point_a, r.point_b, r.normal);
     }
-    if(found && r.depth > 0.0 && r.depth <= max_depth) {
+    if(found && r.depth > 0.0 && Within(r, max_depth)) {
       if(at_end) {
         /* the end on the face it presses into */
         r.curvature = 1.0 / edge_radius;
@@ -1701,11 +1918,69 @@ static shift::core::collision_geometry::ContactPoint FeaturePoint(bool feature_i
   return c;
 }
 
+/* the unit direction of an edge at its parameter t, in the frame of the
+shape */
+static ksl_vec3_t EdgeDirection(const shift::core::collision_geometry::CadContactShape& shape, int edge,
+                                double t) {
+  const auto& e = shape.edges[edge];
+  const auto& topology = shape.model().edges[e.edge];
+  const auto& curve = shape.model().curves[topology.curve];
+  const auto& place = shape.placements[e.placement];
+  const double lo = std::min(topology.range[0], topology.range[1]);
+  const double hi = std::max(topology.range[0], topology.range[1]);
+  const double h = 1e-6 * (hi - lo);
+  const double t0 = std::max(t - h, lo);
+  const double t1 = std::min(t + h, hi);
+  ksl_vec3_t d = Sub(place.Apply(shift::core::cad::CurvePoint<3>(curve, t1)),
+                     place.Apply(shift::core::cad::CurvePoint<3>(curve, t0)));
+  ksl_vec3_normalize(&d);
+  return d;
+}
+
+/* whether a point of a shape, on the faces given, is a corner: the sharp edges
+of the faces that end there meet at an angle. Where two edges go on into each
+other, as the halves of the rim of a round face, it is not: the rim holds its
+contact (see EdgeFaceLine), and so it is at the seam of a closed edge */
+static bool IsCorner(const shift::core::collision_geometry::CadContactShape& shape,
+                     const std::vector<int>& faces, const ksl_vec3_t& point) {
+  bool any = false;
+  ksl_vec3_t first = {{0.0, 0.0, 0.0}};
+  for(int f : faces) {
+    for(int e : shape.faces[f].edges) {
+      const auto& edge = shape.edges[e];
+      const auto& topology = shape.model().edges[edge.edge];
+      if(!edge.sharp || topology.start == topology.end) {
+        continue;
+      }
+      const auto& place = shape.placements[edge.placement];
+      for(int k = 0; k < 2; k++) {
+        const int end = k == 0 ? topology.start : topology.end;
+        const ksl_vec3_t d =
+          Sub(point, place.Apply(shape.model().vertices[end].point));
+        if(ksl_vec3_l2norm(&d) > 1e-9 * shape.size) {
+          continue;
+        }
+        const ksl_vec3_t direction =
+          EdgeDirection(shape, e, topology.range[k]);
+        if(!any) {
+          any = true;
+          first = direction;
+        } else if(std::fabs(Dot(first, direction)) < 1.0 - 1e-6) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 static void VertexFace(const shift::core::collision_geometry::CadSideOfPair& feature, int vertex,
                        const shift::core::collision_geometry::CadSideOfPair& other, int face,
                        bool feature_is_a, double max_depth, double weight,
                        std::vector<shift::core::collision_geometry::ContactPoint>& points) {
-  if(weight <= 0.0) {
+  if(weight <= 0.0 ||
+     !IsCorner(*feature.shape, feature.shape->vertices[vertex].faces,
+               feature.shape->vertices[vertex].point)) {
     return;
   }
   const ksl_vec3_t p =
@@ -1727,6 +2002,136 @@ static void VertexFace(const shift::core::collision_geometry::CadSideOfPair& fea
                                  return VertexDeepest(feature, vertex, normal);
                                });
   }
+}
+
+/*
+A curved edge lying in a face, as the rim of a round face resting on a flat
+one, or of a hole in it: a line of contact along the arc of the edge below the
+face, about its deepest point t, which may be all of a closed edge, or reach the
+ends of an open one. The arc is found from t both ways, in steps of 1/64 of the
+edge, to the points where it leaves the face, by bisection; 4 slices of it each carry 3 Gauss stations of
+Hertz line contact, with their shares of the length of the arc. A single point,
+the deepest, holds the overlap of an edge on one side of it only: an edge lying
+flat has its deepest point anywhere along it, and a part on it rocks between
+its edges. The line comes in as the arc grows from 1 to 4 times the Hertz width
+of the edge at the deepest point, and as the angle the edge turns through along
+it grows from 0.5 to 1 radian: a short arc of a round edge, as the rim of a
+cylinder on its side, has its point. The deepest point's weight goes out as the
+line comes in. False if the line carries all of the contact.
+*/
+static bool EdgeFaceLine(const shift::core::collision_geometry::CadSideOfPair& feature, int edge,
+                         const shift::core::collision_geometry::CadSideOfPair& other, int face,
+                         bool feature_is_a, double max_depth, double t,
+                         double& weight,
+                         std::vector<shift::core::collision_geometry::ContactPoint>& points) {
+  const auto& e = feature.shape->edges[edge];
+  const auto& m = feature.shape->model();
+  const auto& curve = m.curves[m.edges[e.edge].curve];
+  /* the range of the edge's parameter, which may run either way */
+  const double first = std::min(m.edges[e.edge].range[0], m.edges[e.edge].range[1]);
+  const double last = std::max(m.edges[e.edge].range[0], m.edges[e.edge].range[1]);
+  const double span = last - first;
+  const auto& place = feature.shape->placements[e.placement];
+  const bool closed = m.edges[e.edge].start == m.edges[e.edge].end;
+  auto clamp = [&](double s) {
+    return closed ? first + std::fmod(std::fmod(s - first, span) + span, span)
+                  : std::min(std::max(s, first), last);
+  };
+  auto point_at = [&](double s) {
+    s = clamp(s);
+    return SidePosition(feature,
+                        place.Apply(shift::core::cad::CurvePoint<3>(curve, s)));
+  };
+  struct Station {
+    double depth = -HUGE_VAL;
+    ksl_vec3_t p, q, n;
+    shift::core::cad::Vec2 uv;
+  };
+  auto station = [&](double s) {
+    Station r;
+    r.p = point_at(s);
+    if(!PointInFace(other, face, r.p, max_depth, r.depth, r.q, r.n, r.uv) ||
+       !Opposes(feature, e.faces, r.p, r.n)) {
+      r.depth = -HUGE_VAL;
+    }
+    return r;
+  };
+  const Station deepest = station(t);
+  if(!(deepest.depth > 0.0)) {
+    return true;
+  }
+  /* the ends of the arc below the face, of an open edge at most its ends */
+  const double step = span / 64.0;
+  auto end = [&](double direction) {
+    double inside = t;
+    for(int k = 1; k <= (closed ? 32 : 64); k++) {
+      double s = t + direction * k * step;
+      if(!closed && (s <= first || s >= last)) {
+        s = direction < 0.0 ? first : last;
+        if(station(s).depth > 0.0) {
+          return s;
+        }
+      }
+      if(!(station(s).depth > 0.0)) {
+        double outside = s;
+        for(int i = 0; i < 34; i++) {
+          const double mid = 0.5 * (inside + outside);
+          (station(mid).depth > 0.0 ? inside : outside) = mid;
+        }
+        return 0.5 * (inside + outside);
+      }
+      inside = s;
+    }
+    return t + direction * 0.5 * span; // all of the edge
+  };
+  const double lo = end(-1.0), hi = end(1.0);
+  auto speed = [&](double s) {
+    const double h = 1e-6 * span;
+    double s0 = s - h, s1 = s + h;
+    if(!closed) {
+      s0 = std::max(s0, first);
+      s1 = std::min(s1, last);
+    }
+    const ksl_vec3_t d = Sub(point_at(s1), point_at(s0));
+    return ksl_vec3_l2norm(&d) / (s1 - s0);
+  };
+  const double arc = speed(t) * (hi - lo);
+  const double width = std::sqrt(deepest.depth * feature.edge_radius);
+  /* the angle the edge turns through along the arc, from its curvature at t:
+  a short arc of a round edge (a rim of a cylinder on its side) is a point */
+  const double h = 1e-3 * span;
+  const double s0 = closed ? t - h : std::max(t - h, first);
+  const double s1 = closed ? t + h : std::min(t + h, last);
+  const ksl_vec3_t p0 = point_at(s0), pm = point_at(0.5 * (s0 + s1)),
+                   p1 = point_at(s1);
+  const ksl_vec3_t bend = Axpy(Sub(p0, pm), 1.0, Sub(p1, pm));
+  const double chord = 0.5 * (s1 - s0) * speed(t);
+  const double turned = arc * ksl_vec3_l2norm(&bend) / (chord * chord);
+  const double line = SmoothStep((arc / width - 1.0) / 3.0) *
+                      SmoothStep((turned - 0.5) / 0.5);
+  if(line <= 0.0) {
+    return true;
+  }
+  constexpr int kSlices = 4;
+  const double half = 0.5 * (hi - lo) / kSlices;
+  for(int slice = 0; slice < kSlices; slice++) {
+    const double center = lo + (2 * slice + 1) * half;
+    for(int i = 0; i < 3; i++) {
+      const double s = center + kStations[i] * half;
+      const Station r = station(s);
+      if(!(r.depth > 0.0)) {
+        continue;
+      }
+      shift::core::collision_geometry::ContactPoint c = FeaturePoint(
+        feature_is_a, r.p, r.q, r.n, r.depth,
+        1.0 / feature.edge_radius + other.shape->MeanCurvature(face, r.uv));
+      c.length = kStationWeights[i] * half * speed(s);
+      c.weight = weight * line;
+      points.push_back(c);
+    }
+  }
+  weight *= 1.0 - line;
+  return weight > 0.0;
 }
 
 /* the deepest point of an edge inside a face: the deepest of its samples,
@@ -1819,18 +2224,32 @@ static void EdgeFace(const shift::core::collision_geometry::CadSideOfPair& featu
       d2 = depth_at(t2);
     }
   }
-  const double t = 0.5 * (lo + hi);
+  double t = 0.5 * (lo + hi);
   const double extent = std::fabs(range[1] - range[0]);
-  if(std::fabs(t - range[0]) < 0.01 * extent ||
-     std::fabs(t - range[1]) < 0.01 * extent) {
-    return; // at a vertex
+  const auto& topology = m.edges[e.edge];
+  const bool curved = curve.type != shift::core::cad::Curve3::Type::kLine;
+  /* the ends of an open edge that are corners, which hold their contact */
+  bool corner[2] = {false, false};
+  for(int k = 0; k < 2 && topology.start != topology.end; k++) {
+    corner[k] = IsCorner(*feature.shape, e.faces,
+                         place.Apply(m.vertices[k == 0 ? topology.start : topology.end].point));
+  }
+  for(int k = 0; k < 2; k++) {
+    if(std::fabs(t - range[k]) >= 0.01 * extent) {
+      continue;
+    }
+    /* at a vertex, unless the edge goes on into another there, or is closed */
+    if(corner[k]) {
+      return;
+    }
+    t = range[k];
   }
   /* a point between ends that also touch comes in as it gets deeper than them,
   so that a rim leaving a face flat has no jump */
-  const auto& topology = m.edges[e.edge];
   double weight = 1.0;
-  if(topology.start != topology.end) {
-    const double ends = std::max(depth_at(range[0]), depth_at(range[1]));
+  if(corner[0] || corner[1]) {
+    const double ends = std::max(corner[0] ? depth_at(range[0]) : -HUGE_VAL,
+                                 corner[1] ? depth_at(range[1]) : -HUGE_VAL);
     const double middle = depth_at(t);
     if(ends > 0.0) {
       weight = SmoothStep((middle - ends) / (0.1 * middle));
@@ -1838,6 +2257,11 @@ static void EdgeFace(const shift::core::collision_geometry::CadSideOfPair& featu
     if(weight <= 0.0) {
       return;
     }
+  }
+  if(curved &&
+     !EdgeFaceLine(feature, edge, other, face, feature_is_a, max_depth, t,
+                   weight, points)) {
+    return;
   }
   const ksl_vec3_t p = point_at(t);
   double depth;
@@ -2148,7 +2572,7 @@ static bool EdgeEdge(const shift::core::collision_geometry::CadSideOfPair& a, in
     const ksl_vec3_t gap = Sub(pa, pb);
     const double depth = Dot(gap, n);
     const ksl_vec3_t lateral = Axpy(gap, -depth, n);
-    if(depth > 0.0 && depth <= max_depth &&
+    if(depth > 0.0 && Within(pa, pb, depth, max_depth) &&
        ksl_vec3_l2norm(&lateral) <= 1e-3 * depth &&
        InNormalCone(a, ea, pa, n) &&
        InNormalCone(b, eb, pb, Scaled(n, -1.0))) {
@@ -2367,6 +2791,97 @@ static bool CurvedCurvedLine(const shift::core::collision_geometry::CadSideOfPai
   return found;
 }
 
+/* climbs from the seed x of two faces to the deepest point near it of a's face
+under b's: steepest ascent along a's face on the depth of its point under b's
+(FaceDepth), a step taken only if the depth grows, from a step of a sample's
+spacing, doubled after each step taken and halved after each refused. Newton's method on CommonNormal from a seed between two
+regions of contact can end at the stationary point between them, where the
+faces are apart; from the end of the climb it ends at the deepest point of the
+region the seed is in. Sets x and climbed, the depth reached. False if a's
+point at the seed has no depth under b's face */
+static bool Climb(const shift::core::collision_geometry::CadSideOfPair& a, int fa,
+                  const shift::core::collision_geometry::CadSideOfPair& b, int fb,
+                  double* x, double& climbed) {
+  const auto& face = a.shape->faces[fa];
+  const double cell[2] = {
+    (face.hi[0] - face.lo[0]) / std::max(face.sample_nu, 1),
+    (face.hi[1] - face.lo[1]) / std::max(face.sample_nv, 1)};
+  const bool periodic[2] = {face.periodic_u, face.periodic_v};
+  shift::core::cad::Vec2 uvb{x[2], x[3]};
+  auto depth_at = [&](const shift::core::cad::Vec2& uva,
+                      shift::core::cad::Vec2& at) {
+    ksl_vec3_t q, outward;
+    bool beyond = false;
+    const double depth =
+      FaceDepth(b, fb, SidePoint(a, fa, uva), &uvb, at, q, outward, beyond);
+    return beyond ? -HUGE_VAL : depth;
+  };
+  auto bounded = [&](int k, double value) {
+    return periodic[k] ? value
+                       : std::min(std::max(value, face.lo[k]), face.hi[k]);
+  };
+  shift::core::cad::Vec2 uva{x[0], x[1]}, at;
+  double depth = depth_at(uva, at);
+  if(depth == -HUGE_VAL) {
+    return false;
+  }
+  uvb = at;
+  ksl_vec3_t du, dv;
+  SidePoint(a, fa, uva, &du, &dv);
+  const double spacing = std::min(ksl_vec3_l2norm(&du) * cell[0],
+                                  ksl_vec3_l2norm(&dv) * cell[1]);
+  double step = spacing;
+  for(int iteration = 0; iteration < 40 && step > 1e-3 * spacing;
+      iteration++) {
+    double gradient[2];
+    for(int k = 0; k < 2; k++) {
+      const double h = 1e-3 * cell[k];
+      shift::core::cad::Vec2 plus = uva, minus = uva, ignored;
+      plus[k] = bounded(k, uva[k] + h);
+      minus[k] = bounded(k, uva[k] - h);
+      gradient[k] = (depth_at(plus, ignored) - depth_at(minus, ignored)) /
+                    (plus[k] - minus[k]);
+    }
+    if(!std::isfinite(gradient[0]) || !std::isfinite(gradient[1])) {
+      break;
+    }
+    /* the steepest ascent along the face: the gradient through the inverse
+    of the face's metric */
+    SidePoint(a, fa, uva, &du, &dv);
+    const double g11 = Dot(du, du), g12 = Dot(du, dv), g22 = Dot(dv, dv);
+    const double det = g11 * g22 - g12 * g12;
+    if(!(det > 0.0)) {
+      break;
+    }
+    const double d[2] = {(g22 * gradient[0] - g12 * gradient[1]) / det,
+                         (g11 * gradient[1] - g12 * gradient[0]) / det};
+    const double length = std::sqrt(g11 * d[0] * d[0] + 2.0 * g12 * d[0] * d[1] +
+                                    g22 * d[1] * d[1]);
+    if(!(length > 0.0)) {
+      break;
+    }
+    const shift::core::cad::Vec2 next{bounded(0, uva[0] + step * d[0] / length),
+                                      bounded(1, uva[1] + step * d[1] / length)};
+    const double deeper = depth_at(next, at);
+    if(deeper > depth) {
+      uva = next;
+      uvb = at;
+      depth = deeper;
+      step = std::min(2.0 * step, 2.0 * spacing);
+    } else {
+      step *= 0.5;
+    }
+  }
+  x[0] = uva[0];
+  x[1] = uva[1];
+  x[2] = uvb[0];
+  x[3] = uvb[1];
+  /* the depth reached, or -HUGE_VAL if the faces are apart there: the
+  search from it would end at no point of contact */
+  climbed = depth > -1e-2 * spacing ? depth : -HUGE_VAL;
+  return true;
+}
+
 /* adds the contact of two faces; true if they touch */
 static bool FacePair(const shift::core::collision_geometry::CadSideOfPair& a, int fa, const shift::core::collision_geometry::CadSideOfPair& b,
                      int fb, double max_depth,
@@ -2401,14 +2916,40 @@ static bool FacePair(const shift::core::collision_geometry::CadSideOfPair& a, in
       CurvedFacePair(b, fb, a, fa, false, max_depth, points, repeated))) {
     return repeated || touching();
   }
-  double x[4];
-  if(!SeedPoint(a, fa, b, fb, max_depth, x)) {
+  thread_local std::vector<FaceSeed> seeds;
+  FaceSeeds(a, fa, b, fb, max_depth, seeds);
+  if(seeds.empty()) {
     return false;
   }
+  double x[4];
+  std::copy(seeds[0].x, seeds[0].x + 4, x);
   shift::core::collision_geometry::ContactPoint c;
   const bool curved = IsCurved(ta) && IsCurved(tb);
-  const bool point =
-    NewtonPoint(a, fa, b, fb, max_depth, x, c, curved ? 1e-6 : 0.0);
+  const double damping = curved ? 1e-6 : 0.0;
+  /* from a seed's climb, if the faces are not apart at its end: along the
+  face of whose samples the seed is a maximum, since the sample of the other
+  face paired with it may lie far from the region */
+  auto climbed_point = [&](const FaceSeed& seed) {
+    double climbed = -HUGE_VAL;
+    if(seed.of_b) {
+      double y[4] = {seed.x[2], seed.x[3], seed.x[0], seed.x[1]};
+      if(!Climb(b, fb, a, fa, y, climbed)) {
+        return false;
+      }
+      x[0] = y[2];
+      x[1] = y[3];
+      x[2] = y[0];
+      x[3] = y[1];
+    } else {
+      std::copy(seed.x, seed.x + 4, x);
+      if(!Climb(a, fa, b, fb, x, climbed)) {
+        return false;
+      }
+    }
+    return climbed != -HUGE_VAL &&
+           NewtonPoint(a, fa, b, fb, max_depth, x, c, damping);
+  };
+  bool point = climbed_point(seeds[0]);
   /* two curved faces: a line if they touch along one, as tooth flanks do */
   if(curved) {
     bool repeated = false;
@@ -2417,14 +2958,36 @@ static bool FacePair(const shift::core::collision_geometry::CadSideOfPair& a, in
       return repeated || touching();
     }
   }
+  /* on a seam both faces find a point, or next to it, to within their
+  normals: it counts for the first face only */
+  const double seam = 1e-5 * a.shape->size;
+  bool on_seam = false;
+  const size_t found = points.size();
   if(point) {
-    /* on a seam both faces find it, or next to it, to within their normals */
     points.push_back(c);
-    if(DropRepeated(points, before, 1e-5 * a.shape->size)) {
-      return true;
-    }
+    on_seam = DropRepeated(points, before, seam);
   }
-  return touching();
+  /* each other region in which the faces touch: the search from its seed
+  ends at a deepest point apart from those found */
+  auto known = [&](const shift::core::collision_geometry::ContactPoint& fresh) {
+    for(size_t i = found; i < points.size(); i++) {
+      const ksl_vec3_t d = Sub(fresh.point_a, points[i].point_a);
+      if(ksl_vec3_l2norm(&d) <= seam) {
+        return true;
+      }
+    }
+    return false;
+  };
+  for(size_t k = 1; k < seeds.size(); k++) {
+    /* climbed first: from the seed itself the search may end between the
+    regions, or in one already found */
+    if(!climbed_point(seeds[k]) || known(c) || !DeepestNear(a, fa, b, fb, x)) {
+      continue;
+    }
+    points.push_back(c);
+    on_seam = DropRepeated(points, before, seam) || on_seam;
+  }
+  return on_seam || touching();
 }
 
 /* ------------------------------------------------------------------------ */
@@ -2572,19 +3135,25 @@ struct ShapeScratch {
   std::vector<std::pair<int, int>> candidates;
   std::vector<int> found;
   IndexPairSet touching, edges_a, vertices_a, edges_b, vertices_b, edge_pairs;
-  BoxCache near_a, near_b, near_edge;
+  BoxCache near_a, near_b, near_edge, wide_a, wide_b;
+  std::vector<shift::core::collision_geometry::ContactPoint> probe_points;
 };
 
-/* the points of two shapes, in a's frame */
+/* the points of two shapes, in a's frame, to max_depth. The edges and
+vertices of each side within search of a face of the other, and not in it to
+max_depth, are probed to search: the points they have there are kept in
+beyond_reach (see ShapeOverlap) */
 static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a, const shift::core::collision_geometry::CadSideOfPair& b,
-                        double max_depth, std::vector<shift::core::collision_geometry::ContactPoint>& points) {
+                        double max_depth, double search,
+                        std::vector<shift::core::collision_geometry::ContactPoint>& points) {
   if(!a.shape->box.Overlaps(b.shape->box.Transformed(b.d))) {
     return;
   }
 
   static thread_local ShapeScratch scratch;
   auto& [candidates, found, touching, edges_a, vertices_a, edges_b, vertices_b,
-         edge_pairs, near_a, near_b, near_edge] = scratch;
+         edge_pairs, near_a, near_b, near_edge, wide_a, wide_b,
+         probe_points] = scratch;
 
   /* the pairs of faces whose boxes overlap */
   candidates.clear();
@@ -2673,6 +3242,8 @@ static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a,
   near_a.Reset(a.shape->faces.size());
   near_b.Reset(b.shape->faces.size());
   near_edge.Reset(b.shape->edges.size());
+  wide_a.Reset(a.shape->faces.size());
+  wide_b.Reset(b.shape->faces.size());
 
   /* sharp edges lying along a cylinder of the other side, where no face of the
   edge touches */
@@ -2809,66 +3380,127 @@ static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a,
       }
       return true;
     };
+    /* the bounds enlarged by search, for the probes */
+    const bool probing = search > max_depth;
+    const shift::core::collision_geometry::CadBox& wide_bounds_b = wide_b.Get(fb, [&]() {
+      shift::core::collision_geometry::CadBox box = b.shape->faces[fb].box.Transformed(b.d);
+      box.Pad(search);
+      return box;
+    });
+    const shift::core::collision_geometry::CadBox& wide_bounds_a = wide_a.Get(fa, [&]() {
+      shift::core::collision_geometry::CadBox box = a.shape->faces[fa].box.Transformed(a_in_b);
+      box.Pad(search);
+      return box;
+    });
+    /* a feature (an edge or vertex k of side a, with on_a, or b) with no
+    point in a face to max_depth, probed to search */
+    auto probe = [&](bool on_a, bool is_edge, int k, int face) {
+      if(!probing) {
+        return;
+      }
+      const shift::core::collision_geometry::CadSideOfPair& feature = on_a ? a : b;
+      const shift::core::collision_geometry::CadSideOfPair& other = on_a ? b : a;
+      probe_points.clear();
+      if(is_edge) {
+        EdgeFace(feature, k, other, face, on_a, search, false, probe_points);
+      } else {
+        VertexFace(feature, k, other, face, on_a, search, 1.0, probe_points);
+      }
+      for(const shift::core::collision_geometry::ContactPoint& c : probe_points) {
+        Within(c, max_depth);
+      }
+    };
     for(int e : a.shape->faces[fa].edges) {
-      if(a.shape->edges[e].box.Overlaps(bounds_b) && edges_a.Insert(e, fb) &&
-         !touches(a.shape->edges[e].faces, fb, true) &&
+      const auto& box = a.shape->edges[e].box;
+      if(!box.Overlaps(wide_bounds_b) || !edges_a.Insert(e, fb) ||
+         touches(a.shape->edges[e].faces, fb, true)) {
+        continue;
+      }
+      const size_t before = points.size();
+      if(box.Overlaps(bounds_b) &&
          !touches_beside(a.shape->edges[e].faces, fb, true)) {
-        const size_t before = points.size();
         EdgeFace(a, e, b, fb, true, max_depth,
                  !touches_any(a.shape->edges[e].faces, true) &&
                    !touches_any({fb}, false),
                  points);
-        if(points.size() > before) {
-          edge_points.push_back({true, e, fb, before});
+        for(size_t k = before; k < points.size(); k++) {
+          edge_points.push_back({true, e, fb, k});
         }
+      }
+      if(points.size() == before) {
+        probe(true, true, e, fb);
       }
     }
     for(int v : a.shape->faces[fa].vertices) {
-      if(inside(bounds_b, a.shape->vertices[v].point) &&
-         vertices_a.Insert(v, fb) &&
-         !touches(a.shape->vertices[v].faces, fb, true)) {
-        const size_t before = points.size();
+      const ksl_vec3_t& point = a.shape->vertices[v].point;
+      if(!inside(wide_bounds_b, point) || !vertices_a.Insert(v, fb) ||
+         touches(a.shape->vertices[v].faces, fb, true)) {
+        continue;
+      }
+      const size_t before = points.size();
+      if(inside(bounds_b, point)) {
         VertexFace(a, v, b, fb, true, max_depth, corner_share(true, v, fb), points);
         if(points.size() > before) {
           corner_points.push_back({true, v, fb, before});
         }
       }
+      if(points.size() == before) {
+        probe(true, false, v, fb);
+      }
     }
     for(int e : b.shape->faces[fb].edges) {
-      if(b.shape->edges[e].box.Overlaps(bounds_a) && edges_b.Insert(e, fa) &&
-         !touches(b.shape->edges[e].faces, fa, false) &&
+      const auto& box = b.shape->edges[e].box;
+      if(!box.Overlaps(wide_bounds_a) || !edges_b.Insert(e, fa) ||
+         touches(b.shape->edges[e].faces, fa, false)) {
+        continue;
+      }
+      const size_t before = points.size();
+      if(box.Overlaps(bounds_a) &&
          !touches_beside(b.shape->edges[e].faces, fa, false)) {
-        const size_t before = points.size();
         EdgeFace(b, e, a, fa, false, max_depth,
                  !touches_any(b.shape->edges[e].faces, false) &&
                    !touches_any({fa}, true),
                  points);
-        if(points.size() > before) {
-          edge_points.push_back({false, e, fa, before});
+        for(size_t k = before; k < points.size(); k++) {
+          edge_points.push_back({false, e, fa, k});
         }
+      }
+      if(points.size() == before) {
+        probe(false, true, e, fa);
       }
     }
     for(int v : b.shape->faces[fb].vertices) {
-      if(inside(bounds_a, b.shape->vertices[v].point) &&
-         vertices_b.Insert(v, fa) &&
-         !touches(b.shape->vertices[v].faces, fa, false)) {
-        const size_t before = points.size();
+      const ksl_vec3_t& point = b.shape->vertices[v].point;
+      if(!inside(wide_bounds_a, point) || !vertices_b.Insert(v, fa) ||
+         touches(b.shape->vertices[v].faces, fa, false)) {
+        continue;
+      }
+      const size_t before = points.size();
+      if(inside(bounds_a, point)) {
         VertexFace(b, v, a, fa, false, max_depth, corner_share(false, v, fa), points);
         if(points.size() > before) {
           corner_points.push_back({false, v, fa, before});
         }
+      }
+      if(points.size() == before) {
+        probe(false, false, v, fa);
       }
     }
   }
 
   /* an edge of a face in a corner's own face, with the corner in that face: the
   edge of the part reaches into the wedge of the corner, and that is the same
-  overlap, which the corner's point holds */
+  overlap, which the corner's point holds. It is the same overlap only near
+  the corner: the overlap of a corner is a few times its depth across, while
+  the rim of a face with a hole, say, is in the other's face far from the
+  corners of the hole, an overlap of its own. Between 4 and 8 times the
+  deeper of the two depths apart, the edge's point comes in smoothly */
   std::vector<size_t> repeated;
   for(const FeatureInFace& edge : edge_points) {
     const shift::core::collision_geometry::CadContactShape& own = *(edge.on_a ? a : b).shape;
     const shift::core::collision_geometry::CadContactShape& other = *(edge.on_a ? b : a).shape;
     const auto& edge_faces = own.edges[edge.feature].faces;
+    double keep = 1.0;
     for(const FeatureInFace& corner : corner_points) {
       if(corner.on_a == edge.on_a) {
         continue;
@@ -2876,14 +3508,141 @@ static void ShapePoints(const shift::core::collision_geometry::CadSideOfPair& a,
       const auto& corner_faces = other.vertices[corner.feature].faces;
       if(std::find(edge_faces.begin(), edge_faces.end(), corner.face) != edge_faces.end() &&
          std::find(corner_faces.begin(), corner_faces.end(), edge.face) != corner_faces.end()) {
-        repeated.push_back(edge.point);
-        break;
+        const shift::core::collision_geometry::ContactPoint& e = points[edge.point];
+        const shift::core::collision_geometry::ContactPoint& c = points[corner.point];
+        const ksl_vec3_t apart = Sub(e.point_a, c.point_a);
+        const double scale = 4.0 * std::max(e.depth, c.depth);
+        keep = std::min(keep, SmoothStep((ksl_vec3_l2norm(&apart) - scale) / scale));
       }
+    }
+    if(keep <= 0.0) {
+      repeated.push_back(edge.point);
+    } else {
+      points[edge.point].weight *= keep;
     }
   }
   std::sort(repeated.rbegin(), repeated.rend());
   for(size_t point : repeated) {
     points.erase(points.begin() + point);
+  }
+}
+
+/*
+Whether a point is inside geometry, at least depth from its surface in every
+direction, as a point of contact that deep is: its depth is the distance to the
+nearest point of the surface. A ray along the normal n of the contact, without
+end, first meets the surface where it leaves the geometry; rays along n, both
+ways, along two tangents, both ways, and along the 8 diagonals between them,
+each to 0.9 of the depth, do not meet it (see Base::RayCast). A point on the far
+side of a part, or in a thin overlap of two parts (a face a little into another,
+paired with a side of it far off), is not. Convex geometry is left where a point
+at that distance along a ray is outside it. Inertial frame.
+*/
+static bool DeepIn(const shift::core::collision_geometry::Base& geometry,
+                   bool convex, const ksl_vec3_t& p, const ksl_vec3_t& n,
+                   double depth) {
+  double distance;
+  ksl_vec3_t normal;
+  if(!convex && !(geometry.RayCast(p, n, HUGE_VAL, distance, normal) &&
+                  distance == 0.0)) {
+    return false;
+  }
+  ksl_vec3_t t1, t2;
+  Perpendiculars(n, t1, t2);
+  const double length = 0.9 * depth;
+  const double third = 1.0 / std::sqrt(3.0);
+  for(int k = 0; k < 14; k++) {
+    ksl_vec3_t r;
+    if(k < 6) {
+      const ksl_vec3_t& axis = k < 2 ? n : (k < 4 ? t1 : t2);
+      r = Scaled(axis, k % 2 ? -1.0 : 1.0);
+    } else {
+      const int m = k - 6;
+      r = Axpy(Axpy(Scaled(n, m & 1 ? -third : third), m & 2 ? -third : third,
+                    t1),
+               m & 4 ? -third : third, t2);
+    }
+    if(convex) {
+      /* the end of the ray inside: a ray from it reaches the geometry at
+      distance 0 */
+      if(!geometry.RayCast(Axpy(p, length, r), r, 0.0, distance, normal)) {
+        return false;
+      }
+    } else if(geometry.RayCast(p, r, length, distance, normal)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+The points of two shapes, in a's frame, at any depth at which their surfaces
+overlap. A point deeper than max_depth may be on the far side of a part, or in
+a thin overlap of the two, paired with a face far off: it is taken where
+deep(point), with the point in a's frame, tells that its point of a is that
+deep in b, or its point of b that deep in a (see DeepIn). Of a point of an
+edge or vertex in a face, only the point of the edge or vertex is: the other
+is by the edge. A part entirely
+inside another, its surfaces apart, so has no contact.
+
+ShapePoints takes points to a reach, at first max_depth, over which it also
+searches for the features of each side near the faces of the other. Contact
+shallower than half of max_depth is all there is. Without it, or with a deeper
+point, the parts may be deeper than max_depth (the penetration of a step of the
+integrator, or of a start, beyond it): the shapes are tested again with the
+edges and vertices near the faces of the other, within 4 times the reach,
+probed for the points they have beyond it. Where a point of contact is found
+beyond the reach (within 4 times it), they are tested again, to 1.5 times its
+depth: in all at most kPasses times, to half the size of the smaller shape.
+*/
+template <typename Deep>
+static void ShapeOverlap(const shift::core::collision_geometry::CadSideOfPair& a,
+                         const shift::core::collision_geometry::CadSideOfPair& b,
+                         double max_depth, const Deep& deep,
+                         std::vector<shift::core::collision_geometry::ContactPoint>& points) {
+  constexpr int kPasses = 5;
+  const double largest = 0.5 * std::min(a.shape->size, b.shape->size);
+  double reach = max_depth;
+  bool probe = false;
+  for(int pass = 0;; pass++) {
+    beyond_reach.clear();
+    points.clear();
+    ShapePoints(a, b, reach, probe ? 4.0 * reach : reach, points);
+    double deepest = 0.0;
+    if(reach > max_depth) {
+      points.erase(std::remove_if(points.begin(), points.end(),
+                                  [&](const shift::core::collision_geometry::ContactPoint& c) {
+                                    return c.depth > max_depth && !deep(c);
+                                  }),
+                   points.end());
+    }
+    for(const shift::core::collision_geometry::ContactPoint& c : points) {
+      deepest = std::max(deepest, c.depth);
+    }
+    if(pass + 1 == kPasses || reach >= largest ||
+       (pass == 0 && !points.empty() && deepest <= 0.5 * max_depth)) {
+      break;
+    }
+    /* the shallowest point beyond the reach that is a point of contact */
+    std::sort(beyond_reach.begin(), beyond_reach.end(),
+              [](const shift::core::collision_geometry::ContactPoint& x,
+                 const shift::core::collision_geometry::ContactPoint& y) {
+                return x.depth < y.depth;
+              });
+    double next = 0.0;
+    for(const shift::core::collision_geometry::ContactPoint& c : beyond_reach) {
+      if(deep(c)) {
+        next = c.depth;
+        break;
+      }
+    }
+    if(next > 0.0) {
+      reach = std::min(1.5 * next, largest);
+    } else if(!probe) {
+      probe = true;
+    } else {
+      break;
+    }
   }
 }
 
@@ -2897,10 +3656,20 @@ bool shift::core::collision_geometry::CadCadContact(shift::core::collision_geome
   b.edge_radius = cad_b->get_edge_radius();
   ksl_product_dinvd(&pair.a->get_d_absolute(), &pair.b->get_d_absolute(),
                     &b.d);
+  const ksl_SE3_t& frame = pair.a->get_d_absolute();
+  auto deep = [&](const shift::core::collision_geometry::ContactPoint& c) {
+    ksl_vec3_t pa, pb;
+    ksl_product_dv(&frame, &c.point_a, &pa);
+    ksl_product_dv(&frame, &c.point_b, &pb);
+    ksl_vec3_t n;
+    ksl_product_drv(&frame.R, &c.normal, &n);
+    return DeepIn(*cad_b, false, pa, n, c.depth) ||
+           DeepIn(*cad_a, false, pb, Scaled(n, -1.0), c.depth);
+  };
   std::vector<shift::core::collision_geometry::ContactPoint> points;
-  ShapePoints(a, b, std::min(cad_a->get_max_depth(), cad_b->get_max_depth()),
-              points);
-  return Finish(pair, pair.a->get_d_absolute(), points);
+  ShapeOverlap(a, b, std::min(cad_a->get_max_depth(), cad_b->get_max_depth()),
+               deep, points);
+  return Finish(pair, frame, points);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -3714,8 +4483,17 @@ bool shift::core::collision_geometry::CadExactContact(shift::core::collision_geo
     b.edge_radius = capsule->get_radius();
   }
   std::vector<shift::core::collision_geometry::ContactPoint> points;
+  /* the other geometry is convex */
+  auto deep = [&](const shift::core::collision_geometry::ContactPoint& c) {
+    ksl_vec3_t pa, pb, n;
+    ksl_product_dv(&frame, &c.point_a, &pa);
+    ksl_product_dv(&frame, &c.point_b, &pb);
+    ksl_product_drv(&frame.R, &c.normal, &n);
+    return DeepIn(*other, true, pa, n, c.depth) ||
+           DeepIn(*cad, false, pb, Scaled(n, -1.0), c.depth);
+  };
   if(!exact.faces.empty()) {
-    ShapePoints(a, b, max_depth, points);
+    ShapeOverlap(a, b, max_depth, deep, points);
   }
   if(capsule) {
     CapsuleEnds(a, d, capsule->get_radius(), capsule->get_half_length(),

@@ -295,8 +295,9 @@ friction_combine and restitution_combine, unless the pair is listed in pairs.
 Equal and opposite forces act on a and b at the point.
 
 Collision geometry names its material ("material"), or has the default
-material. Bodies joined by a joint other than a float joint are not tested for
-contact when exclude_jointed_bodies is set.
+material. The pairs of bodies in disabled_pairs, by name, are not tested for
+contact: bodies joined by a joint, such as neighboring links of a track, whose
+geometries are not meant to touch. All other pairs of bodies are.
 
 MSC Software, Adams Solver function reference: IMPACT and STEP.
 */
@@ -386,7 +387,8 @@ private:
   std::string restitution_combine_ = "geometric_mean";
   double friction_velocity_ = 0.01;
   double damping_depth_ = 1e-4;
-  bool exclude_jointed_bodies_ = true;
+  /*! pairs of bodies, by name, whose geometries are not tested for contact */
+  std::vector<std::vector<std::string>> disabled_pairs_;
 
   std::vector<Law> laws_; //!< by material indices, laws_[i * count + j]
   std::unordered_map<const collision_geometry::Base*, Geometry> geometry_;

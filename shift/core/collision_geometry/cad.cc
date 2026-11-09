@@ -242,8 +242,31 @@ bool shift::core::collision_geometry::CadContactShape::Project(
   const shift::core::collision_geometry::CadContactFace& f = faces[face];
   const auto& m = model();
   const cad::Vec3 q = placements[f.placement].Invert(p);
-  return cad::ProjectToSurface(m, m.surfaces[m.faces[f.face].surface], q, uv,
-                               guess);
+  const cad::Surface& surface = m.surfaces[m.faces[f.face].surface];
+  /* a B-spline, revolution or extrusion is projected on by Newton's method
+  from a guess, else from the nearest of a grid over the whole surface: the
+  nearest of the face's samples is a guess, and far fewer points */
+  const bool analytic = surface.type == cad::Surface::Type::kPlane ||
+                        surface.type == cad::Surface::Type::kCylinder ||
+                        surface.type == cad::Surface::Type::kCone ||
+                        surface.type == cad::Surface::Type::kSphere ||
+                        surface.type == cad::Surface::Type::kTorus;
+  if(!guess && !analytic && !f.sample_points.empty()) {
+    double nearest = HUGE_VAL;
+    size_t best = 0;
+    for(size_t i = 0; i < f.sample_points.size(); i++) {
+      const double dx = f.sample_points[i].x - p.x;
+      const double dy = f.sample_points[i].y - p.y;
+      const double dz = f.sample_points[i].z - p.z;
+      const double squared = dx * dx + dy * dy + dz * dz;
+      if(squared < nearest) {
+        nearest = squared;
+        best = i;
+      }
+    }
+    return cad::ProjectToSurface(m, surface, q, uv, &f.sample_uv[best]);
+  }
+  return cad::ProjectToSurface(m, surface, q, uv, guess);
 }
 
 /* the crossing of the side of a polygon by a ray from p along +u */
@@ -401,8 +424,40 @@ shift::core::collision_geometry::CadContactShape::Clip(int face, const shift::co
 inside test: the chord of an arc of a quarter turn in 32 pieces lies within
 0.03% of its radius */
 static constexpr int kTrimSegments = 32;
-/* samples of a face along u and v, inside its trims */
+/* samples of a face along u and v, inside its trims: at least these, more on
+a face turning further than half a circle or of more than two spans of a
+B-spline, so that the samples stay this close together on a long face */
 static constexpr int kFaceSamples = 8;
+static constexpr int kSamplesPerSpan = 3;
+static constexpr int kMaxFaceSamples = 64;
+
+/* the samples of a face along its parameter k (0 for u, 1 for v), over
+[lo, hi]: an angle, or the parameter of a B-spline */
+static int FaceSamples(const shift::core::cad::Surface& s, int k, double lo,
+                       double hi) {
+  const shift::core::cad::Surface::Type t = s.type;
+  const bool angle =
+    (k == 0 && (t == shift::core::cad::Surface::Type::kCylinder ||
+                t == shift::core::cad::Surface::Type::kCone ||
+                t == shift::core::cad::Surface::Type::kRevolution)) ||
+    t == shift::core::cad::Surface::Type::kSphere ||
+    t == shift::core::cad::Surface::Type::kTorus;
+  int count = kFaceSamples;
+  if(angle) {
+    count = static_cast<int>(std::ceil(kFaceSamples * (hi - lo) / M_PI - 1e-9));
+  } else if(t == shift::core::cad::Surface::Type::kNurbs) {
+    const std::vector<double>& knots = k == 0 ? s.nurbs.u_knots
+                                              : s.nurbs.v_knots;
+    int spans = 1;
+    for(size_t i = 1; i < knots.size(); i++) {
+      if(knots[i] > knots[i - 1] && knots[i - 1] > lo && knots[i - 1] < hi) {
+        spans++;
+      }
+    }
+    count = kSamplesPerSpan * spans;
+  }
+  return std::min(std::max(count, kFaceSamples), kMaxFaceSamples);
+}
 /* samples of an edge between its ends */
 static constexpr int kEdgeSamples = 7;
 
@@ -654,11 +709,18 @@ shift::core::collision_geometry::MakeCadContactShape(
   trims; their bounds, padded by the bulge of a curved face between them */
   for(int fi = 0; fi < static_cast<int>(shape->faces.size()); fi++) {
     shift::core::collision_geometry::CadContactFace& f = shape->faces[fi];
-    for(int i = 0; i < kFaceSamples; i++) {
-      for(int j = 0; j < kFaceSamples; j++) {
-        const shift::core::cad::Vec2 uv{f.lo[0] + (f.hi[0] - f.lo[0]) * (i + 0.5) / kFaceSamples,
-                      f.lo[1] + (f.hi[1] - f.lo[1]) * (j + 0.5) / kFaceSamples};
+    const auto& surface = m.surfaces[m.faces[f.face].surface];
+    f.sample_nu = FaceSamples(surface, 0, f.lo[0], f.hi[0]);
+    f.sample_nv = FaceSamples(surface, 1, f.lo[1], f.hi[1]);
+    f.sample_cell.assign(f.sample_nu * f.sample_nv, -1);
+    for(int i = 0; i < f.sample_nu; i++) {
+      for(int j = 0; j < f.sample_nv; j++) {
+        const shift::core::cad::Vec2 uv{
+          f.lo[0] + (f.hi[0] - f.lo[0]) * (i + 0.5) / f.sample_nu,
+          f.lo[1] + (f.hi[1] - f.lo[1]) * (j + 0.5) / f.sample_nv};
         if(InsideTrims(f, uv)) {
+          f.sample_cell[i * f.sample_nv + j] =
+            static_cast<int>(f.sample_uv.size());
           f.sample_uv.push_back(uv);
         }
       }

@@ -169,12 +169,17 @@ void shift::core::force_module::Contact::DeclareParameters() {
   DeclareParameter("damping_depth", &damping_depth_,
                    "penetration depth at which the damping of the contact "
                    "law is fully applied, ramped up from 0 at first touch; "
-                   "defaults to 1e-4",
+                   "defaults to 1e-4. A contact resting far shallower is "
+                   "almost undamped: set it below the resting depth of stiff "
+                   "contacts, such as a rim lying flat on a face",
                    false);
-  DeclareParameter("exclude_jointed_bodies", &exclude_jointed_bodies_,
-                   "do not test bodies joined by a joint (other than a float "
-                   "joint) for contact; defaults to true",
-                   false);
+  DeclareParameter("disabled_pairs", &disabled_pairs_,
+                   "pairs of bodies, by name, whose geometries are not tested "
+                   "for contact, as [[\"link1\", \"link2\"], ...]; all other "
+                   "pairs are",
+                   false)
+    .set_row_dim(-1)
+    .set_column_dim(2);
 }
 
 double shift::core::force_module::Contact::Combine(const std::string& rule,
@@ -477,15 +482,20 @@ void shift::core::force_module::Contact::Load() {
     stick_ratios_.assign(bristles_.size(), 0.0);
   }
 
-  /* geometry of jointed bodies overlaps at the joint */
-  if(exclude_jointed_bodies_) {
-    for(auto joint : context_->get_active_joints()) {
-      if(joint->get_type() != "float" && joint->get_parent_body() &&
-         joint->get_child_body()) {
-        context_->ExcludeContact(joint->get_parent_body(),
-                                 joint->get_child_body());
-      }
+  for(const auto& pair : disabled_pairs_) {
+    if(pair.size() != 2) {
+      throw shift::core::Exception("Contact force module '" + name_ +
+                                   "': each of disabled_pairs names two "
+                                   "bodies");
     }
+    body::Base* a = context_->FindActiveBody(pair[0]);
+    body::Base* b = context_->FindActiveBody(pair[1]);
+    if(!a || !b) {
+      throw shift::core::Exception("Contact force module '" + name_ +
+                                   "': disabled_pairs names an unknown body, '" +
+                                   (a ? pair[1] : pair[0]) + "'");
+    }
+    context_->ExcludeContact(a, b);
   }
 }
 

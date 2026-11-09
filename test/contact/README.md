@@ -340,11 +340,11 @@ A box (restitution 0.7) dropped on the ground (0.95), with each rule: it rebound
 
 ![RestitutionCombineRules](images/ContactForce.RestitutionCombineRules.jpg)
 
-### `ContactForce.JointedBodiesExcluded`
+### `ContactForce.DisabledPairsAreNotTested`
 
-A ball joined to the ground by a revolute joint overlaps it: no contact, unless the model asks for jointed bodies to be tested.
+A ball joined to the ground by a revolute joint overlaps it: the joint leaves the pair tested, and the contact module's `disabled_pairs` takes it out of contact.
 
-![JointedBodiesExcluded](images/ContactForce.JointedBodiesExcluded.jpg)
+![DisabledPairsAreNotTested](images/ContactForce.DisabledPairsAreNotTested.jpg)
 
 ### `Bunnies/CollisionExample.BodiesRestOnTheGround`
 
@@ -619,11 +619,11 @@ A cylinder lying on a face: a line of three points.
 
 ![CylinderOnAFaceIsALine](images/CadRound.CylinderOnAFaceIsALine.jpg)
 
-### `CadRound.CylinderOnItsEndStandsOnFourPoints`
+### `CadRound.CylinderOnItsEndStandsOnItsRim`
 
-A cylinder on its end: four points around the circle of contact.
+A cylinder on its end: its rim, four arcs, lies in the face, a line of contact all round it, centered on the axis.
 
-![CylinderOnItsEndStandsOnFourPoints](images/CadRound.CylinderOnItsEndStandsOnFourPoints.jpg)
+![CylinderOnItsEndStandsOnItsRim](images/CadRound.CylinderOnItsEndStandsOnItsRim.jpg)
 
 ### `CadRound.CylinderIsTheSameCylinderFromAStepFile`
 
@@ -657,7 +657,7 @@ The radius given to the edges of a shape is the curvature of a contact on an edg
 
 ### `CadRound.MaxDepthOfAShape`
 
-By default a part stops looking at 2% of its size. A larger `max_depth` finds a deeper contact.
+A corner 1 mm into a part whose `max_depth` is 0.75 mm, 2% of its size by default, is found at its depth, as with a `max_depth` of 2 mm: the search goes deeper where a point is inside the part to its depth.
 
 ![MaxDepthOfAShape](images/CadRound.MaxDepthOfAShape.jpg)
 
@@ -720,6 +720,40 @@ The end of a capsule on a corner: one point.
 Each shape simulated to rest on a face.
 
 ![ShapesSettleOnAFace](images/CadRound.ShapesSettleOnAFace.jpg)
+
+## A torus in a slot: one pair of faces touching in two places
+
+The torus and channel of `scripts/make_channel_step.py`. The channel is a block with a
+slot swept along an S-shaped cubic B-spline path. The section of the slot is a single
+B-spline curve, two walls joined by flanks that meet at the bottom, so the slot is one
+face. The torus, 40 mm in major radius and 10 mm in minor radius, stands in the slot and
+rests on both flanks. Both points lie on one face of the torus, so they belong to one pair
+of faces. That pair has a starting point for each local maximum of depth on the samples of
+either face, and each starting point is climbed along its face before Newton's method.
+
+### `CadRound.TorusInASlotRestsOnBothFlanks`
+
+The torus 20 µm below where it first touches: two points, one on each flank, mirrored in the plane of the torus, at the same depth, with normals up and towards each other.
+
+![TorusInASlotRestsOnBothFlanks](images/CadRound.TorusInASlotRestsOnBothFlanks.jpg)
+
+### `CadRound.TorusOffTheMiddleOfASlotStillRestsOnBothFlanks`
+
+The torus moved 8 µm across the slot: deeper in one flank and shallower in the other, the change in each depth being the move along that point's normal. The shallower point is still found.
+
+![TorusOffTheMiddleOfASlotStillRestsOnBothFlanks](images/CadRound.TorusOffTheMiddleOfASlotStillRestsOnBothFlanks.jpg)
+
+### `CadRound.TurnedTorusKeepsBothPointsInTheSlot`
+
+The torus turned about its axis through a full turn in 400 poses, 10 µm deep. The points on the flanks cross every part of its outer faces and the seams between them, and at each pose both are found, at one depth.
+
+![TurnedTorusKeepsBothPointsInTheSlot](images/CadRound.TurnedTorusKeepsBothPointsInTheSlot.jpg)
+
+### `CadRound.TorusRollsAlongTheChannel`
+
+The torus rolls at 1 m/s from the straight start through the S-bend, steered by the walls, and into the straight end. It stays upright and at its resting height, follows the 30 mm offset of the bend to within the 1.5 mm clearance of the slot, and gains no energy.
+
+![TorusRollsAlongTheChannel](images/CadRound.TorusRollsAlongTheChannel.jpg)
 
 ## A track on its sprocket
 
@@ -803,6 +837,18 @@ The 44 links on the track frame, its rollers 0.5 mm off the rails: nothing touch
 Two links with no joint: the second's bushing on the first's pin, sunk through the clearance and 20 micrometres more. The pin touches the bore of the bushing and of the inner plates, 190 mm in all.
 
 ![LinkHangsOnItsPin](images/CadContact.LinkHangsOnItsPin.jpg)
+
+### `CadContact.PegDropsIntoItsHole`
+
+A peg (`scripts/make_peg_step.py`), a shaft of 20 mm diameter under a head of 32 mm, tilted by 4 degrees over a hole of 21 mm diameter through a plate, falls into the hole. The wall and the rim of the hole straighten it, and its head comes to rest level on the plate and at rest, the shaft within the clearance of the hole. The rim of the head lies in the plate's face, and the rim of the hole in the head's: a line of contact around each holds the head level. The model's `damping_depth` is 1 nm, below the 10 to 20 nm at which the head rests.
+
+![PegDropsIntoItsHole](images/CadContact.PegDropsIntoItsHole.jpg)
+
+### `CadContact.PegInTheWallIsPushedOut`
+
+The peg upright, its shaft 2 mm into the wall of the hole, deeper than the pair's `max_depth` of 1.5 mm. The surfaces overlap along the wall: a line of contact along it, 2 mm deep, its normal across the hole, pushes the shaft back within the clearance in 5 ms.
+
+![PegInTheWallIsPushedOut](images/CadContact.PegInTheWallIsPushedOut.jpg)
 
 ## Lines on curved faces: a cam
 
@@ -966,7 +1012,7 @@ These check input or arithmetic, so there is no contact to draw.
 
 | Test | What it checks |
 |------|----------------|
-| `CadContact.NeighboringLinksAreNotTested` | Links joined by a pin are excluded from contact. This checks the list of pairs, so nothing touches. |
+| `CadContact.NeighboringLinksAreNotTested` | Each link of the track models is listed with its neighbour in `disabled_pairs`, the closing pair among them, and so is not tested for contact; links two apart are. This checks the list of pairs, so nothing touches. |
 | `CadRound.ContactWithCadNeedsTheModulus` | A model with CAD contact and no elastic modulus is refused when it loads. |
 | `CollisionGeometryInput.DimensionsAndPose` | Collision geometry given by dimensions and placed by a pose reads as written. |
 | `CollisionGeometryInput.FitToNamedMeshes` | Geometry fitted to the meshes named in `fit_to`. |

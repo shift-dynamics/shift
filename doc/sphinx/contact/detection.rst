@@ -209,7 +209,9 @@ Box tree
 
 When the model is loaded, each face of a STEP part is sampled on a grid of
 parameters :math:`(u, v)` inside its trim loops and along the loops
-themselves. The box of the face is the axis aligned box of these samples in the
+themselves. The grid has eight samples along each parameter, or more along a
+long face: eight for each half turn of an angle, and three for each span of a
+B-spline, up to 64. The box of the face is the axis aligned box of these samples in the
 coordinate system of the part; the box of a curved face is enlarged by a tenth
 of its diagonal, so that it also encloses the surface between the samples.
 
@@ -227,12 +229,12 @@ system of the part, and is not changed as the part moves.
 .. figure:: figures/boxtree.png
     :width: 100%
 
-    The box tree of a track link of 60 faces, 63 nodes and depth 5: (a) the
-    root; (b) the four boxes at depth 2; (c) the eight boxes at depth 3; (d)
-    the 32 leaves, each of one or two faces. Neighboring boxes of a level are
-    drawn in different colors. The two boxes at depth 1 coincide with the
-    root, since each half of the faces includes a plate that spans the length
-    of the link.
+    The box trees of a plate with a hole and of a peg in the hole, each of 8
+    faces, 7 nodes and depth 2: (a) the root of the plate; (b) the four
+    leaves of the plate, each of two faces, which nearly coincide with the
+    root, since the top and the bottom of the plate span it; (c) the four
+    leaves of the peg (the plate transparent), which separate the head from
+    the shaft. Neighboring boxes of a level are drawn in different colors.
 
 A query of the tree with a box visits the nodes from the root. A node whose box
 does not overlap the query box is skipped together with all of its
@@ -268,10 +270,18 @@ pair are found in the following steps, all in the coordinate system
      found at their edges and vertices in the steps that follow;
    * a curved face and a plane or cylinder: a line of contact, traced across
      the curved face by slicing it along its length;
-   * any other pair: a single point. The pair of sample points deepest in one
-     another with opposed normals provides the starting values of the four
-     parameters :math:`\underline{x} = (u_i, v_i, u_j, v_j)`, and Newton's
-     method solves the conditions of a common normal,
+   * any other pair: a point in each region in which the faces touch. Each
+     sample of either face is paired with the sample of the other face, of
+     opposed normal, under which it lies deepest, and is scored by that depth
+     less the offset of the two samples across the normal. The faces are
+     apart if every score is below :math:`-\delta_{max} - 2(s_i + s_j)`,
+     where :math:`s_i` and :math:`s_j` are the spacings of the samples of the
+     two faces. Each sample that reaches that bound is
+     projected onto the other face, from its partner, for its depth below
+     that face. Each local maximum of the depth on the grid of samples of
+     either face, with the projection of the sample, provides starting values
+     of the four parameters :math:`\underline{x} = (u_i, v_i, u_j, v_j)`, and
+     Newton's method solves the conditions of a common normal,
 
      .. math::
          :label: eq:common_normal
@@ -292,9 +302,22 @@ pair are found in the following steps, all in the coordinate system
      :math:`\underline{p}_j` on the normal of face :math:`i` through
      :math:`\underline{p}_i`, and the last two make the normal of face
      :math:`i` normal to face :math:`j`. The depth of penetration is
-     :math:`(\underline{p}_i - \underline{p}_j)^T\,\underline{n}_i`. Two
-     curved faces touching along a line, as the flanks of gear teeth do, are
-     also traced as a line from the solution.
+     :math:`(\underline{p}_i - \underline{p}_j)^T\,\underline{n}_i`.
+
+     Two faces touching in two places, as a tube resting on both flanks of a
+     groove, have a local maximum of the depth near each place. From a
+     starting value a spacing away, Newton's method can converge to the
+     solution of Eq. :eq:`eq:common_normal` between the places, where the
+     faces are apart, or to the other place. Each starting value is therefore
+     first moved along the face of its sample, by steepest ascent on the
+     depth of its point below the other face; a step is taken only if it
+     increases the depth, so that the ascent remains in the region of its
+     starting value. A solution is kept if it lies apart from the points
+     already found and, beyond the first, if it is a maximum of the depth:
+     the curvature tensor of the gap between the surfaces there has no
+     negative eigenvalue. Two curved faces
+     touching along a line, as the flanks of gear teeth do, are also traced
+     as a line from the first solution.
 
 #. Sharp edges of either part that lie along a cylindrical face of the other,
    where no face of the edge touches that cylinder, form lines of contact.
@@ -306,7 +329,14 @@ pair are found in the following steps, all in the coordinate system
    of the other part form points of contact, where none of their faces touches
    a face of the other part. For these tests the box of each face is enlarged
    by the deepest penetration admitted, so that an edge or vertex inside the
-   other part is found.
+   other part is found. A vertex counts only at a corner, where the sharp
+   edges that end there meet at an angle; where two edges continue into one
+   another, as the halves of the rim of a round face do, the edges hold the
+   contact. A curved edge lying in a face of the other part, as the rim of a
+   round face resting on a flat face, or the rim of a hole under one, forms a
+   line of contact along the arc of the edge below the face: a single deepest
+   point would hold such an edge on one side only, and a part resting on it
+   would rock.
 
 #. Points repeated by neighboring faces, such as those on either side of the
    seam of a cylinder, are removed.
@@ -314,26 +344,39 @@ pair are found in the following steps, all in the coordinate system
 #. The points and normals are transformed into the fixed reference frame by
    :math:`\Phi_{0i}^{0i}`.
 
-A point is accepted only where its depth of penetration is positive and less
-than a *deepest penetration* :math:`\delta_{max}`, 2 % of the size of the
-part unless the collision geometry specifies another value in ``max_depth``. A deeper point would more
-likely be on the far side of the other part than inside it.
+A point of positive depth less than :math:`\delta_{max}`, 2 % of the size of
+the part unless the collision geometry specifies another value in
+``max_depth``, is accepted directly. A deeper point may be a point of the far
+side of the other part, or of a thin overlap of the two paired with a face far
+off, rather than a point inside the other part. It is accepted where its depth
+is the distance to the nearest point of the other part's surface: a ray cast
+from the point along the normal leaves the other part first, and rays along the
+normal, along two tangents and along the eight diagonals between them, each to
+0.9 of the depth, meet no face of it. Of an edge or vertex in a face, only the
+point of the edge or vertex is tested, since the other point lies at the edge.
+
+The search reaches beyond :math:`\delta_{max}` only when the pair has no
+point, or a point deeper than :math:`\delta_{max}/2`, so that parts in shallow
+contact cost no more. Edges and vertices within :math:`4\,\delta_{max}` of
+the faces of the other part are then probed, and where a point beyond
+:math:`\delta_{max}` passes the test of the rays, the pair is tested again
+with the reach enlarged to 1.5 times its depth. A part pushed deeper than
+:math:`\delta_{max}` in one step of the integrator so keeps its contact, and a
+part entirely inside another, its surfaces apart, has none.
 
 .. _stepcontact:
 
 .. figure:: figures/stepcontact.png
     :width: 100%
 
-    The steps of the contact of two track links, the bushing of the second
-    (blue) resting on the pin of the first (gray), without a joint between
-    them: (a) the root boxes of the two links overlap; (b) the boxes of the
-    faces of each link that form the 92 candidate pairs, those of the second
-    link transformed into the coordinate system of the first; (c) the outlines
-    of the faces in candidate pairs, close to the pin; (d) the 15 points of
-    contact and their normals. Nine points are segments of the lines of
-    contact of the pin with the bores of the bushing and of the inner plates,
-    190 mm in all; six are the contact of the shoe of the second link with the
-    end of a plate of the first.
+    The steps of the contact of a peg (gold) tilted by 4° and wedged in the
+    hole of a plate (gray), 0.5 mm wider than its shaft: (a) the root boxes of
+    the two parts overlap; (b) the boxes of the faces of each part that form
+    the 10 candidate pairs, those of the peg transformed into the coordinate
+    system of the plate; (c) the outlines of the faces in candidate pairs;
+    (d) the two points of contact and their normals: the rim of the end of
+    the shaft against the wall of the hole, and the side of the shaft against
+    the rim of the hole at the top of the plate.
 
 Several points of contact
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -343,10 +386,28 @@ points of the pair, from every candidate pair of faces and every edge and
 vertex, form one manifold, and each point carries its own depth of
 penetration, normal, curvatures of the two surfaces and, for a segment of a
 line, its length. The force module applies its contact law at each point
-separately, so that two parts touching in separate places, such as a pin in a
-bushing while a shoe rests on a plate in Fig. :num:`stepcontact`, receive
-separate forces at each place. A convex shape, by contrast, has a single region
+separately, so that two parts touching in separate places, such as the end of
+the peg against the wall of the hole and its side against the rim in
+Fig. :num:`stepcontact`, receive separate forces at each place. A convex shape, by contrast, has a single region
 of contact with another convex shape, and its manifold lies in one plane.
+
+A single pair of faces may also touch in several places. The torus of
+Fig. :num:`torusslot` rests on both flanks of a slot whose section is one
+B-spline curve, so that both points lie on one face of the torus and one face
+of the channel. Each local maximum of the depth on the samples of either face
+gives a starting value, and each is climbed and solved separately, as
+described for the pairs of curved faces above.
+
+.. _torusslot:
+
+.. figure:: figures/torusslot.png
+    :width: 100%
+
+    A torus (gold), 40 mm in major radius and 10 mm in minor radius, standing
+    in a slot swept along an S-shaped cubic B-spline path through a block
+    (gray): (a) the torus in the channel; (b) the section of the tube and of
+    the slot, seen along the slot, with the two points of contact of the one
+    pair of faces, one on each flank, and their normals.
 
 A peg in a hole
 ^^^^^^^^^^^^^^^
@@ -355,16 +416,17 @@ Because each face of a STEP part is tested by itself, concave faces such as
 the bore of a hole take part in contact as convex faces do. A peg in a hole
 touches the bore along a line of contact between the outer cylinder of the
 peg and the inner cylinder of the bore, and, while entering the hole, touches
-its rim at the edges of the faces. The pin in the bushing of
-Fig. :num:`stepcontact` is a peg in a hole of 1 mm clearance. The same
+its rim at the edges of the faces, as in Fig. :num:`stepcontact`. The same
 contact is not available for meshes or fitted shapes: a convex hull or
 ellipsoid fitted to a part with a hole fills the hole.
 
-The deepest penetration :math:`\delta_{max}` limits the use. A peg whose
-initial position penetrates the wall of the hole by more than
-:math:`\delta_{max}` produces no point there, and is not pushed out. Models
-are therefore assembled with the peg clear of the wall, or with
-:math:`\delta_{max}` increased.
+A peg whose initial position penetrates the wall of the hole by more than
+:math:`\delta_{max}` has a line of contact along the wall at the depth of the
+overlap, and is pushed out. A peg seated in its hole rests on lines of contact
+around the rim of its head and around the rim of the hole. These are stiff: a
+steel peg rests a few nanometres deep, and the model sets ``damping_depth``
+of the contact module below that depth, so that the contact is damped (see
+:doc:`../force-modules/contact`).
 
 
 Coordinate Systems
