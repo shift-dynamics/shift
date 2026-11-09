@@ -38,6 +38,7 @@ test_sources = [
   'contact/test_cad_contact.cc',
   'contact/test_cad_line_contact.cc',
   'contact/test_cad_round_contact.cc',
+  'contact/test_ray_cast.cc',
   'contact/test_terrain_contact.cc',
   'test_terramechanics.cc',
   'test_schedule.cc',

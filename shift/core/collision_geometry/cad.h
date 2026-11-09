@@ -80,6 +80,17 @@ struct CadContactFace {
   std::vector<int> vertices; //!< in CadContactShape::vertices
 };
 
+/*! \brief a face tessellated in (u, v) for Cad::RayCastGrid: a grid of nu by
+ * nv cells over the bounds of its trims, fine enough that the surface is
+ * within error of the planes of its triangles (two in each cell) */
+struct CadFaceMesh {
+  int nu = 1;
+  int nv = 1;
+  std::vector<cad::Vec2> uv;      //!< (nu + 1) * (nv + 1), u fastest
+  std::vector<ksl_vec3_t> points; //!< there, frame of the geometry
+  double error = 0.0;             //!< largest distance found off the planes
+};
+
 /*! \brief an edge of CAD geometry, placed in the frame of the geometry */
 struct CadContactEdge {
   int edge = -1; //!< in the model of the asset
@@ -272,6 +283,26 @@ public:
   virtual void Support(const ksl_vec3_t& direction, ksl_vec3_t& local,
                        ksl_vec3_t& global, int& hint) const override;
 
+  /*! \brief on the exact faces: the faces whose boxes the ray crosses (by
+   * the box tree), each solved for the points where the ray meets its
+   * surface by Newton's method from the samples of the face nearest the ray,
+   * counted where they are inside the face's trims; see Base::RayCast */
+  bool RayCast(const ksl_vec3_t& origin, const ksl_vec3_t& direction,
+               double max_distance, double& distance,
+               ksl_vec3_t& normal) const override;
+
+  /*!
+  @brief the first points at which the rays of a grid reach the exact faces,
+  as RayCast gives, without casting each ray: each face is tessellated once
+  in (u, v) (see CadFaceMesh), and its triangles are projected onto the grid.
+  At each ray a triangle covers, the point interpolated in the triangle
+  starts Newton's method for the point where the ray meets the surface,
+  counted where it is inside the face's trims. Every crossing of a ray with a
+  face is so found from the triangles over it, also where a ray meets one face
+  twice (a cylinder). See Base::RayCastGrid.
+  */
+  void RayCastGrid(const RayGrid& grid, double* distances) const override;
+
   const CadContactShape& get_shape() const {
     return *shape_;
   }
@@ -295,6 +326,8 @@ private:
   static bool registered_;
   double edge_radius_ = 0.0;
   std::shared_ptr<const CadContactShape> shape_;
+  /*! the faces tessellated for RayCastGrid, made on its first call */
+  mutable std::shared_ptr<const std::vector<CadFaceMesh>> face_meshes_;
 };
 
 /*!
