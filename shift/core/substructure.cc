@@ -1073,7 +1073,11 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsRunTime(
 }
 
 /*!
-@brief vector copy B matrix into null space array
+@brief form the right null space matrix N = P_v^T [-B^{di}; I] of the
+substructure's Jacobian from the B matrix stored in J_
+
+J_ holds B^{di} = inverse(Ur) * UR (ksl_linalg_lu_setBMatrix_rmo), so the
+dependent rows of N are -B^{di} and J N = 0.
 */
 void shift::core::Substructure::CopyNullSpace() {
   memset(right_null_space_, 0, dq_count_ * dq_count_ * sizeof(double));
@@ -1084,10 +1088,11 @@ void shift::core::Substructure::CopyNullSpace() {
 #if SHIFT_WITH_BLAS_
     cblas_dcopy(col_dim, J_ + (i * dq_count_ + rank_), 1,
                 right_null_space_ + (pc_12_[i] * col_dim), 1);
+    cblas_dscal(col_dim, -1.0, right_null_space_ + (pc_12_[i] * col_dim), 1);
 #else
     for(int j = 0; j < col_dim; j++) {
       right_null_space_[pc_12_[i] * col_dim + j] =
-        J_[i * dq_count_ + rank_ + j];
+        -J_[i * dq_count_ + rank_ + j];
     }
 #endif
   }

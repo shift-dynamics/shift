@@ -24,26 +24,26 @@ An example of formulating the TWS for a representative 7H linkage, shown in the 
 
 The definition of the TWS is given in :cite:`yuan1970kinematic,sutherland1973transmission,tsai1994transmissivity` and is summarized as follows. For the TWS to be uniquely determined in a three-dimensional, single-loop spatial mechanism, the system of wrenches must be a *5-system*. As discussed in Section \ref{sec:constraint_forces}, each joint effectively constrains relative velocities in the five directions orthogonal to the joint motion; relative motion between bodies is permitted only in the directions aligned with the joint (i.e. only one direction for primitive joints). Forces are dual to velocities; their behavior is similar but opposite that of velocities. If no internal working forces are applied within the joints, then no forces may be transmitted in the direction of the joint's motion. Therefore, the only forces that are imparted from one joint to the next are those forces in directions orthogonal (i.e. *reciprocal*) to the orientation of the joint, as shown in Eq. \ref{eq:joint_reaction_forces}. A system of five non-redundant joints has one unique velocity screw in which forces may be transmitted.
 
-Let the input and output influence coefficient matrices be :math:`\underline{s}_i` and :math:`\underline{s}_o` respectively. Let the influence coefficient matrices associated with joints 1-5, be :math:`\underline{s}_1 - \underline{s}_5`. The jacobian for the entire single loop mechanism in Fig \ref{fig:7h_linkage} becomes
+Let the input and output influence coefficient matrices be :math:`\underline{\mathbf{s}}_i` and :math:`\underline{\mathbf{s}}_o` respectively. Let the influence coefficient matrices associated with joints 1-5, be :math:`\underline{\mathbf{s}}_1 - \underline{\mathbf{s}}_5`. The jacobian for the entire single loop mechanism in Fig \ref{fig:7h_linkage} becomes
 
 .. math::
 
     J = \begin{bmatrix}
-    \underline{s}_i & \underline{s}_1 & \underline{s}_2 & \underline{s}_3 & \underline{s}_4 & \underline{s}_5 & \underline{s}_o
+    \underline{\mathbf{s}}_i & \underline{\mathbf{s}}_1 & \underline{\mathbf{s}}_2 & \underline{\mathbf{s}}_3 & \underline{\mathbf{s}}_4 & \underline{\mathbf{s}}_5 & \underline{\mathbf{s}}_o
     \end{bmatrix}
 
 
-The transmission performance is a measure of how well-aligned the output velocity screw, :math:`\underline{s}_o` is aligned with the mechanism. Therefore, let us look at the jacobian, :math:`J_{1-5}`, for each of the floating links separately
+The transmission performance is a measure of how well-aligned the output velocity screw, :math:`\underline{\mathbf{s}}_o` is aligned with the mechanism. Therefore, let us look at the jacobian, :math:`J_{1-5}`, for each of the floating links separately
 
 .. math::
 
     J_{1-5} = \begin{bmatrix}
-    \underline{s}_1 & \underline{s}_2 & \underline{s}_3 & \underline{s}_4 & \underline{s}_5
+    \underline{\mathbf{s}}_1 & \underline{\mathbf{s}}_2 & \underline{\mathbf{s}}_3 & \underline{\mathbf{s}}_4 & \underline{\mathbf{s}}_5
     \end{bmatrix}
     \label{eq:J15}
 
 
-In the present notation, the Transmission Wrench Screw (TWS) is actually a coscrew -- in older literature no distinction was made between the two spaces. Let the TWS *coscrew* be denoted as :math:`\underline{f}^*_{TWS}`. :math:`\underline{f}^*_{TWS}` is a linear operator on the unique velocity screw not spanned by joints 1--5. Only the coscrew, :math:`\underline{f}^*_{TWS}`, can do useful work on the system, applied through the velocity screw :math:`\underline{s}_{TWS}`. Therefore, :math:`\underline{f}^*_{TWS}` applied through every one of the influence coefficient matrices in :math:`J_{1-5}` should generate zero power. Another interpretation of this statement is that the transpose of coscrew :math:`\underline{f}^*_{TWS}` lies in the left null space of :math:`J_{1-5}`.
+In the present notation, the Transmission Wrench Screw (TWS) is actually a coscrew -- in older literature no distinction was made between the two spaces. Let the TWS *coscrew* be denoted as :math:`\underline{\mathbf{f}}^*_{TWS}`. :math:`\underline{\mathbf{f}}^*_{TWS}` is a linear operator on the unique velocity screw not spanned by joints 1--5. Only the coscrew, :math:`\underline{\mathbf{f}}^*_{TWS}`, can do useful work on the system, applied through the velocity screw :math:`\underline{\mathbf{s}}_{TWS}`. Therefore, :math:`\underline{\mathbf{f}}^*_{TWS}` applied through every one of the influence coefficient matrices in :math:`J_{1-5}` should generate zero power. Another interpretation of this statement is that the transpose of coscrew :math:`\underline{\mathbf{f}}^*_{TWS}` lies in the left null space of :math:`J_{1-5}`.
 
 The left null space of :math:`J_{1-5}` can be computed using L(D)U decomposition. Recall that the L(D)U decomposition algorithm permutes the jacobian into
 
@@ -113,7 +113,7 @@ The matrix :math:`c\begin{bmatrix}N & I\end{bmatrix}` is the cokernel of :math:`
 
 .. math::
 
-    \underline{f}^{*T}_{TWS}=\frac{XP_C^T}{\left|\underline{f}_{TWS}\right|}
+    \underline{\mathbf{f}}^{*T}_{TWS}=\frac{XP_C^T}{\left|\underline{\mathbf{f}}^*_{TWS}\right|}
 
 
 Ball's virtual coefficient, :math:`VC`, which forms the basis of most measures of transmission performance and is given as
@@ -121,7 +121,7 @@ Ball's virtual coefficient, :math:`VC`, which forms the basis of most measures o
 .. math::
     :label: eq:VC
 
-    VC=\frac{1}{2}\underline{f}^*_{TWS}\cdot\underline{s}_o
+    VC=\frac{1}{2}\underline{\mathbf{f}}^*_{TWS}\cdot\underline{\mathbf{s}}_o
 
 
 Note that, by definition, :math:`s_o` is a normalized quantity.
@@ -159,7 +159,7 @@ A convenient representation of the row space of :math:`J` is found by:
     J^{pd} & J^{pi}
     \end{bmatrix}=
     \begin{bmatrix}
-    I & -B^{di}
+    I & B^{di}
     \end{bmatrix}
 
 
@@ -168,7 +168,7 @@ The right null space of J is the matrix X, such that
 .. math::
 
     \begin{bmatrix}
-    I & -B^{di}
+    I & B^{di}
     \end{bmatrix}X = 0
 
 
@@ -176,7 +176,7 @@ In this form, the solution for X is trivial:
 
 .. math::
 
-    X = \begin{bmatrix}B^{di}\\I\end{bmatrix}
+    X = \begin{bmatrix}-B^{di}\\I\end{bmatrix}
 
 
 The "instantaneous mobility", :math:`M`, of the mechanism is found by:
@@ -189,7 +189,7 @@ The "instantaneous mobility", :math:`M`, of the mechanism is found by:
 
 whereas the "global mobility" of a mechanism is typically computed by the Chebyshev-Gruebler-Kutzback criteria.
 
-The right null-space matrix, :math:`X=\begin{bmatrix}B^{di} \\ I\end{bmatrix}`, can be factored in to:
+The right null-space matrix, :math:`X=\begin{bmatrix}-B^{di} \\ I\end{bmatrix}`, can be factored in to:
 
 .. math::
 
@@ -208,14 +208,14 @@ The sum of squares of each row (i.e. the L2 norm squared) yields a "mobility num
 
 .. math::
 
-    m_i=\sum_{n=1}^nV_{in}^2
+    \mu_i=\sum_{j=1}^{c}V_{ij}^2
 
 
-where *j* is the number of columns of the matrix :math:`V`. The sum of all mobility numbers is equal to the instantaneous mobility
+where :math:`c` is the number of columns of the matrix :math:`V`. The sum of all mobility numbers is equal to the instantaneous mobility
 
 .. math::
 
-    M=\sum_{n=1}^km_i
+    M=\sum_{i=1}^k\mu_i
 
 
 where :math:`k` is the total number of joints.
@@ -285,12 +285,12 @@ leaving the first block row:
 
 :math:`\underline{f}` represents joint "working forces": :math:`\underline{f}^*=H^*\underline{k}`, where :math:`H^*` is a block diagonal matrix of each joint's :math:`h^*` projector.
 
-When no unique solution for :math:`\underline{f}`, exists, some authors find the set of Lagrange multipliers, :math:`\underline{\lambda}`, that minimizes the objective function :math:`\Phi`:
+When no unique solution for :math:`\underline{f}`, exists, some authors find the set of Lagrange multipliers, :math:`\underline{\lambda}`, that minimizes the objective function :math:`\psi`:
 
 .. math::
-    :label: eq:Phi
+    :label: eq:psi
 
-    \Phi=f^Tf=(J^T\underline{\lambda}-H^TC^-T\underline{g})^T(J^T\underline{\lambda}-H^TC^{-T}\underline{g})
+    \psi=\underline{f}^T\underline{f}=(J^T\underline{\lambda}-H^TC^{-T}\underline{g})^T(J^T\underline{\lambda}-H^TC^{-T}\underline{g})
 
 
 An alternative approach makes use of the right null space matrix, :math:`V` for this purpose. Rearranging Eq. :eq:`eq:first_block_row` yields
@@ -339,23 +339,23 @@ where :math:`\dot{p}` is the scalar velocity tangent to the manifold. Note that 
 
 .. math::
 
-    \dot{\phi}_j=V_j{V_j}^T=[VV^T]_{jj}=m_{jj}
+    \dot{\phi}_j=V_j{V_j}^T=[VV^T]_{jj}=\mu_j
 
-where :math:`m_j` is the mobility number of the *jth* joint variable which appears on the diagonal of the projection matrix :math:`VV^T` and
+where :math:`\mu_j` is the mobility number of the *jth* joint variable which appears on the diagonal of the projection matrix :math:`VV^T` and
 
 .. math::
 
 
-    \dot{\phi}_k=V_k{V_j}^T=[VV^T]_{kj}=m_{kj}
+    \dot{\phi}_k=V_k{V_j}^T=[VV^T]_{kj}=p_{kj}
 
-:math:`m_{jk}` is found from the off-diagonal element :math:`VV^T` corresponding to the row index of joint *k* and column index of joint *j*.
+:math:`p_{kj}` is found from the off-diagonal element :math:`VV^T` corresponding to the row index of joint *k* and column index of joint *j*.
 
 The ratio of :math:`\dot{\phi}_j` over :math:`\dot{\phi}_k` gives the mechanical advantage of joint *j* with respect to joint *k*.
 
 .. math::
     :label: eq:mechanical_advantage
 
-    MA = \frac{\dot{\phi}_j}{\dot{\phi}_k}=\frac{m_{jj}}{m_{kj}}
+    MA = \frac{\dot{\phi}_j}{\dot{\phi}_k}=\frac{\mu_j}{p_{kj}}
 
 
 Note that *this technique does not generalize to mechanisms with manifolds having two or more dimensions*. In a mechanism with multiple redundant degrees of freedom and multiple possible configurations that it can be moved to, the velocity input from one joint may be distributed across multiple joints, and therefore, the concept of mechanical advantage becomes less clear.
@@ -385,7 +385,7 @@ With one independent loop, the Jacobian matrix for the robot takes the form:
     :label: eq:jacobian_7dof_robot
 
     J = \begin{bmatrix}
-        \underline{s}_A & \underline{s}_B & \underline{s}_C & \underline{s}_D & \underline{s}_E & \underline{s}_F & \underline{s}_G
+        \underline{\mathbf{s}}_A & \underline{\mathbf{s}}_B & \underline{\mathbf{s}}_C & \underline{\mathbf{s}}_D & \underline{\mathbf{s}}_E & \underline{\mathbf{s}}_F & \underline{\mathbf{s}}_G
         \end{bmatrix}
 
 
@@ -394,10 +394,10 @@ One may then solve for an incremental change in joint angles by solving the equa
 .. math::
     :label: eq:incremental_change
 
-    \hat{D} = Jd\phi
+    \delta\underline{\mathbf{x}} = J\,\delta\underline{\phi}
 
 
-where :math:`\hat{D}` is an incremental change in configuration and :math:`d\phi` is an incremental change in joint angles. Refer to :cite:`uicker2013`, Chapter 6, for more details. Note that because the Jacobian is not full column rank, there is not a unique solution to the change in joint angles, :math:`d\phi` to achieve the desired incremental change in end-effector pose.
+where :math:`\delta\underline{\mathbf{x}}` is an incremental change in configuration, a :math:`6 \times 1` screw, and :math:`\delta\underline{\phi}` is an incremental change in joint angles. Refer to :cite:`uicker2013`, Chapter 6, for more details. Note that because the Jacobian is not full column rank, there is not a unique solution to the change in joint angles, :math:`\delta\underline{\phi}`, to achieve the desired incremental change in end-effector pose.
 
 After the mechanism topology is traversed to update the position and orientation of the various frames, the Jacobian matrix for the robot in the configuration shown is given as:
 
@@ -418,15 +418,15 @@ With the artificial constraint in place at the end-effector, this Jacobian matri
 
 To account for a desired end-effector motion when computing mechanism mobility, it is necessary to introduce an artificial 1DOF constraint aligned with the desired end-effector trajectory. For this discussion, let us assume that the motion path is parameterized in terms of orientation, position and time. Various interpolation schemes may be used for the purpose, such as spherical interpolation of quaternions :cite:`shoemake1985animating` (SLERP) or smooth invariant interpolation of rotations :cite:`park1997smooth`.
 
-Let the end-effector position be determined by the :math:`SE(3)` matrix :math:`D_{10}`, which indicates an active transformation from the inertial reference frame, 0, to the end-effector frame at time :math:`t_1`. An interpolation scheme will yield an incremental change in end-effector orientation, position and time, described by a second :math:`SE(3)` matrix, :math:`D_{02}`, and time :math:`t_2`. An incremental change in configuration, in the end effector frame, :math:`D_{21}` is found as:
+Let the end-effector pose at time :math:`t_1` be determined by the :math:`SE(3)` matrix :math:`\Phi_{f1}^{f1}`, the displacement of the end-effector frame :math:`1` relative to the inertial reference frame :math:`f`. An interpolation scheme will yield the pose at time :math:`t_2`, described by a second :math:`SE(3)` matrix, :math:`\Phi_{f2}^{f2}`. The incremental change in configuration, in the end-effector frame, :math:`\Phi_{12}^{12}`, is found as:
 
 .. math::
     :label: eq:end_effector_frame
 
-    D_{21} = D_{20}D_{10}^{-1}
+    \Phi_{12}^{12} = \left(\Phi_{f1}^{f1}\right)^{-1}\Phi_{f2}^{f2}
 
 
-The rotation component of the matrix :math:`D_{21}` may be parameterized in terms of an axis and an angle of rotation, :math:`\theta`.
+The rotation component of the matrix :math:`\Phi_{12}^{12}` may be parameterized in terms of an axis and an angle of rotation, :math:`\theta`.
 
 
 To convert the incremental rotation to a velocity *twist*, divide the rotation and translation terms by change in time, :math:`\Delta time = time_2 - time_1`. The quantity may be expressed as a unit twist by dividing through by the magnitude of the translation.
@@ -434,7 +434,7 @@ To convert the incremental rotation to a velocity *twist*, divide the rotation a
 .. math::
     :label: eq:path_screw
 
-    \underline{s}_{path} = \begin{Bmatrix}
+    \underline{\mathbf{s}}_{path} = \begin{Bmatrix}
     \frac{\Delta t_x}{\Delta time}\\
     \frac{\Delta t_y}{\Delta time}\\
     \frac{\Delta t_z}{\Delta time}\\
@@ -444,12 +444,12 @@ To convert the incremental rotation to a velocity *twist*, divide the rotation a
     \end{Bmatrix}\frac{1}{{\lVert t\rVert}}
 
 
-To find the influence coefficient matrix associated with the unit screw in Eq. :eq:`eq:path_screw`, it is necessary to transform this unit screw to the fixed inertial frame using the :math:`[Ad]` operator, as described in :ref:`geometric_preliminaries`.  For the present example, let us assume that :math:`s_{path}` in the end-effector frame is given as:
+To find the influence coefficient matrix associated with the unit screw in Eq. :eq:`eq:path_screw`, it is necessary to transform this unit screw to the fixed inertial frame using the :math:`[Ad]` operator, as described in :ref:`geometric_preliminaries`.  For the present example, let us assume that :math:`\underline{\mathbf{s}}_{path}` in the end-effector frame is given as:
 
 .. math::
     :label: eq:unit_screw_ef_frame
 
-    \underline{s}_{path}^1 = \begin{Bmatrix}
+    \underline{\mathbf{s}}_{path}^1 = \begin{Bmatrix}
     0.1958 \\
     0.9789 \\
     0.0587 \\
@@ -463,7 +463,7 @@ Where the superscript 1 indicates that the screw is expressed in the end-effecto
 .. math::
     :label: eq:path_influence_coeff
 
-    \underline{s}_{path}^0 = \begin{Bmatrix}
+    \underline{\mathbf{s}}_{path}^f = \begin{Bmatrix}
     0.2853\\
     0.6905\\
     -0.0611\\
@@ -473,13 +473,13 @@ Where the superscript 1 indicates that the screw is expressed in the end-effecto
     \end{Bmatrix}
 
 
-Here, the superscript 0 indicates that the quantity is expressed in the inertial reference frame. Using :math:`s_{path}^0`, it is possible to form the augmented Jacobian matrix:
+Here, the superscript :math:`f` indicates that the quantity is expressed in the inertial reference frame. Using :math:`\underline{\mathbf{s}}_{path}^f`, it is possible to form the augmented Jacobian matrix:
 
 .. math::
     :label: eq:augmented_jacobian
 
     J = \left[\begin{array}{ccccccc|c}
-    \underline{s}_A & \underline{s}_B & \underline{s}_C & \underline{s}_D & \underline{s}_E & \underline{s}_F & \underline{s}_G & \underline{s}_{path}
+    \underline{\mathbf{s}}_A & \underline{\mathbf{s}}_B & \underline{\mathbf{s}}_C & \underline{\mathbf{s}}_D & \underline{\mathbf{s}}_E & \underline{\mathbf{s}}_F & \underline{\mathbf{s}}_G & \underline{\mathbf{s}}_{path}
     \end{array}\right]
 
 
@@ -529,7 +529,7 @@ The two columns correspond to two orthogonal directions along the manifold. In t
 
 Note that while the two columns of :eq:`eq:null_space` correspond to orthogonal directions along the manifold, they do not necessarily align with the two directions of interest. That is, there is not a unique basis on the constraint manifold, and an orthonormal transformation applied to V will still lie on the manifold. The key to aligning the two columns to the two directions of interest is found in the last row of Eq. :eq:`eq:null_space`.
 
-The matrix :math:`V` can be right multiplied by an orthonormal transformation matrix (i.e. a planar rotation matrix) to align the first column of :eq:`eq:null_space` to the direction of :math:`\underline{s}_{path}`.
+The matrix :math:`V` can be right multiplied by an orthonormal transformation matrix (i.e. a planar rotation matrix) to align the first column of :eq:`eq:null_space` to the direction of :math:`\underline{\mathbf{s}}_{path}`.
 
 .. math::
     :label: eq:aligned_null_space
@@ -561,4 +561,4 @@ The matrix :math:`V` can be right multiplied by an orthonormal transformation ma
 
 The matrix V has now been aligned to the directions of interest. The first column is aligned to the target path. The second, orthogonal direction corresponds to the robot's ability to move while holding the configuration of the end-effector fixed. The sum of the squares of the columns sum to 1. The square of each term in a given term indicates each joint's ability to effect a change in a given direction.
 
-As mentioned above, with a 7DOF end-effector, there is not a unique choice for :math:`d\phi` to achieve a desired incremental displacement. The (square of the) numbers in column 1 may be used as an objective function to maximize the alignment of the joints with manifold at the next time step. The norm of column 1 is always 1 and is therefore not a suitable objective function. A more suitable objective function might be product of the squares of the first column for the entries associated with joints A-G.
+As mentioned above, with a 7DOF end-effector, there is not a unique choice for :math:`\delta\underline{\phi}` to achieve a desired incremental displacement. The (square of the) numbers in column 1 may be used as an objective function to maximize the alignment of the joints with manifold at the next time step. The norm of column 1 is always 1 and is therefore not a suitable objective function. A more suitable objective function might be product of the squares of the first column for the entries associated with joints A-G.
