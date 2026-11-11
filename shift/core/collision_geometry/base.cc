@@ -82,7 +82,9 @@ void shift::core::collision_geometry::Base::DeclareParameters() {
     "fit_to", &fit_to_,
     "names of the body's mesh geometry to fit to, when the dimensions are "
     "not given; defaults to all active meshes of the body. A named mesh may "
-    "be inactive, to fit to a collision mesh that is not drawn.",
+    "be inactive, to fit to a collision mesh that is not drawn. For "
+    "\"type\": \"cad\", the CAD geometry whose surfaces it uses, which may "
+    "likewise be inactive.",
     false);
 }
 

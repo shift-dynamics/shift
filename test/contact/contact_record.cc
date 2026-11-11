@@ -108,9 +108,37 @@ static void AddShape(const shift::core::collision_geometry::CadContactShape& sha
                               f.box.hi.z - f.box.lo.z}};
     const double share = ksl_vec3_l2norm(&size) / std::max(shape.size, 1e-12);
     const int count = std::min(36, std::max(4, static_cast<int>(48.0 * share)));
-    const double du = (f.hi[0] - f.lo[0]) / count, dv = (f.hi[1] - f.lo[1]) / count;
-    for(int u = 0; u < count; u++) {
-      for(int v = 0; v < count; v++) {
+    /* the cells shared between the parameters by the face's lengths along
+    them, so that a long face (a helical flank of several turns) is as fine
+    along its length as across it */
+    auto length = [&](int along) {
+      double most = 0.0;
+      for(int k = 0; k <= 4; k++) {
+        double sum = 0.0;
+        ksl_vec3_t last{};
+        for(int s = 0; s <= 64; s++) {
+          shift::core::cad::Vec2 uv;
+          uv[along] = f.lo[along] + (f.hi[along] - f.lo[along]) * s / 64.0;
+          uv[1 - along] = f.lo[1 - along] + (f.hi[1 - along] - f.lo[1 - along]) * k / 4.0;
+          const ksl_vec3_t p = shape.Point(face, uv);
+          if(s > 0) {
+            const ksl_vec3_t d = {{p.x - last.x, p.y - last.y, p.z - last.z}};
+            sum += ksl_vec3_l2norm(&d);
+          }
+          last = p;
+        }
+        most = std::max(most, sum);
+      }
+      return most;
+    };
+    const double length_u = length(0), length_v = length(1);
+    const double ratio = length_u > 0.0 && length_v > 0.0 ? length_u / length_v : 1.0;
+    const double cells = static_cast<double>(count) * count;
+    const int count_u = std::clamp(static_cast<int>(std::lround(std::sqrt(cells * ratio))), 4, 720);
+    const int count_v = std::clamp(static_cast<int>(std::lround(std::sqrt(cells / ratio))), 4, 720);
+    const double du = (f.hi[0] - f.lo[0]) / count_u, dv = (f.hi[1] - f.lo[1]) / count_v;
+    for(int u = 0; u < count_u; u++) {
+      for(int v = 0; v < count_v; v++) {
         AddCell(shape, face, f.lo[0] + u * du, f.lo[0] + (u + 1) * du,
                 f.lo[1] + v * dv, f.lo[1] + (v + 1) * dv, 4, mesh);
       }

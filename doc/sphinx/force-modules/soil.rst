@@ -412,9 +412,27 @@ is a benchmark (``examples/cad/track_frame.json``).
 
 ``examples/terramechanics/track_frame_scm.json`` drives the same track on deformable dry
 sand (a terrain of type ``scm`` of 0.05 m spacing), the soil contact module
-carrying a box of each shoe and its grousers. It sinks about 0.13 m, leaving
-its rut, and moves forward at about 0.31 m/s. It takes about 50 s in an
-optimized build, so it is a benchmark.
+carrying a box of each shoe and its grousers. Its sprocket and idler sit
+25 mm above the rollers' line, as on a machine, so they carry little of the
+load. It settles for 2 s with the sprocket held, about 60 mm into the sand,
+then drives at about 0.32 m/s. The shoes keep sinking while it drives, to
+about 95 mm on average (up to 0.13 m) after 3 s, leaving its rut. The cause
+is that the shoes rock, about 0.06 to 0.1 rad, as they pass under the
+rollers: the soil keeps the deepest sinkage it reaches, so each tilt digs
+the edges of a shoe in a little deeper. One shoe of the track rocked by
+0.08 rad every 0.6 s under a constant load sinks from 57 to 73 mm in the
+first cycle and to 88 mm after 12, with or without bulldozing. It takes
+about 50 s in an optimized build, so it is a benchmark.
+
+The sinkage levels off once the whole length of track on the ground has
+landed on fresh sand. Driven for 12 s (about 3.8 m), the fine variant,
+``track_frame_scm_fine.json``, sinks quickly at first, then more slowly:
+its shoes sink on average 75 mm when it starts to drive, 123 mm after 1.2 m,
+and a steady 134 mm from about 3 m on, about one ground length. Each shoe
+lands flat at the same 75 to 85 mm and sinks to about 190 mm by the
+sprocket, over some 17 rocking cycles and five roller passes, so the rut is
+deepest at the rear: the frame trims 34 mrad nose up, and the roller next
+to the sprocket carries 26 kN to the 17 to 20 kN of the others.
 
 The viewer (``build-release/shift/main/shift``) draws the rut while the track
 runs and when you play it back. At each output time it records only the nodes

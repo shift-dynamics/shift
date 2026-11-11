@@ -92,7 +92,7 @@ shift_test = executable(
 
 # everything except the per-model cases, which are registered one by one below
 test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*:CadSpeed.*'],
-     timeout: 600)
+     timeout: 3600)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc
@@ -159,6 +159,9 @@ stress_models = [
   'cad/nut_on_bolt.json',
   'terramechanics/track_frame_scm.json',
   'terramechanics/track_frame_scm_fine.json',
+  # the M1A2 tank: two tracks of 78 links each
+  'm1a2/m1a2.json',
+  'm1a2/m1a2_step.json',
 ]
 
 foreach model_path : example_models

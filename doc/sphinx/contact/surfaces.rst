@@ -24,22 +24,22 @@ surface of a shape in one of three ways:
 Each shape is defined in the coordinate system of its body, denoted
 :math:`b`, and placed in the body by the shape's ``pose`` in the model file.
 With the displacement of the body coordinate system relative to the fixed
-reference frame :math:`0` written as
-:math:`\Phi_{0b}^{0b}(R^{0b}, \underline{r}_{0b}^{0})`, the coordinates of a
+reference frame :math:`f` written as
+:math:`\Phi_{fb}^{fb}(R^{fb}, \underline{r}_{fb}^{f})`, the coordinates of a
 point of the shape in the fixed reference frame are obtained from those in the
 body coordinate system as:
 
 .. math::
     :label: eq:shape_to_fixed
 
-    \underline{p}^{0} = R^{0b}\,\underline{p}^{b} + \underline{r}_{0b}^{0}
+    \underline{p}^{f} = R^{fb}\,\underline{p}^{b} + \underline{r}_{fb}^{f}
 
-where :math:`R^{0b}` transforms the coordinates of a vector from the body
+where :math:`R^{fb}` transforms the coordinates of a vector from the body
 coordinate system to the fixed reference frame, and
-:math:`\underline{r}_{0b}^{0}` is the translation from the origin of the fixed
+:math:`\underline{r}_{fb}^{f}` is the translation from the origin of the fixed
 reference frame to the origin of the body, in the coordinates of the fixed
 reference frame. All of the expressions that follow are written in the
-coordinates of the fixed reference frame, and the superscript :math:`0` is
+coordinates of the fixed reference frame, and the superscript :math:`f` is
 omitted from the vectors.
 
 

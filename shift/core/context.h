@@ -891,7 +891,6 @@ private:
                         friction        or damping */
   // std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
   //                                 forces, length equal to dq count */
-  std::vector<ksl_coscrew_t> k_;
   /*! external spatial forces on each body group, length
    * non_rigid_joint_count, see AddBodyLoad */
   std::vector<ksl_coscrew_t> body_loads_;

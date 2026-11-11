@@ -2503,8 +2503,8 @@ void shift::core::Context::SetupLookup() {
 
 This function evaluates the variable mobility numbers in
 permuted order. It first forms an n by n-r matrix from the
-submatrix J[0:r-1][r:n-1] stacked above an (n-r) by (n-r)
-identity matrix. Then it calls GramSchmidt() to
+negated submatrix -J[0:r-1][r:n-1] (that is, -B^{di}) stacked above an
+(n-r) by (n-r) identity matrix. Then it calls GramSchmidt() to
 orthonormalize the columns and return them in the same
 matrix. Finally it returns the square of row norms of
 this matrix as mobility numbers in the mn[] array.

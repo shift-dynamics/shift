@@ -1277,6 +1277,11 @@ void shift::core::collision_geometry::Cad::Load() {
                        : " fits to '" + fit_to_.front() +
                            "', which is not a CAD geometry of the body"));
   }
+  /* inactive geometry is not loaded with the model; CAD geometry for contact
+  that is not drawn is loaded here, as a collision mesh is */
+  if(!cad->is_active() && !cad->get_asset()) {
+    cad->Load();
+  }
   if(!cad->get_asset()) {
     throw shift::core::Exception(description + ": the CAD geometry '" +
                                  cad->get_name() + "' is not loaded");

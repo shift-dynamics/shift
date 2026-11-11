@@ -25,26 +25,34 @@ example                               description                     reserved f
 Symbols
 *******
 
-================================ ===============    ===========
-symbol                           name in program    description
-================================ ===============    ===========
-:math:`\underline{\ddot{q}}`     *ddq*              second time derivative of generalized coordinates
-:math:`\underline{\dot{q}}`      *dq*               first time derivative of generalized coordinates
-PC                               *PC*               parent child list
-:math:`\underline{\lambda}^p`    *lambda_p*         lagrange multipliers
-:math:`\underline{f}`            *f*                working forces applied in the joints
-:math:`\underline{\gamma}^p`     *gamma_p*          quadratic velocity terms
-:math:`M^{\ell}`                 *M_l*              generalized mass matrix
-:math:`\underline{\lambda}^d`    *lambda_d*         *preconditioned* lagrange multipliers
-:math:`\underline{\gamma}^d`     *gamma_d*          *preconditioned* quadratic velocity terms
-:math:`\underline{f}^{\ell}`     *f_l*              generalized forces
-:math:`J`                        *J*                constraint Jacobian matrix, :math:`J(\underline{q})`, a mapping of generalized velocities to the velocities of the constraints
-:math:`\underline{\mathbf{p}}^*`                    momentum
-:math:`\underline{\mathbf{h}}`   h                  influence coefficient matrix
-:math:`\underline{\mathbf{v}}`   v                  velocity screw :math:`\left(\underline{\mathbf{v}} = \begin{Bmatrix}\underline{v}\\\underline{\omega}\end{Bmatrix}\right)`
-:math:`\underline{\mathbf{g}}^*` g                  externally applied forces, such as from gravity
-================================ ===============    ===========
+The second column is the name of the quantity in Shift's code. A trailing
+underscore marks a class member.
 
+================================ =================== ===========
+symbol                           name in program     description
+================================ =================== ===========
+:math:`\underline{q}`            *q*                 generalized coordinates
+:math:`\underline{\dot{q}}`      *dq*                first time derivative of generalized coordinates
+:math:`\underline{\ddot{q}}`     *ddq*               second time derivative of generalized coordinates
+PC                               *pcl_*              parent child list
+:math:`\underline{e}`            *e_*                constraint errors
+:math:`J`                        *J_*                constraint Jacobian matrix, :math:`J(\underline{q})`, a mapping of generalized velocities to the velocities of the constraints
+:math:`B^{di}`                   *b3_*               the matrix giving the dependent velocities from the independent ones, :math:`\underline{\dot{q}}^d = -B^{di}\underline{\dot{q}}^i`; nonzeros in PO(3), indices in *rb3_* and *cb3_*
+:math:`N`                        *right_null_space_* right null space of :math:`J`
+:math:`Z`                        *right_null_space_* orthonormalized right null space of :math:`J`, :math:`N` orthonormalized in place
+:math:`\mu_i`                    *mobility_numbers_* mobility number of generalized coordinate :math:`i`: the squared norm of row :math:`i` of :math:`Z`, the diagonal of the projector :math:`ZZ^T`
+:math:`\underline{\lambda}^p`    *la_*               lagrange multipliers
+:math:`\underline{\lambda}^d`    *la_*               *preconditioned* lagrange multipliers
+:math:`\underline{\gamma}^p`     *gamma_d_*          quadratic velocity terms (``gamma_d_`` holds both :math:`\underline{\gamma}^p` and :math:`\underline{\gamma}^d`)
+:math:`\underline{\gamma}^d`     *gamma_d_*          *preconditioned* quadratic velocity terms
+:math:`M^{\ell}`                 *Ml_*               generalized mass matrix
+:math:`\underline{f}`            *f_*                working forces applied in the joints
+:math:`\underline{f}^{\ell}`     *fl_*               generalized forces
+:math:`\underline{\mathbf{p}}^*` *p_*                momentum
+:math:`\underline{\mathbf{h}}`   *h*                 influence coefficient matrix
+:math:`\underline{\mathbf{v}}`   *v*                 velocity screw :math:`\left(\underline{\mathbf{v}} = \begin{Bmatrix}\underline{v}\\\underline{\omega}\end{Bmatrix}\right)`
+:math:`\underline{\mathbf{g}}^*` *body_loads_*       externally applied forces, such as from gravity
+================================ =================== ===========
 
 Transformations
 ***************
