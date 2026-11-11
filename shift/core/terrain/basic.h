@@ -3,7 +3,9 @@
 
 #include <vector>
 
+#include "shift/core/force_module/soil.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/soil_map.h"
 
 namespace shift {
 namespace core {
@@ -28,11 +30,19 @@ coordinate_type:
 interpolation_type:
 - "bilinear": the surface passes through the control points, and is only C0
   continuous (its normal jumps between cells)
-- "bicubic" (default): a uniform cubic B-spline over the control points. It
-  passes near but not through them and is C2 continuous, so tire forces on
-  it change smoothly.
+- "bicubic" (default): the natural cubic spline that interpolates the
+  samples, a uniform cubic B-spline whose control points are solved for when
+  the map is loaded so that the surface passes through every sample. It is C2
+  continuous, so tire forces on it change smoothly, and reproduces a plane
+  exactly.
 
-Beyond the map the surface continues with the samples of its edges.
+Beyond the map the bilinear surface continues with the samples of its edges.
+The bicubic surface continues along its slope at the edges for about a cell,
+and then levels off.
+
+soil (optional, see force_module::Soil) is the soil of the terrain, and
+soil_map (optional, see SoilMap) gives soils by area from an integer TIFF;
+SoilAt returns the soil under a point, for the models that act on soil.
 
 \\code
 "terrain": [{"type": "basic", "name": "hills", "filename": "hills.tiff",
@@ -63,11 +73,50 @@ public:
   void Load() override;
   void Connect() override;
 
+  /*! \brief Query on the undisturbed surface, the elevation map, which
+   * never changes: safe to call from another thread while a deformable
+   * terrain (Scm) changes */
+  bool QueryUndisturbed(const ksl_vec3_t& point, ksl_vec3_t& surface,
+                        ksl_vec3_t& normal) const;
+
   bool Query(const ksl_vec3_t& point, ksl_vec3_t& surface,
              ksl_vec3_t& normal) const override;
 
+  const force_module::SoilProperties*
+  SoilAt(const ksl_vec3_t& point) const override;
+
   /*! \brief z of the surface (terrain frame, z down) at x, y of the terrain
-   * frame, and its slopes dz/dx and dz/dy */
+   * frame, and its slopes dz/dx and dz/dy, as Query finds it: the elevation
+   * map (LocalZ) here, and with its deformation for a deformable terrain */
+  virtual double SurfaceZ(double x, double y, double& z_x,
+                          double& z_y) const {
+    return LocalZ(x, y, z_x, z_y);
+  }
+
+  /*! \brief the soil at x, y of the terrain frame: of the nearest sample of
+   * the soil map, or the terrain's soil without a map; for a region, the
+   * soil there of the terrain that holds it, changed by the region's soil;
+   * null if the terrain has no soil */
+  const force_module::SoilProperties* LocalSoil(double x, double y) const;
+
+  /*! \brief the index in get_soils() of LocalSoil(x, y), -1 for none */
+  int LocalSoilIndex(double x, double y) const;
+
+  /*! \brief the soils of the terrain: its own soil first, if given, then
+   * those of the soil map */
+  const std::vector<force_module::SoilProperties>& get_soils() const {
+    return soils_;
+  }
+
+  /*! \brief whether an elevation map was loaded; without one (a flat
+   * deformable terrain) the surface is the xy plane of the terrain frame */
+  bool has_elevation_map() const {
+    return !z_.empty();
+  }
+
+  /*! \brief z of the elevation map (terrain frame, z down) at x, y of the
+   * terrain frame, and its slopes dz/dx and dz/dy; without a map, that of
+   * the terrain that holds this region, or 0 */
   double LocalZ(double x, double y, double& z_x, double& z_y) const;
 
   /*! @name The elevation map, e.g. for drawing */
@@ -76,9 +125,16 @@ public:
    * control point (the first is at the origin) */
   double get_x_extent() const;
   double get_y_extent() const;
-  /*! \brief the control points as z (down) of the terrain frame,
-   * get_x_samples() along x by get_y_samples() along y, x fastest */
+  /*! \brief the control points of the surface as z (down) of the terrain
+   * frame, get_x_samples() along x by get_y_samples() along y, x fastest:
+   * the B-spline control points that interpolate the samples for the bicubic
+   * surface, the samples themselves for the bilinear */
   const std::vector<double>& get_control_points() const {
+    return bicubic_ ? control_ : z_;
+  }
+  /*! \brief the samples of the map as z (down) of the terrain frame, laid
+   * out as get_control_points(); the surface passes through them */
+  const std::vector<double>& get_samples() const {
     return z_;
   }
   /*! \brief spacing of the control points along x and y (m) */
@@ -119,17 +175,49 @@ public:
   }
   /*! @} */
 
-private:
+protected:
   virtual void DeclareParameters() override;
   /*! \brief path of a file next to the model file or in an include
    * directory */
   std::string FindFile(const std::string& name) const;
-  /*! \brief control point at sample (i, j) along the x and y axes of the
-   * terrain frame, clamped to the map, as z (down) */
+  /*! \brief whether the terrain needs an elevation map (filename); a
+   * deformable terrain is flat without one */
+  virtual bool requires_elevation_map() const {
+    return true;
+  }
+  /*! \brief whether the soil of the terrain needs Bekker's pressure-sinkage
+   * properties (n, k_c, k_phi); not for a continuum soil (Sph) */
+  virtual bool requires_bekker() const {
+    return true;
+  }
+  /*! \brief the Basic terrain that holds this one in its regions, null for
+   * a terrain of the fixed body; a region shares its frame, and starts from
+   * its surface and soils */
+  const Basic* get_parent_basic() const {
+    return parent_basic_;
+  }
+  /*! \brief Query, on the deformed surface (SurfaceZ) or the undisturbed
+   * one (LocalZ) */
+  bool QuerySurface(const ksl_vec3_t& point, bool deformed, ksl_vec3_t& surface,
+                    ksl_vec3_t& normal) const;
+  /*! \brief x, y and z of point (inertial frame) in the terrain frame */
+  void ToLocal(const ksl_vec3_t& point, double& x, double& y,
+               double& z) const;
+
+  const Frame* frame_ = nullptr; //!< terrain frame, on the fixed body
+  const Basic* parent_basic_ = nullptr;
+
+private:
+  /*! \brief solve for the control points of the B-spline that interpolates
+   * the samples */
+  void SolveControlPoints();
+  /*! \brief control point (i, j) along the x and y axes of the terrain
+   * frame as z (down): beyond the map, the sample of its edge for the
+   * bilinear surface, and for the bicubic the control point extrapolated
+   * linearly by one more along each axis */
   double ControlZ(long i, long j) const;
 
   std::string texture_filename_;
-  std::string property_map_filename_;
   double x_scale_ = 1.0;
   double y_scale_ = 1.0;
   double z_scale_ = 1.0;
@@ -139,15 +227,21 @@ private:
   std::string coordinate_type_ = "sae";
   std::string interpolation_type_ = "bicubic";
 
-  /* the control points as z (down) of the terrain frame, nx along x by ny
-  along y, x fastest */
+  /* the samples of the map as z (down) of the terrain frame, nx along x by
+  ny along y, x fastest */
   std::vector<double> z_;
+  /* the control points of the bicubic surface, laid out as z_ */
+  std::vector<double> control_;
   long nx_ = 0;
   long ny_ = 0;
   bool bicubic_ = true;
   std::string texture_path_;
   std::string normal_map_path_;
-  const Frame* frame_ = nullptr; //!< terrain frame, on the fixed body
+
+  force_module::Soil soil_;
+  SoilMap soil_map_;
+  std::vector<force_module::SoilProperties> soils_;
+  int base_soil_ = -1; //!< index of soil_ in soils_, -1 if not given
 
   static bool registered_;
 };

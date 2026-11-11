@@ -25,8 +25,8 @@
     "integrators": [
       {
         "type": "ode113",
-        "relative_error": 1e-06,
-        "absolute_error": 1e-09,
+        "relative_error": 0.0001,
+        "absolute_error": 0.0001,
         "time_span": 2.0,
         "time_step": 0.01
       }
@@ -82,6 +82,14 @@
           0.0
         ]
       ]
+    }
+  ],
+  "collision_geometry": [
+    {
+      "name": "ground",
+      "type": "plane",
+      "material": "ground",
+      "max_depth": 0.05
     }
   ],
   "assemblies": [
@@ -141,36 +149,6 @@
             "Ixx": 2.678375085994,
             "Iyy": 2.678375085994,
             "Izz": 5.29003267800745,
-            "Ixy": 0.0,
-            "Iyz": 0.0,
-            "Izx": 0.0
-          }
-        },
-        {
-          "name": "ground",
-          "geometry": [],
-          "collision_geometry": [
-            {
-              "name": "ground",
-              "type": "plane",
-              "normal": [
-                0.0,
-                0.0,
-                -1.0
-              ],
-              "material": "steel"
-            }
-          ],
-          "center_of_mass": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "inertia": {
-            "mass": 1.0,
-            "Ixx": 1.0,
-            "Iyy": 1.0,
-            "Izz": 1.0,
             "Ixy": 0.0,
             "Iyz": 0.0,
             "Izx": 0.0
@@ -1938,22 +1916,6 @@
           ]
         },
         {
-          "name": "ground_joint",
-          "type": "rigid",
-          "parent": [
-            [
-              "fixed"
-            ],
-            "origin"
-          ],
-          "child": [
-            [
-              "ground"
-            ],
-            "origin"
-          ]
-        },
-        {
           "name": "link1_joint",
           "type": "float",
           "parent": [
@@ -2986,6 +2948,19 @@
         {
           "name": "contact",
           "type": "contact",
+          "disabled_pairs": [
+            ["link1", "link2"], ["link2", "link3"], ["link3", "link4"], ["link4", "link5"],
+            ["link5", "link6"], ["link6", "link7"], ["link7", "link8"], ["link8", "link9"],
+            ["link9", "link10"], ["link10", "link11"], ["link11", "link12"], ["link12", "link13"],
+            ["link13", "link14"], ["link14", "link15"], ["link15", "link16"], ["link16", "link17"],
+            ["link17", "link18"], ["link18", "link19"], ["link19", "link20"], ["link20", "link21"],
+            ["link21", "link22"], ["link22", "link23"], ["link23", "link24"], ["link24", "link25"],
+            ["link25", "link26"], ["link26", "link27"], ["link27", "link28"], ["link28", "link29"],
+            ["link29", "link30"], ["link30", "link31"], ["link31", "link32"], ["link32", "link33"],
+            ["link33", "link34"], ["link34", "link35"], ["link35", "link36"], ["link36", "link37"],
+            ["link37", "link38"], ["link38", "link39"], ["link39", "link40"], ["link40", "link41"],
+            ["link41", "link42"], ["link42", "link43"], ["link43", "link44"], ["link44", "link1"]
+          ],
           "materials": [
             {
               "name": "steel",
@@ -2993,6 +2968,24 @@
               "poisson_ratio": 0.3,
               "restitution": 0.3,
               "friction": 0.3
+            },
+            {
+              "name": "ground",
+              "youngs_modulus": 50000000.0,
+              "poisson_ratio": 0.3,
+              "restitution": 0.1,
+              "friction": 0.6
+            }
+          ],
+          "friction_velocity": 0.03,
+          "pairs": [
+            {
+              "materials": [
+                "steel",
+                "ground"
+              ],
+              "restitution": 0.1,
+              "friction": 0.6
             }
           ]
         }

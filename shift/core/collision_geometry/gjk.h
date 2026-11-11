@@ -1,6 +1,7 @@
 #ifndef SHIFT_COLLISIONGEOMETRY_GJK_H_
 #define SHIFT_COLLISIONGEOMETRY_GJK_H_
 
+#include <memory>
 #include <vector>
 
 #include "ksl/vec3.h"
@@ -8,6 +9,10 @@
 namespace shift {
 namespace core {
 namespace collision_geometry {
+
+/*! what a pair of CAD geometries keeps from one test to the next (see
+ * CadCadContact) */
+struct CadPairCache;
 
 class Base;
 
@@ -37,6 +42,13 @@ struct ContactPoint {
   double curvature_ratio = 1.0;
   /*! length of a line of contact carried by the point; 0 for a point */
   double length = 0.0;
+  /*! area of an area of contact carried by the point, for faces of the same
+   * shape (conformal); 0 for a point or a line */
+  double area = 0.0;
+  /*! the area in contact of the conformal faces of the point, the sum of the
+   * areas of their points: the size of the contact, for its stiffness (see
+   * force_module::Contact::PointLaw) */
+  double patch_area = 0.0;
   /*! @} */
 };
 
@@ -91,6 +103,9 @@ struct ContactPair {
   ksl_vec3_t extreme_vertex_local_b[4]; //!< simplex points on b, local
   int hint_a = 0; //!< most recent extreme vertex index on a
   int hint_b = 0; //!< most recent extreme vertex index on b
+  /*! the starting points of the search for the contact of two CAD geometries,
+   * kept while they move too little for new regions of contact to appear */
+  std::shared_ptr<CadPairCache> cad_cache;
   /*! @} */
 };
 

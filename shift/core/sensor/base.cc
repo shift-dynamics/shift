@@ -1,13 +1,17 @@
 #include "shift/core/sensor/base.h"
 #include "shift/core/context.h"
+#include "shift/core/sensor/body_load.h"
 #include "shift/core/sensor/frame.h"
 #include "shift/core/sensor/joint.h"
+#include "shift/core/sensor/marker.h"
 
 /* referencing each module's registration keeps its object file, and so its
 registration, in the static library */
 bool shift::core::sensor::Modules::is_initialized() {
-  return shift::core::sensor::Frame::is_registered() &&
-         shift::core::sensor::Joint::is_registered();
+  return shift::core::sensor::BodyLoad::is_registered() &&
+         shift::core::sensor::Frame::is_registered() &&
+         shift::core::sensor::Joint::is_registered() &&
+         shift::core::sensor::Marker::is_registered();
 }
 
 void shift::core::sensor::Base::Load() {}

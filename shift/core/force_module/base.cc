@@ -13,6 +13,7 @@
 #include "shift/core/force_module/joint_force.h"
 #include "shift/core/force_module/lead_screw.h"
 #include "shift/core/force_module/powertrain.h"
+#include "shift/core/force_module/soil_contact.h"
 #include "shift/core/force_module/soil_tool.h"
 #include "shift/core/force_module/spline.h"
 #include "shift/core/force_module/spring_damper.h"
@@ -23,6 +24,9 @@
 
 bool shift::core::force_module::Modules::is_initialized() {
   if(!shift::core::force_module::Contact::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::SoilContact::is_registered()) {
     return false;
   }
   if(!shift::core::force_module::tire::Base::is_registered()) {

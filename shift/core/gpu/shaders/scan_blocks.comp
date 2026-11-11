@@ -1,0 +1,53 @@
+#version 450
+// First pass of gpu::Scan: the exclusive prefix sums of each block of 1024
+// unsigned integers (4 per thread), and the total of each block.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer Input {
+  uint values[];
+};
+layout(std430, binding = 1) writeonly buffer Output {
+  uint sums[];
+};
+layout(std430, binding = 2) writeonly buffer Totals {
+  uint totals[];
+};
+
+layout(push_constant) uniform Constants {
+  uint count;
+};
+
+const uint kThreads = 256;
+
+shared uint partial[kThreads];
+
+void main() {
+  const uint t = gl_LocalInvocationID.x;
+  const uint first = gl_WorkGroupID.x * 4 * kThreads + 4 * t;
+  uint v[4];
+  uint own = 0;
+  for(uint k = 0; k < 4; k++) {
+    v[k] = first + k < count ? values[first + k] : 0;
+    own += v[k];
+  }
+  // inclusive scan of the threads' sums (Hillis and Steele)
+  partial[t] = own;
+  barrier();
+  for(uint offset = 1; offset < kThreads; offset <<= 1) {
+    const uint add = t >= offset ? partial[t - offset] : 0;
+    barrier();
+    partial[t] += add;
+    barrier();
+  }
+  uint running = partial[t] - own;
+  for(uint k = 0; k < 4; k++) {
+    if(first + k < count) {
+      sums[first + k] = running;
+    }
+    running += v[k];
+  }
+  if(t == kThreads - 1) {
+    totals[gl_WorkGroupID.x] = partial[t];
+  }
+}

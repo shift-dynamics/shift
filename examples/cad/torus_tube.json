@@ -1,0 +1,183 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0.0,
+      0.0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 0.5,
+        "time_step": 0.01,
+        "relative_error": 1e-06,
+        "absolute_error": 1e-09
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "torus_tube",
+      "bodies": [
+        {
+          "name": "tube",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "tube.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "name": "tube",
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.4,
+            0.03,
+            0.06
+          ],
+          "inertia": {
+            "mass": 8.0,
+            "Ixx": 0.002,
+            "Iyy": 0.4,
+            "Izz": 0.4,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "torus",
+          "geometry": [
+            {
+              "type": "cad",
+              "filename": "torus.step"
+            }
+          ],
+          "collision_geometry": [
+            {
+              "name": "torus",
+              "type": "cad",
+              "material": "steel"
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.6198111563884118,
+            "Ixx": 0.0005345871223850051,
+            "Iyy": 0.0005345871223850051,
+            "Izz": 0.0010381836869505898,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "tube_joint",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "tube"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "torus_joint",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "torus"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0.09851659547069756,
+              0.0,
+              0.024889363528682977
+            ],
+            "R": [
+              [
+                -0.14834045293024462,
+                0.0,
+                0.9889363528682975
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0
+              ],
+              [
+                0.9889363528682975,
+                0.0,
+                0.14834045293024462
+              ]
+            ]
+          },
+          "initial_velocity": [
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "force_modules": [
+        {
+          "name": "contact",
+          "type": "contact",
+          "damping_depth": 1e-06,
+          "materials": [
+            {
+              "name": "steel",
+              "youngs_modulus": 2000000000.0,
+              "poisson_ratio": 0.3,
+              "restitution": 0.3,
+              "friction": 0.05
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

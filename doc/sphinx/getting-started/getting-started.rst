@@ -114,7 +114,12 @@ is how the pictures in these documents are made
    build/shift/main/shift examples/pendulum/double_pendulum.json \
      --image pendulum.png --time 1 --size 1200x800 --view 30,20 --samples 256
 
-``shift --help`` lists the options.
+``shift --help`` lists the options. ``--frame X,Y,Z,RADIUS`` aims the view at a
+sphere instead of the whole model, for a close up.
+
+A mesh whose material has an opacity below 1 (``d`` in an OBJ's ``.mtl`` file) lets
+light through in the ray traced view: it shows what is behind it and casts a lighter
+shadow, with no refraction. The other render modes draw it solid.
 
 To keep a moving body in view, tick *follow* in the *Camera* box of the
 *Simulation* tab and pick the body. The camera then keeps its place relative to

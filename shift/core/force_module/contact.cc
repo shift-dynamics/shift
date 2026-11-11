@@ -60,6 +60,15 @@ void shift::core::force_module::ContactMaterial::DeclareParameters() {
                    "volume worn per normal force and sliding distance (1/Pa "
                    "in SI units); 0 (the default) for no wear",
                    false);
+  DeclareParameter("layer_thickness", &layer_thickness,
+                   "thickness of an elastic layer of the material on a rigid "
+                   "backing, as a brake lining: the area contact of conformal "
+                   "faces (CAD faces of the same shape) presses it as an "
+                   "elastic foundation, pressure E (1 - nu) / ((1 + nu) (1 - "
+                   "2 nu) h) per depth. 0 (the default) for a solid body, "
+                   "whose foundation is that of a flat punch on a half space "
+                   "of the size of the contact",
+                   false);
 }
 
 void shift::core::force_module::ContactMaterialPair::DeclareParameters() {
@@ -169,12 +178,17 @@ void shift::core::force_module::Contact::DeclareParameters() {
   DeclareParameter("damping_depth", &damping_depth_,
                    "penetration depth at which the damping of the contact "
                    "law is fully applied, ramped up from 0 at first touch; "
-                   "defaults to 1e-4",
+                   "defaults to 1e-4. A contact resting far shallower is "
+                   "almost undamped: set it below the resting depth of stiff "
+                   "contacts, such as a rim lying flat on a face",
                    false);
-  DeclareParameter("exclude_jointed_bodies", &exclude_jointed_bodies_,
-                   "do not test bodies joined by a joint (other than a float "
-                   "joint) for contact; defaults to true",
-                   false);
+  DeclareParameter("disabled_pairs", &disabled_pairs_,
+                   "pairs of bodies, by name, whose geometries are not tested "
+                   "for contact, as [[\"link1\", \"link2\"], ...]; all other "
+                   "pairs are",
+                   false)
+    .set_row_dim(-1)
+    .set_column_dim(2);
 }
 
 double shift::core::force_module::Contact::Combine(const std::string& rule,
@@ -232,11 +246,13 @@ void shift::core::force_module::Contact::Load() {
     }
     if(m.restitution > 1.0 || m.friction < 0.0 ||
        m.youngs_modulus < 0.0 || m.contact_stiffness < 0.0 ||
-       m.poisson_ratio < 0.0 || m.poisson_ratio >= 0.5) {
+       m.poisson_ratio < 0.0 || m.poisson_ratio >= 0.5 ||
+       m.layer_thickness < 0.0) {
       throw shift::core::Exception(
         description + ": material '" + m.name +
         "' needs restitution of at most 1, friction >= 0, Poisson's ratio in "
-        "[0, 0.5) and nonnegative Young's modulus and contact stiffness");
+        "[0, 0.5) and nonnegative Young's modulus, contact stiffness and "
+        "layer thickness");
     }
   }
   const int default_material =
@@ -312,6 +328,21 @@ void shift::core::force_module::Contact::Load() {
       if(a.contact_stiffness > 0.0 && b.contact_stiffness > 0.0) {
         law.stiffness =
           1.0 / (1.0 / a.contact_stiffness + 1.0 / b.contact_stiffness);
+      }
+      /* the layers in series; a material with none is far stiffer */
+      auto foundation = [](const ContactMaterial& m) {
+        if(!(m.layer_thickness > 0.0) || !(m.youngs_modulus > 0.0)) {
+          return 0.0;
+        }
+        const double nu = m.poisson_ratio;
+        return m.youngs_modulus * (1.0 - nu) /
+               ((1.0 + nu) * (1.0 - 2.0 * nu) * m.layer_thickness);
+      };
+      const double fa = foundation(a), fb = foundation(b);
+      if(fa > 0.0 && fb > 0.0) {
+        law.foundation = 1.0 / (1.0 / fa + 1.0 / fb);
+      } else {
+        law.foundation = std::max(fa, fb);
       }
     }
   }
@@ -477,15 +508,20 @@ void shift::core::force_module::Contact::Load() {
     stick_ratios_.assign(bristles_.size(), 0.0);
   }
 
-  /* geometry of jointed bodies overlaps at the joint */
-  if(exclude_jointed_bodies_) {
-    for(auto joint : context_->get_active_joints()) {
-      if(joint->get_type() != "float" && joint->get_parent_body() &&
-         joint->get_child_body()) {
-        context_->ExcludeContact(joint->get_parent_body(),
-                                 joint->get_child_body());
-      }
+  for(const auto& pair : disabled_pairs_) {
+    if(pair.size() != 2) {
+      throw shift::core::Exception("Contact force module '" + name_ +
+                                   "': each of disabled_pairs names two "
+                                   "bodies");
     }
+    body::Base* a = context_->FindActiveBody(pair[0]);
+    body::Base* b = context_->FindActiveBody(pair[1]);
+    if(!a || !b) {
+      throw shift::core::Exception("Contact force module '" + name_ +
+                                   "': disabled_pairs names an unknown body, '" +
+                                   (a ? pair[1] : pair[0]) + "'");
+    }
+    context_->ExcludeContact(a, b);
   }
 }
 
@@ -557,7 +593,16 @@ double shift::core::force_module::Contact::GroupMass(int load_index) const {
 
 double shift::core::force_module::Contact::PointLaw(
   const collision_geometry::ContactPoint& c, double modulus, double depth,
-  double& stiffness, double& exponent) {
+  double& stiffness, double& exponent, double foundation) {
+  if(c.area > 0.0) {
+    const double pressure =
+      foundation > 0.0
+        ? foundation
+        : 2.0 * modulus / std::sqrt(M_PI * std::max(c.patch_area, c.area));
+    stiffness = pressure * c.area;
+    exponent = 1.0;
+    return stiffness;
+  }
   if(c.length > 0.0) {
     stiffness = 0.25 * M_PI * modulus * c.length;
     exponent = 1.0;
@@ -836,7 +881,8 @@ void shift::core::force_module::Contact::Service(const double* y,
     if(pair->point_laws) {
       auto point_law = [&](const collision_geometry::ContactPoint& c,
                            double& stiffness, double& exponent) {
-        return PointLaw(c, law.modulus, damping_depth_, stiffness, exponent);
+        return PointLaw(c, law.modulus, damping_depth_, stiffness, exponent,
+                        law.foundation);
       };
       double stiffness, exponent, total = 0.0;
       for(const auto& c : pair->manifold) {

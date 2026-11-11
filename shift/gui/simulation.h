@@ -5,6 +5,8 @@
 #include "shift/gui/scene.h"
 
 #include <condition_variable>
+#include <map>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -16,6 +18,9 @@ namespace core {
 class Context;
 namespace body {
 class Base;
+}
+namespace terrain {
+class Scm;
 }
 } // namespace core
 
@@ -32,6 +37,14 @@ Follows the conventions of the original OpenGL workspace:
 - Playback evaluates poses at an arbitrary time by interpolating linearly
   between knot points. It uses a separate DHVA buffer, so it never touches
   the context state while the worker is integrating.
+- A deformable terrain (shift::core::terrain::Scm) is drawn from the levels
+  of its nodes. At each knot point only the nodes whose levels changed are
+  recorded (Scm::get_output_changes), as their levels before and after;
+  playback moves the levels shown forward or back through these and
+  interpolates those of the knot point after the time shown, and the
+  viewport uploads only the rectangle of the terrain that changed
+  (TakeTerrainUpdates). Run and AdoptShownState restart the terrain from the
+  levels shown (Scm::SetLevels), Reset from the undisturbed surface.
 - The workspace jogs joints by editing q in the context directly. That is
   only possible while no simulation is being computed; AdoptShownState
   first moves the context to the configuration shown and discards the
@@ -45,7 +58,12 @@ public:
   Simulation(const Simulation&) = delete;
   Simulation& operator=(const Simulation&) = delete;
 
-  /*! \brief load a model JSON file; throws on failure */
+  /*! \brief load a model JSON or YAML file, or an HDF5 log
+   * (logger::HDF5) to play back; throws on failure. A log holds its model
+   * and the files it read, which are taken out to a temporary directory
+   * (removed with the next Load); the model is loaded without its loggers,
+   * so that a Run from the log writes no files, and the rows of the log
+   * become the knot points, as if they had just been computed. */
   void Load(const std::string& filename);
 
   bool is_loaded() const {
@@ -124,9 +142,57 @@ public:
   /*! \brief copy the shown poses if they changed since the previous call */
   bool TakePoses(Poses& poses);
 
+  /*! \brief the rectangles of the terrains that changed since the previous
+   * call; Scene::terrains already holds them, for a viewport that uploads
+   * the whole scene again */
+  void TakeTerrainUpdates(std::vector<TerrainUpdate>& updates);
+
 private:
+  /*! a deformable terrain drawn as Scene::terrains[terrain]: its control
+   * points are the nodes of the grid with a ring of the undisturbed surface
+   * around them, (nx + 2) by (ny + 2) */
+  struct ScmView {
+    shift::core::terrain::Scm* scm = nullptr;
+    int terrain = 0;
+    long nx = 0;
+    long ny = 0;
+    std::vector<float> undisturbed; /*!< z of the nodes, nx * ny */
+    std::vector<float> worker;      /*!< levels recorded, worker thread */
+    std::vector<float> base;        /*!< levels at base_delta_, GUI thread */
+    std::vector<float> shown;       /*!< levels shown, GUI thread */
+    /*! the control points changed since TakeTerrainUpdates, empty if
+     * x_min > x_max */
+    long x_min = 0, x_max = -1, y_min = 0, y_max = -1;
+  };
+  /*! a level recorded at a knot point */
+  struct LevelDelta {
+    int32_t view; /*!< in scm_views_ */
+    int32_t index; /*!< node */
+    float before;
+    float after;
+  };
+
+  /*! \brief the view of a deformable terrain drawn as
+   * Scene::terrains[index] */
+  void AddScmView(shift::core::terrain::Scm& scm, int index);
+  /*! \brief show level at node index of a view */
+  void ShowLevel(ScmView& view, int32_t index, float level);
+  /*! \brief restart the terrains and their records from the levels shown,
+   * or from the undisturbed surface (reset) */
+  void RestartTerrains(bool reset);
+  /*! \brief show the levels at deltas_ position base plus the fraction p of
+   * the deltas [partial_begin, partial_end) (GUI thread, mutex_ held) */
+  void ShowLevels(size_t base, size_t partial_begin, size_t partial_end,
+                  double p);
+
   struct StopRequested {};
 
+  /*! \brief load the model file path, with Context::set_file_map */
+  void LoadModel(const std::string& path,
+                 std::map<std::string, std::string> file_map);
+  /*! \brief load the model of an HDF5 log and its rows */
+  void LoadLog(const std::string& filename);
+  void RemoveLogDirectory();
   void JoinWorker();
   void Work();
   void Observe(double time, const std::vector<double>& y);
@@ -136,6 +202,7 @@ private:
   void StoreInitialState();
 
   std::string filename_;
+  std::string log_directory_; /*!< files taken out of a log */
   std::unique_ptr<shift::core::Context> context_;
   std::vector<shift::core::body::Base*> bodies_;
   Scene scene_;
@@ -150,6 +217,10 @@ private:
   std::string error_;
   std::vector<double> times_;  /*!< knot point times */
   std::vector<double> states_; /*!< knot point q and dq, state_size_ each */
+  std::vector<LevelDelta> deltas_; /*!< levels changed, in order */
+  /*! the first of deltas_ of each knot point, which lead to it from the
+   * previous one */
+  std::vector<size_t> knot_deltas_;
   double wall_start_ = 0.0;
   double real_time_factor_ = 0.0;
 
@@ -159,6 +230,10 @@ private:
   double shown_time_ = 0.0;
   Poses poses_;
   bool poses_changed_ = false;
+  std::vector<ScmView> scm_views_;
+  size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
+  size_t partial_begin_ = 0; /*!< deltas_ shown in part */
+  size_t partial_end_ = 0;
 };
 
 } // namespace gui

@@ -53,6 +53,7 @@
 #include "shift/core/logger/base.h"
 #include "shift/core/sensor/base.h"
 #include "shift/core/solver/base.h"
+#include "shift/core/gpu/device.h"
 #include "shift/core/terrain/base.h"
 
 #include "shift/core/log.h"
@@ -77,6 +78,8 @@ void shift::core::Context::DeclareParameters() {
 
 void shift::core::Context::LoadJSON(const std::string filename) {
   filename_ = filename;
+  files_read_.clear();
+  file_names_.clear();
   std::error_code error;
   if(!std::filesystem::exists(filename, error)) {
     throw shift::core::Exception("The file '" + filename +
@@ -312,6 +315,13 @@ void shift::core::Context::Initialize() {
   if(!shift::core::terrain::Modules::is_initialized()) {
     throw shift::core::Exception("Terrain modules did not properly initialize");
   }
+}
+
+std::shared_ptr<shift::core::gpu::Device> shift::core::Context::GetGpuDevice() {
+  if(!gpu_device_) {
+    gpu_device_ = std::make_shared<shift::core::gpu::Device>();
+  }
+  return gpu_device_;
 }
 
 void shift::core::Context::ActivateObjects(bool) {
@@ -800,9 +810,6 @@ void shift::core::Context::ClearActiveArrays() {
 }
 
 void shift::core::Context::Connect() {
-  for(auto& controller : active_controllers_) {
-    controller->Connect();
-  }
   for(auto& body : active_articulated_bodies_) {
     body->Connect();
   }
@@ -837,8 +844,13 @@ void shift::core::Context::Connect() {
   for(auto& sensor : active_sensors_) {
     sensor->Connect();
   }
+  /* after the sensors: a PID controller's derivative term needs to know
+  whether its sensor provides a rate, which the sensor finds in Connect */
+  for(auto& controller : active_controllers_) {
+    controller->Connect();
+  }
   for(auto& terrain : active_terrain_) {
-    terrain->Connect();
+    terrain->ConnectAll();
   }
   for(auto& logger : active_loggers_) {
     logger->Connect();
@@ -927,7 +939,7 @@ void shift::core::Context::LoadData() {
     sensor->Load();
   }
   for(auto& terrain : active_terrain_) {
-    terrain->Load();
+    terrain->LoadAll();
   }
   /* collision geometry is fitted to the mesh geometry loaded above */
   collision_geometry_prototypes_.clear();
@@ -3107,11 +3119,54 @@ void shift::core::Context::AddBodyLoad(int load_index,
   }
 }
 
+ksl_coscrew_t shift::core::Context::GetBodyLoad(int load_index) const {
+  if(load_index < 0) {
+    return ksl_coscrew(0, 0, 0, 0, 0, 0);
+  }
+  const size_t index = static_cast<size_t>(load_index);
+  if(index >= non_rigid_joint_count_) {
+    const size_t free = index - non_rigid_joint_count_;
+    return free < free_loads_.size() ? free_loads_[free]
+                                     : ksl_coscrew(0, 0, 0, 0, 0, 0);
+  }
+  return index < body_loads_.size() ? body_loads_[index]
+                                    : ksl_coscrew(0, 0, 0, 0, 0, 0);
+}
+
 std::string shift::core::Context::FindFile(const std::string& name) {
-  return shift::core::utility::FindFile(
-    name, filename_,
-    (*this)["model_parameters"]["include_directories"]
-      .get<std::vector<std::string>>());
+  const auto mapped = file_map_.find(name);
+  const std::string file =
+    mapped != file_map_.end()
+      ? mapped->second
+      : shift::core::utility::FindFile(
+          name, filename_,
+          (*this)["model_parameters"]["include_directories"]
+            .get<std::vector<std::string>>());
+  if(!file.empty()) {
+    RecordFile(file);
+    std::error_code error;
+    const auto absolute = std::filesystem::absolute(file, error);
+    if(!error && !shift::core::utility::IsResourcePath(file)) {
+      file_names_[name] = absolute.lexically_normal().string();
+    }
+  }
+  return file;
+}
+
+void shift::core::Context::RecordFile(const std::string& path) {
+  if(shift::core::utility::IsResourcePath(path)) {
+    return; // built into the viewer
+  }
+  std::error_code error;
+  std::filesystem::path absolute = std::filesystem::absolute(path, error);
+  if(error) {
+    return;
+  }
+  const std::string file = absolute.lexically_normal().string();
+  if(std::find(files_read_.begin(), files_read_.end(), file) ==
+     files_read_.end()) {
+    files_read_.push_back(file);
+  }
 }
 
 void shift::core::Context::EvaluateConstraints() {
@@ -3434,9 +3489,17 @@ void shift::core::Context::get_current_time(double& time, double& delta_time) {
 
 void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
-  /* the force modules' outputs (pressures, forces) of this state */
+  /* the force modules' outputs (pressures, forces) of this state, then the
+  sensors', which may report the forces */
   for(auto& force_module : active_force_modules_) {
     force_module->UpdateOutputs(time, y.data());
+  }
+  for(auto& sensor : active_sensors_) {
+    sensor->UpdateOutputs(time, y.data());
+  }
+  /* the changes of the terrains' surfaces since the previous output */
+  for(auto& terrain : active_terrain_) {
+    terrain->UpdateOutputAll();
   }
   for(auto& logger : active_loggers_) {
     logger->WriteStates(time, y);
@@ -3764,6 +3827,10 @@ void shift::core::Context::AcceptStep(const std::vector<double>&) {
     auto& pair = entry.second;
     pair.accepted_normal =
       pair.collision ? pair.normal : ksl_vec3_t{{0.0, 0.0, 0.0}};
+  }
+  /* the changes of deformable terrain in that evaluation */
+  for(auto terrain : active_terrain_) {
+    terrain->AcceptStepAll();
   }
 }
 

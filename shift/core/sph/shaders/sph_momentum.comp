@@ -1,0 +1,165 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// SPH pass 7: the acceleration from the new stresses, with Monaghan's
+// artificial viscosity and gravity; then the velocity and position
+// (symplectic Euler), into the A arrays. A body's marker adds to its impulse
+// the opposite of the forces it puts on the particles around it, and its
+// moment about the origin
+
+#include "sph_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Position { vec4 position[]; };
+layout(std430, binding = 1) readonly buffer Velocity { vec4 velocity[]; };
+layout(std430, binding = 2) readonly buffer Kind { uint kind[]; };
+layout(std430, binding = 3) readonly buffer Id { uint id[]; };
+layout(std430, binding = 4) readonly buffer Start { uint start[]; };
+layout(std430, binding = 5) readonly buffer Materials { vec4 materials[]; };
+layout(std430, binding = 6) readonly buffer DensityNew { float density_new[]; };
+layout(std430, binding = 7) readonly buffer StressNew { vec4 stress_new[]; };
+layout(std430, binding = 8) writeonly buffer PositionOut { vec4 position_out[]; };
+layout(std430, binding = 9) writeonly buffer VelocityOut { vec4 velocity_out[]; };
+layout(std430, binding = 10) writeonly buffer IdOut { uint id_out[]; };
+layout(std430, binding = 11) writeonly buffer KindOut { uint kind_out[]; };
+// six floats per body marker, by id: force x, y, z, then moment x, y, z, each
+// for all the markers
+layout(std430, binding = 12) buffer Impulse { float impulse[]; };
+
+// the force on body marker i from the particles around it
+void BodyMarker(uint i) {
+  const vec4 xm = position[i];
+  const vec4 vm = velocity[i];
+  const vec4 tm0 = stress_new[2 * i], tm1 = stress_new[2 * i + 1];
+  const float rhom = density_new[i];
+  const float mm = xm.w;
+  float force[3] = float[3](0.0, 0.0, 0.0);
+  uint hashes[27];
+  const int cells = NeighborCells(xm.xyz, hashes);
+  for(int c = 0; c < cells; c++) {
+    for(uint j = start[hashes[c]]; j < start[hashes[c] + 1]; j++) {
+      if((kind[j] & kMarker) != 0) {
+        continue;
+      }
+      // the particle's acceleration from the marker, as main computes it
+      const vec4 xj = position[j];
+      const float dx = xj.x - xm.x;
+      const float dy = xj.y - xm.y;
+      const float dz = xj.z - xm.z;
+      const float r2 = dx * dx + dy * dy + dz * dz;
+      const float r = sqrt(r2);
+      if(!(r < 2.0 * h) || r < 1e-6 * h) {
+        continue;
+      }
+      const float f = KernelDerivative(r) / r;
+      const float grad[3] = float[3](f * dx, f * dy, f * dz);
+      const vec4 vj = velocity[j];
+      const float rhoj = density_new[j];
+      const vec4 tj0 = stress_new[2 * j], tj1 = stress_new[2 * j + 1];
+      const float cj = materials[2 * kind[j]].w;
+      const float approach =
+        (vj.x - vm.x) * dx + (vj.y - vm.y) * dy + (vj.z - vm.z) * dz;
+      float pi = 0.0;
+      if(approach < 0.0) {
+        const float mu = h * approach / (r2 + 0.01 * h * h);
+        pi = -viscosity * 0.5 * (cj + cj) * mu / (0.5 * (rhoj + rhom));
+      }
+      const float pj2 = 1.0 / (rhoj * rhoj), pm2 = 1.0 / (rhom * rhom);
+      const float t[6] = float[6](tj0.x * pj2 + tm0.x * pm2 - pi,
+                                  tj0.y * pj2 + tm0.y * pm2 - pi,
+                                  tj0.z * pj2 + tm0.z * pm2 - pi,
+                                  tj0.w * pj2 + tm0.w * pm2,
+                                  tj1.x * pj2 + tm1.x * pm2,
+                                  tj1.y * pj2 + tm1.y * pm2);
+      const float a[3] = float[3](
+        mm * (t[0] * grad[0] + t[3] * grad[1] + t[5] * grad[2]),
+        mm * (t[3] * grad[0] + t[1] * grad[1] + t[4] * grad[2]),
+        mm * (t[5] * grad[0] + t[4] * grad[1] + t[2] * grad[2]));
+      for(int k = 0; k < 3; k++) {
+        force[k] -= xj.w * a[k];
+      }
+    }
+  }
+  const uint slot = id[i] - bodies.x;
+  const uint n = bodies.y;
+  const float moment[3] = float[3](xm.y * force[2] - xm.z * force[1],
+                                   xm.z * force[0] - xm.x * force[2],
+                                   xm.x * force[1] - xm.y * force[0]);
+  for(int k = 0; k < 3; k++) {
+    impulse[k * n + slot] += dt * force[k];
+    impulse[(k + 3) * n + slot] += dt * moment[k];
+  }
+}
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if(i >= count) {
+    return;
+  }
+  id_out[i] = id[i];
+  kind_out[i] = kind[i];
+  const vec4 xi = position[i];
+  const vec4 vi = velocity[i];
+  if((kind[i] & kMarker) != 0) {
+    position_out[i] = xi;
+    velocity_out[i] = vi;
+    if(MarkerBody(kind[i]) != 0) {
+      BodyMarker(i);
+    }
+    return;
+  }
+  const vec4 ti0 = stress_new[2 * i], ti1 = stress_new[2 * i + 1];
+  const float rhoi = density_new[i];
+  const float ci = materials[2 * kind[i]].w;
+  float a[3] = float[3](gravity.x, gravity.y, gravity.z);
+  uint hashes[27];
+  const int cells = NeighborCells(xi.xyz, hashes);
+  for(int c = 0; c < cells; c++) {
+    for(uint j = start[hashes[c]]; j < start[hashes[c] + 1]; j++) {
+      if(j == i) {
+        continue;
+      }
+      const float dx = xi.x - position[j].x;
+      const float dy = xi.y - position[j].y;
+      const float dz = xi.z - position[j].z;
+      const float r2 = dx * dx + dy * dy + dz * dz;
+      const float r = sqrt(r2);
+      if(!(r < 2.0 * h) || r < 1e-6 * h) {
+        continue;
+      }
+      const float f = KernelDerivative(r) / r;
+      const float grad[3] = float[3](f * dx, f * dy, f * dz);
+      const bool marker = (kind[j] & kMarker) != 0;
+      const vec3 vj = velocity[j].xyz; // a wall's is 0, a body's its own
+      const float mj = position[j].w;
+      const float rhoj = density_new[j];
+      const vec4 tj0 = stress_new[2 * j], tj1 = stress_new[2 * j + 1];
+      const float cj = marker ? ci : materials[2 * kind[j]].w;
+      const float approach =
+        (vi.x - vj.x) * dx + (vi.y - vj.y) * dy + (vi.z - vj.z) * dz;
+      float pi = 0.0;
+      if(approach < 0.0) {
+        const float mu = h * approach / (r2 + 0.01 * h * h);
+        pi = -viscosity * 0.5 * (ci + cj) * mu / (0.5 * (rhoi + rhoj));
+      }
+      const float pi2 = 1.0 / (rhoi * rhoi), pj2 = 1.0 / (rhoj * rhoj);
+      const float t[6] = float[6](ti0.x * pi2 + tj0.x * pj2 - pi,
+                                  ti0.y * pi2 + tj0.y * pj2 - pi,
+                                  ti0.z * pi2 + tj0.z * pj2 - pi,
+                                  ti0.w * pi2 + tj0.w * pj2,
+                                  ti1.x * pi2 + tj1.x * pj2,
+                                  ti1.y * pi2 + tj1.y * pj2);
+      a[0] += mj * (t[0] * grad[0] + t[3] * grad[1] + t[5] * grad[2]);
+      a[1] += mj * (t[3] * grad[0] + t[1] * grad[1] + t[4] * grad[2]);
+      a[2] += mj * (t[5] * grad[0] + t[4] * grad[1] + t[2] * grad[2]);
+    }
+  }
+  vec4 v = vi, x = xi;
+  for(int k = 0; k < 3; k++) {
+    v[k] = vi[k] + dt * a[k];
+    x[k] = xi[k] + dt * v[k];
+  }
+  position_out[i] = x;
+  velocity_out[i] = v;
+}

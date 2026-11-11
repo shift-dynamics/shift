@@ -27,6 +27,7 @@ shift_config_h = configure_file(
     'SHIFT_BINARY_DIR': meson.project_build_root(),
     'SHIFT_EXAMPLES_DIR': shift_examples_dir,
     'SHIFT_HAVE_STEP': step_dep.found() ? 1 : 0,
+    'SHIFT_HAVE_GPU': gpu_found ? 1 : 0,
   },
 )
 

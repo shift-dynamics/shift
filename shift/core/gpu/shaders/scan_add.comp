@@ -1,0 +1,23 @@
+#version 450
+// Last pass of gpu::Scan: add to each block's prefix sums the exclusive sum
+// of the blocks before it.
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer Sums {
+  uint sums[];
+};
+layout(std430, binding = 1) readonly buffer Offsets {
+  uint offsets[];
+};
+
+layout(push_constant) uniform Constants {
+  uint count;
+};
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if(i < count) {
+    sums[i] += offsets[i / 1024];
+  }
+}

@@ -15,6 +15,9 @@ namespace core {
 namespace body {
 class Base;
 }
+namespace terrain {
+class Scm;
+}
 
 namespace force_module {
 
@@ -66,6 +69,19 @@ sinkage \f$z_{max}\f$.
 
 The normal force of each station acts at it, the shear at the stations in
 proportion to their strength, and the earth pressure at the shoe's center.
+
+On deformable soil (a terrain of type "scm"), the soil under the shoes is
+the terrain's: force_module::SoilContact, which must list the shoes' bodies,
+carries them by the pressure and shear stress of its nodes and leaves their
+ruts. Each shoe over the terrain's grid (its center within half a spacing of
+it) then takes from track_soil only the earth pressure on its leading
+grouser and its side, with the terrain's soil at the node nearest its center
+and the sinkage from the terrain's undisturbed surface; the stations' plastic
+sinkage relaxes as off the soil, so that a shoe beyond the grid comes down on
+fresh soil. A shoe beyond the grid takes all of the forces above, on the
+ground plane. Without the terrain, or over a rigid terrain, every shoe takes
+all of them. The soil is then needed; over the terrain it defaults to the
+terrain's at each shoe.
 
 Outputs, for each shoe: <shoe>_sinkage (the deepest station's), and the
 total normal_force, traction (along the track) and side_force (across it)
@@ -122,6 +138,12 @@ public:
   }
 
 private:
+  /*! \brief the pressure of soil at sinkage z where the plastic sinkage is
+   * z_p */
+  double Pressure(const SoilProperties& soil, double z, double z_p) const;
+  /*! \brief x, y and z of point p (inertial frame) in the frame of the
+   * deformable terrain */
+  void ToTerrain(const ksl_vec3_t& p, double& x, double& y, double& z) const;
   /*! \brief the forces on the shoes and the state rates (if dy) */
   void Evaluate(const double* y, double* dy, bool apply);
 
@@ -143,6 +165,9 @@ private:
   double contact_depth_ = 1e-3;
 
   SoilProperties soil_properties_;
+  /*! the deformable terrain, if the model has one */
+  terrain::Scm* scm_ = nullptr;
+  bool has_soil_ = false;
   std::vector<body::Base*> shoes_;
   std::vector<int> load_indices_;
   ksl_vec3_t across_;

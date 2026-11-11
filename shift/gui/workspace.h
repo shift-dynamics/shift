@@ -8,6 +8,7 @@
 #include <QElapsedTimer>
 #include <QMainWindow>
 #include <QSize>
+#include <QVector3D>
 
 class QAction;
 class QCheckBox;
@@ -78,11 +79,16 @@ public:
     float elevation = 0.35f;   /*!< radians, see Camera */
     bool hide_floor = false;   /*!< hide the floor even if the model shows
                                 * it (a model with a terrain hides it) */
+    bool bilinear_terrain = false; /*!< View > Smooth deformable terrain
+                                      off */
     QString follow_body;       /*!< if given, the camera is placed at the
                                 * start and follows this body to time */
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
+    bool set_frame = false;    /*!< frame this sphere, not the whole scene */
+    QVector3D frame_center;    /*!< of the sphere, inertial frame */
+    float frame_radius = 1.f;  /*!< of the sphere */
   };
 
   /*! \brief render the open model at request.time to an image file and
@@ -298,6 +304,8 @@ private:
   } playback_panel_;
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
+  /*! View > Smooth deformable terrain */
+  QAction* smooth_terrain_action_ = nullptr;
   QLabel* status_label_ = nullptr;
   QLabel* time_label_ = nullptr;
   QLabel* rate_label_ = nullptr;

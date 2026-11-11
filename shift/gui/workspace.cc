@@ -112,6 +112,15 @@ void shift::gui::Workspace::InitializeMenus() {
   floor->setChecked(true);
   connect(floor, &QAction::toggled, viewport_, &Viewport::set_floor_enabled);
   floor_action_ = floor;
+  QAction* smooth_terrain = view_menu->addAction("&Smooth deformable terrain");
+  smooth_terrain->setCheckable(true);
+  smooth_terrain->setChecked(true);
+  smooth_terrain->setToolTip("draw SCM terrain by a Catmull-Rom surface "
+                             "through its nodes; unchecked, bilinear between "
+                             "them as the soil models see it");
+  connect(smooth_terrain, &QAction::toggled, viewport_,
+          &Viewport::set_smooth_terrain);
+  smooth_terrain_action_ = smooth_terrain;
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
   frame->setShortcut(Qt::Key_F);
@@ -831,10 +840,12 @@ bool shift::gui::Workspace::Open(const QString& filename,
   LoadModelParameters();
   ClearVideoRange();
   playback_time_ = 0.0;
-  playback_panel_.slider->set_time_span(0.0, simulation_.get_end_time());
-  playback_panel_.slider->set_progress_time(0.0);
+  // an HDF5 log comes with its results, which may run past the time span
+  playback_panel_.slider->set_time_span(
+    0.0, std::max(simulation_.get_end_time(), simulation_.get_computed_time()));
+  playback_panel_.slider->set_progress_time(simulation_.get_computed_time());
   playback_panel_.slider->set_time(0.0);
-  playback_panel_.slider->Enable(false);
+  playback_panel_.slider->Enable(simulation_.has_results());
   playback_panel_.play_pause_button->setIcon(playback_panel_.play_icon);
   viewport_->set_simulation(&simulation_);
   camera_panel_.follow->setChecked(false);
@@ -853,13 +864,18 @@ bool shift::gui::Workspace::Open(const QString& filename,
 
 void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
   image_request_ = request;
+  if(request.bilinear_terrain) {
+    smooth_terrain_action_->setChecked(false);
+  }
   if(request.hide_floor) {
     floor_action_->setChecked(false);
   }
   if(request.samples > 0) {
     viewport_->set_render_mode(Viewport::RenderMode::kRayTraced);
   }
-  if(request.time > 0.0 && simulation_.is_loaded()) {
+  // an HDF5 log that reaches the time is shown as it is
+  if(request.time > 0.0 && simulation_.is_loaded() &&
+     simulation_.get_computed_time() < request.time - 1e-9) {
     simulation_.set_end_time(request.time);
     simulation_.Run();
   }
@@ -913,6 +929,9 @@ bool shift::gui::Workspace::AdvanceImage() {
   } else {
     viewport_->FrameScene();
   }
+  if(request.set_frame) {
+    viewport_->FrameSphere(request.frame_center, request.frame_radius);
+  }
   if(!request.follow_body.isEmpty()) {
     viewport_->set_follow_body(follow, request.follow_ground
                                          ? Viewport::FollowMode::kGround
@@ -939,7 +958,7 @@ bool shift::gui::Workspace::AdvanceImage() {
 
 void shift::gui::Workspace::OpenDialog() {
   const QString filename = QFileDialog::getOpenFileName(
-    this, "Open model", QString(), "Shift models (*.json *.yaml *.yml);;All files (*)");
+    this, "Open model", QString(), "Shift models and logs (*.json *.yaml *.yml *.h5 *.hdf5);;All files (*)");
   if(!filename.isEmpty()) {
     Open(filename);
   }

@@ -14,6 +14,17 @@ for the pair.
 Contact detection is off unless ``model_parameters`` turns it on with
 ``"enable_contact_detection": true``.
 
+Every pair of bodies with collision geometry is tested for contact, unless
+the module lists it in ``disabled_pairs``, by the names of the two bodies.
+A joint does not take its bodies out of contact: bodies joined by a joint
+whose geometries overlap at the joint, or are not meant to touch, are listed.
+In a track, each link is listed with its neighbour, as the revolute joint
+between them carries their contact:
+
+.. code-block:: json
+
+   "disabled_pairs": [["link1", "link2"], ["link2", "link3"], ["link44", "link1"]]
+
 Normal force
 ------------
 
@@ -29,18 +40,22 @@ MSC Adams, scaled by the point's weight :math:`w`:
 
 The damping coefficient ramps up from zero at first touch to :math:`c` at
 the depth :math:`h` (``damping_depth``), so the force is continuous and
-depends on the state only. The stiffness depends on the shapes:
+depends on the state only. A contact that rests far shallower than :math:`h`
+is almost undamped, and the parts ring on each other: the line of contact of
+the rim of a steel part lying flat on a face, for one, rests a few nanometres
+deep, against the default :math:`h` of 0.1 mm. Such a model sets :math:`h`
+below its resting depth. The stiffness depends on the shapes:
 
 * **Spheres, ellipsoids and planes**: Hertz contact :cite:`johnson1985` at
   the deepest point, :math:`k = \tfrac{4}{3} e^* \sqrt{r^*}`,
   :math:`n = 3/2`, with :math:`1/e^* = (1-\nu_a^2)/e_a + (1-\nu_b^2)/e_b`
   from the materials' ``youngs_modulus`` and ``poisson_ratio`` and
   :math:`1/r^*` the sum of the curvatures at the contact points.
-* **Cylinders and capsules on a plane**: Hertz line contact
-  :cite:`johnson1985`, :math:`f = \tfrac{\pi}{4} e^* l d` at depth
+* **Cylinders and capsules on a plane, a box or a convex hull**: Hertz line
+  contact :cite:`johnson1985`, :math:`f = \tfrac{\pi}{4} e^* l d` at depth
   :math:`d` over a length :math:`l` of the line (see below), :math:`n = 1`.
-  Against any other shape they touch as if round, with Hertz contact of the
-  radius of the cylinder or capsule at the deepest point.
+  Against a sphere, an ellipsoid or each other they touch as if round, with
+  Hertz contact of the radius of the cylinder or capsule at the deepest point.
 * **Boxes and convex hulls**: a linear spring, :math:`n = 1`, at each
   point of the contact patch, with :math:`k` the ``contact_stiffness``, the
   stiffness of one point (a box resting on its face stands on four of them). The
@@ -50,9 +65,10 @@ depends on the state only. The stiffness depends on the shapes:
   on its corners.
 * **CAD geometry**: each point found on the exact surfaces has its own
   normal and law: Hertz contact where two curved surfaces touch, and, along
-  a line of contact (parallel cylinders, a cylinder on a plane, or a NURBS or
-  extruded face on a cylinder or plane, as a cam on its roller), stations of
-  Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
+  a line of contact (parallel cylinders, a cylinder on a plane, a NURBS
+  or extruded face on a cylinder or plane, as a cam on its roller, or two such
+  faces on each other, as tooth flanks; the line may bend, as a curved ring on
+  a plane does), stations of Hertz line contact, :math:`k = \tfrac{\pi}{4} e^* l`, :math:`n = 1`.
   A sphere or an ellipsoid touches CAD geometry the same way, on its exact
   surfaces: at a point of each face it presses on, with the curvature of the
   shape and of the face there, or at the edge or vertex it reaches where no
@@ -60,12 +76,17 @@ depends on the state only. The stiffness depends on the shapes:
   and a ball too wide for a hollow stands on its rims. A box, cylinder or convex
   hull touches CAD geometry as another CAD part does, through faces, edges and
   vertices of its own: a corner on a face, a cylinder's side along a line, a rim
-  on a face. Its corners and edges are taken as rounded to 0.002 of its size,
-  which sets their Hertz contact. A capsule is the side of a cylinder with a
-  sphere at each end, and as it tilts its line of contact gives way smoothly to
-  the point of the end. All of these use the ``youngs_modulus`` of the materials
-  against CAD geometry, not the ``contact_stiffness``, and a point is limited to
-  the depth of the CAD geometry's ``max_depth``.
+  on a face, or two edges crossing. Its corners and edges are taken as rounded
+  to its ``edge_radius``, by default 0.002 of its size, which sets their Hertz
+  contact. A capsule is the side of a cylinder with a sphere at each end, and as
+  it tilts its line of contact gives way smoothly to the point of the end. A
+  cylinder or capsule rolling over the edge of a face keeps its line of contact,
+  along that edge, and so does a cylinder of another STEP part. All of these use the ``youngs_modulus`` of the materials
+  against CAD geometry, not the ``contact_stiffness``. A point deeper than
+  ``max_depth`` is taken to be on the far side of the part: set it on the shape
+  to use another value than the CAD geometry's, 2% of its size by default.
+  Near an edge of a face, within the radius of the Hertz contact patch, a round
+  shape's stiffness goes over smoothly to that of the edge.
 
 A cylinder or a capsule on a plane touches along a line, the lowest
 generator of the cylinder or the segment of the capsule, and a single
@@ -90,6 +111,27 @@ moves along the line as the shape tilts, so the force is continuous in the
 state and gives the restoring moment. A cylinder standing on a flat end is
 carried by its rim, as by a line of zero length that grows with the depth:
 use a box or a convex hull for flat faces.
+
+On a box or a convex hull the faces bound the line. The lowest point of the
+shape at a station is inside the hull over an interval of stations, and its
+depth there is the distance along the normal :math:`\underline{n}` out of the
+hull to where it leaves the hull, the least over the faces the normal points
+out of,
+
+.. math::
+
+   d(s) = \min_f \frac{o_f - \underline{n}_f \cdot \underline{q}(s)}
+                       {\underline{n}_f \cdot \underline{n}}
+
+with :math:`\underline{q}(s)` the lowest point and :math:`\underline{n}_f`
+and :math:`o_f` the normal and offset of face :math:`f`. Each face gives a
+depth linear in :math:`s`, so :math:`d(s)` is made of straight pieces, each
+one point as on a plane. On a face there is one piece, the line cut where it
+crosses the face's edges; as the shape rolls over an edge, the normal turns
+from one face toward the other and the edge carries the line, without a jump
+in the force. The normal is that of the closest points of the hull and the
+shape's axis, exact while the axis is outside the hull (the side of the shape
+is its axis grown by the radius).
 
 The damping :math:`c` is given as ``damping``, or follows from the
 coefficient of restitution :math:`r` as the damping of a mass on a linear

@@ -182,7 +182,7 @@ inertia of a body explicitly when they are known, since a solid model of a
 hollow part, such as a fabricated boom, overstates its mass.
 
 Geometry and materials
-~~~~~~~~~~~~~~~~~~~~~~
+**********************
 
 A body is drawn with the meshes in its ``geometry`` list: OBJ files (with
 their MTL material files) or glTF files, placed in the body's axes. These
@@ -373,10 +373,130 @@ collision geometry is fitted to the body's meshes (``fit_to``).
 Terrain
 -------
 
-``"type": "basic"``: an elevation map from a TIFF image, on a frame of the
-fixed body. Tires drive on terrain (see :doc:`../force-modules/tire`).
+A model has one terrain, on a frame of the fixed body. Tires drive on terrain
+(see :doc:`../force-modules/tire`).
+
+``"type": "basic"``: an elevation map from a TIFF image.
 
 .. shift-parameters:: shift/core/terrain/base.cc shift/core/terrain/basic.cc
+
+``"type": "scm"``: deformable soil (the Soil Contact Model), a grid of nodes
+``spacing`` apart over the ranges ``x`` and ``y`` of the terrain frame. The
+nodes start on the elevation map, or without ``filename`` on the xy plane of
+the terrain frame. The soil models lower and raise them, and the terrain's
+surface, as tires and other models see it, follows. It takes the keys of
+``basic`` and needs a ``soil`` or a ``soil_map``. The soil contact force module
+(see :doc:`../force-modules/soil`) puts bodies on it and leaves their ruts; the
+nodes change only when the integrator accepts a step.
+
+.. code-block:: json
+
+   "terrain": [{"type": "scm", "name": "site", "parent": [["fixed"], "terrain"],
+                "x": [-10, 10], "y": [-10, 10], "spacing": 0.05,
+                "soil": {"name": "sandy_loam", "shear_modulus": 0.015}}]
+
+.. shift-parameters:: shift/core/terrain/scm.cc
+   :function: Scm::DeclareParameters
+
+``bulldozing`` pushes the soil bodies press down to the rims of their ruts and
+erodes it to the angle of repose (see :doc:`../force-modules/soil`):
+
+.. code-block:: json
+
+   "bulldozing": {"enable": true, "flow_factor": 1.0, "erosion_angle": 0.6,
+                  "erosion_iterations": 30, "interval": 0.001}
+
+.. shift-parameters:: shift/core/terrain/scm.cc
+   :function: Bulldozing::DeclareParameters
+
+``"type": "sph"``: soil as an elastoplastic continuum carried by particles
+(smoothed particle hydrodynamics, SPH). The particles fill the ranges ``x``
+and ``y`` of the terrain frame, ``spacing`` apart, from the surface (the
+elevation map, or the xy plane of the terrain frame without one) down to
+``depth``. Fixed markers under them and around them are the floor and walls
+of a box. The particles flow, pile up and carry loads as a soil does, at a
+far higher cost than the SCM terrain's nodes, so an SPH soil is usually a
+region of an SCM terrain (see Regions below). The particles run on the GPU
+(``"device": "gpu"``, see :doc:`../installation`) or, for small soils, on
+the CPU (``"cpu"``). After each step the integrator accepts, the particles
+advance to that step's time. The surface that tires and other models see is
+the top of the particles. It is updated at each output time.
+
+The bodies of the soil contact force module (see :doc:`../force-modules/soil`)
+press on the particles directly. Each body's collision geometry is filled
+with markers, a spacing apart and half a spacing inside its surface. Over each
+accepted step they follow the body, and the force the particles put on them
+acts on the body over the next step.
+
+Its soil needs, besides the friction angle, cohesion and unit weight, the
+properties of the soil as a continuum: ``youngs_modulus`` and
+``poisson_ratio``, and optionally ``dilatancy_angle`` (see
+:doc:`../force-modules/soil`). Bekker's sinkage properties are not needed.
+
+.. code-block:: json
+
+   "terrain": [{"type": "sph", "name": "pit", "parent": [["fixed"], "terrain"],
+                "x": [0, 1], "y": [0, 0.5], "depth": 0.2, "spacing": 0.02,
+                "soil": {"cohesion": 0, "friction_angle": 0.52,
+                         "unit_weight": 15700, "youngs_modulus": 2e6,
+                         "poisson_ratio": 0.3}}]
+
+.. shift-parameters:: shift/core/terrain/sph.cc
+   :function: Sph::DeclareParameters
+
+Regions
+*******
+
+A terrain can hold other terrains in its ``regions``, each over its own
+``x`` and ``y``. Where a region lies, it is the terrain: tires and the soil
+models see its surface and its soil. A region uses the frame of the terrain
+that holds it, so it has no ``parent``. It starts from that terrain's
+surface and soils. A region's ``soil`` changes the properties it names in
+each of those soils, and keeps the rest. Regions must lie inside the terrain
+that holds them, and must not overlap.
+
+An SPH region in an SCM terrain gives SPH soil where a tool digs, and the
+cheaper SCM nodes everywhere else. The region's soil adds the properties of
+a continuum to the SCM terrain's soil. Under a region, the soil contact force
+module leaves the SCM nodes alone.
+
+.. code-block:: json
+
+   "terrain": [{"type": "scm", "name": "ground", "parent": [["fixed"], "terrain"],
+                "x": [0, 20], "y": [0, 10], "spacing": 0.05,
+                "soil": {"name": "lete_sand"},
+                "regions": [{"type": "sph", "name": "pit", "x": [8, 10],
+                             "y": [4, 6], "depth": 0.3, "spacing": 0.02,
+                             "soil": {"youngs_modulus": 2e6,
+                                      "poisson_ratio": 0.3}}]}]
+
+Soil map
+********
+
+``soil`` gives a terrain one soil (see :doc:`../force-modules/soil`).
+``soil_map`` gives soils by area: each sample of an 8 or 16 bit integer TIFF
+is a value that selects a soil from ``soils``, and samples of 0 with no soil
+of their own take the terrain's ``soil``. The soil at a point is that of the
+nearest sample, so boundaries between soils stay sharp. The samples are
+``x_scale`` by ``y_scale`` apart from the origin of the terrain frame, laid
+out as the elevation map's (``coordinate_type``). A value with no soil, two
+soils of one value or a float map stops the model from loading.
+
+.. code-block:: json
+
+   "soil": {"name": "dry_sand"},
+   "soil_map": {"filename": "soils.tiff", "x_scale": 0.25, "y_scale": 0.25,
+                "soils": [{"value": 1, "name": "sandy_loam"},
+                          {"value": 2, "name": "clayey_soil_wet",
+                           "shear_modulus": 0.02}]}
+
+.. shift-parameters:: shift/core/terrain/soil_map.cc
+   :function: SoilMap::DeclareParameters
+
+Each soil of ``soils`` has the keys of a soil and its ``value``:
+
+.. shift-parameters:: shift/core/terrain/soil_map.cc
+   :function: MappedSoil::DeclareParameters
 
 Lights
 ------

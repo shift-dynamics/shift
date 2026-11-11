@@ -21,6 +21,7 @@ subdir('collision_geometry')
 subdir('constraint')
 subdir('force_module')
 subdir('geometry')
+subdir('gpu')
 subdir('integrator')
 subdir('joint')
 subdir('light')
@@ -28,6 +29,7 @@ subdir('logger')
 subdir('parameter')
 subdir('sensor')
 subdir('solver')
+subdir('sph')
 subdir('terrain')
 
 core_deps = [
@@ -44,6 +46,7 @@ core_deps = [
   qhull_dep,
   tiff_dep,
   step_dep,
+  vulkan_dep,
 ]
 
 # all of src/core is one library; modules register themselves with the

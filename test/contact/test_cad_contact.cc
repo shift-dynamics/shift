@@ -1,0 +1,1259 @@
+/* contact on the exact surfaces of CAD geometry (collision_geometry::Cad):
+the sprocket and track links of examples/cad (scripts/make_track_step.py),
+a bushing in a seat of the sprocket (a line of contact between parallel
+cylinders), the grousers of a shoe and a tooth of the sprocket on the ground,
+and three links of track settling on the sprocket */
+#include "gtest/gtest.h"
+
+#include <cmath>
+#include <cstdio>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "test/contact/contact_record.h"
+#include "shift/config.h"
+#include "shift/core/body/base.h"
+#include "shift/core/cad/step_reader.h"
+#include "shift/core/collision_geometry/base.h"
+#include "shift/core/collision_geometry/gjk.h"
+#include "shift/core/collision_geometry/hertz.h"
+#include "shift/core/context.h"
+#include "shift/core/force_module/contact.h"
+#include "shift/core/force_module/track.h"
+
+static const double kGravity = 9.81;
+/* the track of make_track_step.py: 190 mm pitch, 21 teeth engaging every
+second one, seats of 30.5 mm radius for bushings of 29.5 mm */
+static const double kPitch = 0.19;
+static const double kTeeth = 21;
+static const double kPitchRadius = 0.095 / std::sin(2.0 * M_PI / kTeeth);
+static const double kSeatRadius = 0.0305;
+static const double kBushingRadius = 0.0295;
+static const double kTipRadius = kPitchRadius + 0.03;
+static const double kSprocketWidth = 0.06;
+/* the angle of the sprocket between the bushings of neighboring links */
+static const double kLinkAngle = 4.0 * M_PI / kTeeth;
+
+/* mass properties of a link of steel (7850 kg/m^3), from the volumes of its
+solids (bushing, pin, four link plates and the shoe), in the link's frame;
+the moments of inertia are those of the shoe and plates, rounded */
+static const double kLinkMass = 38.06;
+static const char* kLinkInertia = R"("center_of_mass": [0.0974, 0, 0.0359],
+       "inertia": {"mass": 38.06, "Ixx": 0.75, "Iyy": 0.15, "Izz": 0.8,
+                   "Ixy": 0, "Iyz": 0, "Izx": 0})";
+
+/* the JSON of a displacement: translation p and rotation matrix (rows) */
+static std::string Displacement(const double p[3], const double r[3][3]) {
+  std::ostringstream s;
+  s.precision(17);
+  s << "{\"T\": [" << p[0] << ", " << p[1] << ", " << p[2] << "], \"R\": [";
+  for(int i = 0; i < 3; i++) {
+    s << (i ? ", " : "") << "[" << r[i][0] << ", " << r[i][1] << ", "
+      << r[i][2] << "]";
+  }
+  s << "]}";
+  return s.str();
+}
+
+/* the rotation whose columns are x, y and z */
+static void Columns(const double x[3], const double y[3], const double z[3],
+                    double r[3][3]) {
+  for(int k = 0; k < 3; k++) {
+    r[k][0] = x[k];
+    r[k][1] = y[k];
+    r[k][2] = z[k];
+  }
+}
+
+/*
+The models are in the frame of the sprocket: its axis along z, a seat on
+the x axis, which is up (gravity along -x). The links lie around the
+sprocket, their pins along z; the ground is the plane x = 0.
+*/
+struct Track {
+  int links = 0;
+  /* the first link's bushing at the seat this far around the sprocket from
+  the top (radians, towards +y), moved down the seat by drop */
+  double first_angle = 0.0;
+  double drop = 0.0;
+  /* the sprocket rigidly joined to the fixed body at the origin, or free
+  with its axis at this height, a tooth's tip down if tip_down */
+  bool sprocket_free = false;
+  double sprocket_height = 0.0;
+  bool tip_down = false;
+  /* a link alone, upside down (its shoe down), the tips of its grousers at
+  this height */
+  bool link_on_ground = false;
+  double grouser_height = 0.0;
+  bool ground = false;
+  double youngs_modulus = 2e11;
+  double time_span = 0.0;
+};
+
+static std::string TrackModel(const Track& t) {
+  std::ostringstream m;
+  m.precision(17);
+  m << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [)"
+    << -kGravity << R"(, 0.0, 0.0],
+    "include_directories": [")"
+    << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "relative_error": 1e-6,
+                     "absolute_error": 1e-9, "time_span": )"
+    << t.time_span << R"(, "time_step": 0.01}]
+  },
+  "assemblies": [{"name": "track",
+    "bodies": [
+      {"name": "sprocket",
+       "geometry": [{"type": "cad", "filename": "sprocket.step"}],
+       "collision_geometry": [{"type": "cad", "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 130.7, "Ixx": 3.8, "Iyy": 3.8, "Izz": 7.5,
+                   "Ixy": 0, "Iyz": 0, "Izx": 0}})";
+  for(int i = 1; i <= t.links; i++) {
+    m << R"(,
+      {"name": "link)"
+      << i << R"(",
+       "frames": [{"name": "pin", "T": [)"
+      << kPitch << R"(, 0, 0]}],
+       "geometry": [{"type": "cad", "filename": "track_link.step"}],
+       "collision_geometry": [{"type": "cad", "material": "steel"}],
+       )" << kLinkInertia
+      << "}";
+  }
+  if(t.ground) {
+    m << R"(,
+      {"name": "ground", "geometry": [],
+       "collision_geometry": [{"name": "ground", "type": "plane",
+                               "normal": [1, 0, 0], "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 1.0, "Ixx": 1.0, "Iyy": 1.0, "Izz": 1.0,
+                   "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}})";
+  }
+  m << R"(
+    ],
+    "joints": [)";
+  if(t.sprocket_free) {
+    /* turned about its axis by phi */
+    const double phi = t.tip_down ? M_PI - M_PI / kTeeth : 0.0;
+    const double x[3] = {std::cos(phi), std::sin(phi), 0.0};
+    const double y[3] = {-std::sin(phi), std::cos(phi), 0.0};
+    const double z[3] = {0.0, 0.0, 1.0};
+    double r[3][3];
+    Columns(x, y, z, r);
+    const double p[3] = {t.sprocket_height, 0.0, 0.0};
+    m << R"(
+      {"name": "sprocket_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["sprocket"], "origin"],
+       "initial_displacement": )"
+      << Displacement(p, r) << "}";
+  } else {
+    m << R"(
+      {"name": "sprocket_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["sprocket"], "origin"]})";
+  }
+  if(t.ground) {
+    m << R"(,
+      {"name": "ground_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["ground"], "origin"]})";
+  }
+  for(int i = 1; i <= t.links; i++) {
+    m << ",";
+    if(i > 1) {
+      // turned about the previous link's pin to the next seat but one
+      m << R"(
+      {"name": "link)"
+        << i << R"(_joint", "type": "revolute",
+       "parent": [["link)"
+        << i - 1 << R"("], "pin"], "child": [["link)" << i
+        << R"("], "origin"],
+       "axis": [0, 1, 0], "initial_displacement": )"
+        << kLinkAngle << "}";
+      continue;
+    }
+    double r[3][3], p[3];
+    if(t.link_on_ground) {
+      // the link's z (out of the track loop) down, its pin along z
+      const double x[3] = {0.0, -1.0, 0.0}, y[3] = {0.0, 0.0, 1.0},
+                   z[3] = {-1.0, 0.0, 0.0};
+      Columns(x, y, z, r);
+      p[0] = 0.092 + t.grouser_height; // the grousers' tips at z = 92 mm
+      p[1] = 0.0;
+      p[2] = 0.0;
+    } else {
+      /* the bushing at the seat, the link along the chord to the next
+      seat but one: x along it, y along the sprocket's axis, z out */
+      const double a = t.first_angle, mid = a + 0.5 * kLinkAngle;
+      const double radius = kPitchRadius - t.drop;
+      const double x[3] = {-std::sin(mid), std::cos(mid), 0.0};
+      const double y[3] = {0.0, 0.0, 1.0};
+      const double z[3] = {std::cos(mid), std::sin(mid), 0.0};
+      Columns(x, y, z, r);
+      p[0] = radius * std::cos(a);
+      p[1] = radius * std::sin(a);
+      p[2] = 0.0;
+    }
+    m << R"(
+      {"name": "link1_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["link1"], "origin"],
+       "initial_displacement": )"
+      << Displacement(p, r) << "}";
+  }
+  m << R"(
+    ],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "disabled_pairs": [)";
+  // each link is joined to its neighbour by a revolute joint, not contact
+  for(int i = 2; i <= t.links; i++) {
+    m << (i > 2 ? ", " : "") << R"([")" << "link" << i - 1 << R"(", "link)"
+      << i << R"("])";
+  }
+  m << R"(],
+      "materials": [{"name": "steel", "youngs_modulus": )"
+    << t.youngs_modulus << R"(, "poisson_ratio": 0.3,
+                     "restitution": 0.3, "friction": 0.3}]}]
+  }]
+})";
+  return m.str();
+}
+
+class CadContact : public testing::Test {
+protected:
+  void SetUp() override {
+    if(!shift::core::cad::StepSupported()) {
+      GTEST_SKIP() << "shift was built without STEP support";
+    }
+  }
+
+  /* loads the model, with the poses of its initial conditions */
+  static void Load(shift::core::Context& context, const std::string& name,
+                   const Track& track) {
+    const std::string path = testing::TempDir() + "/" + name + ".json";
+    {
+      std::ofstream file(path);
+      file << TrackModel(track);
+    }
+    try {
+      context.LoadJSON(path);
+      context.UpdateD();
+      std::remove(path.c_str());
+    } catch(...) {
+      std::remove(path.c_str());
+      throw;
+    }
+  }
+
+  /* the contacts of two geometries, by name */
+  static std::vector<shift::core::collision_geometry::ContactPair*>
+  Between(shift::core::Context& context, const std::string& a,
+          const std::string& b) {
+    std::vector<shift::core::collision_geometry::ContactPair*> out;
+    for(auto pair : context.get_contacts()) {
+      const std::string& na = pair->a->get_name();
+      const std::string& nb = pair->b->get_name();
+      if((na == a && nb == b) || (na == b && nb == a)) {
+        out.push_back(pair);
+      }
+    }
+    return out;
+  }
+};
+
+TEST_F(CadContact, NothingTouchesAtTheSeats) {
+  // bushings at the middle of their seats have 1 mm of clearance all around
+  Track t;
+  t.links = 3;
+  t.first_angle = -1.5 * kLinkAngle;
+  shift::core::Context context;
+  Load(context, "cad_clear", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  for(auto pair : context.get_contacts()) {
+    ADD_FAILURE() << pair->a->get_name() << " and " << pair->b->get_name()
+                  << " touch";
+  }
+}
+
+TEST_F(CadContact, BushingInSeatIsALine) {
+  // a bushing moved down its seat by the clearance and 20 um: a line across
+  // the width of the sprocket at the bottom of the seat. Their radii differ by
+  // the clearance, 1 mm in 30: nearly conformal, but the overlap wraps only
+  // 11 degrees round the seat, and the contact is a line
+  const double depth = 20e-6;
+  Track t;
+  t.links = 1;
+  t.drop = kSeatRadius - kBushingRadius + depth;
+  shift::core::Context context;
+  Load(context, "cad_seat", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  ASSERT_TRUE(pair.point_laws);
+  const bool sprocket_is_a = pair.a->get_name() == "sprocket";
+  double length = 0.0;
+  for(const auto& c : pair.manifold) {
+    EXPECT_GT(c.length, 0.0);
+    EXPECT_EQ(c.weight, 1.0);
+    length += c.length;
+    EXPECT_NEAR(c.depth, depth, 1e-9);
+    const ksl_vec3_t& on_sprocket = sprocket_is_a ? c.point_a : c.point_b;
+    EXPECT_NEAR(on_sprocket.x, kPitchRadius - kSeatRadius, 1e-9);
+    EXPECT_NEAR(on_sprocket.y, 0.0, 1e-9);
+    EXPECT_LE(std::fabs(on_sprocket.z), 0.5 * kSprocketWidth + 1e-9);
+    // the sprocket pushes the bushing up (+x)
+    EXPECT_NEAR(c.normal.x, sprocket_is_a ? 1.0 : -1.0, 1e-9);
+  }
+  EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+}
+
+TEST_F(CadContact, BushingDeepInSeatWrapsRoundIt) {
+  // 0.3 mm past the clearance c of 1 mm, the axes e = c + d apart, the overlap
+  // wraps round the seat (radius R) to where the bushing (r) crosses it, cos t
+  // = (R^2 + e^2 - r^2) / (2 R e), 38.9 degrees either side: an area of contact
+  // over R 2 t of the seat's arc, each point on the seat or the bushing, its
+  // depth the distance to its other end
+  const double depth = 0.3e-3, clearance = kSeatRadius - kBushingRadius;
+  const double e = clearance + depth;
+  const double wrap = std::acos((kSeatRadius * kSeatRadius + e * e -
+                                 kBushingRadius * kBushingRadius) /
+                                (2.0 * kSeatRadius * e));
+  Track t;
+  t.links = 1;
+  t.drop = clearance + depth;
+  shift::core::Context context;
+  Load(context, "cad_seat_deep", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  const bool sprocket_is_a = pair.a->get_name() == "sprocket";
+  ASSERT_GE(pair.manifold.size(), 16u);
+  // the axes of the seat and of the bushing, moved down (-x) by c + d
+  const double seat_x = kPitchRadius, bushing_x = kPitchRadius - clearance - depth;
+  double area = 0.0, widest = 0.0;
+  for(const auto& c : pair.manifold) {
+    ASSERT_GT(c.area, 0.0);
+    EXPECT_EQ(c.weight, 1.0);
+    const ksl_vec3_t& on_sprocket = sprocket_is_a ? c.point_a : c.point_b;
+    const ksl_vec3_t& on_bushing = sprocket_is_a ? c.point_b : c.point_a;
+    // the end on the face the area is integrated over lies on it
+    EXPECT_TRUE(std::fabs(std::hypot(on_sprocket.x - seat_x, on_sprocket.y) - kSeatRadius) < 1e-9 ||
+                std::fabs(std::hypot(on_bushing.x - bushing_x, on_bushing.y) - kBushingRadius) < 1e-9);
+    const double apart = std::hypot(on_sprocket.x - on_bushing.x,
+                                    on_sprocket.y - on_bushing.y);
+    EXPECT_NEAR(c.depth, apart, 1e-12);
+    EXPECT_LE(c.depth, depth + 1e-12);
+    // the angle round the seat's axis, from the bottom
+    widest = std::max(widest, std::fabs(std::atan2(on_sprocket.y, seat_x - on_sprocket.x)));
+    area += c.area;
+  }
+  EXPECT_LE(widest, wrap);
+  EXPECT_GT(widest, 0.9 * wrap);
+  EXPECT_NEAR(pair.depth, depth, 1e-9);
+  EXPECT_NEAR(area, kSeatRadius * 2.0 * wrap * kSprocketWidth,
+              5e-3 * kSeatRadius * 2.0 * wrap * kSprocketWidth);
+}
+
+TEST_F(CadContact, LineOverASeamHasNoPointsAtItsEnds) {
+  // a bushing rolling over the seam where a seat runs smoothly into its flank,
+  // with a seam of its own nearby: the rims of the sprocket reach into the
+  // bushing's other half, but that is the end of the same thin overlap, and
+  // the contact is the same line on either side of the seams
+  const double depth = 1.4e-4, seat_end = M_PI - 68.0 * M_PI / 180.0;
+  Track t;
+  t.links = 1;
+  shift::core::Context context;
+  Load(context, "cad_seam", t);
+  context.DetectContacts(); // sets the poses of the geometry
+  shift::test::RecordContacts(context);
+  shift::core::collision_geometry::Base* sprocket = nullptr;
+  shift::core::collision_geometry::Base* link = nullptr;
+  for(auto g : context.get_active_collision_geometry()) {
+    (g->get_name() == "sprocket" ? sprocket : link) = g;
+  }
+  ASSERT_NE(sprocket, nullptr);
+  ASSERT_NE(link, nullptr);
+  for(double offset : {0.085, 0.05, -0.05, -0.085}) {
+    for(int i = -20; i <= 20; i++) {
+      const double a = seat_end + 1e-3 * i;
+      SCOPED_TRACE(testing::Message() << "offset " << offset << " i " << i);
+      // the link's -x, and the bushing's seam, offset from the contact; its
+      // pin and shoe away from the sprocket
+      const double b = a + offset;
+      const double reach = kSeatRadius - kBushingRadius + depth;
+      ksl_SE3_t d;
+      d.t = {{kPitchRadius + reach * std::cos(a), reach * std::sin(a), 0.0}};
+      const ksl_vec3_t x = {{-std::cos(b), -std::sin(b), 0.0}};
+      const ksl_vec3_t y = {{0.0, 0.0, -1.0}};
+      const ksl_vec3_t z = {{-x.y, x.x, 0.0}};
+      for(int k = 0; k < 3; k++) {
+        d.R.at[0][k] = x.at[k];
+        d.R.at[1][k] = y.at[k];
+        d.R.at[2][k] = z.at[k];
+      }
+      link->UpdatePose(d);
+      shift::core::collision_geometry::ContactPair pair;
+      pair.a = sprocket;
+      pair.b = link;
+      shift::test::TestContact(pair);
+      ASSERT_TRUE(pair.collision);
+      double length = 0.0;
+      for(const auto& c : pair.manifold) {
+        EXPECT_GT(c.length, 0.0);
+        length += c.length;
+      }
+      EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+    }
+  }
+}
+
+TEST_F(CadContact, GrousersOnTheGround) {
+  // a link upside down, its grousers' tips 0.2 mm into the ground: the
+  // corners of the tips of the three grousers
+  Track t;
+  t.links = 1;
+  t.sprocket_free = true;
+  t.sprocket_height = 5.0; // out of the way
+  t.link_on_ground = true;
+  t.grouser_height = -0.2e-3;
+  t.ground = true;
+  shift::core::Context context;
+  Load(context, "cad_grousers", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  EXPECT_EQ(context.get_contacts().size(), 1u);
+  auto pairs = Between(context, "link1", "ground");
+  ASSERT_EQ(pairs.size(), 1u);
+  const auto& manifold = pairs[0]->manifold;
+  EXPECT_EQ(manifold.size(), 12u);
+  for(const auto& c : manifold) {
+    EXPECT_NEAR(c.depth, 0.2e-3, 1e-12);
+    EXPECT_EQ(c.length, 0.0);
+    EXPECT_NEAR(std::fabs(c.normal.x), 1.0, 1e-12);
+  }
+}
+
+TEST_F(CadContact, ToothTipOnTheGround) {
+  // the sprocket on its side, the tip of a tooth 0.1 mm into the ground: a
+  // line across the width of the sprocket (a convex cylinder on a plane),
+  // and nothing at the edges and corners of the tip
+  Track t;
+  t.sprocket_free = true;
+  t.tip_down = true;
+  t.sprocket_height = kTipRadius - 0.1e-3;
+  t.ground = true;
+  shift::core::Context context;
+  Load(context, "cad_tip", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  auto pairs = Between(context, "sprocket", "ground");
+  ASSERT_EQ(pairs.size(), 1u);
+  double length = 0.0;
+  for(const auto& c : pairs[0]->manifold) {
+    EXPECT_GT(c.length, 0.0);
+    EXPECT_NEAR(c.depth, 0.1e-3, 1e-9);
+    length += c.length;
+  }
+  EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+}
+
+TEST_F(CadContact, LinksSettleOnTheSprocket) {
+  // three links over the top of the sprocket, their bushings 1 mm above the
+  // bottoms of their seats: they drop into them and come to rest, carried
+  // by the sprocket
+  Track t;
+  t.links = 3;
+  t.first_angle = -1.5 * kLinkAngle;
+  t.youngs_modulus = 2e9;
+  t.time_span = 0.25; // the bushings settle in their seats by then
+  shift::core::Context context;
+  Load(context, "cad_settle", t);
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  double up = 0.0;
+  int lines = 0;
+  for(auto pair : context.get_contacts()) {
+    const bool sprocket_is_a = pair->a->get_name() == "sprocket";
+    ASSERT_TRUE(sprocket_is_a || pair->b->get_name() == "sprocket")
+      << pair->a->get_name() << " and " << pair->b->get_name();
+    up += sprocket_is_a ? pair->force.x : -pair->force.x;
+    for(const auto& c : pair->manifold) {
+      lines += c.length > 0.0 ? 1 : 0;
+    }
+  }
+  // the bushings in their seats (and the last pin in its) carry the weight
+  EXPECT_GE(lines, 6);
+  const double weight = 3.0 * kLinkMass * kGravity;
+  EXPECT_NEAR(up, weight, 0.02 * weight);
+  // each bushing has sunk through the clearance of its seat onto its wall:
+  // its center the clearance from the seat's, and still at its seat
+  const double seat_angle = 2.0 * M_PI / kTeeth;
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name().rfind("link", 0) != 0) {
+      continue;
+    }
+    const ksl_vec3_t p = context.get_body_origin_pose(body).t;
+    const double angle = std::atan2(p.y, p.x);
+    const double seat = seat_angle * std::round(angle / seat_angle);
+    const double dx = p.x - kPitchRadius * std::cos(seat);
+    const double dy = p.y - kPitchRadius * std::sin(seat);
+    EXPECT_NEAR(std::hypot(dx, dy), kSeatRadius - kBushingRadius, 2e-5)
+      << body->get_name();
+    EXPECT_LT(dx, 0.0) << body->get_name(); // below the seat's center
+  }
+}
+
+/* the number of contact detections in a track model run to time_span, read
+from the benchmark's file */
+static long ContactCalls(const std::string& model, double time_span) {
+  const std::string dir = std::string(SHIFT_EXAMPLES_DIR) + "/cad";
+  std::ifstream in(dir + "/" + model);
+  std::stringstream text;
+  text << in.rdbuf();
+  std::string json = text.str();
+  auto replace = [&](const std::string& from, const std::string& to) {
+    const size_t at = json.find(from);
+    EXPECT_NE(at, std::string::npos) << from;
+    if(at != std::string::npos) {
+      json.replace(at, from.size(), to);
+    }
+  };
+  replace("\"time_span\": 2.0", "\"time_span\": " + std::to_string(time_span));
+  replace("\"include_directories\": [\n      \".\"\n    ]",
+          "\"include_directories\": [\"" + dir + "\"]");
+  const std::string path = testing::TempDir() + "/short_" + model;
+  {
+    std::ofstream file(path);
+    file << json;
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  return context.get_contact_detection_calls();
+}
+
+TEST_F(CadContact, TrackBenchmarksDoNotStall) {
+  // a force that jumps, as a point coming and going, makes the integrator
+  // crawl: the benchmarks past the times they did, by the count of force
+  // evaluations, which is the same on every run: 5776 and 12544 when written,
+  // and 14626 for track_frame with the seam of a cylinder as a feature
+  EXPECT_LT(ContactCalls("track_frame.json", 0.6), 7000L);
+  EXPECT_LT(ContactCalls("track_loop.json", 0.6), 15000L);
+}
+
+TEST_F(CadContact, TrackLoopCloses) {
+  // the benchmark examples/cad/track_loop.json, x forward and z down, the
+  // axles along y: its 44 links close around the sprocket and the idler, and nothing
+  // touches before it starts
+  shift::core::Context context;
+  context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/track_loop.json");
+  context.UpdateD();
+  shift::core::body::Base* first = nullptr;
+  shift::core::body::Base* last = nullptr;
+  int links = 0;
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "link1") {
+      first = body;
+    }
+    if(body->get_name() == "link44") {
+      last = body;
+    }
+    links += body->get_name().rfind("link", 0) == 0;
+    // the wheels' axes (z, the third column) along y, the idler in front
+    const std::string& name = body->get_name();
+    if(name == "sprocket" || name == "idler") {
+      const ksl_SE3_t d = context.get_body_origin_pose(body);
+      EXPECT_NEAR(d.R.at[2][1], 1.0, 1e-12) << name;
+      EXPECT_NEAR(d.t.x, name == "idler" ? 3.1818287751528 : 0.0, 1e-9);
+      EXPECT_NEAR(d.t.y, 0.0, 1e-12) << name;
+      // above the ground, the plane z = 0
+      EXPECT_NEAR(d.t.z, -0.4139001617497, 1e-9) << name;
+    }
+  }
+  EXPECT_EQ(links, 44);
+  ASSERT_TRUE(first && last);
+  // the last link's pin at the first link's bushing
+  const ksl_SE3_t d = context.get_body_origin_pose(last);
+  const ksl_vec3_t pin = {{kPitch, 0.0, 0.0}};
+  ksl_vec3_t p;
+  ksl_product_dv(&d, &pin, &p);
+  const ksl_vec3_t q = context.get_body_origin_pose(first).t;
+  EXPECT_NEAR(p.x, q.x, 1e-9);
+  EXPECT_NEAR(p.y, q.y, 1e-9);
+  EXPECT_NEAR(p.z, q.z, 1e-9);
+  // the first link's bushing on the sprocket's pitch circle, in the plane
+  // y = 0, and the link's pins along y
+  EXPECT_NEAR(std::hypot(q.x, q.z + 0.4139001617497), kPitchRadius, 1e-9);
+  EXPECT_NEAR(q.y, 0.0, 1e-12);
+  EXPECT_NEAR(context.get_body_origin_pose(first).R.at[1][1], 1.0, 1e-12);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  for(auto pair : context.get_contacts()) {
+    ADD_FAILURE() << pair->a->get_name() << " touches "
+                  << pair->b->get_name() << " at "
+                  << pair->manifold.size() << " points, deepest "
+                  << pair->depth;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Hertz contact of an ellipse, and lines of contact out of parallel */
+
+TEST(HertzEllipse, EllipticIntegrals) {
+  // K(m) and E(m) of parameter m (Abramowitz and Stegun, table 17.1)
+  const double table[3][3] = {{0.5, 1.8540746773013719, 1.3506438810476755},
+                              {0.9, 2.5780921133481733, 1.1047747327040733},
+                              {0.99, 3.6956373629898747, 1.0159935450252240}};
+  for(const auto& row : table) {
+    double k, e, k_minus_e;
+    shift::core::collision_geometry::CompleteEllipticIntegrals(
+      row[0], 1.0 - row[0], k, e, k_minus_e);
+    EXPECT_NEAR(k, row[1], 1e-13);
+    EXPECT_NEAR(e, row[2], 1e-13);
+    EXPECT_NEAR(k_minus_e, row[1] - row[2], 1e-13);
+  }
+  // K - E = pi/4 m (1 + 3/8 m) near m = 0, without cancellation
+  double k, e, k_minus_e;
+  shift::core::collision_geometry::CompleteEllipticIntegrals(1e-9, 1.0 - 1e-9,
+                                                             k, e, k_minus_e);
+  EXPECT_NEAR(k_minus_e / (0.25 * M_PI * 1e-9), 1.0, 1e-8);
+}
+
+TEST(HertzEllipse, FactorAndElongation) {
+  double elongation;
+  EXPECT_EQ(shift::core::collision_geometry::HertzEllipseFactor(1.0, &elongation), 1.0); // a circle
+  EXPECT_EQ(elongation, 1.0);
+  EXPECT_NEAR(shift::core::collision_geometry::HertzEllipseFactor(1.0 + 1e-6), 1.0, 1e-5);
+  /* against the curve fits of Hamrock and Brewe (1983), within their
+  accuracy: the axes' ratio a / b = 1.0339 alpha^0.636, and the
+  stiffness from their deflection,
+  delta = F [9 / (2 E R) (P / (pi k E'))^2]^(1/3), with
+  E = 1.0003 + 0.5968 / alpha and F = 1.5277 + 0.6023 ln alpha, E' = 2 E*
+  and 1/R = 2 (A + B): the factor is pi/2 k sqrt(E) F^(-3/2) */
+  double previous = 1.0;
+  for(double alpha : {1.5, 2.0, 5.0, 10.0, 30.0}) {
+    SCOPED_TRACE(alpha);
+    const double g = shift::core::collision_geometry::HertzEllipseFactor(alpha, &elongation);
+    const double k = 1.0339 * std::pow(alpha, 0.636);
+    const double integral_e = 1.0003 + 0.5968 / alpha;
+    const double integral_f = 1.5277 + 0.6023 * std::log(alpha);
+    EXPECT_NEAR(elongation / k, 1.0, 0.04);
+    EXPECT_NEAR(g / (0.5 * M_PI * k * std::sqrt(integral_e) *
+                     std::pow(integral_f, -1.5)),
+                1.0, 0.1);
+    EXPECT_GT(g, previous); // stiffer as the ellipse lengthens
+    previous = g;
+  }
+  /* beyond the fits' range: the ellipse's axes satisfy Hertz's relation
+  B / A = (E / (1 - e^2) - K) / (K - E), e^2 = 1 - (b / a)^2 */
+  for(double alpha : {100.0, 1e4}) {
+    SCOPED_TRACE(alpha);
+    EXPECT_GT(shift::core::collision_geometry::HertzEllipseFactor(alpha, &elongation), previous);
+    const double complement = 1.0 / (elongation * elongation);
+    double k, e, k_minus_e;
+    shift::core::collision_geometry::CompleteEllipticIntegrals(
+      1.0 - complement, complement, k, e, k_minus_e);
+    EXPECT_NEAR((e / complement - k) / k_minus_e / alpha, 1.0, 1e-9);
+  }
+}
+
+/* idlers (examples/cad/idler.step: tread radius kIdlerRadius, 60 mm wide),
+each free at a pose, and the ground, the plane z = 0 (z down) */
+static const double kIdlerRadius = kPitchRadius - kBushingRadius - 0.001;
+struct Pose {
+  double p[3];
+  double r[3][3];
+};
+
+static std::string WheelsModel(const std::vector<Pose>& idlers, bool ground) {
+  std::ostringstream m;
+  m.precision(17);
+  m << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": [")"
+    << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]
+  },
+  "assemblies": [{"name": "wheels",
+    "bodies": [)";
+  for(size_t i = 0; i < idlers.size(); i++) {
+    m << (i ? "," : "") << R"(
+      {"name": "idler)"
+      << i << R"(",
+       "geometry": [{"type": "cad", "filename": "idler.step"}],
+       "collision_geometry": [{"name": "idler)"
+      << i << R"(", "type": "cad", "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 111.2, "Ixx": 2.68, "Iyy": 2.68, "Izz": 5.29,
+                   "Ixy": 0, "Iyz": 0, "Izx": 0}})";
+  }
+  if(ground) {
+    m << R"(,
+      {"name": "ground", "geometry": [],
+       "collision_geometry": [{"name": "ground", "type": "plane",
+                               "normal": [0, 0, -1], "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 1.0, "Ixx": 1.0, "Iyy": 1.0, "Izz": 1.0,
+                   "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}})";
+  }
+  m << R"(
+    ],
+    "joints": [)";
+  for(size_t i = 0; i < idlers.size(); i++) {
+    m << (i ? "," : "") << R"(
+      {"name": "idler)"
+      << i << R"(_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["idler)" << i
+      << R"("], "origin"],
+       "initial_displacement": )"
+      << Displacement(idlers[i].p, idlers[i].r) << "}";
+  }
+  if(ground) {
+    m << R"(,
+      {"name": "ground_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["ground"], "origin"]})";
+  }
+  m << R"(
+    ],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "materials": [{"name": "steel", "youngs_modulus": 2e11,
+                     "poisson_ratio": 0.3, "restitution": 0.3,
+                     "friction": 0.3}]}]
+  }]
+})";
+  return m.str();
+}
+
+/* the contacts of a model of idlers, with the poses of its initial
+conditions */
+static void LoadWheels(shift::core::Context& context, const std::string& name,
+                       const std::vector<Pose>& idlers, bool ground) {
+  const std::string path = testing::TempDir() + "/" + name + ".json";
+  {
+    std::ofstream file(path);
+    file << WheelsModel(idlers, ground);
+  }
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.UpdateD();
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+}
+
+/* the contact of the geometries of a model of idlers (in the order of
+its bodies, the ground last), with idler i moved to poses[i]: the model is
+loaded once and its geometry moved, as Context::DetectContacts does */
+class Wheels {
+public:
+  Wheels(const std::string& name, const std::vector<Pose>& idlers,
+         bool ground) {
+    LoadWheels(context_, name, idlers, ground);
+    const size_t count = idlers.size() + (ground ? 1 : 0);
+    geometry_.resize(count);
+    for(auto g : context_.get_active_collision_geometry()) {
+      const std::string& n = g->get_name();
+      if(n == "ground") {
+        geometry_[count - 1] = g;
+      } else if(n.rfind("idler", 0) == 0 && n.size() > 5) {
+        geometry_[std::stoul(n.substr(5))] = g;
+      }
+    }
+  }
+  shift::core::collision_geometry::ContactPair&
+  Test(const std::vector<Pose>& idlers) {
+    for(size_t i = 0; i < idlers.size(); i++) {
+      ksl_SE3_t d;
+      for(int k = 0; k < 3; k++) {
+        d.t.at[k] = idlers[i].p[k];
+        for(int j = 0; j < 3; j++) {
+          d.R.at[j][k] = idlers[i].r[k][j]; // column-major
+        }
+      }
+      geometry_[i]->UpdatePose(d);
+    }
+    pair_ = shift::core::collision_geometry::ContactPair();
+    pair_.a = geometry_[0];
+    pair_.b = geometry_[1];
+    shift::test::TestContact(pair_);
+    return pair_;
+  }
+
+private:
+  shift::core::Context context_;
+  std::vector<shift::core::collision_geometry::Base*> geometry_;
+  shift::core::collision_geometry::ContactPair pair_;
+};
+
+/* the elastic force of a pair's points, sum of w K d^e by the laws of the
+contact force module, for a modulus E* = 1 */
+static double ElasticForce(const shift::core::collision_geometry::ContactPair&
+                             pair) {
+  double force = 0.0;
+  for(const auto& c : pair.manifold) {
+    double stiffness, exponent;
+    shift::core::force_module::Contact::PointLaw(c, 1.0, 1e-4, stiffness,
+                                                 exponent);
+    force += c.weight * stiffness * std::pow(c.depth, exponent);
+  }
+  return force;
+}
+
+/* an idler on the ground, its axis tilted by theta from level (about x)
+and its lower end depth into the ground: the axis (0, cos, sin), the
+lowest line of its tread towards (0, -sin, cos) from the axis */
+static Pose TiltedIdler(double theta, double depth) {
+  Pose pose;
+  const double c = std::cos(theta), s = std::sin(theta);
+  const double x[3] = {1.0, 0.0, 0.0}, y[3] = {0.0, s, -c},
+               z[3] = {0.0, c, s};
+  Columns(x, y, z, pose.r);
+  const double half = 0.5 * kSprocketWidth;
+  pose.p[0] = 0.0;
+  pose.p[1] = 0.0;
+  pose.p[2] = depth - half * s - kIdlerRadius * c;
+  return pose;
+}
+
+TEST_F(CadContact, TiltedIdlerLoadsItsEnd) {
+  // tilted by 1 mrad, its end 50 um deep: the line under the ground is
+  // 50 mm of its 60 mm, its depth falling to 0 along it
+  const double theta = 1e-3, depth = 50e-6;
+  shift::core::Context context;
+  LoadWheels(context, "tilted_idler", {TiltedIdler(theta, depth)}, true);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  ASSERT_TRUE(pair.point_laws);
+  double length = 0.0, load = 0.0;
+  const double half = 0.5 * kSprocketWidth;
+  for(const auto& c : pair.manifold) {
+    ASSERT_GT(c.length, 0.0);
+    EXPECT_EQ(c.weight, 1.0);
+    length += c.length;
+    load += c.length * c.depth;
+    // its station along the axis from its depth: on the lowest line
+    const ksl_vec3_t& p =
+      pair.a->get_name() == "ground" ? c.point_b : c.point_a;
+    const double s =
+      (p.y + kIdlerRadius * std::sin(theta)) / std::cos(theta);
+    EXPECT_NEAR(c.depth, depth - (half - s) * std::sin(theta), 1e-9);
+  }
+  const double expected = depth / std::sin(theta);
+  EXPECT_NEAR(length, expected, 1e-8);
+  // the depth integrated along the line: exact for a straight depth
+  EXPECT_NEAR(load, 0.5 * depth * expected, 1e-14);
+}
+
+TEST_F(CadContact, TiltingIdlerHasNoJump) {
+  // the force of an idler on the ground, its lower end 50 um deep, from
+  // level (a line) through end loading to its rim, as it tilts up to
+  // standing on its end (the rim, an edge): each step of 1% changes it
+  // smoothly
+  const double depth = 50e-6;
+  double previous = 0.0, previous_theta = 0.0;
+  bool line = false, rim = false;
+  Wheels wheels("tilting_idler", {TiltedIdler(0.0, depth)}, true);
+  for(double theta = 1e-5; theta < 0.5 * M_PI - 0.005; theta *= 1.01) {
+    SCOPED_TRACE(theta);
+    const auto& pair = wheels.Test({TiltedIdler(theta, depth)});
+    ASSERT_TRUE(pair.collision);
+    const double force = ElasticForce(pair);
+    ASSERT_GT(force, 0.0);
+    line = line || (pair.manifold.size() > 1 &&
+                    pair.manifold.front().length > 0.0);
+    rim = rim || (pair.manifold.size() == 1 &&
+                  pair.manifold.front().length == 0.0);
+    if(previous > 0.0) {
+      EXPECT_NEAR(force / previous, 1.0, 0.03)
+        << "from theta " << previous_theta;
+    }
+    previous = force;
+    previous_theta = theta;
+  }
+  EXPECT_TRUE(line);
+  EXPECT_TRUE(rim);
+}
+
+/* two idlers tread to tread, the lower one level about y, the upper one's
+axis turned by theta about z, approach depth */
+static std::vector<Pose> CrossedIdlers(double theta, double depth) {
+  Pose lower, upper;
+  const double x[3] = {1.0, 0.0, 0.0}, y[3] = {0.0, 0.0, -1.0},
+               z[3] = {0.0, 1.0, 0.0};
+  Columns(x, y, z, lower.r); // its axis (z) along y
+  lower.p[0] = lower.p[1] = lower.p[2] = 0.0;
+  const double c = std::cos(theta), s = std::sin(theta);
+  const double xu[3] = {c, s, 0.0}, zu[3] = {-s, c, 0.0};
+  Columns(xu, y, zu, upper.r);
+  upper.p[0] = upper.p[1] = 0.0;
+  upper.p[2] = -(2.0 * kIdlerRadius - depth);
+  return {lower, upper};
+}
+
+TEST_F(CadContact, CrossingCylindersHaveNoJump) {
+  // two idlers 50 um into each other: a line along their 60 mm when
+  // parallel, a point when crossed, where their gap is round (equal
+  // radii), changing smoothly between
+  const double depth = 50e-6;
+  double previous = 0.0;
+  Wheels wheels("crossing_idlers", CrossedIdlers(0.0, depth), false);
+  for(double theta = 0.0; theta <= 0.5 * M_PI + 1e-12; theta += 0.002) {
+    SCOPED_TRACE(theta);
+    const auto& pair = wheels.Test(CrossedIdlers(theta, depth));
+    ASSERT_TRUE(pair.collision);
+    const double force = ElasticForce(pair);
+    ASSERT_GT(force, 0.0);
+    if(theta == 0.0) {
+      double length = 0.0;
+      for(const auto& c : pair.manifold) {
+        EXPECT_NEAR(c.depth, depth, 1e-9);
+        length += c.length;
+      }
+      EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+    }
+    if(previous > 0.0) {
+      EXPECT_NEAR(force / previous, 1.0, 0.03);
+    }
+    previous = force;
+  }
+  shift::core::Context context;
+  LoadWheels(context, "crossed_idlers", CrossedIdlers(0.5 * M_PI, depth),
+             false);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  ASSERT_EQ(pair.manifold.size(), 1u);
+  const auto& c = pair.manifold[0];
+  EXPECT_EQ(c.length, 0.0);
+  EXPECT_EQ(c.weight, 1.0);
+  EXPECT_NEAR(c.depth, depth, 1e-9);
+  EXPECT_NEAR(c.curvature, 1.0 / kIdlerRadius, 1e-3 / kIdlerRadius);
+  EXPECT_NEAR(c.curvature_ratio, 1.0, 1e-3);
+}
+
+/* ------------------------------------------------------------------------ */
+/* the track on its frame, and links held by their pins */
+
+TEST_F(CadContact, NeighboringLinksAreNotTested) {
+  // the links of a track overlap where they interlock, and the revolute joint
+  // between each pair carries their contact: the models list each link with
+  // its neighbour, the closing pair among them, in disabled_pairs
+  for(const char* model : {"track_loop.json", "track_frame.json"}) {
+    shift::core::Context context;
+    context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/" + model);
+    std::map<std::string, const shift::core::body::Base*> bodies;
+    for(auto body : context.get_active_articulated_bodies()) {
+      bodies[body->get_name()] = body;
+    }
+    const int links = 44;
+    for(int i = 1; i <= links; i++) {
+      const std::string a = "link" + std::to_string(i);
+      const std::string b = "link" + std::to_string(i % links + 1);
+      ASSERT_TRUE(bodies.count(a) && bodies.count(b)) << model;
+      EXPECT_TRUE(context.is_contact_excluded(bodies[a], bodies[b]))
+        << model << " " << a << " " << b;
+    }
+    EXPECT_FALSE(context.is_contact_excluded(bodies["link1"], bodies["link3"]))
+      << model;
+  }
+}
+
+TEST_F(CadContact, TrackFrameStartsClear) {
+  // the benchmark examples/cad/track_frame.json: the loop of 44 links on a
+  // frame with five track rollers and a carrier roller, each 0.5 mm off the
+  // rails; nothing touches, the links are in the middle, and the top spans
+  // sag by less than the chord's drop at the wheels, r (1 - cos(pi/42))
+  shift::core::Context context;
+  context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) + "/cad/track_frame.json");
+  context.UpdateD();
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  for(auto pair : context.get_contacts()) {
+    ADD_FAILURE() << pair->a->get_name() << " touches "
+                  << pair->b->get_name() << ", deepest " << pair->depth;
+  }
+  shift::core::force_module::Track* track = nullptr;
+  for(auto module : context.get_active_force_modules()) {
+    if(auto t = dynamic_cast<shift::core::force_module::Track*>(module)) {
+      track = t;
+    }
+  }
+  ASSERT_NE(track, nullptr);
+  const auto names = track->get_output_names();
+  const auto values = track->Measure();
+  ASSERT_EQ(names.size(), 4u);
+  ASSERT_EQ(values.size(), 4u);
+  EXPECT_EQ(names[0], "front_sag");
+  EXPECT_EQ(names[1], "rear_sag");
+  const double chord = kPitchRadius * (1.0 - std::cos(M_PI / 42.0));
+  for(int i = 0; i < 2; i++) {
+    EXPECT_GT(values[i], 0.0) << names[i];
+    EXPECT_LT(values[i], chord) << names[i];
+  }
+  EXPECT_EQ(names[2], "misguide");
+  EXPECT_NEAR(values[2], 0.0, 1e-12);
+  EXPECT_EQ(names[3], "side_force");
+  EXPECT_EQ(values[3], 0.0);
+}
+
+TEST_F(CadContact, LinkHangsOnItsPin) {
+  // two links without a joint between them: the second's bushing on the
+  // first's pin, sunk through the clearance (20 mm bore, 19 mm pin) and
+  // 20 um more, under the pin (+x up): the pin touches the bore of the
+  // bushing (120 mm) and of the inner plates (35 mm each), 190 mm in all
+  const double depth = 20e-6, clearance = 0.001;
+  const std::string path = testing::TempDir() + "/link_on_pin.json";
+  {
+    std::ofstream file(path);
+    file.precision(17);
+    file << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [)"
+         << -kGravity << R"(, 0.0, 0.0],
+    "include_directories": [")"
+         << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]
+  },
+  "assemblies": [{"name": "pair",
+    "bodies": [)";
+    for(int i = 1; i <= 2; i++) {
+      file << (i > 1 ? "," : "") << R"(
+      {"name": "link)"
+           << i << R"(",
+       "geometry": [{"type": "cad", "filename": "track_link.step"}],
+       "collision_geometry": [{"name": "link)"
+           << i << R"(", "type": "cad", "material": "steel"}],
+       )" << kLinkInertia
+           << "}";
+    }
+    /* link 1 along y (its x), its pins along z: the pin at (0, kPitch, 0);
+    link 2 the same, its bushing there, moved down (-x) */
+    file << R"(
+    ],
+    "joints": [
+      {"name": "link1_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["link1"], "origin"],
+       "initial_displacement": {"T": [0, 0, 0],
+                                "R": [[0, 0, 1], [1, 0, 0], [0, 1, 0]]}},
+      {"name": "link2_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["link2"], "origin"],
+       "initial_displacement": {"T": [)"
+         << -(clearance + depth) << ", " << kPitch << R"(, 0],
+                                "R": [[0, 0, 1], [1, 0, 0], [0, 1, 0]]}}
+    ],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "materials": [{"name": "steel", "youngs_modulus": 2e11,
+                     "poisson_ratio": 0.3, "restitution": 0.3,
+                     "friction": 0.3}]}]
+  }]
+})";
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.UpdateD();
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  ASSERT_TRUE(pair.point_laws);
+  double length = 0.0;
+  for(const auto& c : pair.manifold) {
+    ASSERT_GT(c.length, 0.0); // a line, no edges or vertices
+    // the end of link2's shoe on the round end of link1's outer plate: 0.25 mm
+    // apart with the pins centered, 0.77 mm deep with link2 moved down by the
+    // clearance and depth. Links on joints are not tested against each other,
+    // but these two have no joint
+    if(c.depth > 0.5e-3) {
+      continue;
+    }
+    EXPECT_NEAR(c.depth, depth, 1e-9);
+    length += c.length;
+    // the pin pushes the bushing's bore up (+x), from link1 to link2 or
+    // back
+    EXPECT_NEAR(std::fabs(c.normal.x), 1.0, 1e-9);
+  }
+  EXPECT_NEAR(length, 0.19, 1e-9);
+}
+
+/* steel (7850 kg/m^3): the shaft (10 mm radius, 50 mm) and the head (16 mm
+radius, 8 mm) of the peg of scripts/make_peg_step.py, about z, the origin at the
+underside of the head */
+static const double kPegMass = 0.173814;
+/* radial clearance of the shaft in the hole of the plate */
+static const double kPegClearance = 0.0005;
+
+/* the model of the peg over the plate with the hole (the plate's top at z = 0,
+gravity +z, down), the peg at t with its axis turned by tilt about x, for
+time_span; written to a file of the test's directory, whose path it returns.
+The damping of the contact law is fully applied from 1 nm of penetration: the
+rims of the head and of the hole lying on the faces of the other, lines of
+contact around them, the head rests 10 to 20 nm deep, where the default
+damping_depth, 0.1 mm, applies almost none, and the head would rock on the
+plate */
+static std::string PegModel(const std::string& name, const double t[3],
+                            double tilt, double time_span) {
+  const std::string path = testing::TempDir() + "/" + name + ".json";
+  std::ofstream file(path);
+  file.precision(17);
+  file << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, )"
+       << kGravity << R"(],
+    "include_directories": [")"
+       << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": )"
+       << time_span << R"(, "time_step": 0.01}]
+  },
+  "assemblies": [{"name": "pair",
+    "bodies": [
+      {"name": "plate",
+       "geometry": [{"type": "cad", "filename": "plate_hole.step"}],
+       "collision_geometry": [{"name": "plate", "type": "cad",
+                               "material": "steel"}],
+       "center_of_mass": [0, 0, 0.01],
+       "inertia": {"mass": 0.94, "Ixx": 5e-4, "Iyy": 5e-4, "Izz": 1e-3,
+                   "Ixy": 0, "Iyz": 0, "Izx": 0}},
+      {"name": "peg",
+       "geometry": [{"type": "cad", "filename": "peg.step"}],
+       "collision_geometry": [{"name": "peg", "type": "cad",
+                               "material": "steel"}],
+       "center_of_mass": [0, 0, 0.0165732],
+       "inertia": {"mass": )"
+       << kPegMass << R"(, "Ixx": 6.2407e-5, "Iyy": 6.2407e-5,
+                   "Izz": 1.26302e-5, "Ixy": 0, "Iyz": 0, "Izx": 0}}
+    ],
+    "joints": [
+      {"name": "plate_joint", "type": "rigid",
+       "parent": [["fixed"], "origin"], "child": [["plate"], "origin"],
+       "initial_displacement": {"T": [0, 0, 0],
+                                "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}},
+      {"name": "peg_joint", "type": "float",
+       "parent": [["fixed"], "origin"], "child": [["peg"], "origin"],
+       "initial_displacement": {"T": [)"
+       << t[0] << ", " << t[1] << ", " << t[2] << R"(],
+                                "R": [[1, 0, 0], [0, )"
+       << std::cos(tilt) << ", " << -std::sin(tilt) << "], [0, "
+       << std::sin(tilt) << ", " << std::cos(tilt) << R"(]]},
+       "initial_velocity": [0, 0, 0, 0, 0, 0]}
+    ],
+    "force_modules": [{"name": "contact", "type": "contact",
+      "damping_depth": 1e-9,
+      "materials": [{"name": "steel", "youngs_modulus": 2e9,
+                     "poisson_ratio": 0.3, "restitution": 0.1,
+                     "friction": 0.1}]}]
+  }]
+})";
+  return path;
+}
+
+static ksl_SE3_t PegPose(shift::core::Context& context) {
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "peg") {
+      return context.get_body_origin_pose(body);
+    }
+  }
+  ADD_FAILURE() << "no peg";
+  return ksl_SE3_t{};
+}
+
+TEST_F(CadContact, PegDropsIntoItsHole) {
+  // the peg tilted by 4 degrees, the middle of the end of its shaft 2 mm
+  // above the hole, falls into it: the end of the shaft and its side meet the
+  // wall and the rim of the hole, which straighten it, and the head comes to
+  // rest flat on the plate. The rim of the head and the rim of the hole each
+  // lie in the other's face, a line of contact around each that holds the
+  // head level
+  const double tilt = 4.0 * M_PI / 180.0;
+  const double drop = 0.002, shaft = 0.05;
+  const double t[3] = {0.0, shaft * std::sin(tilt),
+                       -drop - shaft * std::cos(tilt)};
+  const std::string path = PegModel("peg_in_hole", t, tilt, 0.3);
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  const ksl_SE3_t d = PegPose(context);
+  // the underside of the head on the plate, sunk by little
+  EXPECT_GT(d.t.z, 0.0);
+  EXPECT_LT(d.t.z, 2e-5);
+  // the shaft within the clearance of the hole
+  EXPECT_LT(std::hypot(d.t.x, d.t.y), kPegClearance);
+  // level: the axis of the peg (the third column of R) along z
+  EXPECT_GT(d.R.v2.z, std::cos(0.1 * M_PI / 180.0));
+  // at rest: the plate carries the weight of the peg. Its kinetic energy is
+  // that of a fall of under 1 um
+  EXPECT_LT(context.KineticEnergy(), 1e-6 * kPegMass * kGravity);
+}
+
+TEST_F(CadContact, PegInTheWallIsPushedOut) {
+  // the peg upright, its shaft 2 mm into the wall of the hole (the shaft's
+  // axis 2.5 mm off the hole's), the underside of its head 1 mm over the
+  // plate: deeper than the pair's max_depth, 1.5 mm, but the surfaces overlap
+  // along the wall, and their contact pushes the peg out
+  const double t[3] = {0.0, 0.0025, -0.001};
+  shift::core::Context start;
+  const std::string at_start = PegModel("peg_in_wall", t, 0.0, 1e-6);
+  start.LoadJSON(at_start);
+  std::remove(at_start.c_str());
+  start.Simulate();
+  auto pairs = Between(start, "plate", "peg");
+  ASSERT_EQ(pairs.size(), 1u);
+  const auto* pair = pairs[0];
+  // the pair's max_depth, the lesser of the two parts'
+  ASSERT_LT(std::min(pair->a->get_max_depth(), pair->b->get_max_depth()),
+            0.002);
+  // the shaft's surface wraps round the wall's as deep as that, the radii
+  // near: an area of contact along the wall, as deep as the overlap (less
+  // what the peg moves in 1 us) at its middle, its load (the integral of the
+  // depth) along the normal from the plate into the shaft, -y
+  EXPECT_NEAR(pair->depth, 0.002, 1e-6);
+  const double sense = pair->a->get_name() == "plate" ? 1.0 : -1.0;
+  ksl_vec3_t load = {{0.0, 0.0, 0.0}};
+  for(const auto& c : pair->manifold) {
+    ASSERT_GT(c.area, 0.0);
+    for(int k = 0; k < 3; k++) {
+      load.at[k] += sense * c.weight * c.area * c.depth * c.normal.at[k];
+    }
+  }
+  const double size = ksl_vec3_l2norm(&load);
+  ASSERT_GT(size, 0.0);
+  EXPECT_NEAR(load.y / size, -1.0, 1e-6);
+
+  const std::string path = PegModel("peg_in_wall", t, 0.0, 0.005);
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  context.Simulate();
+  shift::test::RecordContacts(context);
+  // the shaft back within the clearance of the hole
+  const ksl_SE3_t d = PegPose(context);
+  EXPECT_LT(std::fabs(d.t.y), kPegClearance);
+}

@@ -1,0 +1,31 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// SPH pass 3: the particles of each cell by id (insertion sort; a cell holds
+// a few dozen), so that the order is the same on every run
+
+#include "sph_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Start { uint start[]; };
+layout(std430, binding = 1) buffer Order { uint order[]; };
+layout(std430, binding = 2) readonly buffer Id { uint id[]; };
+
+void main() {
+  const uint b = gl_GlobalInvocationID.x;
+  if(b > mask) {
+    return;
+  }
+  const uint first = start[b], end = start[b + 1];
+  for(uint k = first + 1; k < end; k++) {
+    const uint moving = order[k];
+    const uint key = id[moving];
+    uint m = k;
+    while(m > first && id[order[m - 1]] > key) {
+      order[m] = order[m - 1];
+      m--;
+    }
+    order[m] = moving;
+  }
+}

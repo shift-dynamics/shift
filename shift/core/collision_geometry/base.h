@@ -139,6 +139,58 @@ public:
   virtual void Support(const ksl_vec3_t& direction, ksl_vec3_t& local,
                        ksl_vec3_t& global, int& hint) const = 0;
 
+  /*!
+  @brief the first point at which a ray reaches the geometry
+
+  The ray is \f$\underline{o} + t \, \underline{d}\f$ for \f$t\f$ from 0 to
+  max_distance, in the inertial frame, with \f$\underline{d}\f$ a unit vector.
+  The absolute displacement of the geometry must be up to date (see
+  UpdatePose). A ray that starts inside the geometry reaches it at distance 0,
+  with the normal \f$-\underline{d}\f$.
+
+  Planes, spheres and boxes are cast in closed form, CAD geometry on its
+  exact faces, and other convex geometry by GJK on its support function
+  (RayCastConvex). See ray_cast.cc.
+
+  @param [in] origin \f$\underline{o}\f$, inertial frame
+  @param [in] direction \f$\underline{d}\f$, unit, inertial frame
+  @param [in] max_distance the largest \f$t\f$
+  @param [out] distance \f$t\f$ of the first point of the ray in the geometry
+  @param [out] normal unit normal out of the geometry at that point,
+  inertial frame
+  @return whether the ray reaches the geometry within max_distance
+  */
+  virtual bool RayCast(const ksl_vec3_t& origin, const ksl_vec3_t& direction,
+                       double max_distance, double& distance,
+                       ksl_vec3_t& normal) const;
+
+  /*!
+  @brief a grid of parallel rays: ray (i, j), i fastest, starts at
+  \f$\underline{c} + i \, \underline{a} + j \, \underline{b} - o_{ij} \underline{d}\f$ and
+  runs for \f$t\f$ from 0 to reach along the unit \f$\underline{d}\f$; a ray whose
+  offset \f$o_{ij}\f$ is NaN is not cast. Inertial frame.
+  */
+  struct RayGrid {
+    ksl_vec3_t corner;    //!< \f$\underline{c}\f$
+    ksl_vec3_t step_i;    //!< \f$\underline{a}\f$
+    ksl_vec3_t step_j;    //!< \f$\underline{b}\f$
+    ksl_vec3_t direction; //!< \f$\underline{d}\f$
+    long count_i = 0;
+    long count_j = 0;
+    const double* offsets = nullptr; //!< \f$o_{ij}\f$, count_i * count_j
+    double reach = 0.0;
+  };
+
+  /*!
+  @brief the first points at which the rays of a grid reach the geometry, as
+  RayCast for each ray: distances[i + j * count_i] is \f$t\f$, or HUGE_VAL for
+  a ray that does not reach it (or is not cast)
+
+  By default each ray is cast by RayCast; CAD geometry projects its faces
+  onto the grid instead (see Cad::RayCastGrid).
+  */
+  virtual void RayCastGrid(const RayGrid& grid, double* distances) const;
+
   /*! \brief absolute displacement of the collision geometry reference frame,
    * valid after UpdatePose */
   const ksl_SE3_t& get_d_absolute() const {
@@ -220,6 +272,22 @@ protected:
   bool loaded_ = false;
   std::shared_ptr<const CadContactShape> exact_shape_;
 };
+
+/*!
+@brief cast a ray at convex geometry by GJK on its support function: the ray
+cast of G. van den Bergen, "Ray casting against general convex objects with
+application to continuous collision detection" (2004)
+
+The point \f$\underline{x}\f$ advances along the ray from its origin, each time
+past the plane through the support point of the geometry along
+\f$\underline{v}\f$, the vector from the geometry to \f$\underline{x}\f$ found by
+GJK, until \f$\underline{x}\f$ is within a tolerance of the geometry (1e-9 of its
+bounding radius); \f$\underline{v}\f$ is then the normal. Arguments and result
+as Base::RayCast.
+*/
+bool RayCastConvex(const Base& geometry, const ksl_vec3_t& origin,
+                   const ksl_vec3_t& direction, double max_distance,
+                   double& distance, ksl_vec3_t& normal);
 
 class Modules {
 public:

@@ -4,7 +4,7 @@ project(
   version: '0.2.0',
   meson_version: '>=1.1',
   default_options: [
-    'cpp_std=c++17',
+    'cpp_std=c++20',
     'warning_level=2',
     'buildtype=debug',
     'b_ndebug=if-release',
@@ -86,6 +86,16 @@ if step_opt.allowed() and step_inc_root != ''
   endif
 elif step_opt.enabled()
   error('step: STEPcode headers with the AP242 schema were not found in /usr/include or /usr/local/include')
+endif
+
+# GPU calculations in core (shift/core/gpu): the Vulkan loader, and glslc to
+# compile the compute shaders to SPIR-V embedded in the library
+gpu_opt = get_option('gpu')
+vulkan_dep = dependency('vulkan', required: gpu_opt)
+glslc = find_program('glslc', required: gpu_opt)
+gpu_found = vulkan_dep.found() and glslc.found()
+if not gpu_found
+  vulkan_dep = dependency('', required: false)
 endif
 
 # example models (also used by the test suite)

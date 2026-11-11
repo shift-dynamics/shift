@@ -12,6 +12,11 @@ layout(local_size_x = 8, local_size_y = 8) in;
 // radiance (exact once the view is static), the shader writes the inputs of
 // the SVGF denoiser (svgf_*.comp): the illumination (radiance divided by the
 // albedo of the primary hit) and a G-buffer of the primary hit.
+//
+// Transparent surfaces let light through in proportion to one minus their
+// opacity, with no refraction. A primary ray adds up the surfaces it passes
+// front to back, the same ones in every frame, so that they cost no noise; a
+// shadow ray is dimmed by each, and a bounce ray passes one at random.
 
 struct RtTriangle {
   vec4 v0, v1, v2; // body coordinates
@@ -36,6 +41,7 @@ struct Instance {
   ivec4 offsets;      // x = root node, y = base color, z = metallic
                       // roughness, w = normal texture layer; -1: none
   mat4 previous_body_to_world; // pose in the previous frame (reprojection)
+  vec4 optical;       // x = opacity
 };
 
 // illumination of this frame's sample, radiance / albedo (sky: radiance)
@@ -119,6 +125,11 @@ vec2 TriangleUv(int k, vec2 bary) {
 
 const float PI = 3.14159265358979;
 const float kInfinity = 1e30;
+// light that passes below this share is taken as stopped
+const float kLeastLight = 1.0 / 256.0;
+// the surfaces a primary ray adds up, and a bounce ray may pass
+const int kMostLayers = 12;
+const int kMostBounceLayers = 4;
 
 // ---------------------------------------------------------------------------
 // random numbers
@@ -243,7 +254,12 @@ struct Hit {
   vec2 bary;
 };
 
-// closest hit when any_hit is false, otherwise stops at the first hit
+// the share of light left by the transparent surfaces an any_hit Trace passed
+float light_passed;
+
+// closest hit when any_hit is false, otherwise stops at the first hit that is
+// opaque, or that leaves too little light, and dims light_passed by the
+// transparent ones before it
 bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
            out Hit hit) {
   hit.t = t_max;
@@ -302,6 +318,12 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
                !InsideTrims(face >> 1, TriangleUv(k, bary))) {
               continue;
             }
+            if(any_hit) {
+              light_passed *= 1.0 - instances[i].optical.x;
+              if(light_passed >= kLeastLight) {
+                continue;
+              }
+            }
             hit.t = t;
             hit.instance = i;
             hit.triangle = k;
@@ -329,6 +351,37 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
     }
   }
   return hit.instance != -1;
+}
+
+// the share of the light from t_max along a ray that reaches its origin
+float LightPassed(vec3 origin, vec3 direction, float t_max) {
+  light_passed = 1.0;
+  Hit hit;
+  return Trace(origin, direction, t_max, true, hit) ? 0.0 : light_passed;
+}
+
+float Opacity(Hit hit) {
+  return hit.instance >= 0 ? instances[hit.instance].optical.x : 1.0;
+}
+
+// a point just past a surface at distance t along a ray
+vec3 PastSurface(vec3 origin, vec3 direction, float t) {
+  return origin + direction * (t * (1.0 + 1e-5));
+}
+
+// closest hit of a bounce ray, which passes a transparent surface with the
+// probability of the light that does; origin becomes that of the hit
+bool TraceBounce(inout vec3 origin, vec3 direction, out Hit hit) {
+  for(int layer = 0; layer < kMostBounceLayers; layer++) {
+    if(!Trace(origin, direction, kInfinity, false, hit)) {
+      return false;
+    }
+    if(Random() < Opacity(hit)) {
+      return true;
+    }
+    origin = PastSurface(origin, direction, hit.t);
+  }
+  return Trace(origin, direction, kInfinity, false, hit);
 }
 
 struct Surface {
@@ -513,11 +566,11 @@ vec3 SunLight(Surface s, vec3 v, float epsilon) {
   if(dot(s.normal, l) <= 0.0) {
     return vec3(0.0);
   }
-  Hit shadow;
-  if(Trace(s.position + s.normal * epsilon, l, kInfinity, true, shadow)) {
+  float passed = LightPassed(s.position + s.normal * epsilon, l, kInfinity);
+  if(passed <= 0.0) {
     return vec3(0.0);
   }
-  vec3 sun = u.sun_color.rgb * u.sun_direction.w;
+  vec3 sun = passed * u.sun_color.rgb * u.sun_direction.w;
   return Brdf(s, v, l, sun, sun);
 }
 
@@ -532,13 +585,13 @@ vec3 ModelLights(Surface s, vec3 v, float epsilon) {
     if(factor <= 0.0 || dot(s.normal, l) <= 0.0) {
       continue;
     }
-    Hit shadow;
     vec3 origin = s.position + s.normal * epsilon;
-    if(Trace(origin, l, min(distance, kInfinity) - 2.0 * epsilon, true,
-             shadow)) {
+    float passed =
+      LightPassed(origin, l, min(distance, kInfinity) - 2.0 * epsilon);
+    if(passed <= 0.0) {
       continue;
     }
-    color += factor * Brdf(s, v, l, lights.light[i].diffuse.rgb,
+    color += passed * factor * Brdf(s, v, l, lights.light[i].diffuse.rgb,
                            lights.light[i].specular.rgb);
   }
   return color;
@@ -600,7 +653,7 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
   vec3 bounce_origin = s.position + s.normal * epsilon;
   Hit bounce;
   vec3 incoming;
-  if(Trace(bounce_origin, bounce_direction, kInfinity, false, bounce)) {
+  if(TraceBounce(bounce_origin, bounce_direction, bounce)) {
     Surface b = GetSurface(bounce_origin, bounce_direction, bounce);
     // second surface: unshadowed sun plus a constant sky term
     float n_dot_l = max(dot(b.normal, u.sun_direction.xyz), 0.0);
@@ -649,23 +702,42 @@ void main() {
   vec3 direction = normalize((u.inverse_view * vec4(view.xyz / view.w, 0.0)).xyz);
   vec3 origin = u.camera_position.xyz;
 
-  vec3 color; // denoised part: indirect light, or the sky
+  // the surfaces along the ray, front to back, each weighted by the light
+  // that reaches it and its opacity; the G-buffer holds the first
+  vec3 color = vec3(0.0); // denoised part: indirect light, or the sky
   vec3 direct = vec3(0.0);
-  vec3 albedo = vec3(1.0);
-  Hit hit;
-  if(Trace(origin, direction, kInfinity, false, hit)) {
+  vec3 albedo = vec3(0.0);
+  float through = 1.0;
+  for(int layer = 0; layer < kMostLayers && through >= kLeastLight; layer++) {
+    Hit hit;
+    if(!Trace(origin, direction, kInfinity, false, hit)) {
+      color += through * Sky(direction, true);
+      albedo += through;
+      through = 0.0;
+      if(layer == 0) {
+        imageStore(gbuffer_position, pixel, vec4(direction, -1.0));
+        imageStore(gbuffer_normal, pixel, vec4(0.0));
+      }
+      break;
+    }
     Surface s = GetSurface(origin, direction, hit);
-    color = Shade(s, direction, hit.t, direct);
+    vec3 surface_direct;
+    vec3 surface_color = Shade(s, direction, hit.t, surface_direct);
+    float weight = through * Opacity(hit);
+    color += weight * surface_color;
+    direct += weight * surface_direct;
     // demodulation keeps texture detail out of the denoiser's blur; a floor
     // on the albedo avoids amplifying noise on black surfaces
-    albedo = max(s.albedo, vec3(0.02));
-    imageStore(gbuffer_position, pixel, vec4(s.position, float(hit.instance)));
-    imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
-  } else {
-    color = Sky(direction, true);
-    imageStore(gbuffer_position, pixel, vec4(direction, -1.0));
-    imageStore(gbuffer_normal, pixel, vec4(0.0));
+    albedo += weight * max(s.albedo, vec3(0.02));
+    through -= weight;
+    if(layer == 0) {
+      imageStore(gbuffer_position, pixel,
+                 vec4(s.position, float(hit.instance)));
+      imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
+    }
+    origin = PastSurface(origin, direction, hit.t);
   }
+  albedo += through; // what the last layer let through is dropped
   imageStore(illumination, pixel, vec4(color / albedo, 1.0));
   imageStore(gbuffer_albedo, pixel, vec4(albedo, 1.0));
   imageStore(direct_light, pixel, vec4(direct, 1.0));

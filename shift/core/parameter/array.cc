@@ -3,6 +3,7 @@
 #include "shift/core/force_module/contact.h"
 #include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
+#include "shift/core/terrain/soil_map.h"
 
 /* define specializations of Array class */
 template class shift::core::parameter::Array<shift::core::Assembly>;
@@ -19,6 +20,8 @@ template class shift::core::parameter::Array<
   shift::core::force_module::StickSlipPair>;
 template class shift::core::parameter::Array<
   shift::core::force_module::TrackSpan>;
+template class shift::core::parameter::Array<
+  shift::core::terrain::MappedSoil>;
 
 template <class T>
 void shift::core::parameter::Array<T>::ReadJSON(Json::Value& json_array) {

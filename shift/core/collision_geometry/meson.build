@@ -14,5 +14,6 @@ core_src += files(
   'hertz.cc',
   'manifold.cc',
   'plane.cc',
+  'ray_cast.cc',
   'sphere.cc',
 )

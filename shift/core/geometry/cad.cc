@@ -32,12 +32,27 @@ void shift::core::geometry::Cad::DeclareParameters() {
                    "model length units per meter (the file is read in "
                    "meters): 1 for a model in meters, 1000 in millimeters",
                    false);
+  DeclareParameter("color", &color_,
+                   "color [r, g, b] (linear, 0 to 1) of the faces that have no "
+                   "color of their own in the file; default: the viewer's",
+                   false)
+    .set_row_dim(-1);
+  DeclareParameter("opacity", &opacity_,
+                   "opacity in the ray tracer, from 0 (lets all light "
+                   "through) to 1 (opaque, the default)",
+                   false);
 }
 
 void shift::core::geometry::Cad::Load() {
   assert(context_);
   if(!(scale_ > 0.0)) {
     throw shift::core::Exception("CAD geometry scale must be positive");
+  }
+  if(!color_.empty() && color_.size() != 3) {
+    throw shift::core::Exception("CAD geometry color takes three values");
+  }
+  if(!(opacity_ >= 0.0 && opacity_ <= 1.0)) {
+    throw shift::core::Exception("CAD geometry opacity must be from 0 to 1");
   }
   if(!shift::core::cad::StepSupported()) {
     throw shift::core::Exception(

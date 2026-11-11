@@ -36,6 +36,11 @@ convex hull in contact through a face, or an edge, gets several points:
   not jump between them. The faces of a are favored as reference faces by
   kReferenceBias, so a face of b is one only when clearly better aligned.
 
+- a cylinder or a capsule on a plane or a convex hull: its line of contact,
+  as points that each carry a length of it and their own normal
+  (ContactPair::point_laws), see PlaneLineManifold and HullLineManifold in
+  manifold.cc
+
 Other pairs, and hull pairs whose clipping leaves no point, keep the single
 deepest point. Requires the pair's contact data and up to date absolute
 displacements of both geometries.

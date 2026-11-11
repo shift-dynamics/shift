@@ -14,3 +14,5 @@ option('verify_equations', type: 'boolean', value: false,
        description: 'Check every solve of the equations of motion against the assembled system (SHIFT_VERIFY_EQUATIONS_), for debugging the RNCA solver; slow')
 option('step', type: 'feature', value: 'auto',
        description: 'Read STEP CAD files (ISO 10303) with STEPcode and its AP242 schema, which also reads AP203 and AP214 files')
+option('gpu', type: 'feature', value: 'auto',
+       description: 'GPU calculations in core (the SPH soil) with Vulkan compute: needs the Vulkan headers and loader and glslc')

@@ -36,6 +36,21 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
     }
     request.size = QSize(width, height);
   }
+  if(parser.isSet("frame")) {
+    const QStringList frame = parser.value("frame").split(',');
+    double values[4] = {0.0, 0.0, 0.0, 0.0};
+    bool all = frame.size() == 4;
+    for(int i = 0; all && i < 4; i++) {
+      values[i] = frame[i].toDouble(&all);
+    }
+    if(!all || !(values[3] > 0.0)) {
+      error = "--frame takes X,Y,Z,RADIUS, with a radius above 0";
+      return false;
+    }
+    request.set_frame = true;
+    request.frame_center = QVector3D(values[0], values[1], values[2]);
+    request.frame_radius = float(values[3]);
+  }
   if(parser.isSet("view")) {
     const QStringList view = parser.value("view").split(',');
     bool ok_elevation = false;
@@ -57,6 +72,7 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
     }
   }
   request.hide_floor = parser.isSet("no-floor");
+  request.bilinear_terrain = parser.isSet("no-smooth-terrain");
   request.follow_body = parser.value("follow");
   request.follow_ground = parser.isSet("follow-ground");
   if(request.follow_ground && request.follow_body.isEmpty()) {
@@ -74,18 +90,25 @@ int main(int argc, char* argv[]) {
   QCommandLineParser parser;
   parser.setApplicationDescription("Shift multibody dynamics viewer");
   parser.addHelpOption();
-  parser.addPositionalArgument("model", "model JSON file to open");
+  parser.addPositionalArgument("model", "model JSON or YAML file, or HDF5 log, to open");
   parser.addOptions({
     {"image", "render the model to an image file (PNG, JPEG, ...) and quit",
      "file"},
-    {"time", "with --image: simulate to this time first (s)", "seconds"},
+    {"time", "with --image: simulate to this time first, or show it from an HDF5 log (s)", "seconds"},
     {"size", "with --image: image size (default 1200x800)", "WIDTHxHEIGHT"},
     {"view",
      "with --image: camera azimuth about +z from +x towards +y, and "
      "elevation above the x-y plane, in degrees",
      "AZIMUTH,ELEVATION"},
+    {"frame",
+     "with --image: frame this sphere of the scene, not all of it, in the "
+     "inertial frame",
+     "X,Y,Z,RADIUS"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
+    {"no-smooth-terrain",
+     "with --image: draw deformable terrain bilinearly between its nodes, as "
+     "the soil models see it"},
     {"follow",
      "with --image: set the view at the start, and follow this body to --time",
      "body"},

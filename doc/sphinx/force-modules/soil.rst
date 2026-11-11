@@ -5,9 +5,12 @@ Soil
 ====
 
 Soft soil carries a wheel or a track shoe by its pressure, and pushes it along
-by its shear. Two force modules use the same description of the soil: the
-Bekker-Wong wheel (``"tire_type": "bekker_wong"`` of the :doc:`tire`) and the
-track soil module (``"type": "track_soil"``, below).
+by its shear. The force modules that model it use the same description of the
+soil: the Bekker-Wong wheel (``"tire_type": "bekker_wong"`` of the
+:doc:`tire`), the track soil module (``"type": "track_soil"``, below), and on
+deformable soil, a terrain of type ``scm`` (see the Terrain section of the
+:doc:`../model-file/model-file`), the soil contact module
+(``"type": "soil_contact"``, below).
 
 Describing a soil
 -----------------
@@ -34,6 +37,17 @@ Bekker's :math:`p = (k_c/b + k_\phi)\,z^n`, with the cohesive modulus
 :math:`c` and the friction angle :math:`\phi`, reached as the plate slides, by
 Janosi and Hanamoto's :math:`1 - e^{-j/k_j}` after the slide :math:`j`
 (:math:`k_j` is the shear modulus).
+
+The SPH soil (a terrain of type ``sph``, see :doc:`../model-file/model-file`)
+treats the soil as an elastoplastic continuum, not by Bekker's law. It needs
+three more properties: ``youngs_modulus`` :math:`E` and ``poisson_ratio``
+:math:`\nu`, the soil's elastic stiffness before it yields, and optionally
+``dilatancy_angle`` :math:`\psi`, how much the soil swells as it shears (0,
+the default, for no change of volume; at most :math:`\phi`). The table does
+not give them. A loose sand has :math:`E` of a few MPa; a lower :math:`E`
+lets the SPH take longer substeps, at the cost of a soil that is too soft
+under small loads. The friction angle, cohesion and unit weight are the same
+as for the other models.
 
 Earth pressure
 --------------
@@ -194,6 +208,151 @@ JSON are in N and m.
      - 0.36
      - 43.33 (K = 0.0103 m)
 
+Soil contact
+------------
+
+``"type": "soil_contact"`` puts bodies on deformable soil, the terrain of type
+``scm``, and lowers the soil under them. Each node of the terrain's grid under
+a body is tested by a ray cast up its terrain frame's z axis against the
+body's collision geometry, from ``max_sinkage`` (of the terrain) below the
+surface: the body's lowest point over the node, if it is below the surface,
+gives the sinkage :math:`s`, from the undisturbed surface. The nodes in
+contact form patches, joined along the grid; a patch of area :math:`A` and
+perimeter :math:`P` has the width :math:`b = 2A/P` in Bekker's law.
+
+At each node the pressure follows Bekker's law while the soil is loaded deeper
+than ever before, and below its deepest sinkage :math:`z_p` the stiffer
+straight line back to zero, as in the track soil module: the soil springs
+back by :math:`z_p` / ``unloading_ratio`` (of the terrain), the depth the rut
+keeps. The terrain's ``damping`` scales the pressure by
+:math:`1 + c \, \dot{s}`, with the speed of sinkage :math:`\dot{s}` (Hunt and
+Crossley), so that the force starts from zero as the body touches the soil.
+
+A body set on the surface at the start carries none of its weight there. It
+falls, and with little damping it sinks to about twice its depth at rest,
+which the soil keeps: dropped onto a soil whose force grows as
+:math:`s^{1.1}`, a load overshoots to about 2.1 times its weight. The
+terrain's ``settle_time`` settles the bodies onto the soil instead. Over the
+first ``settle_time`` seconds, ``settle_damping`` (by default 20 s/m) is
+added to the damping and fades smoothly to nothing, as
+:math:`\frac{1}{2}(1 + \cos(\pi t / t_s))`, so the force has no jump when
+the settling ends. Less damping lets the bodies fall in. Much more holds them
+up, so that they are still sinking slowly when the settling ends and fall the
+rest of the way. With the default, a ``settle_time`` of 2 s or more settles a
+plate to within 1% of Bekker's depth.
+
+On the fine track model (121 kN) with no damping, the soil's force reaches
+2.4 times the track's weight as it lands, and the deepest node sinks 171 mm.
+Settled over 2 s, the deepest node is at 70 mm after 0.5 s, within 5 mm of
+Bekker's law for the mean pressure of 76 kPa, the rest from the higher
+pressure under the rollers. As the track then drives, the rollers roll over
+links lying on the soil, so every node under the track is loaded by each
+roller in turn and sinks to the depth of the pressure under a roller: five
+rollers carrying about 20 kN each over one or two links give 86 to 172 kPa,
+and the deepest node reaches about 113 mm. This is Bekker's law applied to
+the pressure peaks under the rollers, which the mean ground pressure of a
+track with few rollers understates.
+The shear stress follows Mohr-Coulomb with the curve of Janosi and Hanamoto,
+:math:`\tau = (c + p \tan\phi)(1 - e^{-|\underline{j}|/K})`, against the
+shear displacement :math:`\underline{j}` of the soil at the node, which grows
+by the slip of the body over the node while the body stays on it.
+
+The force is continuous over the evaluations of a step: the nodes change only
+when the integrator accepts the step, and :math:`\underline{j}` grows from its
+accepted value by the trapezoidal rule on the slip velocity. Each node's soil
+is the terrain's there (its ``soil`` or ``soil_map``).
+
+The bodies press on the soil with the collision geometry named in
+``geometry``, or with all of theirs. Geometry that should touch only the soil,
+such as the shoes of a track, can be left out of contact detection with
+``"contact": false``. A body's CAD geometry (``"type": "cad"``) presses on the soil
+with its exact faces: the faces are projected onto the grid, so a fine grid
+resolves a shoe's grousers. On a grid of 5 mm, a link of the excavator track
+(``examples/cad/track_link.step``) runs about 4 times slower than a box of
+its shoe.
+
+.. code:: javascript
+
+   {"type": "soil_contact", "name": "soil", "bodies": ["link1", "link2"],
+    "geometry": ["shoe"]}
+
+Outputs: ``normal_force`` (the total), ``contact_nodes`` and ``sinkage`` (the
+deepest, from the undisturbed surface).
+
+**SPH soil.** On an SPH terrain or region (see
+:doc:`../model-file/model-file`), the bodies listed in ``bodies`` are not
+cast onto a grid. Their collision geometry is filled with markers that move
+among the particles, and the particles push back on them. The soil's force
+over each accepted step, averaged over the step, is applied to the body
+during the next step. The force of a single step comes from a few SPH
+substeps and is noisy. The body's mass smooths it, and its mean carries the
+body's weight.
+
+**Bulldozing.** Without it, the soil a body presses down is compacted: the rut
+is left and nothing rises around it. With the terrain's ``bulldozing``
+enabled, the soil is pushed aside instead, as loose sand is. Every
+``interval`` (by default 1 ms; 0 for after every accepted step):
+
+1. The nodes bodies were on since the last time form patches. Gaps up to ``closing_distance``
+   wide (by default 5 cm) are part of the patch, such as the cracks between
+   the shoes of a track and the wider gaps that open between them as they
+   turn up around the sprocket or idler.
+2. Compaction: under each node of a patch the soil first compacts. A layer
+   ``compaction_depth`` deep (by default the width of the patch, about the
+   depth the pressure reaches) can lose up to 1 − ``unit_weight`` /
+   ``max_unit_weight`` of its volume, from the soil's unit weight as it lies
+   and compacted as far as bodies compact it. Each node keeps how much it has
+   compacted. Only the soil pressed down beyond that is pushed aside, so a
+   shallow print leaves no rim and a deep one pushes up only what could not
+   compact. A soil without ``max_unit_weight`` does not compact: all of the
+   soil pressed down is pushed aside.
+3. The soil each patch pushed aside since the last time, times
+   ``flow_factor``, is spread evenly over its rim: the nodes around it, also
+   diagonally. The nodes in the gaps get none, so soil does
+   not pile up in the cracks between a body's parts.
+4. Erosion: ``erosion_iterations`` times (by default 30), soil flows
+   between neighboring nodes outside the patches, from the higher to the
+   lower, where the slope between them is steeper than ``erosion_angle`` (by
+   default the friction angle of the soil). Soil moves one node per pass. The
+   patches are a wall: soil on the rim slides outward, away from the body,
+   and none slides back under it or into the gaps between its parts until it
+   has left. Erosion goes on at the following times until the slopes settle,
+   also once the bodies have left.
+
+The interval matters because bulldozing changes the surface under the bodies.
+Changed at every step, the soil force jumps at every step, and the
+integrator, which takes steps of microseconds through the contacts, cuts its
+steps to follow the jumps: on the fine track model, bulldozing after every
+step took twice as many steps as no bulldozing. The wall is what removes most
+of those jumps; the interval makes bulldozing itself cheap.
+
+For example, a loose dry sand with void ratios of about 0.8 as it lies and
+0.5 compacted (grains of specific gravity 2.65) has unit weights of 14.4 and
+17.3 kN/m³. Under a track 0.6 m wide it compacts by about 17% of a 0.5 m
+layer, so the first 85 mm or so of sinkage compacts. On the fine track model,
+after 0.5 s and with ruts about 112 mm deep, the berms beside the track are
+66 mm high on average with compaction and 143 mm without.
+
+Slopes are measured from the undisturbed surface, so the slopes of an
+elevation map are not eroded. With a ``flow_factor`` of 1 the volume of soil
+pushed aside is conserved, except soil pushed off the grid; more than 1, the pushed soil
+loosens and takes more room. A body that goes into a pile, or into soil that
+slid into a rut, cuts it down to its own depth and pushes it on, so a blade
+drives a pile ahead of it. Piles do not yet carry bodies: the pressure is
+from the undisturbed surface, so a body is carried only below it.
+
+.. code:: javascript
+
+   "terrain": [{"type": "scm", "name": "sand", "parent": [["fixed"], "terrain"],
+                "x": [0, 6], "y": [0, 2], "spacing": 0.01,
+                "soil": {"name": "dry_sand", "unit_weight": 14400,
+                         "max_unit_weight": 17300},
+                "bulldozing": {"enable": true, "flow_factor": 1.0,
+                               "erosion_iterations": 30}}]
+
+.. shift-parameters:: shift/core/force_module/soil_contact.cc
+   :exclude: name, type, active
+
 Track soil
 ----------
 
@@ -232,16 +391,42 @@ center over the ground while it is on the soil, and relaxes to zero over
     "shoe_normal": [0, 0, 1], "shoe_along": [1, 0, 0],
     "shoe_length": 0.18, "shoe_width": 0.6, "grouser_height": 0.025}
 
+On deformable soil, a terrain of type ``scm``, the soil contact module
+carries the shoes, and must list their links. Each shoe over the terrain's
+grid then takes from the track soil module only the earth pressure on its
+leading grouser and its side, with the terrain's soil and the sinkage below
+its undisturbed surface. A shoe beyond the grid takes all of the forces above,
+on the ground plane, with the module's ``soil``, which then defaults to the
+terrain's.
+
 Outputs, for each shoe, ``<shoe>_sinkage``, and for all the shoes
 ``normal_force``, ``traction`` (along the track) and ``side_force`` (across it),
 in the ground plane.
 
-``examples/cad/track_frame_soil.json`` drives one track of a 20 t excavator
+``examples/terramechanics/track_frame_soil.json`` drives one track of a 20 t excavator
 over dry sand. It settles about 0.1 m into the sand and moves forward at about
 0.31 m/s, close to the 0.32 m/s of its sprocket's rim. The track's contacts are
 on spheres and boxes, with the STEP parts only drawn, so that it runs in about
 25 s in an optimized build; the same track with contact on the STEP surfaces
 is a benchmark (``examples/cad/track_frame.json``).
+
+``examples/terramechanics/track_frame_scm.json`` drives the same track on deformable dry
+sand (a terrain of type ``scm`` of 0.05 m spacing), the soil contact module
+carrying a box of each shoe and its grousers. It sinks about 0.13 m, leaving
+its rut, and moves forward at about 0.31 m/s. It takes about 50 s in an
+optimized build, so it is a benchmark.
+
+The viewer (``build-release/shift/main/shift``) draws the rut while the track
+runs and when you play it back. At each output time it records only the nodes
+whose level changed, so it can scrub forward and back without storing the
+whole grid at every frame. **View > Smooth deformable terrain** draws a smooth
+(Catmull-Rom) surface through the nodes. Unchecked, the surface is bilinear
+between the nodes, which is the surface the soil contact module uses. **Run**
+continues from the rut shown: each node takes the level drawn and keeps it
+when the soil springs back. **Reset** returns the sand to undisturbed. The
+ray-traced view draws the rut too, on the same surface: up to four
+triangle pairs per cell along each side, fewer on a large grid.
+``--no-smooth-terrain`` turns smoothing off for ``--image``.
 
 .. shift-parameters:: shift/core/force_module/track_soil.cc
    :exclude: name, type, active
@@ -252,4 +437,17 @@ Example and test
 * :source:`examples/terramechanics/wheel_test_bed.json` and
   ``wheel_test_bed_camber.json``: a Bekker-Wong wheel on a single-wheel test
   bed.
-* Tests: :source:`test/test_terramechanics.cc`.
+* Tests, in :source:`test/terramechanics`:
+  :source:`test/terramechanics/test_terramechanics.cc` (Bekker-Wong and the
+  track's soil), :source:`test/terramechanics/test_soil_tool.cc`,
+  :source:`test/terramechanics/test_scm.cc` (the SCM terrain and soil maps),
+  :source:`test/terramechanics/test_soil_contact.cc` (soil contact and
+  bulldozing: the volume is conserved, the rim rises, a crack between two
+  plates takes no soil, slopes settle to the
+  angle of repose, and a plate cuts through a pile) and
+  :source:`test/terramechanics/test_scm_playback.cc` (the SCM terrain in the
+  viewer and in HDF5 logs), :source:`test/terramechanics/test_sph.cc` (the
+  SPH soil: the GPU matches the CPU bit for bit, a block carries its weight,
+  a column collapses as far as experiments show, and a heap settles at the
+  friction angle) and :source:`test/terramechanics/test_sph_terrain.cc`
+  (the SPH terrain, regions of terrains, and a plate settling on SPH soil).

@@ -1,0 +1,37 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// SPH pass 4: the fields into the sorted order
+
+#include "sph_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Order { uint order[]; };
+layout(std430, binding = 1) readonly buffer PositionA { vec4 position_a[]; };
+layout(std430, binding = 2) readonly buffer VelocityA { vec4 velocity_a[]; };
+layout(std430, binding = 3) readonly buffer DensityA { float density_a[]; };
+layout(std430, binding = 4) readonly buffer StressA { vec4 stress_a[]; };
+layout(std430, binding = 5) readonly buffer IdA { uint id_a[]; };
+layout(std430, binding = 6) readonly buffer KindA { uint kind_a[]; };
+layout(std430, binding = 7) writeonly buffer PositionB { vec4 position_b[]; };
+layout(std430, binding = 8) writeonly buffer VelocityB { vec4 velocity_b[]; };
+layout(std430, binding = 9) writeonly buffer DensityB { float density_b[]; };
+layout(std430, binding = 10) writeonly buffer StressB { vec4 stress_b[]; };
+layout(std430, binding = 11) writeonly buffer IdB { uint id_b[]; };
+layout(std430, binding = 12) writeonly buffer KindB { uint kind_b[]; };
+
+void main() {
+  const uint k = gl_GlobalInvocationID.x;
+  if(k >= count) {
+    return;
+  }
+  const uint i = order[k];
+  position_b[k] = position_a[i];
+  velocity_b[k] = velocity_a[i];
+  density_b[k] = density_a[i];
+  stress_b[2 * k] = stress_a[2 * i];
+  stress_b[2 * k + 1] = stress_a[2 * i + 1];
+  id_b[k] = id_a[i];
+  kind_b[k] = kind_a[i];
+}

@@ -52,6 +52,11 @@ public:
   virtual void Support(const ksl_vec3_t& direction, ksl_vec3_t& local,
                        ksl_vec3_t& global, int& hint) const override;
 
+  /*! \brief in closed form, see Base::RayCast */
+  bool RayCast(const ksl_vec3_t& origin, const ksl_vec3_t& direction,
+               double max_distance, double& distance,
+               ksl_vec3_t& normal) const override;
+
 protected:
   virtual void DeclareParameters() override;
   virtual bool HasDimensions() const override;

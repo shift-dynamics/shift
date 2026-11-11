@@ -1,0 +1,62 @@
+#version 450
+// One pass of gpu::SegmentSum: the sum of each chunk of 1024 values of each
+// segment, in a fixed order (each thread adds 4 values 256 apart, then a
+// tree in shared memory), so the result is the same on every run. Workgroup
+// (c, s) writes the sum of chunk c of segment s to sums[s * chunks + c].
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer Values {
+  float values[];
+};
+// segment s is values[offsets[s]] .. values[offsets[s + 1] - 1], unless
+// length is not 0
+layout(std430, binding = 1) readonly buffer Offsets {
+  uint offsets[];
+};
+layout(std430, binding = 2) writeonly buffer Sums {
+  float sums[];
+};
+
+layout(push_constant) uniform Constants {
+  uint length; // if not 0, segment s is values[s * length] .. of length
+  uint chunks; // chunks of each segment in this pass
+};
+
+const uint kThreads = 256;
+const uint kChunk = 4 * kThreads;
+
+shared float partial[kThreads];
+
+void main() {
+  const uint s = gl_WorkGroupID.y;
+  const uint c = gl_WorkGroupID.x;
+  const uint t = gl_LocalInvocationID.x;
+  uint begin, end;
+  if(length != 0) {
+    begin = s * length;
+    end = begin + length;
+  } else {
+    begin = offsets[s];
+    end = offsets[s + 1];
+  }
+  const uint start = begin + c * kChunk;
+  float sum = 0.0;
+  for(uint k = 0; k < 4; k++) {
+    const uint i = start + k * kThreads + t;
+    if(i < end) {
+      sum += values[i];
+    }
+  }
+  partial[t] = sum;
+  barrier();
+  for(uint width = kThreads / 2; width > 0; width >>= 1) {
+    if(t < width) {
+      partial[t] += partial[t + width];
+    }
+    barrier();
+  }
+  if(t == 0) {
+    sums[s * chunks + c] = partial[0];
+  }
+}

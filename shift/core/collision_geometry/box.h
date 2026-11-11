@@ -42,6 +42,11 @@ public:
     return half_extents_;
   }
 
+  /*! \brief in closed form, see Base::RayCast */
+  bool RayCast(const ksl_vec3_t& origin, const ksl_vec3_t& direction,
+               double max_distance, double& distance,
+               ksl_vec3_t& normal) const override;
+
 protected:
   virtual bool HasDimensions() const override;
   virtual void Fit(const std::vector<ksl_vec3_t>& vertices,

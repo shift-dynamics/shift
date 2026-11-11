@@ -41,6 +41,7 @@ theory
    notation/notation
    topology/topology
    dynamics/dynamics
+   contact/contact
 
 developer reference
 -------------------
