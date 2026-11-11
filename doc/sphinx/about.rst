@@ -150,6 +150,28 @@ along the ground, with every contact found on the surfaces of the STEP files. Re
 files needs the optional STEPcode library.
 
 
+Tracked vehicles
+****************
+
+.. raw:: html
+
+    <video src="_static/m1a2.webm" width="640" controls>
+    </video>
+
+
+This M1A2 Abrams model has 193 bodies. Each of its two tracks is a loop of 78
+links, each link on a revolute joint to the next, carried by seven road wheels
+on torsion bar road arms, an idler and two return rollers, and driven by a
+sprocket in contact with the link end connectors. A controller holds the speed
+of each sprocket; the 62 t tank settles on its suspension, drives away and
+turns right by slowing its right track.
+
+The tank is based on "abrams m1a2"
+(https://sketchfab.com/3d-models/abrams-m1a2-0e98541f6f684311ac7a8abe08c9449e)
+by coderslava402 (https://sketchfab.com/coderslava402), licensed under
+CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+
 Mobility analysis and interactive positioning
 **********************************************
 
