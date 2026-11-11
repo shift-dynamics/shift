@@ -13,7 +13,10 @@
      caption: "Bricard's mechanism, a paradoxical linkage"},
     {src: "_static/track_frame.webm",
      caption: "A track frame in contact on the exact surfaces of its STEP " +
-              "parts"}
+              "parts"},
+    {src: "_static/m1a2.webm",
+     caption: "An M1A2 tank on two tracks of 78 links (model by " +
+              "coderslava402, CC-BY-4.0)"}
   ];
 
   var figure = document.querySelector(".showreel");
