@@ -56,6 +56,7 @@ vehicle_control     vehicle/vehicle_control.json                 2.0
 vehicle_terrain     vehicle/vehicle_terrain.json                 3.0
 tire_fiala          vehicle/tire_fiala.json                      0.5
 raptor              raptor/raptor.json                           0    --view 40,18
+m1a2                m1a2/m1a2.json                               1.0  --view 40,18
 collision_50        collision/collision_test_50.json             1.0
 collision_e_ch      collision/collision_test_e_ch.json           0.5
 terrain             terrain/bricard_asphalt.json                 1.0

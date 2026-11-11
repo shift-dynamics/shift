@@ -159,6 +159,9 @@ stress_models = [
   'cad/nut_on_bolt.json',
   'terramechanics/track_frame_scm.json',
   'terramechanics/track_frame_scm_fine.json',
+  # the M1A2 tank: two tracks of 78 links each
+  'm1a2/m1a2.json',
+  'm1a2/m1a2_step.json',
 ]
 
 foreach model_path : example_models

@@ -80,6 +80,17 @@ Force modules, sensors and controllers
        powertrain over rolling ground, around a route of schedules for the
        throttle, gears, brakes and steering (model by VTX,
        CC-BY-NC-SA-4.0, see :source:`examples/raptor/readme.rst`)
+   * - .. image:: ../images/examples/m1a2.jpg
+          :width: 220px
+          :alt: m1a2
+     - :tree:`examples/m1a2`
+     - :doc:`../force-modules/track` and :doc:`../force-modules/contact`: a
+       62 t tank on two tracks of 78 links, seven road wheels a side on
+       torsion bar road arms, driven by its sprockets away from rest and into
+       a right turn; contact on primitive shapes (``m1a2.json``) or on STEP
+       surfaces (``m1a2_step.json``). The masses, springs and track are
+       estimates (benchmarks; model by coderslava402, CC-BY-4.0, see
+       :source:`examples/m1a2/readme.rst`)
    * - .. image:: ../images/examples/collision_50.jpg
           :width: 220px
           :alt: collision_50

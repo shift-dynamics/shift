@@ -8,6 +8,7 @@ fit_to) */
 #include <string>
 
 #include "shift/config.h"
+#include "shift/core/cad/step_reader.h"
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/sphere.h"
@@ -171,6 +172,33 @@ TEST(CollisionGeometryInput, FitToNamedMeshes) {
   EXPECT_DOUBLE_EQ(probe->get_bounding_radius(),
                    reference->get_bounding_radius());
   EXPECT_NE(probe->get_bounding_radius(), bunny->get_bounding_radius());
+}
+
+TEST(CollisionGeometryInput, CadFitToInactiveGeometry) {
+  // the probe draws the bunny and touches with the surfaces of a STEP part
+  // it does not draw, an inactive CAD geometry; the reference body draws and
+  // touches with the same part
+  if(!shift::core::cad::StepSupported()) {
+    GTEST_SKIP() << "shift was built without STEP support";
+  }
+  const std::string ball = std::string(R"({"name": "contact", "type": "cad",
+       "filename": ")") + SHIFT_EXAMPLES_DIR + R"(/cad/ball.step")";
+  const std::string bodies =
+    Body("probe", kBunny + "," + ball + R"(, "active": false})",
+         R"({"name": "probe_cad", "type": "cad", "fit_to": ["contact"]})") +
+    "," +
+    Body("reference", ball + "}", R"({"name": "reference_cad", "type": "cad"})");
+  shift::core::Context context;
+  Load(context, WriteModel("cad_fit_to", bodies,
+                              FloatJoint("probe") + "," +
+                                FloatJoint("reference")));
+  auto probe = Find(context, "probe_cad");
+  auto reference = Find(context, "reference_cad");
+  ASSERT_NE(probe, nullptr);
+  ASSERT_NE(reference, nullptr);
+  EXPECT_GT(probe->get_bounding_radius(), 0.0);
+  EXPECT_DOUBLE_EQ(probe->get_bounding_radius(),
+                   reference->get_bounding_radius());
 }
 
 TEST(CollisionGeometryInput, InvalidCombinations) {
