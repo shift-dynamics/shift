@@ -14,7 +14,8 @@
       9.81
     ],
     "include_directories": [
-      "."
+      ".",
+      "../cad"
     ],
     "enable_contact_detection": true,
     "solvers": [
@@ -25,8 +26,8 @@
     "integrators": [
       {
         "type": "ode113",
-        "relative_error": 1e-06,
-        "absolute_error": 1e-09,
+        "relative_error": 1e-04,
+        "absolute_error": 1e-06,
         "time_span": 3.0,
         "time_step": 0.01
       }

@@ -2,10 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
-#include <cstring>
-
-#include <tiffio.h>
 
 #include "ksl/vec3.h"
 #include "shift/core/body/base.h"
@@ -14,6 +10,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/frame.h"
 #include "shift/core/log.h"
+#include "shift/core/terrain/tiff.h"
 #include "shift/core/utility.h"
 
 bool shift::core::terrain::Basic::registered_ =
@@ -31,8 +28,6 @@ void shift::core::terrain::Basic::DeclareParameters() {
                "an include directory, or a texture built into the viewer, "
                "e.g. qrc:/textures/asphalt.jpg; optional",
                false);
-  DeclareParameter("property_map_filename", &property_map_filename_,
-               "path to filename that defines terrain texture", false);
   DeclareParameter("x_scale", &x_scale_,
                "spacing of the elevation map samples along x (m), defaults "
                "to 1 m if not specified",
@@ -73,6 +68,16 @@ void shift::core::terrain::Basic::DeclareParameters() {
     "only C0 continuous. \"bicubic\" sampling is C2 continuous but slower to "
     "compute. defaults to \"bicubic\" if not specified.",
     false);
+  DeclareParameter("soil", &soil_,
+                   "the soil of the terrain (see force_module::Soil), for the "
+                   "models that act on soil; optional",
+                   false);
+  DeclareParameter("soil_map", &soil_map_,
+                   "soils by area from an integer TIFF: \"filename\", "
+                   "\"x_scale\", \"y_scale\" and \"soils\", each a soil "
+                   "with the \"value\" of the samples that select it "
+                   "(see terrain::SoilMap); optional",
+                   false);
 }
 
 void shift::core::terrain::Base::Load() {}
@@ -91,94 +96,6 @@ std::string shift::core::terrain::Basic::FindFile(const std::string& name) const
                                " not found");
 }
 
-/* the samples of a single channel TIFF image, row major, integers
-normalized to 0..1 */
-/* an IEEE 754 half precision (16 bit) float */
-static double HalfToDouble(uint16_t h) {
-  const int exponent = (h >> 10) & 0x1f;
-  const int mantissa = h & 0x3ff;
-  double value;
-  if(exponent == 0) { // zero or subnormal
-    value = std::ldexp(double(mantissa), -24);
-  } else if(exponent == 31) { // infinity or NaN
-    value = mantissa ? std::nan("") : INFINITY;
-  } else {
-    value = std::ldexp(double(mantissa | 0x400), exponent - 25);
-  }
-  return (h & 0x8000) ? -value : value;
-}
-
-static std::vector<double> ReadTiff(const std::string& path, long& width,
-                                    long& height, std::string& error) {
-  std::vector<double> samples;
-  TIFFSetWarningHandler(nullptr);
-  TIFF* tiff = TIFFOpen(path.c_str(), "r");
-  if(!tiff) {
-    error = "could not read the TIFF image";
-    return samples;
-  }
-  uint32_t w = 0, h = 0;
-  uint16_t bits = 0, channels = 1, format = SAMPLEFORMAT_UINT, planar = 1;
-  TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &w);
-  TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &h);
-  TIFFGetFieldDefaulted(tiff, TIFFTAG_BITSPERSAMPLE, &bits);
-  TIFFGetFieldDefaulted(tiff, TIFFTAG_SAMPLESPERPIXEL, &channels);
-  TIFFGetFieldDefaulted(tiff, TIFFTAG_SAMPLEFORMAT, &format);
-  TIFFGetFieldDefaulted(tiff, TIFFTAG_PLANARCONFIG, &planar);
-  const bool is_float = format == SAMPLEFORMAT_IEEEFP;
-  const bool is_signed = format == SAMPLEFORMAT_INT;
-  if(w < 2 || h < 2 || (is_float && bits != 16 && bits != 32 && bits != 64) ||
-     (!is_float && bits != 8 && bits != 16 && bits != 32) ||
-     TIFFIsTiled(tiff)) {
-    error = "the elevation map must be a striped TIFF of at least 2 x 2 "
-            "8, 16 or 32 bit integer or 16, 32 or 64 bit float samples";
-    TIFFClose(tiff);
-    return samples;
-  }
-  /* the first channel of each pixel */
-  const size_t stride = planar == PLANARCONFIG_CONTIG ? channels : 1;
-  std::vector<uint8_t> row(TIFFScanlineSize(tiff));
-  samples.resize(size_t(w) * h);
-  const double range = is_float ? 1.0 : std::ldexp(1.0, bits) - 1.0;
-  for(uint32_t y = 0; y < h; y++) {
-    if(TIFFReadScanline(tiff, row.data(), y, 0) < 0) {
-      error = "could not read row " + std::to_string(y);
-      TIFFClose(tiff);
-      return {};
-    }
-    for(uint32_t x = 0; x < w; x++) {
-      const uint8_t* p = row.data() + size_t(x) * stride * (bits / 8);
-      double value = 0.0;
-      if(is_float && bits == 16) {
-        uint16_t u;
-        std::memcpy(&u, p, 2);
-        value = HalfToDouble(u);
-      } else if(is_float && bits == 32) {
-        float f;
-        std::memcpy(&f, p, 4);
-        value = f;
-      } else if(is_float) {
-        std::memcpy(&value, p, 8);
-      } else if(bits == 8) {
-        value = is_signed ? int8_t(*p) : *p;
-      } else if(bits == 16) {
-        uint16_t u;
-        std::memcpy(&u, p, 2);
-        value = is_signed ? double(int16_t(u)) : u;
-      } else {
-        uint32_t u;
-        std::memcpy(&u, p, 4);
-        value = is_signed ? double(int32_t(u)) : u;
-      }
-      samples[size_t(y) * w + x] = value / range;
-    }
-  }
-  TIFFClose(tiff);
-  width = w;
-  height = h;
-  return samples;
-}
-
 void shift::core::terrain::Basic::Load() {
   const std::string prefix = "Terrain " + get_name() + ": ";
   if(coordinate_type_ != "sae" && coordinate_type_ != "iso") {
@@ -194,28 +111,64 @@ void shift::core::terrain::Basic::Load() {
     throw shift::core::Exception(prefix + "x_scale and y_scale must be positive");
   }
   bicubic_ = interpolation_type_ == "bicubic";
-  const std::string path = FindFile(filename_);
-  long width = 0, height = 0;
-  std::string error;
-  const std::vector<double> samples = ReadTiff(path, width, height, error);
-  if(!error.empty()) {
-    throw shift::core::Exception(prefix + path + ": " + error);
-  }
-  /* to z (down) on the x, y grid of the terrain frame */
   const bool sae = coordinate_type_ == "sae";
-  nx_ = sae ? width : height;
-  ny_ = sae ? height : width;
-  z_.resize(size_t(nx_) * ny_);
-  for(long row = 0; row < height; row++) {
-    for(long column = 0; column < width; column++) {
-      const double value = z_scale_ * samples[size_t(row) * width + column];
-      const long i = sae ? column : row; // along x
-      const long j = sae ? row : column; // along y
-      z_[size_t(j) * nx_ + i] = sae ? value : -value;
+  z_.clear();
+  control_.clear();
+  nx_ = ny_ = 0;
+  if(filename_.empty()) {
+    if(requires_elevation_map() && !parent_basic_) {
+      throw shift::core::Exception(prefix + "needs filename, the elevation "
+                                            "map");
+    }
+  } else {
+    const std::string path = FindFile(filename_);
+    TiffImage image;
+    std::string error;
+    if(!ReadTiff(path, image, error)) {
+      throw shift::core::Exception(prefix + path + ": " + error);
+    }
+    /* integer samples normalized to 0..1, then to z (down) on the x, y
+    grid of the terrain frame */
+    const double range = image.Range();
+    nx_ = sae ? image.width : image.height;
+    ny_ = sae ? image.height : image.width;
+    z_.resize(size_t(nx_) * ny_);
+    for(long row = 0; row < image.height; row++) {
+      for(long column = 0; column < image.width; column++) {
+        const double value =
+          z_scale_ * image.samples[size_t(row) * image.width + column] / range;
+        const long i = sae ? column : row; // along x
+        const long j = sae ? row : column; // along y
+        z_[size_t(j) * nx_ + i] = sae ? value : -value;
+      }
+    }
+    if(bicubic_) {
+      SolveControlPoints();
     }
   }
-  if(bicubic_) {
-    SolveControlPoints();
+  /* the soils: the terrain's own first, then those of the map; a region's are
+  those of the terrain that holds it, changed by its own soil */
+  soils_.clear();
+  base_soil_ = -1;
+  if(parent_basic_) {
+    if(soil_map_.is_given()) {
+      throw shift::core::Exception(prefix + "a region takes the soil map of "
+                                            "the terrain that holds it");
+    }
+    soils_ = parent_basic_->soils_;
+    base_soil_ = parent_basic_->base_soil_;
+    if(soil_.is_given()) {
+      for(auto& soil : soils_) {
+        soil_.Override(soil, "Terrain " + get_name());
+      }
+    }
+  } else if(soil_.is_given()) {
+    soils_.push_back(soil_.Resolve("Terrain " + get_name(), requires_bekker()));
+    base_soil_ = 0;
+  }
+  if(soil_map_.is_given() && !parent_basic_) {
+    soil_map_.Load(FindFile(soil_map_.get_filename()), sae, base_soil_,
+                   "Terrain " + get_name(), soils_);
   }
   /* the texture only changes the look: draw without it if it is missing */
   texture_path_.clear();
@@ -238,6 +191,22 @@ void shift::core::terrain::Basic::Load() {
 
 void shift::core::terrain::Basic::Connect() {
   const std::string prefix = "Terrain " + get_name() + ": ";
+  parent_basic_ = nullptr;
+  if(get_parent_terrain()) {
+    /* a region: the frame of the terrain that holds it, connected first */
+    parent_basic_ = dynamic_cast<const Basic*>(get_parent_terrain());
+    if(!parent_basic_) {
+      throw shift::core::Exception(prefix + "a region of a terrain of type "
+                                            "\"basic\", \"scm\" or \"sph\" "
+                                            "only");
+    }
+    if(!parent_.empty()) {
+      throw shift::core::Exception(prefix + "a region takes the frame of the "
+                                            "terrain that holds it: no parent");
+    }
+    frame_ = parent_basic_->frame_;
+    return;
+  }
   /* parent: [["fixed"], "frame"] or [["fixed"], ["frame"]] */
   std::string frame_name = "origin";
   if(parent_.size() >= 2 && !parent_[1].empty()) {
@@ -362,6 +331,13 @@ double shift::core::terrain::Basic::ControlZ(long i, long j) const {
 
 double shift::core::terrain::Basic::LocalZ(double x, double y, double& z_x,
                                            double& z_y) const {
+  if(z_.empty()) {
+    if(parent_basic_) {
+      return parent_basic_->LocalZ(x, y, z_x, z_y);
+    }
+    z_x = z_y = 0.0;
+    return 0.0;
+  }
   const double u = x / x_scale_;
   const double v = y / y_scale_;
   const long i = static_cast<long>(std::floor(u));
@@ -410,16 +386,34 @@ double shift::core::terrain::Basic::LocalZ(double x, double y, double& z_x,
 bool shift::core::terrain::Basic::Query(const ksl_vec3_t& point,
                                         ksl_vec3_t& surface,
                                         ksl_vec3_t& normal) const {
-  if(!frame_ || z_.empty()) {
+  return QuerySurface(point, true, surface, normal);
+}
+
+bool shift::core::terrain::Basic::QueryUndisturbed(const ksl_vec3_t& point,
+                                                   ksl_vec3_t& surface,
+                                                   ksl_vec3_t& normal) const {
+  return QuerySurface(point, false, surface, normal);
+}
+
+bool shift::core::terrain::Basic::QuerySurface(const ksl_vec3_t& point,
+                                               bool deformed,
+                                               ksl_vec3_t& surface,
+                                               ksl_vec3_t& normal) const {
+  if(!frame_ ||
+     (z_.empty() && requires_elevation_map() && !parent_basic_)) {
     return false;
   }
-  /* the point in the terrain frame, R^T (p - t) */
+  double x, y, z_point;
+  ToLocal(point, x, y, z_point);
+  if(const Base* region = RegionAt(x, y)) {
+    const Basic* basic = dynamic_cast<const Basic*>(region);
+    return basic ? basic->QuerySurface(point, deformed, surface, normal)
+                 : region->Query(point, surface, normal);
+  }
   const ksl_SE3_t& d = get_pose();
-  const ksl_vec3_t r = {{point.x - d.t.x, point.y - d.t.y, point.z - d.t.z}};
-  const double x = ksl_dot_vv(&d.R.v0, &r);
-  const double y = ksl_dot_vv(&d.R.v1, &r);
   double z_x, z_y;
-  const double z = LocalZ(x, y, z_x, z_y);
+  const double z =
+    deformed ? SurfaceZ(x, y, z_x, z_y) : LocalZ(x, y, z_x, z_y);
   /* the solid is at z > z(x, y) (z down); into it, (-z_x, -z_y, 1) */
   const double length = std::sqrt(z_x * z_x + z_y * z_y + 1.0);
   const double local_normal[3] = {-z_x / length, -z_y / length, 1.0 / length};
@@ -433,4 +427,40 @@ bool shift::core::terrain::Basic::Query(const ksl_vec3_t& point,
                     d.R.v2.at[k] * local_surface[2];
   }
   return true;
+}
+
+void shift::core::terrain::Basic::ToLocal(const ksl_vec3_t& point, double& x,
+                                          double& y, double& z) const {
+  /* R^T (p - t) */
+  const ksl_SE3_t& d = get_pose();
+  const ksl_vec3_t r = {{point.x - d.t.x, point.y - d.t.y, point.z - d.t.z}};
+  x = ksl_dot_vv(&d.R.v0, &r);
+  y = ksl_dot_vv(&d.R.v1, &r);
+  z = ksl_dot_vv(&d.R.v2, &r);
+}
+
+int shift::core::terrain::Basic::LocalSoilIndex(double x, double y) const {
+  if(parent_basic_) {
+    return parent_basic_->LocalSoilIndex(x, y);
+  }
+  return soil_map_.is_given() ? soil_map_.Index(x, y) : base_soil_;
+}
+
+const shift::core::force_module::SoilProperties*
+shift::core::terrain::Basic::LocalSoil(double x, double y) const {
+  const int index = LocalSoilIndex(x, y);
+  return index >= 0 ? &soils_[index] : nullptr;
+}
+
+const shift::core::force_module::SoilProperties*
+shift::core::terrain::Basic::SoilAt(const ksl_vec3_t& point) const {
+  if(!frame_) {
+    return nullptr;
+  }
+  double x, y, z;
+  ToLocal(point, x, y, z);
+  if(const Base* region = RegionAt(x, y)) {
+    return region->SoilAt(point);
+  }
+  return LocalSoil(x, y);
 }

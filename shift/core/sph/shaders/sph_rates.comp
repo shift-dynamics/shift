@@ -1,0 +1,128 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// SPH pass 6: the density and stress rates (continuity, Jaumann rate of
+// Hooke's law) and the return to the Drucker-Prager cone, into the A arrays
+
+#include "sph_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Position { vec4 position[]; };
+layout(std430, binding = 1) readonly buffer Velocity { vec4 velocity[]; };
+layout(std430, binding = 2) readonly buffer Density { float density[]; };
+layout(std430, binding = 3) readonly buffer Stress { vec4 stress[]; };
+layout(std430, binding = 4) readonly buffer Kind { uint kind[]; };
+layout(std430, binding = 5) readonly buffer Start { uint start[]; };
+// per material: density, G, K, c, then alpha_phi, k_c, alpha_psi, 0
+layout(std430, binding = 6) readonly buffer Materials { vec4 materials[]; };
+layout(std430, binding = 7) writeonly buffer DensityOut { float density_out[]; };
+layout(std430, binding = 8) writeonly buffer StressOut { vec4 stress_out[]; };
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if(i >= count) {
+    return;
+  }
+  const vec4 t0 = stress[2 * i], t1 = stress[2 * i + 1];
+  if((kind[i] & kMarker) != 0) {
+    density_out[i] = density[i];
+    stress_out[2 * i] = t0;
+    stress_out[2 * i + 1] = t1;
+    return;
+  }
+  const vec3 xi = position[i].xyz;
+  const vec3 vi = velocity[i].xyz;
+  float drho = 0.0;
+  float l[3][3] = float[3][3](float[3](0.0, 0.0, 0.0), float[3](0.0, 0.0, 0.0),
+                              float[3](0.0, 0.0, 0.0));
+  uint hashes[27];
+  const int cells = NeighborCells(xi, hashes);
+  for(int c = 0; c < cells; c++) {
+    for(uint j = start[hashes[c]]; j < start[hashes[c] + 1]; j++) {
+      if(j == i) {
+        continue;
+      }
+      const float dx = xi.x - position[j].x;
+      const float dy = xi.y - position[j].y;
+      const float dz = xi.z - position[j].z;
+      const float r = sqrt(dx * dx + dy * dy + dz * dz);
+      if(!(r < 2.0 * h) || r < 1e-6 * h) {
+        continue;
+      }
+      const float f = KernelDerivative(r) / r;
+      const float grad[3] = float[3](f * dx, f * dy, f * dz);
+      const bool marker = (kind[j] & kMarker) != 0;
+      const vec3 vj = velocity[j].xyz; // a wall's is 0, a body's its own
+      const float mj = position[j].w;
+      const float dv[3] = float[3](vi.x - vj.x, vi.y - vj.y, vi.z - vj.z);
+      drho += mj * (dv[0] * grad[0] + dv[1] * grad[1] + dv[2] * grad[2]);
+      const float volume = mj / density[j];
+      for(int a = 0; a < 3; a++) {
+        for(int b = 0; b < 3; b++) {
+          l[a][b] -= volume * dv[a] * grad[b];
+        }
+      }
+    }
+  }
+  const vec4 m0 = materials[2 * kind[i]], m1 = materials[2 * kind[i] + 1];
+  const float shear = m0.y, bulk = m0.z, alpha = m1.x, k_c = m1.y,
+              beta = m1.z;
+  float e[3][3], w[3][3];
+  for(int a = 0; a < 3; a++) {
+    for(int b = 0; b < 3; b++) {
+      e[a][b] = 0.5 * (l[a][b] + l[b][a]);
+      w[a][b] = 0.5 * (l[a][b] - l[b][a]);
+    }
+  }
+  const float sig[3][3] = float[3][3](float[3](t0.x, t0.w, t1.y),
+                                      float[3](t0.w, t0.y, t1.x),
+                                      float[3](t1.y, t1.x, t0.z));
+  const float trace = e[0][0] + e[1][1] + e[2][2];
+  float rate[3][3];
+  for(int a = 0; a < 3; a++) {
+    for(int b = 0; b < 3; b++) {
+      float jaumann = 0.0;
+      for(int k = 0; k < 3; k++) {
+        jaumann += sig[a][k] * w[b][k] + w[a][k] * sig[k][b];
+      }
+      rate[a][b] = jaumann + 2.0 * shear * e[a][b];
+    }
+    rate[a][a] += (bulk - 2.0 * shear / 3.0) * trace;
+  }
+  float o[6] = float[6](t0.x + dt * rate[0][0], t0.y + dt * rate[1][1],
+                        t0.z + dt * rate[2][2], t0.w + dt * rate[0][1],
+                        t1.x + dt * rate[1][2], t1.y + dt * rate[2][0]);
+  const float i1 = o[0] + o[1] + o[2];
+  const float mean = i1 / 3.0;
+  const float s0 = o[0] - mean, s1 = o[1] - mean, s2 = o[2] - mean;
+  const float j2 = 0.5 * (s0 * s0 + s1 * s1 + s2 * s2) + o[3] * o[3] +
+                   o[4] * o[4] + o[5] * o[5];
+  const float root = sqrt(j2);
+  const float yield = alpha * i1 + root - k_c;
+  if(yield > 0.0) {
+    const float lambda = yield / (shear + 9.0 * bulk * alpha * beta);
+    const float reduced = root - shear * lambda;
+    if(reduced <= 0.0 && alpha > 0.0) {
+      const float apex = k_c / alpha / 3.0;
+      o[0] = apex;
+      o[1] = apex;
+      o[2] = apex;
+      o[3] = 0.0;
+      o[4] = 0.0;
+      o[5] = 0.0;
+    } else {
+      const float scale = reduced > 0.0 ? reduced / root : 0.0;
+      const float new_mean = (i1 - 9.0 * bulk * beta * lambda) / 3.0;
+      o[0] = s0 * scale + new_mean;
+      o[1] = s1 * scale + new_mean;
+      o[2] = s2 * scale + new_mean;
+      o[3] *= scale;
+      o[4] *= scale;
+      o[5] *= scale;
+    }
+  }
+  stress_out[2 * i] = vec4(o[0], o[1], o[2], o[3]);
+  stress_out[2 * i + 1] = vec4(o[4], o[5], 0.0, 0.0);
+  density_out[i] = density[i] + dt * drho;
+}

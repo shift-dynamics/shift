@@ -3,8 +3,10 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "shift/core/cad/brep.h"
@@ -187,6 +189,38 @@ struct CadContactShape {
 };
 
 /*!
+@brief the closest points of a face of a CAD geometry in a narrow band about
+it, for the starting points of the search for contact (Cad, contact_seeds
+"field")
+
+The nodes of a grid of spacing cell, in the frame of the geometry, that lie
+within band of the face, each with the signed distance to the face's nearest
+point (positive outside the solid) and that point's (u, v). The point of
+another face is looked up at the node nearest it, whose (u, v) starts its
+projection on the face: no sample of the face need be searched for it, and a
+point beyond the band is no nearer the face than band less half a cell's
+diagonal.
+*/
+struct CadFaceField {
+  struct Node {
+    double distance = 0.0;
+    cad::Vec2 uv{0.0, 0.0};
+  };
+  double cell = 0.0;
+  double band = 0.0;
+  /*! nodes by Key of their indices along x, y and z */
+  std::unordered_map<std::int64_t, Node> nodes;
+
+  /*! the key of the node of indices (i, j, k), each within 2^20 of 0 */
+  static std::int64_t Key(std::int64_t i, std::int64_t j, std::int64_t k) {
+    return ((i + (1 << 20)) << 42) | ((j + (1 << 20)) << 21) | (k + (1 << 20));
+  }
+  /*! the node nearest p (frame of the geometry); null if it is not in the
+   * band */
+  const Node* Nearest(const ksl_vec3_t& p) const;
+};
+
+/*!
 @brief exact contact of CAD geometry: the faces of the body's STEP geometry
 (geometry type "cad"), with their analytic and NURBS surfaces trimmed by
 their edges
@@ -260,6 +294,57 @@ point: of a line for line contacts, of the ellipse of the faces' principal
 curvatures at a point (HertzEllipseFactor), and of edges and vertices
 rounded to edge_radius.
 
+Two faces of the same shape (conformal), as a brake shoe whose inner face fits
+its drum, or a B-spline face on a copy of itself, touch over an area, not at a
+point or along a line. Such faces are found by the depth of the samples of the
+smaller face under the other: a small rigid motion of faces of the same shape
+changes the depth of each point p, along the normal n there, by
+\f$\underline{n} \cdot (\underline{v} + \underline{\omega} \times
+\underline{p})\f$, so the faces conform if their depths fit that for some
+\f$\underline{v}\f$ and \f$\underline{\omega}\f$, to 0.1% of the greatest
+depth, over five rows of samples at least along each parameter. Analytic faces
+need the same kind and dimensions, one convex and one concave, to be tried.
+The area is integrated on a grid over the smaller face, each point carrying its
+depth and its share of the area (ContactPoint::area), for a pressure
+proportional to the depth (force_module::Contact::PointLaw): the brake shoe's
+pressure falls off as the cosine of the angle from the line of its motion, and
+its friction torque is the classical drum brake's. In cells that the edge of
+the contact or a trim crosses, the depths at the cell's corners are projected
+and interpolated quadratically, and the part of each subsample in contact is
+integrated, so that the area and force do not depend on where the grid lies.
+
+Faces nearly of the same shape (nearly conformal), as a ball in a socket a
+little larger or a pin in a bore with clearance, differ in their dimensions by
+up to 10%, and their depths fit a small rigid motion to a quarter of the
+greatest depth sought. Lightly pressed, they touch at a point or along a line;
+pressed in, the contact wraps round them. The area contact is computed as for
+conformal faces, and the angle over which it wraps is estimated from the
+spread of its normals: the area takes over from the point or line smoothly as
+that half angle rises from 0.3 to 0.6 radians (17 to 34 degrees). Faces next
+to each other across smooth seams, such as the halves of a sphere, form one
+contact, with one wrap angle, one area for its stiffness, and the depth of its
+deepest point.
+
+Two flat faces that face each other, as a block resting on a table, touch over
+the area where they overlap, found exactly by clipping the polygons of their
+trims: the depth is linear over it, and each point of a grid over the overlap
+carries the area and the mean depth of its cell, so the force and moment are
+exact. The area contact takes over from that of the faces' edges and vertices
+smoothly, as the normals come within 18 degrees of opposite (from 26), and as
+the share of the smaller face in contact rises from 10% to 50%: a block tipped
+onto its edge, or a corner pressed into a face, keeps the contact of its edge or
+corner.
+
+The search for the points of two faces starts from seeds: the samples of
+either face that lie deepest under the other, at local maxima of their depth.
+With contact_seeds "samples" (the default) each sample is paired with the
+samples of the other face to find which it lies under; with "field" it is
+looked up in the closest-point field of the other face (CadFaceField), built
+when the geometry loads, and Newton's method starts from it. Both find the same
+points; the field takes longer to load and less time to search. A pair keeps
+its seeds from one test to the next while its faces move by less than half a
+sample's spacing (see ContactPair::cad_cache).
+
 The geometry is the body's CAD geometry, named by fit_to or the first CAD
 geometry of the body; its frame is the body origin frame, translated to the
 center of the geometry's bounds.
@@ -313,6 +398,12 @@ public:
     return *shape_;
   }
 
+  /*! \brief the closest-point fields of the faces, by face, with
+   * contact_seeds "field"; null otherwise */
+  const std::vector<CadFaceField>* get_fields() const {
+    return fields_ ? fields_.get() : nullptr;
+  }
+
   /*! \brief radius to which edges and vertices are rounded for their Hertz
    * contact, model length units */
   double get_edge_radius() const {
@@ -331,7 +422,9 @@ protected:
 private:
   static bool registered_;
   double edge_radius_ = 0.0;
+  std::string contact_seeds_ = "samples";
   std::shared_ptr<const CadContactShape> shape_;
+  std::shared_ptr<const std::vector<CadFaceField>> fields_;
   /*! the faces tessellated for RayCastGrid, made on its first call */
   mutable std::shared_ptr<const std::vector<CadFaceMesh>> face_meshes_;
 };
@@ -360,6 +453,12 @@ bool CadExactContact(ContactPair& pair);
 std::shared_ptr<const CadContactShape>
 MakeCadContactShape(std::shared_ptr<const geometry::CadAsset> asset,
                     double scale);
+
+/*! @brief the closest-point fields of the faces of a contact shape (see
+ * CadFaceField), each reaching max_depth or three of its face's sample
+ * spacings beyond the face, whichever is more (exposed for tests) */
+std::vector<CadFaceField> MakeCadFaceFields(const CadContactShape& shape,
+                                            double max_depth);
 
 /*! @brief the exact shape of a convex hull: a plane face for each of its
  * polygons, with their shared edges and vertices; null without polygons */

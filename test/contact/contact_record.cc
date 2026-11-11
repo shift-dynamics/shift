@@ -308,7 +308,8 @@ static void WriteRecord(const std::string& path, const RecordedTest& test) {
       out << ",\"normal\":";
       WriteVector(out, point.normal);
       out << ",\"depth\":" << point.depth << ",\"length\":" << point.length
-          << ",\"weight\":" << point.weight << '}';
+          << ",\"area\":" << point.area << ",\"weight\":" << point.weight
+          << '}';
     }
     out << "]}";
   }

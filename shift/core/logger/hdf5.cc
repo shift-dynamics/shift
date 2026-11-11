@@ -1,10 +1,14 @@
 #include <cassert>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 
 #include "shift/core/context.h"
 #include "shift/core/factory.h"
 #include "shift/core/force_module/base.h"
 #include "shift/core/logger/base.h"
 #include "shift/core/logger/hdf5.h"
+#include "shift/core/terrain/scm.h"
 #include "shift/core/utility.h"
 
 bool shift::core::logger::HDF5::registered_ =
@@ -42,6 +46,7 @@ void shift::core::logger::HDF5::Initialize() {
   state_meta_data_ = H5::Group(hdf5_file_.createGroup("/state_meta_data"));
 
   WriteHeader();
+  WriteModel();
 }
 
 void shift::core::logger::HDF5::WriteHeader() {
@@ -167,8 +172,10 @@ void shift::core::logger::HDF5::WriteStates(const double t,
       H5::Group states = hdf5_file_.createGroup("/states");
       const size_t q_count = context_->get_q_count();
       const size_t dq_count = context_->get_dq_count();
+      const size_t free_count =
+        context_->get_state_count() - context_->get_free_state_offset();
       const std::vector<std::pair<std::string, size_t>> blocks = {
-        {"q", q_count}, {"dq", dq_count}};
+        {"q", q_count}, {"dq", dq_count}, {"free", free_count}};
       size_t offset = 0;
       for(const auto& [name, count] : blocks) {
         if(count > 0) {
@@ -191,8 +198,29 @@ void shift::core::logger::HDF5::WriteStates(const double t,
           outputs_.push_back(CreateSeries(group, name, 0));
         }
       }
+      H5::Group sensors;
+      bool have_sensors = false;
+      for(auto& sensor : context_->get_active_sensors()) {
+        const auto names = sensor->get_output_names();
+        if(names.empty()) {
+          continue;
+        }
+        if(!have_sensors) {
+          sensors = hdf5_file_.createGroup("/sensors");
+          have_sensors = true;
+        }
+        H5::Group group =
+          sensors.createGroup(sensor->FullyQualifiedName(sensor->get_name()));
+        for(const auto& name : names) {
+          outputs_.push_back(CreateSeries(group, name, 0));
+        }
+      }
     }
   }
+  if(rows_ == 0) {
+    CreateTerrainLogs();
+  }
+  AppendTerrainLogs();
   Append(time_, &t);
   for(size_t k = 0; k < states_.size(); k++) {
     Append(states_[k], y.data() + state_offsets_[k]);
@@ -203,11 +231,206 @@ void shift::core::logger::HDF5::WriteStates(const double t,
     for(auto& module : context_->get_active_force_modules()) {
       module->AppendOutputs(output_values_);
     }
+    for(auto& sensor : context_->get_active_sensors()) {
+      sensor->AppendOutputs(output_values_);
+    }
     assert(output_values_.size() == outputs_.size());
     for(size_t k = 0; k < outputs_.size(); k++) {
       Append(outputs_[k], &output_values_[k]);
     }
   }
   rows_++;
+  hdf5_file_.flush(H5F_SCOPE_LOCAL);
+}
+
+/* a one-dimensional dataset of type that grows without bound */
+static H5::DataSet CreateList(const H5::Group& group, const std::string& name,
+                              const H5::PredType& type) {
+  const hsize_t dims[1] = {0};
+  const hsize_t max_dims[1] = {H5S_UNLIMITED};
+  const hsize_t chunk[1] = {4096};
+  H5::DataSpace space(1, dims, max_dims);
+  H5::DSetCreatPropList properties;
+  properties.setChunk(1, chunk);
+  properties.setDeflate(1);
+  return group.createDataSet(name, type, space, properties);
+}
+
+/* count values of type at the end of dataset, which holds length */
+static void AppendList(H5::DataSet& dataset, hsize_t length, hsize_t count,
+                       const void* values, const H5::PredType& type) {
+  if(count == 0) {
+    return;
+  }
+  const hsize_t dims[1] = {length + count};
+  dataset.extend(dims);
+  H5::DataSpace file_space = dataset.getSpace();
+  const hsize_t start[1] = {length};
+  const hsize_t counts[1] = {count};
+  file_space.selectHyperslab(H5S_SELECT_SET, counts, start);
+  H5::DataSpace memory_space(1, counts);
+  dataset.write(values, type, memory_space, file_space);
+}
+
+void shift::core::logger::HDF5::CreateTerrainLogs() {
+  terrain_logs_.clear();
+  H5::Group group;
+  for(auto terrain : context_->get_active_terrain()) {
+    auto scm = dynamic_cast<const shift::core::terrain::Scm*>(terrain);
+    if(!scm) {
+      continue;
+    }
+    if(terrain_logs_.empty()) {
+      group = hdf5_file_.createGroup("/terrain");
+    }
+    H5::Group node = group.createGroup(scm->get_name());
+    const hsize_t nx = hsize_t(scm->get_node_count_x());
+    const hsize_t ny = hsize_t(scm->get_node_count_y());
+    {
+      const int64_t counts[2] = {int64_t(nx), int64_t(ny)};
+      const hsize_t two = 2;
+      H5::Attribute a = node.createAttribute(
+        "node_count", H5::PredType::NATIVE_INT64, H5::DataSpace(1, &two));
+      a.write(H5::PredType::NATIVE_INT64, counts);
+    }
+    const std::pair<const char*, double> scalars[] = {
+      {"x0", scm->NodeX(0)},
+      {"y0", scm->NodeY(0)},
+      {"spacing", scm->get_spacing()}};
+    for(const auto& [name, value] : scalars) {
+      H5::Attribute a = node.createAttribute(name, H5::PredType::NATIVE_DOUBLE,
+                                             H5::DataSpace(H5S_SCALAR));
+      a.write(H5::PredType::NATIVE_DOUBLE, &value);
+    }
+    {
+      const ksl_SE3_t& d = scm->get_pose();
+      double pose[4][4] = {{d.R.v0.x, d.R.v1.x, d.R.v2.x, d.t.x},
+                           {d.R.v0.y, d.R.v1.y, d.R.v2.y, d.t.y},
+                           {d.R.v0.z, d.R.v1.z, d.R.v2.z, d.t.z},
+                           {0.0, 0.0, 0.0, 1.0}};
+      const hsize_t dims[2] = {4, 4};
+      H5::Attribute a = node.createAttribute(
+        "pose", H5::PredType::NATIVE_DOUBLE, H5::DataSpace(2, dims));
+      a.write(H5::PredType::NATIVE_DOUBLE, pose);
+    }
+    {
+      std::vector<double> z(nx * ny);
+      for(hsize_t j = 0; j < ny; j++) {
+        for(hsize_t i = 0; i < nx; i++) {
+          z[j * nx + i] = scm->UndisturbedZ(long(i), long(j));
+        }
+      }
+      const hsize_t dims[2] = {ny, nx};
+      const hsize_t chunk[2] = {std::min<hsize_t>(ny, 256),
+                                std::min<hsize_t>(nx, 256)};
+      H5::DSetCreatPropList properties;
+      properties.setChunk(2, chunk);
+      properties.setDeflate(1);
+      H5::DataSet dataset =
+        node.createDataSet("undisturbed_z", H5::PredType::NATIVE_DOUBLE,
+                           H5::DataSpace(2, dims), properties);
+      dataset.write(z.data(), H5::PredType::NATIVE_DOUBLE);
+    }
+    TerrainLog log;
+    log.scm = scm;
+    log.index = CreateList(node, "index", H5::PredType::NATIVE_INT32);
+    log.level = CreateList(node, "level", H5::PredType::NATIVE_FLOAT);
+    log.row_start = CreateList(node, "row_start", H5::PredType::NATIVE_INT64);
+    terrain_logs_.push_back(std::move(log));
+  }
+}
+
+void shift::core::logger::HDF5::AppendTerrainLogs() {
+  for(auto& log : terrain_logs_) {
+    log.indices.clear();
+    log.levels.clear();
+    if(rows_ == 0) {
+      /* every node that is not undisturbed, whatever the terrain started
+      from */
+      std::vector<float> all;
+      log.scm->GetLevels(all);
+      for(size_t k = 0; k < all.size(); k++) {
+        if(all[k] != 0.0f) {
+          log.indices.push_back(int32_t(k));
+          log.levels.push_back(all[k]);
+        }
+      }
+    } else {
+      for(const auto& change : log.scm->get_output_changes()) {
+        log.indices.push_back(change.index);
+        log.levels.push_back(change.level);
+      }
+    }
+    const int64_t start = int64_t(log.length);
+    AppendList(log.row_start, rows_, 1, &start, H5::PredType::NATIVE_INT64);
+    const hsize_t count = log.indices.size();
+    AppendList(log.index, log.length, count, log.indices.data(),
+               H5::PredType::NATIVE_INT32);
+    AppendList(log.level, log.length, count, log.levels.data(),
+               H5::PredType::NATIVE_FLOAT);
+    log.length += count;
+  }
+}
+
+void shift::core::logger::HDF5::WriteModel() {
+  H5::Group model = hdf5_file_.createGroup("/model");
+  const std::filesystem::path model_file =
+    std::filesystem::absolute(context_->get_filename()).lexically_normal();
+  auto write_string = [](H5::H5Object& object, const std::string& name,
+                         const std::string& text) {
+    H5::StrType type(H5::PredType::C_S1, std::max<size_t>(text.size(), 1));
+    H5::Attribute attribute =
+      object.createAttribute(name, type, H5::DataSpace(H5S_SCALAR));
+    attribute.write(type, text.c_str());
+  };
+  {
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "  ";
+    const std::string text =
+      Json::writeString(builder, context_->get_model_json());
+    H5::StrType type(H5::PredType::C_S1, std::max<size_t>(text.size(), 1));
+    H5::DataSet json =
+      model.createDataSet("json", type, H5::DataSpace(H5S_SCALAR));
+    json.write(text.c_str(), type);
+    write_string(json, "filename", model_file.filename().string());
+  }
+  H5::Group files = model.createGroup("files");
+  int k = 0;
+  for(const auto& path : context_->get_files_read()) {
+    std::ifstream in(path, std::ios::binary);
+    if(!in) {
+      continue;
+    }
+    const std::vector<char> bytes((std::istreambuf_iterator<char>(in)),
+                                  std::istreambuf_iterator<char>());
+    const hsize_t size = bytes.size();
+    H5::DataSet dataset;
+    if(size > 0) {
+      H5::DSetCreatPropList properties;
+      const hsize_t chunk = std::min<hsize_t>(size, 1 << 20);
+      properties.setChunk(1, &chunk);
+      properties.setDeflate(1);
+      dataset = files.createDataSet(std::to_string(k), H5::PredType::NATIVE_UINT8,
+                                    H5::DataSpace(1, &size), properties);
+      dataset.write(bytes.data(), H5::PredType::NATIVE_UINT8);
+    } else {
+      dataset = files.createDataSet(std::to_string(k), H5::PredType::NATIVE_UINT8,
+                                    H5::DataSpace(H5S_NULL));
+    }
+    write_string(dataset, "path",
+                 std::filesystem::path(path)
+                   .lexically_relative(model_file.parent_path())
+                   .string());
+    write_string(dataset, "original", path);
+    /* the names by which the model found it, one per line */
+    std::string names;
+    for(const auto& [name, found] : context_->get_file_names()) {
+      if(found == path) {
+        names += name + "\n";
+      }
+    }
+    write_string(dataset, "names", names);
+    k++;
+  }
   hdf5_file_.flush(H5F_SCOPE_LOCAL);
 }

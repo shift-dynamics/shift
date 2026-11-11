@@ -1,0 +1,23 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// SPH pass 2: each particle into its cell's range of the sorted order (in
+// any order within the cell; sph_cell_sort.comp orders them by id)
+
+#include "sph_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Hash { uint hashes[]; };
+layout(std430, binding = 1) readonly buffer Start { uint start[]; };
+layout(std430, binding = 2) buffer Cursor { uint cursor[]; };
+layout(std430, binding = 3) writeonly buffer Order { uint order[]; };
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if(i >= count) {
+    return;
+  }
+  const uint hash = hashes[i];
+  order[start[hash] + atomicAdd(cursor[hash], 1u)] = i;
+}

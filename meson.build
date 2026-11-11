@@ -88,6 +88,16 @@ elif step_opt.enabled()
   error('step: STEPcode headers with the AP242 schema were not found in /usr/include or /usr/local/include')
 endif
 
+# GPU calculations in core (shift/core/gpu): the Vulkan loader, and glslc to
+# compile the compute shaders to SPIR-V embedded in the library
+gpu_opt = get_option('gpu')
+vulkan_dep = dependency('vulkan', required: gpu_opt)
+glslc = find_program('glslc', required: gpu_opt)
+gpu_found = vulkan_dep.found() and glslc.found()
+if not gpu_found
+  vulkan_dep = dependency('', required: false)
+endif
+
 # example models (also used by the test suite)
 shift_examples_dir = meson.project_source_root() / 'examples'
 

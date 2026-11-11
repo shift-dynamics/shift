@@ -72,6 +72,7 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
     }
   }
   request.hide_floor = parser.isSet("no-floor");
+  request.bilinear_terrain = parser.isSet("no-smooth-terrain");
   request.follow_body = parser.value("follow");
   request.follow_ground = parser.isSet("follow-ground");
   if(request.follow_ground && request.follow_body.isEmpty()) {
@@ -89,11 +90,11 @@ int main(int argc, char* argv[]) {
   QCommandLineParser parser;
   parser.setApplicationDescription("Shift multibody dynamics viewer");
   parser.addHelpOption();
-  parser.addPositionalArgument("model", "model JSON file to open");
+  parser.addPositionalArgument("model", "model JSON or YAML file, or HDF5 log, to open");
   parser.addOptions({
     {"image", "render the model to an image file (PNG, JPEG, ...) and quit",
      "file"},
-    {"time", "with --image: simulate to this time first (s)", "seconds"},
+    {"time", "with --image: simulate to this time first, or show it from an HDF5 log (s)", "seconds"},
     {"size", "with --image: image size (default 1200x800)", "WIDTHxHEIGHT"},
     {"view",
      "with --image: camera azimuth about +z from +x towards +y, and "
@@ -105,6 +106,9 @@ int main(int argc, char* argv[]) {
      "X,Y,Z,RADIUS"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
+    {"no-smooth-terrain",
+     "with --image: draw deformable terrain bilinearly between its nodes, as "
+     "the soil models see it"},
     {"follow",
      "with --image: set the view at the start, and follow this body to --time",
      "body"},

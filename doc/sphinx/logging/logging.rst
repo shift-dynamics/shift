@@ -67,9 +67,58 @@ HDF5
      - each joint's offsets into them
    * - ``/force_modules/<assembly>__<module>/<output>``
      - each output of each force module, one value per row
+   * - ``/terrain/<name>``
+     - for each deformable terrain (``"type": "scm"``), the nodes whose level
+       changed at each output step (see below)
 
 The datasets grow as the simulation runs, and the file is flushed after
 every row, so it can be read while the simulation is still running.
+
+A deformable terrain's grid can have millions of nodes, but only the few
+under the bodies change at each step. So ``/terrain/<name>`` stores only the
+nodes that changed, not the whole grid at every row:
+
+.. list-table::
+   :header-rows: 1
+
+   * - entry
+     - contents
+   * - attributes ``node_count``, ``x0``, ``y0``, ``spacing``
+     - ``[nx, ny]``. Node ``(i, j)`` is at ``x0 + i spacing``,
+       ``y0 + j spacing`` in the terrain frame.
+   * - attribute ``pose``
+     - the terrain frame in the inertial frame, a 4 x 4 matrix
+   * - ``undisturbed_z``
+     - ``ny`` x ``nx``: z (down) of the undisturbed surface at each node,
+       written once
+   * - ``index``, ``level``
+     - the changes of every row, one after another: the node ``j nx + i``
+       (int32) and its new level (float32), the depth of the surface below
+       the undisturbed one (negative where soil is piled)
+   * - ``row_start``
+     - one per row of ``/time``: the first change of that row. The changes
+       of row ``r`` run from ``row_start[r]`` up to ``row_start[r + 1]``, or
+       to the end for the last row.
+
+The first row lists every node whose level is not 0. To get the surface at
+row ``r``, start from a grid of zeros and apply the changes of rows 0 to
+``r`` in order:
+
+.. code:: python
+
+   import h5py, numpy as np
+
+   with h5py.File("track.h5") as f:
+       g = f["/terrain/sand"]
+       nx, ny = g.attrs["node_count"]
+       start, index, level = g["row_start"][:], g["index"][:], g["level"][:]
+       r = len(start) - 1  # the last row
+       levels = np.zeros(nx * ny, np.float32)
+       end = start[r + 1] if r + 1 < len(start) else len(index)
+       # the last change of each node up to row r
+       nodes, last = np.unique(index[:end][::-1], return_index=True)
+       levels[nodes] = level[:end][::-1][last]
+       z = g["undisturbed_z"][:] + levels.reshape(ny, nx)
 
 .. shift-parameters:: shift/core/logger/hdf5.cc
 

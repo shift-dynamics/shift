@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <unordered_map>
 #include <sstream>
 
 #include "ksl/matrix.h"
@@ -32,6 +33,15 @@ void shift::core::collision_geometry::Cad::DeclareParameters() {
     "be rounded, for the Hertz contact of an edge or vertex with a face; "
     "defaults to 0.2% of the size of the geometry (the diagonal of its "
     "bounds)",
+    false);
+  DeclareParameter(
+    "contact_seeds", &contact_seeds_,
+    "how the starting points of the search for contact between two faces are "
+    "found: \"samples\" (the default) scores each sample of either face "
+    "against each sample of the other; \"field\" looks each sample up in a "
+    "field of the closest points of the other face, built at load, and starts "
+    "Newton's method there. Two CAD geometries use the field only if both ask "
+    "for it",
     false);
 }
 
@@ -132,11 +142,66 @@ ksl_vec3_t shift::core::collision_geometry::CadContactShape::Point(
   return place.Apply(p);
 }
 
+/* the parameter, 0 or 1, along which a face's point does not move at (u, v):
+at a pole of a sphere, or the apex of a cone, the point is the same for all u.
+-1 if neither degenerates */
+static int Degenerate(const ksl_vec3_t& du, const ksl_vec3_t& dv) {
+  const double lu = ksl_vec3_l2norm(&du), lv = ksl_vec3_l2norm(&dv);
+  if(lu <= 1e-9 * lv) {
+    return 0;
+  }
+  if(lv <= 1e-9 * lu) {
+    return 1;
+  }
+  return -1;
+}
+
+/* (u, v) moved a share of the face's span along the parameter other than
+the degenerate one, into the face */
+static shift::core::cad::Vec2
+OffPole(const shift::core::collision_geometry::CadContactFace& f,
+        const shift::core::cad::Vec2& uv, int degenerate, double share) {
+  const int k = 1 - degenerate;
+  const double h = share * std::max(f.hi[k] - f.lo[k], 1e-9);
+  shift::core::cad::Vec2 moved = uv;
+  moved[k] += uv[k] + h <= f.hi[k] ? h : -h;
+  return moved;
+}
+
+/* the unit normal of the face's surface at (u, v), with the sense of the
+surface's parameters; zero where they degenerate */
+static ksl_vec3_t RawNormal(const shift::core::collision_geometry::CadContactShape& shape,
+                            int face, const shift::core::cad::Vec2& uv,
+                            int& degenerate) {
+  ksl_vec3_t du, dv, n;
+  shape.Point(face, uv, &du, &dv);
+  degenerate = Degenerate(du, dv);
+  ksl_cross_vv(&du, &dv, &n);
+  const double length = ksl_vec3_l2norm(&n);
+  if(degenerate >= 0 || !(length > 0.0)) {
+    return {{0.0, 0.0, 0.0}};
+  }
+  ksl_vec3_scale(&n, 1.0 / length);
+  return n;
+}
+
 ksl_vec3_t shift::core::collision_geometry::CadContactShape::Normal(
   int face, const shift::core::cad::Vec2& uv) const {
-  ksl_vec3_t du, dv, n;
-  Point(face, uv, &du, &dv);
-  ksl_cross_vv(&du, &dv, &n);
+  int degenerate;
+  ksl_vec3_t n = RawNormal(*this, face, uv, degenerate);
+  if(degenerate >= 0) {
+    /* at a pole, the limit of the normal toward it, extrapolated from two
+    points off it: its error is of the second order in their offset */
+    const shift::core::collision_geometry::CadContactFace& f = faces[face];
+    int ignored;
+    const ksl_vec3_t n1 =
+      RawNormal(*this, face, OffPole(f, uv, degenerate, 1e-6), ignored);
+    const ksl_vec3_t n2 =
+      RawNormal(*this, face, OffPole(f, uv, degenerate, 2e-6), ignored);
+    for(int k = 0; k < 3; k++) {
+      n.at[k] = 2.0 * n1.at[k] - n2.at[k];
+    }
+  }
   const double length = ksl_vec3_l2norm(&n);
   if(!(length > 0.0)) {
     return {{0.0, 0.0, 0.0}};
@@ -164,6 +229,16 @@ static bool FundamentalForms(const shift::core::collision_geometry::CadContactSh
     return false;
   }
   shape.Point(face, uv, &du, &dv);
+  /* at a pole the forms degenerate: those just off it */
+  const int degenerate = Degenerate(du, dv);
+  if(degenerate >= 0) {
+    const shift::core::cad::Vec2 off = OffPole(f, uv, degenerate, 1e-4);
+    shape.Point(face, off, &du, &dv);
+    if(Degenerate(du, dv) >= 0) {
+      return false;
+    }
+    return FundamentalForms(shape, face, off, du, dv, first, second);
+  }
   const ksl_vec3_t n = shape.Normal(face, uv);
   /* second derivatives by central differences of the first, within the
   face's bounds: a NURBS surface does not go beyond them */
@@ -266,7 +341,19 @@ bool shift::core::collision_geometry::CadContactShape::Project(
     }
     return cad::ProjectToSurface(m, surface, q, uv, &f.sample_uv[best]);
   }
-  return cad::ProjectToSurface(m, surface, q, uv, guess);
+  if(!cad::ProjectToSurface(m, surface, q, uv, guess)) {
+    return false;
+  }
+  /* an angle with no guess is in [0, 2 pi): that of the turn the face is
+  on, as for a face of half a turn about its axis */
+  if(!guess && analytic && surface.type != cad::Surface::Type::kPlane) {
+    const int angles = surface.type == cad::Surface::Type::kTorus ? 2 : 1;
+    for(int k = 0; k < angles; k++) {
+      const double middle = 0.5 * (f.lo[k] + f.hi[k]);
+      uv[k] += 2.0 * M_PI * std::round((middle - uv[k]) / (2.0 * M_PI));
+    }
+  }
+  return true;
 }
 
 /* the crossing of the side of a polygon by a ray from p along +u */
@@ -577,6 +664,94 @@ static void MarkSharpEdges(
       }
     }
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* closest-point fields */
+
+const shift::core::collision_geometry::CadFaceField::Node*
+shift::core::collision_geometry::CadFaceField::Nearest(const ksl_vec3_t& p) const {
+  if(!(cell > 0.0)) {
+    return nullptr;
+  }
+  const std::int64_t limit = (std::int64_t(1) << 20) - 1;
+  std::int64_t index[3];
+  for(int k = 0; k < 3; k++) {
+    const double i = std::floor(p.at[k] / cell + 0.5);
+    if(!(std::fabs(i) < static_cast<double>(limit))) {
+      return nullptr;
+    }
+    index[k] = static_cast<std::int64_t>(i);
+  }
+  const auto found = nodes.find(Key(index[0], index[1], index[2]));
+  return found == nodes.end() ? nullptr : &found->second;
+}
+
+std::vector<shift::core::collision_geometry::CadFaceField>
+shift::core::collision_geometry::MakeCadFaceFields(
+  const shift::core::collision_geometry::CadContactShape& shape, double max_depth) {
+  std::vector<shift::core::collision_geometry::CadFaceField> fields(shape.faces.size());
+  for(size_t face = 0; face < shape.faces.size(); face++) {
+    const shift::core::collision_geometry::CadContactFace& f = shape.faces[face];
+    shift::core::collision_geometry::CadFaceField& field = fields[face];
+    if(f.sample_points.empty()) {
+      continue;
+    }
+    const ksl_vec3_t diagonal = {{f.box.hi.x - f.box.lo.x, f.box.hi.y - f.box.lo.y,
+                                  f.box.hi.z - f.box.lo.z}};
+    const double spacing =
+      ksl_vec3_l2norm(&diagonal) / std::max({f.sample_nu, f.sample_nv, 1});
+    if(!(spacing > 0.0)) {
+      continue;
+    }
+    field.band = std::max(3.0 * spacing, max_depth);
+    /* a cell of the samples' spacing, or coarser to keep the band at most
+    four cells deep: each node reached from a sample is projected on the face
+    once, from that sample */
+    field.cell = std::max(spacing, 0.25 * field.band);
+    /* each node within the band and a cell of a sample, a sample being a
+    spacing from the next: the nodes within band of the face */
+    const int reach = static_cast<int>(std::ceil((field.band + spacing) / field.cell));
+    std::unordered_map<std::int64_t, bool> visited;
+    for(size_t s = 0; s < f.sample_points.size(); s++) {
+      const ksl_vec3_t& p = f.sample_points[s];
+      std::int64_t center[3];
+      for(int k = 0; k < 3; k++) {
+        center[k] = static_cast<std::int64_t>(std::floor(p.at[k] / field.cell + 0.5));
+      }
+      for(int i = -reach; i <= reach; i++) {
+        for(int j = -reach; j <= reach; j++) {
+          for(int k = -reach; k <= reach; k++) {
+            const std::int64_t key = shift::core::collision_geometry::CadFaceField::Key(
+              center[0] + i, center[1] + j, center[2] + k);
+            if(!visited.emplace(key, true).second) {
+              continue;
+            }
+            const ksl_vec3_t node = {{static_cast<double>(center[0] + i) * field.cell,
+                                      static_cast<double>(center[1] + j) * field.cell,
+                                      static_cast<double>(center[2] + k) * field.cell}};
+            shift::core::cad::Vec2 uv;
+            if(!shape.Project(static_cast<int>(face), node, uv, &f.sample_uv[s]) ||
+               !shape.Inside(static_cast<int>(face), uv)) {
+              continue;
+            }
+            const ksl_vec3_t q = shape.Point(static_cast<int>(face), uv);
+            const ksl_vec3_t n = shape.Normal(static_cast<int>(face), uv);
+            const ksl_vec3_t d = {{node.x - q.x, node.y - q.y, node.z - q.z}};
+            const double length = ksl_vec3_l2norm(&d);
+            if(!(length <= field.band)) {
+              continue;
+            }
+            shift::core::collision_geometry::CadFaceField::Node out;
+            out.distance = d.x * n.x + d.y * n.y + d.z * n.z;
+            out.uv = uv;
+            field.nodes.emplace(key, out);
+          }
+        }
+      }
+    }
+  }
+  return fields;
 }
 
 std::shared_ptr<const shift::core::collision_geometry::CadContactShape>
@@ -1116,6 +1291,11 @@ void shift::core::collision_geometry::Cad::Load() {
     shape_ = MakeCadContactShape(cad->get_shared_asset(), cad->get_scale());
     context_->AddCollisionGeometryPrototype(key.str(), this);
   }
+  if(contact_seeds_ != "samples" && contact_seeds_ != "field") {
+    throw shift::core::Exception(description +
+                                 ": contact_seeds is \"samples\" or \"field\", "
+                                 "not \"" + contact_seeds_ + "\"");
+  }
   if(shape_->faces.empty()) {
     SHIFT_WARNING(description + " has no trimmed faces; it is ignored in "
                                 "contact detection");
@@ -1133,6 +1313,10 @@ void shift::core::collision_geometry::Cad::Load() {
   if(!(max_depth_ > 0.0)) {
     max_depth_ = 0.02 * shape_->size;
   }
+  if(contact_seeds_ == "field" && !fields_) {
+    fields_ = std::make_shared<const std::vector<CadFaceField>>(
+      MakeCadFaceFields(*shape_, max_depth_));
+  }
   loaded_ = true;
 }
 
@@ -1149,6 +1333,10 @@ void shift::core::collision_geometry::Cad::CopyFit(const Base& other) {
                                  "' copies a geometry of another type");
   }
   shape_ = cad->shape_;
+  /* the fields reach the prototype's max_depth: shared only if it is the same */
+  if(contact_seeds_ == "field" && cad->fields_ && max_depth_ == cad->max_depth_) {
+    fields_ = cad->fields_;
+  }
 }
 
 void shift::core::collision_geometry::Cad::Support(

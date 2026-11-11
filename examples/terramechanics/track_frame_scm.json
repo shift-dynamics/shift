@@ -1,5 +1,5 @@
 {
-  "comment": "A track of 44 links on deformable dry sand (a terrain of type scm, the soil_contact force module carrying the shoes, track_soil the earth pressure on their grousers and sides), the track frame of half of a 20 t excavator (10000 kg) free to move forward, up and down and to pitch, the sprocket driving it forward at 1 rad/s by a PID controller. The STEP files are drawn; the contacts are on primitive shapes: spheres at the bushings, on spheres as the wheels' treads and between pins on them, and boxes as the rails under spheres as the rollers' treads. x forward, y to the right, z down. Written by scripts/make_track_step.py.",
+  "comment": "A track of 44 links on deformable dry sand (a terrain of type scm, the soil_contact force module carrying the shoes, track_soil the earth pressure on their grousers and sides), the track frame of half of a 20 t excavator (10000 kg) free to move forward, up and down and to pitch, the sprocket driving it forward at 1 rad/s by a PID controller. The STEP files are drawn; the contacts are on primitive shapes: spheres at the bushings, on spheres as the wheels' treads and between pins on them, and boxes as the rails under spheres as the rollers' treads. It first settles onto the sand for 2 s with the sprocket held still (settle_time), then the target of the drive rises to its speed over 0.5 s (sprocket_start). The sprocket and the idler sit 25 mm above the track rollers' line, the bottom span dipping 2 links down from each to it. x forward, y to the right, z down. Written by scripts/make_track_step.py.",
   "model_parameters": {
     "version": "0.2",
     "units": {
@@ -14,7 +14,8 @@
       9.81
     ],
     "include_directories": [
-      "."
+      ".",
+      "../cad"
     ],
     "enable_contact_detection": true,
     "solvers": [
@@ -25,9 +26,9 @@
     "integrators": [
       {
         "type": "ode113",
-        "relative_error": 1e-06,
-        "absolute_error": 1e-09,
-        "time_span": 3.0,
+        "relative_error": 0.0001,
+        "absolute_error": 1e-06,
+        "time_span": 5.5,
         "time_step": 0.01
       }
     ]
@@ -38,14 +39,14 @@
       "T": [
         0.0,
         0.0,
-        -0.413900161749654
+        -0.438900161749654
       ]
     },
     {
       "name": "terrain",
       "T": [
-        0.0,
-        0.0,
+        -1.0,
+        -1.0,
         0.0
       ]
     }
@@ -61,18 +62,25 @@
         "terrain"
       ],
       "x": [
-        -0.807982435698082,
-        4.98981121085089
+        0.192017564301918,
+        5.98816469043676
       ],
       "y": [
-        -0.8,
-        0.8
+        0.2,
+        1.8
       ],
       "spacing": 0.05,
+      "settle_time": 2.0,
+      "filename": "track_sand.tiff",
+      "x_scale": 0.05,
+      "y_scale": 0.05,
       "soil": {
         "name": "dry_sand",
         "wall_friction": 0.24
-      }
+      },
+      "texture_filename": "qrc:/textures/dry_sand.jpg",
+      "normal_map_filename": "qrc:/textures/dry_sand_normal.jpg",
+      "texture_scale": 0.5
     }
   ],
   "assemblies": [
@@ -982,7 +990,7 @@
             {
               "name": "idler_axle",
               "T": [
-                3.18182877515281,
+                3.18018225473868,
                 0.0,
                 0.0
               ],
@@ -1009,7 +1017,7 @@
               "T": [
                 0.5,
                 0.0,
-                0.170900161749654
+                0.195900161749654
               ],
               "R": [
                 [
@@ -1032,9 +1040,9 @@
             {
               "name": "roller2_axle",
               "T": [
-                1.0579571937882,
+                1.05754556368467,
                 0.0,
-                0.170900161749654
+                0.195900161749654
               ],
               "R": [
                 [
@@ -1057,9 +1065,9 @@
             {
               "name": "roller3_axle",
               "T": [
-                1.6159143875764,
+                1.61509112736934,
                 0.0,
-                0.170900161749654
+                0.195900161749654
               ],
               "R": [
                 [
@@ -1082,9 +1090,9 @@
             {
               "name": "roller4_axle",
               "T": [
-                2.17387158136461,
+                2.17263669105401,
                 0.0,
-                0.170900161749654
+                0.195900161749654
               ],
               "R": [
                 [
@@ -1107,9 +1115,9 @@
             {
               "name": "roller5_axle",
               "T": [
-                2.73182877515281,
+                2.73018225473868,
                 0.0,
-                0.170900161749654
+                0.195900161749654
               ],
               "R": [
                 [
@@ -1132,9 +1140,9 @@
             {
               "name": "carrier1_axle",
               "T": [
-                1.5909143875764,
+                1.59009112736934,
                 0.0,
-                -0.200900161749654
+                -0.175900161749654
               ],
               "R": [
                 [
@@ -1157,15 +1165,15 @@
           ],
           "geometry": [],
           "center_of_mass": [
-            1.5909143875764,
+            1.59009112736934,
             0.0,
             0.0
           ],
           "inertia": {
             "mass": 10000.0,
             "Ixx": 5000.0,
-            "Iyy": 8436.69529532535,
-            "Izz": 8436.69529532535,
+            "Iyy": 8427.96597779567,
+            "Izz": 8427.96597779567,
             "Ixy": 0.0,
             "Iyz": 0.0,
             "Izx": 0.0
@@ -5495,7 +5503,7 @@
             "T": [
               -0.0240856124235954,
               0.0,
-              -0.735300323499308
+              -0.760300323499308
             ],
             "R": [
               [
@@ -5813,7 +5821,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.373999125427356
+          "initial_displacement": 0.308162100133097
         },
         {
           "name": "link7_joint",
@@ -5835,7 +5843,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": 1.38777878078145e-17
         },
         {
           "name": "link8_joint",
@@ -5857,7 +5865,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": 0.0658370252942592
         },
         {
           "name": "link9_joint",
@@ -6143,7 +6151,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": 0.0658370252942591
         },
         {
           "name": "link22_joint",
@@ -6187,7 +6195,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.373999125427356
+          "initial_displacement": 0.308162100133097
         },
         {
           "name": "link24_joint",
@@ -6297,7 +6305,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.373999125427356
+          "initial_displacement": 0.439836150721615
         },
         {
           "name": "link29_joint",
@@ -6341,7 +6349,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": -0.0658370252942591
         },
         {
           "name": "link31_joint",
@@ -6627,7 +6635,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": -0.0658370252942592
         },
         {
           "name": "link44_joint",
@@ -6649,7 +6657,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.0
+          "initial_displacement": 1.11022302462516e-16
         },
         {
           "name": "closing_joint",
@@ -6671,7 +6679,7 @@
             1.0,
             0.0
           ],
-          "initial_displacement": 0.373999125427356
+          "initial_displacement": 0.439836150721616
         }
       ],
       "sensors": [
@@ -6689,9 +6697,25 @@
           "kp": 40000.0,
           "ki": 80000.0,
           "kd": 0.0,
-          "target": -1.0,
+          "target": 0.0,
           "sensor": "sprocket_speed",
           "joint": "sprocket_joint"
+        },
+        {
+          "type": "schedule",
+          "name": "sprocket_start",
+          "interpolation": "cubic",
+          "points": [
+            0.0,
+            0.0,
+            2.0,
+            0.0,
+            2.5,
+            -1.0
+          ],
+          "targets": [
+            "controllers/sprocket_drive/target"
+          ]
         }
       ],
       "force_modules": [

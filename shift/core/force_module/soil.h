@@ -1,6 +1,8 @@
 #ifndef SHIFT_CORE_FORCE_MODULE_SOIL_H_
 #define SHIFT_CORE_FORCE_MODULE_SOIL_H_
 
+#include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -55,10 +57,35 @@ struct SoilProperties {
   double unit_weight = 16000.0; //!< weight per volume, N/m^3
   double wall_friction = 0.0;   //!< friction angle on a face, radians
   double passive_coefficient = 0.0; //!< if positive, replaces Coulomb's
+  /*! weight per volume of the soil compacted as far as bodies compact it,
+   * N/m^3, at least unit_weight; NaN when not given: the soil does not
+   * compact (see CompactionRatio) */
+  double max_unit_weight = std::numeric_limits<double>::quiet_NaN();
+  /*! @name The soil as a continuum, for the SPH soil (terrain::Sph); NaN
+   * when not given */
+  /*! @{ */
+  double youngs_modulus = std::numeric_limits<double>::quiet_NaN(); //!< Pa
+  double poisson_ratio = std::numeric_limits<double>::quiet_NaN();
+  double dilatancy_angle = std::numeric_limits<double>::quiet_NaN(); //!< rad
+  /*! @} */
+
+  /*! \brief whether the properties of the soil as a continuum are given,
+   * youngs_modulus and poisson_ratio (dilatancy_angle is 0 if not given) */
+  bool has_continuum() const {
+    return !std::isnan(youngs_modulus) && !std::isnan(poisson_ratio);
+  }
 
   /*! \brief Bekker's pressure under a plate of width \f$b\f$ at sinkage
    * \f$z\f$ */
   double Pressure(double b, double z) const;
+
+  /*! \brief the share of a layer's volume that compaction takes, from the
+   * unit weight \f$w\f$ of the soil as it lies to the most
+   * \f$w_{max}\f$: \f$1 - w / w_{max}\f$; 0 if max_unit_weight is not
+   * given */
+  double CompactionRatio() const {
+    return max_unit_weight > 0.0 ? 1.0 - unit_weight / max_unit_weight : 0.0;
+  }
 
   /*! \brief the passive earth-pressure coefficient \f$\kappa_p\f$: Coulomb's,
    * or passive_coefficient if that is given */
@@ -136,8 +163,18 @@ public:
   virtual ~Soil() {}
 
   /*! \brief the properties, from the table and the overrides; throws if
-   * the name is not in the table or a property is out of range */
-  SoilProperties Resolve(const std::string& owner) const;
+   * the name is not in the table or a property is out of range. Without
+   * bekker, the properties of Bekker's law need not be given (a soil only
+   * of the SPH soil) */
+  SoilProperties Resolve(const std::string& owner, bool bekker = true) const;
+
+  /*! \brief the properties given here put over soil, e.g. a region's soil
+   * over the soil of the terrain under it (with a name, the soil of the
+   * table first); throws if a property is out of range */
+  void Override(SoilProperties& soil, const std::string& owner) const;
+
+  /*! \brief whether a name or any property was given */
+  bool is_given() const;
 
 protected:
   void DeclareParameters() override;
@@ -146,7 +183,12 @@ private:
   std::string name_;
   /* NaN: not given */
   double n_, k_c_, k_phi_, cohesion_, friction_angle_, shear_modulus_,
-    unit_weight_, wall_friction_, passive_coefficient_;
+    unit_weight_, wall_friction_, passive_coefficient_, youngs_modulus_,
+    poisson_ratio_, dilatancy_angle_, max_unit_weight_;
+
+  /* the checks of Resolve and Override */
+  void Check(const SoilProperties& soil, const std::string& prefix,
+             bool bekker) const;
 };
 
 } // namespace force_module

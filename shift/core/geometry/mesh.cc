@@ -13,6 +13,7 @@
 #include <cmath>
 #include <sstream>
 
+#include <assimp/DefaultIOSystem.h>
 #include <assimp/Importer.hpp>
 #include <assimp/GltfMaterial.h>
 #include <assimp/ObjMaterial.h>
@@ -147,11 +148,43 @@ void shift::core::geometry::Mesh::ScaleDirections(std::vector<float>& d,
   }
 }
 
+/* the file system of assimp, which notes each file it opens (the mesh file
+and those it names, such as an .mtl or a .bin) with Context::RecordFile */
+class MeshFileRecorder : public Assimp::IOSystem {
+public:
+  explicit MeshFileRecorder(shift::core::Context* context)
+    : context_(context) {}
+  bool Exists(const char* file) const override {
+    return files_.Exists(file);
+  }
+  char getOsSeparator() const override {
+    return files_.getOsSeparator();
+  }
+  Assimp::IOStream* Open(const char* file, const char* mode) override {
+    Assimp::IOStream* stream = files_.Open(file, mode);
+    if(stream && context_ && mode && mode[0] == 'r') {
+      context_->RecordFile(file);
+    }
+    return stream;
+  }
+  void Close(Assimp::IOStream* stream) override {
+    files_.Close(stream);
+  }
+  bool ComparePaths(const char* one, const char* second) const override {
+    return files_.ComparePaths(one, second);
+  }
+
+private:
+  shift::core::Context* context_;
+  mutable Assimp::DefaultIOSystem files_;
+};
+
 void shift::core::geometry::Mesh::Import(const std::string& file,
                                          MeshAsset& asset) const {
   const std::string extension = shift::core::utility::GetFileExtension(file);
   const bool gltf = extension == ".gltf" || extension == ".glb";
   Assimp::Importer importer;
+  importer.SetIOHandler(new MeshFileRecorder(context_)); // owned by importer
 
 // temporarily disable floating point divide by zero exception handling
 // in Assimp loading
@@ -429,6 +462,9 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
       if(!shift::core::utility::FileExists(name)) {
         SHIFT_WARNING("Texture not found: " + name);
         return "";
+      }
+      if(context_) {
+        context_->RecordFile(name);
       }
       return name;
     };

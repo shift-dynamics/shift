@@ -40,6 +40,8 @@ build/test/shift-test --gtest_filter='CadRound.*'     # one group
 | `test_cad_round_contact.cc` | Other shapes on the exact surfaces of STEP parts |
 | `test_cad_contact.cc` | The sprocket, track links and idlers, and Hertz contact of an ellipse |
 | `test_cad_line_contact.cc` | Lines on curved faces: cams, gear teeth, a bent ring |
+| `test_cad_hard_contact.cc` | Exceptional cases of STEP surfaces: rings, many regions, conformal faces, saddles, poles, trims, thin walls, helices |
+| `test_cad_conformal_contact.cc` | Area contact of conformal faces: a brake shoe on its drum, a B-spline face on a copy of itself |
 | `test_collision_geometry_input.cc` | Collision geometry from the model input |
 
 ## Kinds of test

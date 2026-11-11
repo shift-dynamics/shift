@@ -14,6 +14,7 @@ core_src += files(
   'powertrain.cc',
   'rubber_mount.cc',
   'soil.cc',
+  'soil_contact.cc',
   'soil_tool.cc',
   'spline.cc',
   'spring_damper.cc',

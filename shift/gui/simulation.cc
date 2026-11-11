@@ -9,13 +9,19 @@
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
 #include "shift/core/terrain/basic.h"
+#include "shift/core/terrain/scm.h"
 
+#include <H5Cpp.h>
 #include <QGenericMatrix>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <random>
+#include <sstream>
 #include <map>
 #include <tuple>
 #include <set>
@@ -129,25 +135,51 @@ MakeSceneMesh(const shift::gui::MeshData& data,
 
 /* a terrain: its control points for the tessellation shaders, and a
 triangle mesh of the surface (terrain::Basic::LocalZ) in world coordinates,
-for the ray tracer and devices without tessellation */
-static void AddTerrain(const shift::core::terrain::Basic& terrain,
-                       shift::gui::TextureLoader& textures,
-                       shift::gui::Scene& scene) {
+for the ray tracer and devices without tessellation. A deformable terrain
+(terrain::Scm) is drawn over its grid only, bilinear between the nodes as
+the soil models see it, with a ring of the undisturbed surface one spacing
+beyond the grid, where its surface returns to the undisturbed one; its
+control points start on the undisturbed surface (Simulation::ScmView) and
+its mesh stays there */
+static int AddTerrain(const shift::core::terrain::Basic& terrain,
+                      shift::gui::TextureLoader& textures,
+                      shift::gui::Scene& scene) {
   constexpr int kMaximumMeshSamples = 513; // per side
   constexpr int kMinimumMeshSamples = 257; // per side
-  const double x_extent = terrain.get_x_extent();
-  const double y_extent = terrain.get_y_extent();
-  if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
-    return;
-  }
+  const auto* scm = dynamic_cast<const shift::core::terrain::Scm*>(&terrain);
+  double x_extent = terrain.get_x_extent();
+  double y_extent = terrain.get_y_extent();
+  double x0 = 0.0, y0 = 0.0; // of the control points in the terrain frame
   shift::gui::SceneTerrain t;
-  t.width = static_cast<int>(terrain.get_x_samples());
-  t.height = static_cast<int>(terrain.get_y_samples());
-  t.z.assign(terrain.get_control_points().begin(),
-             terrain.get_control_points().end());
-  t.x_scale = float(terrain.get_x_scale());
-  t.y_scale = float(terrain.get_y_scale());
-  t.bicubic = terrain.is_bicubic();
+  if(scm) {
+    const long nx = scm->get_node_count_x(), ny = scm->get_node_count_y();
+    x0 = scm->NodeX(-1);
+    y0 = scm->NodeY(-1);
+    x_extent = scm->get_spacing() * double(nx + 1);
+    y_extent = scm->get_spacing() * double(ny + 1);
+    t.width = static_cast<int>(nx + 2);
+    t.height = static_cast<int>(ny + 2);
+    t.z.reserve(size_t(t.width) * size_t(t.height));
+    for(long j = -1; j <= ny; j++) {
+      for(long i = -1; i <= nx; i++) {
+        t.z.push_back(float(scm->UndisturbedZ(i, j)));
+      }
+    }
+    t.x_scale = t.y_scale = float(scm->get_spacing());
+    t.bicubic = false;
+    t.deformable = true;
+  } else {
+    t.width = static_cast<int>(terrain.get_x_samples());
+    t.height = static_cast<int>(terrain.get_y_samples());
+    t.z.assign(terrain.get_control_points().begin(),
+               terrain.get_control_points().end());
+    t.x_scale = float(terrain.get_x_scale());
+    t.y_scale = float(terrain.get_y_scale());
+    t.bicubic = terrain.is_bicubic();
+  }
+  if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
+    return -1;
+  }
   const auto& d = terrain.get_pose();
   QMatrix4x4 pose;
   for(int r = 0; r < 3; r++) {
@@ -156,6 +188,7 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
     pose(r, 2) = float(d.R.v2.at[r]);
     pose(r, 3) = float(d.t.at[r]);
   }
+  pose.translate(float(x0), float(y0), 0.f);
   t.pose = pose;
 
   /* the mesh, in world coordinates */
@@ -173,12 +206,27 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
   /* twice the resolution of the control points, and at least
   kMinimumMeshSamples a side so that the curvature of a small map is drawn
   smoothly, at most kMaximumMeshSamples a side */
-  const int mesh_x = std::clamp(
+  int mesh_x = std::clamp(
     std::max(2 * (t.width - 1) + 1, kMinimumMeshSamples), 2,
     kMaximumMeshSamples);
-  const int mesh_y = std::clamp(
+  int mesh_y = std::clamp(
     std::max(2 * (t.height - 1) + 1, kMinimumMeshSamples), 2,
     kMaximumMeshSamples);
+  if(scm) {
+    /* a vertex at each control point and between them, s per cell along
+    each side, which the ray tracer moves with the levels of the nodes
+    (Viewport::ShapeRtTerrain): two triangles per square of the mesh, those
+    of square (u, v) at 2 (v s (width - 1) + u). At most 2^21 triangles. */
+    constexpr double kMaximumTriangles = 2097152.0;
+    const double cells = double(t.width - 1) * double(t.height - 1);
+    int s = 4;
+    while(s > 1 && 2.0 * cells * s * s > kMaximumTriangles) {
+      s--;
+    }
+    t.mesh_subdivisions = s;
+    mesh_x = s * (t.width - 1) + 1;
+    mesh_y = s * (t.height - 1) + 1;
+  }
   const QMatrix3x3 rotation = pose.normalMatrix();
   mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
   mesh.bounds_max = -mesh.bounds_min;
@@ -187,7 +235,7 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
     for(int i = 0; i < mesh_x; i++) {
       const double x = x_extent * i / (mesh_x - 1);
       double z_x, z_y;
-      const double z = terrain.LocalZ(x, y, z_x, z_y);
+      const double z = terrain.LocalZ(x0 + x, y0 + y, z_x, z_y);
       /* outward, up: (z_x, z_y, -1) normalized */
       const double length = std::sqrt(z_x * z_x + z_y * z_y + 1.0);
       const float n[3] = {float(z_x / length), float(z_y / length),
@@ -201,8 +249,8 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
         mesh.bounds_min[a] = std::min(mesh.bounds_min[a], world[a]);
         mesh.bounds_max[a] = std::max(mesh.bounds_max[a], world[a]);
       }
-      v.uv[0] = float(x);
-      v.uv[1] = float(y);
+      v.uv[0] = float(x0 + x);
+      v.uv[1] = float(y0 + y);
       mesh.vertices.push_back(v);
     }
   }
@@ -218,6 +266,7 @@ static void AddTerrain(const shift::core::terrain::Basic& terrain,
   scene.meshes.push_back(std::move(mesh));
   scene.instances.push_back({t.mesh_index, 0});
   scene.terrains.push_back(std::move(t));
+  return static_cast<int>(scene.terrains.size()) - 1;
 }
 
 /* a light of the model, if its frame is on one of the bodies drawn */
@@ -280,18 +329,35 @@ static void AddLight(const shift::core::light::Base& light,
 
 shift::gui::Simulation::~Simulation() {
   JoinWorker();
+  context_.reset();
+  RemoveLogDirectory();
 }
 
 void shift::gui::Simulation::Load(const std::string& filename) {
   JoinWorker();
+  scm_views_.clear();
   context_.reset();
   bodies_.clear();
   scene_ = Scene();
   ClearResults();
+  RemoveLogDirectory();
   filename_ = filename;
+  std::string extension = std::filesystem::path(filename).extension().string();
+  for(char& c : extension) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+  if(extension == ".h5" || extension == ".hdf5") {
+    LoadLog(filename);
+  } else {
+    LoadModel(filename, {});
+  }
+}
 
+void shift::gui::Simulation::LoadModel(
+  const std::string& path, std::map<std::string, std::string> file_map) {
   auto context = std::make_unique<shift::core::Context>();
-  context->LoadJSON(filename);
+  context->set_file_map(std::move(file_map));
+  context->LoadJSON(path);
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by
@@ -374,9 +440,14 @@ void shift::gui::Simulation::Load(const std::string& filename) {
     }
   }
   /* terrains, on the fixed body (body 0) */
+  scm_views_.clear();
   for(auto terrain : context_->get_active_terrain()) {
     if(auto basic = dynamic_cast<shift::core::terrain::Basic*>(terrain)) {
-      AddTerrain(*basic, textures, scene_);
+      const int index = AddTerrain(*basic, textures, scene_);
+      auto scm = dynamic_cast<shift::core::terrain::Scm*>(basic);
+      if(scm && index >= 0) {
+        AddScmView(*scm, index);
+      }
     }
   }
   /* lights, on the bodies of their frames */
@@ -418,6 +489,7 @@ void shift::gui::Simulation::Run() {
     std::memcpy(context_->get_q().data(), interpolated_.data(),
                 state_size_ * sizeof(double));
     context_->UpdateDHVA();
+    RestartTerrains(false);
   }
   ClearResults();
 
@@ -450,11 +522,23 @@ void shift::gui::Simulation::Observe(double time,
   if(stop_requested_) {
     throw StopRequested();
   }
-  if(!times_.empty() && time <= times_.back()) {
-    return;
+  if(times_.empty() || time > times_.back()) {
+    times_.push_back(time);
+    states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
+    knot_deltas_.push_back(deltas_.size());
   }
-  times_.push_back(time);
-  states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
+  // the levels changed, with the knot point just recorded (or the last one,
+  // at a repeated time)
+  for(size_t v = 0; v < scm_views_.size(); v++) {
+    ScmView& view = scm_views_[v];
+    for(const auto& change : view.scm->get_output_changes()) {
+      float& level = view.worker[size_t(change.index)];
+      if(level != change.level) {
+        deltas_.push_back({int32_t(v), change.index, level, change.level});
+        level = change.level;
+      }
+    }
+  }
   const double wall = WallTime() - wall_start_;
   real_time_factor_ = wall > 0.0 ? time / wall : 0.0;
 }
@@ -479,6 +563,7 @@ void shift::gui::Simulation::Reset() {
     return;
   }
   Stop();
+  RestartTerrains(true);
   ClearResults();
   std::memcpy(context_->get_q().data(), initial_state_.data(),
               state_size_ * sizeof(double));
@@ -494,6 +579,12 @@ void shift::gui::Simulation::ClearResults() {
   std::lock_guard<std::mutex> lock(mutex_);
   times_.clear();
   states_.clear();
+  deltas_.clear();
+  knot_deltas_.clear();
+  base_delta_ = partial_begin_ = partial_end_ = 0;
+  for(auto& view : scm_views_) {
+    view.base = view.worker = view.shown;
+  }
   real_time_factor_ = 0.0;
   shown_time_ = 0.0;
 }
@@ -582,6 +673,18 @@ void shift::gui::Simulation::ShowTime(double t) {
     for(size_t i = 0; i < state_size_; i++) {
       interpolated_[i] = y0[i] + p * (y1[i] - y0[i]);
     }
+    // the levels: those of knot i0 and the fraction p of the deltas to i1
+    if(!scm_views_.empty()) {
+      const auto knot_end = [&](size_t k) {
+        return k + 1 < knot_deltas_.size() ? knot_deltas_[k + 1]
+                                           : deltas_.size();
+      };
+      if(i1 > i0) {
+        ShowLevels(knot_end(i0), knot_deltas_[i1], knot_end(i1), p);
+      } else {
+        ShowLevels(knot_end(i1), 0, 0, 0.0);
+      }
+    }
   }
   shown_time_ = t;
   // the worker owns the context DHVA while computing; evaluate the
@@ -621,6 +724,126 @@ bool shift::gui::Simulation::TakePoses(Poses& poses) {
   return true;
 }
 
+// ------------------------------------------------- deformable terrains
+
+void shift::gui::Simulation::AddScmView(shift::core::terrain::Scm& scm,
+                                        int index) {
+  ScmView view;
+  view.scm = &scm;
+  view.terrain = index;
+  view.nx = scm.get_node_count_x();
+  view.ny = scm.get_node_count_y();
+  view.undisturbed.resize(size_t(view.nx * view.ny));
+  const auto& z = scene_.terrains[index].z;
+  for(long j = 0; j < view.ny; j++) {
+    for(long i = 0; i < view.nx; i++) {
+      view.undisturbed[size_t(j * view.nx + i)] =
+        z[size_t((j + 1) * (view.nx + 2) + i + 1)];
+    }
+  }
+  // the levels the terrain starts from, zero after Load
+  std::vector<float> levels;
+  scm.GetLevels(levels);
+  view.shown.assign(levels.size(), 0.0f);
+  for(size_t k = 0; k < levels.size(); k++) {
+    ShowLevel(view, int32_t(k), levels[k]);
+  }
+  view.base = view.worker = view.shown;
+  scm_views_.push_back(std::move(view));
+}
+
+void shift::gui::Simulation::ShowLevel(ScmView& view, int32_t index,
+                                       float level) {
+  float& shown = view.shown[size_t(index)];
+  if(shown == level) {
+    return;
+  }
+  shown = level;
+  const long i = index % view.nx, j = index / view.nx;
+  scene_.terrains[view.terrain].z[size_t((j + 1) * (view.nx + 2) + i + 1)] =
+    view.undisturbed[size_t(index)] + level;
+  // control point (i + 1, j + 1)
+  if(view.x_min > view.x_max) {
+    view.x_min = view.x_max = i + 1;
+    view.y_min = view.y_max = j + 1;
+  } else {
+    view.x_min = std::min(view.x_min, i + 1);
+    view.x_max = std::max(view.x_max, i + 1);
+    view.y_min = std::min(view.y_min, j + 1);
+    view.y_max = std::max(view.y_max, j + 1);
+  }
+}
+
+void shift::gui::Simulation::ShowLevels(size_t base, size_t partial_begin,
+                                        size_t partial_end, double p) {
+  // the deltas shown in part before go back to their base levels
+  for(size_t k = partial_begin_; k < partial_end_; k++) {
+    const LevelDelta& d = deltas_[k];
+    ScmView& view = scm_views_[size_t(d.view)];
+    ShowLevel(view, d.index, view.base[size_t(d.index)]);
+  }
+  // the base levels, forward or back to position base
+  for(; base_delta_ < base; base_delta_++) {
+    const LevelDelta& d = deltas_[base_delta_];
+    ScmView& view = scm_views_[size_t(d.view)];
+    view.base[size_t(d.index)] = d.after;
+    ShowLevel(view, d.index, d.after);
+  }
+  for(; base_delta_ > base; base_delta_--) {
+    const LevelDelta& d = deltas_[base_delta_ - 1];
+    ScmView& view = scm_views_[size_t(d.view)];
+    view.base[size_t(d.index)] = d.before;
+    ShowLevel(view, d.index, d.before);
+  }
+  for(size_t k = partial_begin; k < partial_end; k++) {
+    const LevelDelta& d = deltas_[k];
+    ShowLevel(scm_views_[size_t(d.view)], d.index,
+              float(d.before + p * (d.after - d.before)));
+  }
+  partial_begin_ = partial_begin;
+  partial_end_ = partial_end;
+}
+
+void shift::gui::Simulation::RestartTerrains(bool reset) {
+  // the worker is not running: Run, Reset and AdoptShownState joined it
+  for(auto& view : scm_views_) {
+    if(reset) {
+      for(size_t k = 0; k < view.shown.size(); k++) {
+        ShowLevel(view, int32_t(k), 0.0f);
+      }
+    }
+    view.scm->SetLevels(view.shown);
+  }
+}
+
+void shift::gui::Simulation::TakeTerrainUpdates(
+  std::vector<TerrainUpdate>& updates) {
+  updates.clear();
+  for(auto& view : scm_views_) {
+    if(view.x_min > view.x_max) {
+      continue;
+    }
+    const SceneTerrain& terrain = scene_.terrains[view.terrain];
+    TerrainUpdate update;
+    update.terrain = view.terrain;
+    update.x = int(view.x_min);
+    update.y = int(view.y_min);
+    update.width = int(view.x_max - view.x_min + 1);
+    update.height = int(view.y_max - view.y_min + 1);
+    update.z.resize(size_t(update.width) * size_t(update.height));
+    for(int j = 0; j < update.height; j++) {
+      const float* row =
+        terrain.z.data() + size_t(update.y + j) * size_t(terrain.width) +
+        size_t(update.x);
+      std::copy(row, row + update.width,
+                update.z.begin() + size_t(j) * size_t(update.width));
+    }
+    updates.push_back(std::move(update));
+    view.x_min = 0;
+    view.x_max = -1;
+  }
+}
+
 // ------------------------------------------------------------ editing q
 
 bool shift::gui::Simulation::AdoptShownState() {
@@ -633,6 +856,7 @@ bool shift::gui::Simulation::AdoptShownState() {
     // correspond to the context once q is edited
     std::memcpy(context_->get_q().data(), interpolated_.data(),
                 state_size_ * sizeof(double));
+    RestartTerrains(false);
     ClearResults();
     context_->UpdateDHVA();
   }
@@ -647,4 +871,261 @@ double shift::gui::Simulation::get_shown_q(int q_index) {
     return interpolated_[q_index];
   }
   return context_->get_q()[q_index];
+}
+
+// ------------------------------------------------------------ HDF5 logs
+
+void shift::gui::Simulation::RemoveLogDirectory() {
+  if(!log_directory_.empty()) {
+    std::error_code error;
+    std::filesystem::remove_all(log_directory_, error);
+    log_directory_.clear();
+  }
+}
+
+/* a string attribute of an object of an HDF5 file */
+static std::string ReadStringAttribute(const H5::H5Object& object,
+                                       const std::string& name) {
+  H5::Attribute attribute = object.openAttribute(name);
+  H5::StrType type = attribute.getStrType();
+  std::string text;
+  attribute.read(type, text);
+  return text;
+}
+
+/* the length of a one-dimensional dataset, or the rows of a 2-D one */
+static hsize_t Rows(const H5::DataSet& dataset) {
+  H5::DataSpace space = dataset.getSpace();
+  if(space.getSimpleExtentNdims() < 1) {
+    return 0;
+  }
+  hsize_t dims[2] = {0, 0};
+  space.getSimpleExtentDims(dims);
+  return dims[0];
+}
+
+void shift::gui::Simulation::LoadLog(const std::string& filename) {
+  std::string error_prefix = "Log " + filename + ": ";
+  H5::Exception::dontPrint();
+  try {
+    H5::H5File file(filename, H5F_ACC_RDONLY);
+    if(!file.nameExists("/model/json")) {
+      throw shift::core::Exception(
+        error_prefix + "it holds no model (/model/json); it was written by an "
+                       "older shift");
+    }
+    /* the model's files, under a temporary directory deep enough that the
+    paths that climb out of the model's directory (..) stay inside it */
+    std::random_device random;
+    const std::filesystem::path root =
+      std::filesystem::temp_directory_path() /
+      ("shift-log-" + std::to_string(random()));
+    log_directory_ = root.string();
+    struct File {
+      std::string path, original, names;
+      H5::DataSet dataset;
+    };
+    std::vector<File> files;
+    size_t depth = 0;
+    if(file.nameExists("/model/files")) {
+      H5::Group group = file.openGroup("/model/files");
+      for(hsize_t k = 0; k < group.getNumObjs(); k++) {
+        File f;
+        f.dataset = group.openDataSet(group.getObjnameByIdx(k));
+        f.path = ReadStringAttribute(f.dataset, "path");
+        f.original = ReadStringAttribute(f.dataset, "original");
+        if(f.dataset.attrExists("names")) {
+          f.names = ReadStringAttribute(f.dataset, "names");
+        }
+        size_t up = 0;
+        for(const auto& part : std::filesystem::path(f.path)) {
+          if(part != "..") {
+            break;
+          }
+          up++;
+        }
+        depth = std::max(depth, up);
+        files.push_back(std::move(f));
+      }
+    }
+    std::filesystem::path model_directory = root / "model";
+    for(size_t k = 0; k < depth; k++) {
+      model_directory /= "d";
+    }
+    std::filesystem::create_directories(model_directory);
+    std::map<std::string, std::string> file_map;
+    for(auto& f : files) {
+      const std::filesystem::path destination =
+        (model_directory / f.path).lexically_normal();
+      std::filesystem::create_directories(destination.parent_path());
+      std::vector<char> bytes(Rows(f.dataset));
+      if(!bytes.empty()) {
+        f.dataset.read(bytes.data(), H5::PredType::NATIVE_UINT8);
+      }
+      std::ofstream out(destination, std::ios::binary);
+      out.write(bytes.data(), std::streamsize(bytes.size()));
+      if(!out) {
+        throw shift::core::Exception(error_prefix + "could not write " +
+                                     destination.string());
+      }
+      // the model finds the file here by the names it gave it, whatever
+      // its include directories (they may not exist on this computer); the
+      // files those name, such as an .mtl, are beside them as they were
+      std::istringstream names(f.names);
+      for(std::string name; std::getline(names, name);) {
+        if(!name.empty()) {
+          file_map[name] = destination.string();
+        }
+      }
+      file_map[f.original] = destination.string();
+    }
+    /* the model, without its loggers */
+    H5::DataSet json_dataset = file.openDataSet("/model/json");
+    std::string text;
+    json_dataset.read(text, json_dataset.getStrType());
+    Json::Value model;
+    {
+      Json::CharReaderBuilder builder;
+      std::string errors;
+      std::istringstream in(text);
+      if(!Json::parseFromStream(builder, in, &model, &errors)) {
+        throw shift::core::Exception(error_prefix + "its model: " + errors);
+      }
+    }
+    if(model.isMember("model_parameters")) {
+      model["model_parameters"].removeMember("loggers");
+    }
+    std::filesystem::path model_file =
+      model_directory /
+      std::filesystem::path(ReadStringAttribute(json_dataset, "filename"))
+        .filename();
+    model_file.replace_extension(".json");
+    {
+      std::ofstream out(model_file);
+      Json::StreamWriterBuilder builder;
+      out << Json::writeString(builder, model);
+    }
+    LoadModel(model_file.string(), std::move(file_map));
+
+    /* the rows: q, dq and the states of free bodies */
+    std::vector<double> times(Rows(file.openDataSet("/time")));
+    file.openDataSet("/time").read(times.data(), H5::PredType::NATIVE_DOUBLE);
+    const size_t rows = times.size();
+    const size_t q_count = context_->get_q_count();
+    const size_t dq_count = context_->get_dq_count();
+    const size_t free_count = state_size_ - q_count - dq_count;
+    std::vector<double> states(rows * state_size_, 0.0);
+    const std::pair<const char*, size_t> blocks[] = {
+      {"q", q_count}, {"dq", dq_count}, {"free", free_count}};
+    size_t offset = 0;
+    for(const auto& [name, count] : blocks) {
+      if(count == 0) {
+        continue;
+      }
+      const std::string path = std::string("/states/") + name;
+      if(!file.nameExists("/states") || !file.nameExists(path)) {
+        throw shift::core::Exception(
+          error_prefix + "it has no " + path +
+          " (log_all_channels was false, or the log is older than the "
+          "logging of free bodies)");
+      }
+      H5::DataSet dataset = file.openDataSet(path);
+      hsize_t dims[2] = {0, 0};
+      dataset.getSpace().getSimpleExtentDims(dims);
+      if(dims[0] < rows || dims[1] != count) {
+        throw shift::core::Exception(error_prefix + path + " does not match "
+                                                         "the model");
+      }
+      std::vector<double> block(rows * count);
+      H5::DataSpace file_space = dataset.getSpace();
+      const hsize_t start[2] = {0, 0}, size[2] = {rows, count};
+      file_space.selectHyperslab(H5S_SELECT_SET, size, start);
+      H5::DataSpace memory_space(2, size);
+      dataset.read(block.data(), H5::PredType::NATIVE_DOUBLE, memory_space,
+                   file_space);
+      for(size_t r = 0; r < rows; r++) {
+        std::copy(block.begin() + r * count, block.begin() + (r + 1) * count,
+                  states.begin() + r * state_size_ + offset);
+      }
+      offset += count;
+    }
+
+    /* the changes of the deformable terrains, row by row */
+    struct TerrainRows {
+      std::vector<int64_t> starts;
+      std::vector<int32_t> indices;
+      std::vector<float> levels;
+    };
+    std::vector<TerrainRows> terrain_rows(scm_views_.size());
+    for(size_t v = 0; v < scm_views_.size(); v++) {
+      const ScmView& view = scm_views_[v];
+      const std::string path = "/terrain/" + view.scm->get_name();
+      if(!file.nameExists("/terrain") || !file.nameExists(path)) {
+        throw shift::core::Exception(error_prefix + "it has no " + path);
+      }
+      H5::Group group = file.openGroup(path);
+      int64_t counts[2] = {0, 0};
+      group.openAttribute("node_count").read(H5::PredType::NATIVE_INT64,
+                                             counts);
+      if(counts[0] != view.nx || counts[1] != view.ny) {
+        throw shift::core::Exception(error_prefix + path +
+                                     " does not match the grid of the model");
+      }
+      TerrainRows& t = terrain_rows[v];
+      H5::DataSet starts = group.openDataSet("row_start");
+      H5::DataSet indices = group.openDataSet("index");
+      H5::DataSet levels = group.openDataSet("level");
+      t.starts.resize(Rows(starts));
+      t.indices.resize(Rows(indices));
+      t.levels.resize(Rows(levels));
+      if(t.starts.size() < rows || t.levels.size() != t.indices.size()) {
+        throw shift::core::Exception(error_prefix + path + " is incomplete");
+      }
+      if(!t.starts.empty()) {
+        starts.read(t.starts.data(), H5::PredType::NATIVE_INT64);
+      }
+      if(!t.indices.empty()) {
+        indices.read(t.indices.data(), H5::PredType::NATIVE_INT32);
+        levels.read(t.levels.data(), H5::PredType::NATIVE_FLOAT);
+      }
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    for(size_t r = 0; r < rows; r++) {
+      if(!times_.empty() && !(times[r] > times_.back())) {
+        continue; // a repeated time: Observe keeps the first
+      }
+      times_.push_back(times[r]);
+      states_.insert(states_.end(), states.begin() + r * state_size_,
+                     states.begin() + (r + 1) * state_size_);
+      knot_deltas_.push_back(deltas_.size());
+      for(size_t v = 0; v < scm_views_.size(); v++) {
+        ScmView& view = scm_views_[v];
+        const TerrainRows& t = terrain_rows[v];
+        const int64_t end =
+          r + 1 < t.starts.size() ? t.starts[r + 1] : int64_t(t.indices.size());
+        for(int64_t k = t.starts[r]; k < end; k++) {
+          const int32_t index = t.indices[size_t(k)];
+          if(index < 0 || index >= view.nx * view.ny) {
+            throw shift::core::Exception(error_prefix + "a node of /terrain/" +
+                                         view.scm->get_name() +
+                                         " is beyond the grid");
+          }
+          float& level = view.worker[size_t(index)];
+          const float after = t.levels[size_t(k)];
+          if(level != after) {
+            deltas_.push_back({int32_t(v), index, level, after});
+            level = after;
+          }
+        }
+      }
+    }
+  } catch(H5::Exception& e) {
+    throw shift::core::Exception(error_prefix + e.getDetailMsg());
+  }
+  if(has_results()) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    shown_time_ = times_.front();
+  }
+  ShowTime(shown_time_);
 }

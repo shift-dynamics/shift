@@ -2,6 +2,7 @@
 
 #include "shift/core/context.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/basic.h"
 
 #include "shift/gui/environment.h"
 #include "shift/gui/simulation.h"
@@ -318,6 +319,11 @@ void shift::gui::Viewport::set_render_mode(RenderMode mode) {
   update();
 }
 
+void shift::gui::Viewport::set_smooth_terrain(bool smooth) {
+  smooth_terrain_ = smooth;
+  update();
+}
+
 void shift::gui::Viewport::set_floor_enabled(bool enabled) {
   floor_enabled_ = enabled;
   rt_frame_ = 0;
@@ -372,7 +378,12 @@ QMatrix4x4 shift::gui::Viewport::FollowFrame(int body, FollowMode mode) const {
   const ksl_vec3_t point = {{pose(0, 3), pose(1, 3), pose(2, 3)}};
   for(const auto* terrain : simulation_->get_context()->get_active_terrain()) {
     ksl_vec3_t surface, normal;
-    if(terrain->Query(point, surface, normal)) {
+    // the worker may be changing a deformable terrain: the undisturbed
+    // surface, which never changes, is safe to read from this thread
+    const auto* basic =
+      dynamic_cast<const shift::core::terrain::Basic*>(terrain);
+    if(basic ? basic->QueryUndisturbed(point, surface, normal)
+             : terrain->Query(point, surface, normal)) {
       ground_z = static_cast<float>(surface.z);
       break;
     }
@@ -1228,7 +1239,9 @@ static void BuildMeshBvhs(
   const shift::gui::CadTrimTables& trims,
   std::vector<shift::gui::RtTriangle>& all_triangles,
   std::vector<int32_t>& all_faces, std::vector<shift::gui::BvhNode>& all_nodes,
-  std::vector<int>& roots) {
+  std::vector<int>& roots,
+  std::vector<shift::gui::RtDeformableTerrain>* deformables = nullptr) {
+  int last_node_count = 0;
   auto append = [&](std::vector<shift::gui::RtTriangle>& triangles,
                     std::vector<int32_t>& faces) {
     std::vector<shift::gui::BvhNode> nodes =
@@ -1249,12 +1262,17 @@ static void BuildMeshBvhs(
         node.triangle_count < 0 ? node_offset : triangle_offset;
     }
     roots.push_back(node_offset);
+    last_node_count = static_cast<int>(nodes.size());
     all_nodes.insert(all_nodes.end(), nodes.begin(), nodes.end());
     all_triangles.insert(all_triangles.end(), triangles.begin(),
                          triangles.end());
     all_faces.insert(all_faces.end(), faces.begin(), faces.end());
   };
-  for(const auto& mesh : scene.meshes) {
+  if(deformables) {
+    deformables->clear();
+  }
+  for(size_t m = 0; m < scene.meshes.size(); m++) {
+    const auto& mesh = scene.meshes[m];
     std::vector<shift::gui::RtTriangle> triangles(mesh.indices.size() / 3);
     for(size_t i = 0; i < triangles.size(); i++) {
       float* positions[3] = {triangles[i].v0, triangles[i].v1, triangles[i].v2};
@@ -1268,8 +1286,33 @@ static void BuildMeshBvhs(
         normals[j][3] = v.uv[1];
       }
     }
+    const bool deformable =
+      deformables && mesh.terrain >= 0 &&
+      mesh.terrain < static_cast<int>(scene.terrains.size()) &&
+      scene.terrains[mesh.terrain].deformable;
     std::vector<int32_t> faces(triangles.size(), -1);
+    if(deformable) {
+      // the BVH reorders the tags with the triangles: where each went
+      for(size_t i = 0; i < faces.size(); i++) {
+        faces[i] = static_cast<int32_t>(i);
+      }
+    }
+    const int first_triangle = static_cast<int>(all_triangles.size());
     append(triangles, faces);
+    if(deformable) {
+      shift::gui::RtDeformableTerrain d;
+      d.mesh = static_cast<int>(m);
+      d.terrain = mesh.terrain;
+      d.first_triangle = first_triangle;
+      d.first_node = roots.back();
+      d.node_count = last_node_count;
+      d.position.assign(faces.size(), 0);
+      for(size_t k = 0; k < faces.size(); k++) {
+        d.position[size_t(faces[k])] = static_cast<int32_t>(k);
+        all_faces[size_t(first_triangle) + k] = -1;
+      }
+      deformables->push_back(std::move(d));
+    }
   }
   for(size_t c = 0; c < scene.cads.size(); c++) {
     std::vector<shift::gui::RtTriangle> triangles;
@@ -1338,8 +1381,231 @@ static bool RayHitsTriangle(const QVector3D& o, const QVector3D& d,
   return true;
 }
 
+void shift::gui::Viewport::UploadTerrainUpdates(
+  QRhiResourceUpdateBatch* batch) {
+  simulation_->TakeTerrainUpdates(terrain_updates_);
+  if(rt_terrain_smooth_ != smooth_terrain_) {
+    // the ray tracer's terrains all over, on the other surface
+    rt_terrain_smooth_ = smooth_terrain_;
+    for(const auto& terrain : rt_terrains_) {
+      const SceneTerrain& t = simulation_->get_scene().terrains[terrain.terrain];
+      TerrainUpdate all;
+      all.terrain = terrain.terrain;
+      all.width = t.width;
+      all.height = t.height;
+      terrain_updates_.push_back(std::move(all)); // z unused: no texture
+    }
+  }
+  for(const auto& update : terrain_updates_) {
+    for(auto& gpu : gpu_terrains_) {
+      if(gpu.terrain_index != update.terrain || update.z.empty()) {
+        continue;
+      }
+      QRhiTextureSubresourceUploadDescription points(
+        update.z.data(), quint32(update.z.size() * sizeof(float)));
+      points.setDestinationTopLeft(QPoint(update.x, update.y));
+      points.setSourceSize(QSize(update.width, update.height));
+      batch->uploadTexture(gpu.control_points.get(),
+                           QRhiTextureUploadEntry(0, 0, points));
+    }
+    // the ray tracer's triangles: the cells around the control points
+    // changed, whose vertex normals change too
+    if(!ray_tracing_supported_ || !rt_triangle_buffer_ ||
+       !rt_node_buffer_) {
+      continue;
+    }
+    for(const auto& terrain : rt_terrains_) {
+      if(terrain.terrain != update.terrain) {
+        continue;
+      }
+      int lo = INT32_MAX, hi = -1;
+      ShapeRtTerrain(terrain, update.x - 2, update.y - 2,
+                     update.x + update.width, update.y + update.height,
+                     pick_triangles_, pick_nodes_, lo, hi);
+      if(hi < lo) {
+        continue;
+      }
+      const size_t first = size_t(terrain.first_triangle + lo);
+      batch->uploadStaticBuffer(
+        rt_triangle_buffer_.get(), quint32(first * sizeof(RtTriangle)),
+        quint32(size_t(hi - lo + 1) * sizeof(RtTriangle)),
+        pick_triangles_.data() + first);
+      batch->uploadStaticBuffer(
+        rt_node_buffer_.get(),
+        quint32(size_t(terrain.first_node) * sizeof(BvhNode)),
+        quint32(size_t(terrain.node_count) * sizeof(BvhNode)),
+        pick_nodes_.data() + terrain.first_node);
+      rt_instances_dirty_ = true; // the terrain's box
+      rt_frame_ = 0;
+    }
+  }
+}
+
+void shift::gui::Viewport::ShapeRtTerrain(
+  const RtDeformableTerrain& d, int i0, int j0, int i1, int j1,
+  std::vector<RtTriangle>& triangles, std::vector<BvhNode>& nodes, int& lo,
+  int& hi) const {
+  const SceneTerrain& t = simulation_->get_scene().terrains[d.terrain];
+  const int width = t.width, height = t.height;
+  const int s = std::max(t.mesh_subdivisions, 1);
+  const int squares_x = s * (width - 1);
+  if(width < 2 || height < 2 ||
+     d.position.size() != size_t(2 * squares_x * s * (height - 1))) {
+    return;
+  }
+  i0 = std::max(i0, 0);
+  j0 = std::max(j0, 0);
+  i1 = std::min(i1, width - 2);
+  j1 = std::min(j1, height - 2);
+  if(i1 < i0 || j1 < j0) {
+    return;
+  }
+  const bool smooth = smooth_terrain_;
+  const QMatrix3x3 rotation = t.pose.normalMatrix();
+  // control points beyond the map: those of its edge, as the shaders take
+  // them (terrain_common.glsl, ControlZ without the B-spline)
+  auto z = [&](int i, int j) {
+    return t.z[size_t(std::clamp(j, 0, height - 1)) * size_t(width) +
+               size_t(std::clamp(i, 0, width - 1))];
+  };
+  // the surface at control point coordinates (i + a, j + b) of cell (i, j),
+  // a and b in [0, 1]: z and its slopes per control point spacing
+  auto surface = [&](int i, int j, float a, float b, float& z_a, float& z_b) {
+    if(!smooth) {
+      const float z00 = z(i, j), z10 = z(i + 1, j);
+      const float z01 = z(i, j + 1), z11 = z(i + 1, j + 1);
+      z_a = (z10 - z00) * (1.f - b) + (z11 - z01) * b;
+      z_b = (z01 - z00) * (1.f - a) + (z11 - z10) * a;
+      return (z00 * (1.f - a) + z10 * a) * (1.f - b) +
+             (z01 * (1.f - a) + z11 * a) * b;
+    }
+    // Catmull-Rom, as CatmullRomBasis in terrain_common.glsl
+    auto basis = [](float x, float w[4], float dw[4]) {
+      const float x2 = x * x, x3 = x2 * x;
+      w[0] = 0.5f * (-x + 2.f * x2 - x3);
+      w[1] = 0.5f * (2.f - 5.f * x2 + 3.f * x3);
+      w[2] = 0.5f * (x + 4.f * x2 - 3.f * x3);
+      w[3] = 0.5f * (-x2 + x3);
+      dw[0] = 0.5f * (-1.f + 4.f * x - 3.f * x2);
+      dw[1] = 0.5f * (-10.f * x + 9.f * x2);
+      dw[2] = 0.5f * (1.f + 8.f * x - 9.f * x2);
+      dw[3] = 0.5f * (-2.f * x + 3.f * x2);
+    };
+    float wa[4], dwa[4], wb[4], dwb[4];
+    basis(a, wa, dwa);
+    basis(b, wb, dwb);
+    float value = 0.f;
+    z_a = z_b = 0.f;
+    for(int q = 0; q < 4; q++) {
+      for(int p = 0; p < 4; p++) {
+        const float c = z(i - 1 + p, j - 1 + q);
+        value += wa[p] * wb[q] * c;
+        z_a += dwa[p] * wb[q] * c;
+        z_b += wa[p] * dwb[q] * c;
+      }
+    }
+    return value;
+  };
+  // the vertex at control point coordinates (i + a, j + b)
+  auto vertex = [&](int i, int j, float a, float b, float* position,
+                    float* normal) {
+    float z_a, z_b;
+    const float h = surface(i, j, a, b, z_a, z_b);
+    const QVector3D world = t.pose.map(QVector3D(
+      t.x_scale * (float(i) + a), t.y_scale * (float(j) + b), h));
+    float z_x = z_a / t.x_scale, z_y = z_b / t.y_scale;
+    if(!smooth) {
+      // facets would show each cell: the normals of the central differences
+      // of the control points, interpolated
+      auto central = [&](int ci, int cj, float& nx, float& ny) {
+        const int il = std::max(ci - 1, 0), ir = std::min(ci + 1, width - 1);
+        const int jl = std::max(cj - 1, 0), jr = std::min(cj + 1, height - 1);
+        nx = (z(ir, cj) - z(il, cj)) / (t.x_scale * float(ir - il));
+        ny = (z(ci, jr) - z(ci, jl)) / (t.y_scale * float(jr - jl));
+      };
+      float x00, y00, x10, y10, x01, y01, x11, y11;
+      central(i, j, x00, y00);
+      central(std::min(i + 1, width - 1), j, x10, y10);
+      central(i, std::min(j + 1, height - 1), x01, y01);
+      central(std::min(i + 1, width - 1), std::min(j + 1, height - 1), x11,
+              y11);
+      z_x = (x00 * (1.f - a) + x10 * a) * (1.f - b) +
+            (x01 * (1.f - a) + x11 * a) * b;
+      z_y = (y00 * (1.f - a) + y10 * a) * (1.f - b) +
+            (y01 * (1.f - a) + y11 * a) * b;
+    }
+    const float length = std::sqrt(z_x * z_x + z_y * z_y + 1.f);
+    const float n[3] = {z_x / length, z_y / length, -1.f / length};
+    for(int c = 0; c < 3; c++) {
+      position[c] = world[c];
+      normal[c] = rotation(c, 0) * n[0] + rotation(c, 1) * n[1] +
+                  rotation(c, 2) * n[2];
+    }
+  };
+  const float step = 1.f / float(s);
+  for(int j = j0; j <= j1; j++) {
+    for(int i = i0; i <= i1; i++) {
+      for(int v = 0; v < s; v++) {
+        for(int u = 0; u < s; u++) {
+          const int square = (j * s + v) * squares_x + i * s + u;
+          // a, b, e and a, e, c as AddTerrain (simulation.cc) made them, in
+          // fractions of the cell
+          const float a0 = step * float(u), a1 = step * float(u + 1);
+          const float b0 = step * float(v), b1 = step * float(v + 1);
+          const float corners[2][3][2] = {{{a0, b0}, {a1, b0}, {a1, b1}},
+                                          {{a0, b0}, {a1, b1}, {a0, b1}}};
+          for(int half = 0; half < 2; half++) {
+            const int k = d.position[size_t(2 * square + half)];
+            RtTriangle& triangle = triangles[size_t(d.first_triangle + k)];
+            float* positions[3] = {triangle.v0, triangle.v1, triangle.v2};
+            float* normals[3] = {triangle.n0, triangle.n1, triangle.n2};
+            for(int c = 0; c < 3; c++) {
+              vertex(i, j, corners[half][c][0], corners[half][c][1],
+                     positions[c], normals[c]);
+            }
+            lo = std::min(lo, k);
+            hi = std::max(hi, k);
+          }
+        }
+      }
+    }
+  }
+  // refit: in depth first order a node's children come after it
+  for(int n = d.first_node + d.node_count - 1; n >= d.first_node; n--) {
+    BvhNode& node = nodes[size_t(n)];
+    float box_min[3] = {1e30f, 1e30f, 1e30f};
+    float box_max[3] = {-1e30f, -1e30f, -1e30f};
+    auto grow = [&](const float* p) {
+      for(int a = 0; a < 3; a++) {
+        box_min[a] = std::min(box_min[a], p[a]);
+        box_max[a] = std::max(box_max[a], p[a]);
+      }
+    };
+    if(node.triangle_count >= 0) {
+      for(int k = 0; k < node.triangle_count; k++) {
+        const RtTriangle& triangle =
+          triangles[size_t(node.right_or_first + k)];
+        grow(triangle.v0);
+        grow(triangle.v1);
+        grow(triangle.v2);
+      }
+    } else {
+      for(const BvhNode* child :
+          {&nodes[size_t(n + 1)], &nodes[size_t(node.right_or_first)]}) {
+        grow(child->box_min);
+        grow(child->box_max);
+      }
+    }
+    if(node.triangle_count != 0 || n != d.first_node) {
+      std::copy(box_min, box_min + 3, node.box_min);
+      std::copy(box_max, box_max + 3, node.box_max);
+    }
+  }
+}
+
 void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   scene_dirty_ = false;
+  rt_terrains_.clear();
   gpu_meshes_.clear();
   rt_triangles_.clear();
   rt_triangle_faces_.clear();
@@ -1504,7 +1770,15 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   if(ray_tracing_supported_) {
     CadTrimTables trims = MergeCadTrims(scene.cads);
     BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, trims,
-                  rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_);
+                  rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_,
+                  &rt_terrains_);
+    // the deformable terrains as shown, not as the meshes were made
+    rt_terrain_smooth_ = smooth_terrain_;
+    for(const auto& terrain : rt_terrains_) {
+      int lo = 0, hi = -1;
+      ShapeRtTerrain(terrain, 0, 0, INT32_MAX, INT32_MAX, rt_triangles_,
+                     rt_nodes_, lo, hi);
+    }
     if(rt_triangles_.empty()) {
       rt_triangles_.resize(1);
       rt_triangle_faces_.assign(1, -1);
@@ -1531,12 +1805,14 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     storage(rt_cad_trim_index_buffer_, trims.trim_index.data(),
             trims.trim_index.size() * sizeof(int32_t));
 
+    // static: the deformable terrains' ranges are uploaded again as they
+    // change
     rt_triangle_buffer_.reset(rhi_->newBuffer(
-      QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
       quint32(rt_triangles_.size() * sizeof(RtTriangle))));
     rt_triangle_buffer_->create();
     rt_node_buffer_.reset(
-      rhi_->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
+      rhi_->newBuffer(QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
                       quint32(rt_nodes_.size() * sizeof(BvhNode))));
     rt_node_buffer_->create();
     const quint32 rt_instance_count =
@@ -1582,6 +1858,12 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
   }
   if(scene_dirty_) {
     UploadScene(batch);
+    // the scene holds the terrains as shown
+    if(simulation_) {
+      simulation_->TakeTerrainUpdates(terrain_updates_);
+    }
+  } else if(simulation_) {
+    UploadTerrainUpdates(batch);
   }
 
   if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_) {
@@ -1724,7 +2006,9 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       u.scale[1] = terrain.y_scale;
       u.samples[0] = terrain.width;
       u.samples[1] = terrain.height;
-      u.samples[2] = terrain.bicubic ? 1 : 0;
+      u.samples[2] = terrain.bicubic                            ? 1
+                     : terrain.deformable && smooth_terrain_ ? 2
+                                                             : 0;
       batch->updateDynamicBuffer(gpu.uniforms.get(), 0, sizeof(u), &u);
     }
   }
@@ -1822,8 +2106,20 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
     CopyMatrix(previous, instances[i].previous_body_to_world);
     if(instance.mesh_index < mesh_count) {
       const SceneMesh& mesh = scene.meshes[instance.mesh_index];
-      TransformBox(pose, mesh.bounds_min, mesh.bounds_max,
-                   instances[i].box_min, instances[i].box_max);
+      QVector3D bounds_min = mesh.bounds_min, bounds_max = mesh.bounds_max;
+      for(const auto& terrain : rt_terrains_) {
+        // a deformable terrain's box is that of its refitted BVH
+        if(terrain.mesh == instance.mesh_index &&
+           terrain.first_node < static_cast<int>(pick_nodes_.size())) {
+          const BvhNode& root = pick_nodes_[terrain.first_node];
+          bounds_min = QVector3D(root.box_min[0], root.box_min[1],
+                                 root.box_min[2]);
+          bounds_max = QVector3D(root.box_max[0], root.box_max[1],
+                                 root.box_max[2]);
+        }
+      }
+      TransformBox(pose, bounds_min, bounds_max, instances[i].box_min,
+                   instances[i].box_max);
       CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
       CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
       instances[i].optical[0] = mesh.opacity;

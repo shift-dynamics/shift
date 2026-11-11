@@ -32,6 +32,22 @@ namespace gui {
 
 class Simulation;
 
+/*! \brief the triangles of a deformable terrain's mesh (SceneTerrain::
+ * deformable) among those of ray tracing, moved with its control points: the
+ * mesh has s = mesh_subdivisions squares along each side of a cell, and two
+ * triangles per square, those of square (u, v) at 2 (v s (width - 1) + u)
+ * and the next in the mesh's order */
+struct RtDeformableTerrain {
+  int mesh = 0;    /*!< in Scene::meshes */
+  int terrain = 0; /*!< in Scene::terrains */
+  int first_triangle = 0;
+  int first_node = 0; /*!< its root */
+  int node_count = 0;
+  /*! the place of each triangle of the mesh after first_triangle, as the
+   * BVH ordered them */
+  std::vector<int32_t> position;
+};
+
 /*!
 @brief 3D view of a simulation, rendered with Qt RHI (Vulkan)
 
@@ -77,6 +93,11 @@ public:
   }
 
   void set_floor_enabled(bool enabled);
+  /*! \brief draw deformable terrains (SceneTerrain::deformable) by the
+   * Catmull-Rom surface through their nodes, smooth but for overshoots
+   * beside sharp ruts, rather than bilinearly between them as the physics
+   * does, which shows the facets of the grid (default true) */
+  void set_smooth_terrain(bool smooth);
   /*! \brief place the floor: a point on it and its normal, up (out of the
    * solid), in the inertial frame */
   void set_floor(const QVector3D& point, const QVector3D& normal);
@@ -195,6 +216,9 @@ private:
     int cad_index = 0; /*!< in Scene::cads */
   };
 
+  /*! \brief upload the rectangles of the deformable terrains that changed
+   * (Simulation::TakeTerrainUpdates) */
+  void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
   void InitializeRhi();
   void ReleaseRhi();
   void RenderFrame();
@@ -223,6 +247,15 @@ private:
   /*! \brief upload the instances (body poses, and the poses of the previous
    * frame for reprojection); returns true if a body moved */
   bool UploadInstances(QRhiResourceUpdateBatch* batch, int instance_count);
+  /*! \brief the triangles of a deformable terrain over the cells i0..i1,
+   * j0..j1 (clamped to the grid) from the control points of the scene, and
+   * the boxes of its BVH refitted around them; the range of triangles
+   * changed (relative to first_triangle) grows lo..hi. The surface is that
+   * drawn by the tessellation shaders: Catmull-Rom with smooth_terrain_,
+   * else bilinear between the control points */
+  void ShapeRtTerrain(const RtDeformableTerrain& terrain, int i0, int j0,
+                      int i1, int j1, std::vector<RtTriangle>& triangles,
+                      std::vector<BvhNode>& nodes, int& lo, int& hi) const;
   /*! \brief compute pipeline of a shader, laid out as bindings */
   QRhiComputePipeline* NewComputePipeline(const char* shader,
                                           QRhiShaderResourceBindings* bindings);
@@ -236,6 +269,9 @@ private:
                                  * followed, see FollowFrame */
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
+  bool smooth_terrain_ = true;
+  /*! smooth_terrain_ when the ray tracer's terrains were shaped */
+  bool rt_terrain_smooth_ = true;
   bool scene_dirty_ = false;
   bool frame_pending_ = false;
   int frame_count_ = 0;
@@ -287,6 +323,7 @@ private:
   // terrains, tessellated on the GPU from their control points
   bool tessellation_supported_ = false;
   std::vector<GpuTerrain> gpu_terrains_;
+  std::vector<TerrainUpdate> terrain_updates_; /*!< reused each frame */
   std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
 
   // CAD geometry, tessellated on the GPU from its exact surfaces
@@ -326,6 +363,10 @@ private:
   /*! what ray tracing instances: the meshes' (Scene::instances), then the
    * CAD geometry's, mesh_index meshes.size() + its index in Scene::cads */
   std::vector<SceneInstance> rt_instance_list_;
+  /*! the deformable terrains among the meshes, whose triangles the
+   * ray tracer moves with their control points (in pick_triangles_ and
+   * pick_nodes_, the CPU copies of its arrays) */
+  std::vector<RtDeformableTerrain> rt_terrains_;
 
   // picking: the point of the scene meshes under the cursor, found on the
   // CPU with one BVH per mesh (those of ray tracing when it is supported,

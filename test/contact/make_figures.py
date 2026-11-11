@@ -13,7 +13,8 @@ and what was computed as meshes, and ray traces it twice with the viewer: the wh
 scene on the left and the contact close up on the right, the bodies transparent so
 that it can be seen between them. Red is what was computed: a ball for a point, a tube along a line of contact with a white
 ball at each station, a thin plate for points that share a normal and so bound a
-surface, and an arrow for the normal. Of the variants of a parameterized test only
+surface, a thin tile of its area for each point of the area contact of
+conformal faces, and an arrow for the normal (of a few of an area's points). Of the variants of a parameterized test only
 the first is drawn, except for the tests of GRIDS, whose variants are different
 shapes: each is drawn, in a grid with a label. The viewer needs a display, and shows a window as it renders.
 SHIFT_BUILD names the build directory (default: build-release).
@@ -50,11 +51,17 @@ def unit(v):
     return v / length if length > 0.0 else v
 
 
+def areas(contact):
+    """the points of the area contact of conformal faces, each carrying an
+    area"""
+    return [p for p in contact['points'] if p.get('area', 0.0) > 0.0]
+
+
 def clusters(contact):
     """the lines (runs of points with a length), and the others grouped by
     normal into patches of three or more, or single points. Points with no
     pair, as a terrain's, are single"""
-    points = list(contact['points'])
+    points = [p for p in contact['points'] if p.get('area', 0.0) <= 0.0]
     if not contact['a']:
         return [], [], points
     lines, single = [], []
@@ -78,11 +85,59 @@ def clusters(contact):
         for p in single:
             (group if abs(numpy.dot(n, p['normal'])) > 0.99 else rest).append(p)
         single = rest
-        if len(group) >= 3 and spread(group) > 1e-9:
+        if len(group) >= 3 and spread(group) > 1e-9 and outline(group):
             patches.append(group)
         else:
             loose += group
     return lines, patches, loose
+
+
+def outline(group):
+    """whether every point lies on the convex outline of the group, as the
+    corners and edge points of a surface of contact do; points inside it are
+    separate points of contact, as on a grid of bumps"""
+    p = numpy.array([g['a'] for g in group])
+    center = p.mean(axis=0)
+    _, _, axes = numpy.linalg.svd(p - center)
+    flat = (p - center) @ axes[:2].T
+    size = numpy.ptp(flat, axis=0).max()
+    corners = flat[convex_hull(flat)]
+    for q in flat:
+        inside = True
+        for k in range(len(corners)):
+            a, b = corners[k], corners[(k + 1) % len(corners)]
+            edge = b - a
+            length = numpy.linalg.norm(edge)
+            if length == 0.0:
+                continue
+            # distance of q inside the edge, the outline counter-clockwise
+            if (edge[0] * (q[1] - a[1]) - edge[1] * (q[0] - a[0])) / length \
+                    <= 1e-6 * size:
+                inside = False
+                break
+        if inside:
+            return False
+    return True
+
+
+def convex_hull(flat):
+    """the indices of the corners of the convex outline of 2D points,
+    counter-clockwise (Andrew's monotone chain)"""
+    order = sorted(range(len(flat)), key=lambda i: (flat[i][0], flat[i][1]))
+
+    def cross(o, a, b):
+        return ((flat[a][0] - flat[o][0]) * (flat[b][1] - flat[o][1]) -
+                (flat[a][1] - flat[o][1]) * (flat[b][0] - flat[o][0]))
+    lower, upper = [], []
+    for i in order:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], i) <= 0.0:
+            lower.pop()
+        lower.append(i)
+    for i in reversed(order):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], i) <= 0.0:
+            upper.pop()
+        upper.append(i)
+    return lower[:-1] + upper[:-1]
 
 
 def spread(group):
@@ -121,10 +176,12 @@ def hull(points):
 
 def describe(record):
     """the numbers of what was computed, in words"""
-    lines = patches = single = 0
-    length, depth = 0.0, 0.0
+    lines = patches = single = tiles = 0
+    length, depth, area = 0.0, 0.0, 0.0
     for contact in record['contacts']:
         ln, pa, lo = clusters(contact)
+        tiles += len(areas(contact))
+        area += sum(p['area'] for p in areas(contact))
         lines += len(ln)
         patches += len(pa)
         single += len(lo)
@@ -135,6 +192,10 @@ def describe(record):
     if lines:
         words.append('%d line%s, %.1f mm' % (lines, 's' * (lines > 1),
                                              length * 1e3))
+    if tiles:
+        words.append('an area of %s mm² at %d points' % (
+            ('%.0f' % (area * 1e6)) if area >= 1e-4 else ('%.3g' % (area * 1e6)),
+            tiles))
     if patches:
         words.append('%d surface%s' % (patches, 's' * (patches > 1)))
     if single:
@@ -289,6 +350,16 @@ def contact_mesh(contacts, geometry, scale):
             add_ball(mesh, numpy.array(g['a']), 1.3 * ball)
             add_arrow(mesh, numpy.array(g['a']), g['normal'], 0.3 * scale,
                       0.5 * tube)
+        tiles = areas(contact)
+        for k, g in enumerate(tiles):
+            d, u, v = frame_of(g['normal'])
+            half = 0.45 * math.sqrt(g['area'])
+            center = numpy.array(g['a'])
+            add_plate(mesh, [center + half * (su * u + sv * v)
+                             for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))],
+                      d, 0.006 * scale)
+            if k % max(1, len(tiles) // 9) == 0:
+                add_arrow(mesh, center, g['normal'], 0.3 * scale, 0.5 * tube)
     return mesh
 
 

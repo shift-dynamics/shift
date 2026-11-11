@@ -279,4 +279,4 @@ Examples
   :source:`examples/terramechanics/wheel_test_bed_camber.json` tilts the
   wheel by 10 degrees, and the side force is the camber thrust.
 * Tests: :source:`test/test_tire_pac2002.cc` and
-  :source:`test/test_terramechanics.cc`.
+  :source:`test/terramechanics/test_terramechanics.cc`.

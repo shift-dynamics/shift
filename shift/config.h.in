@@ -11,5 +11,7 @@
 #define SHIFT_EXAMPLES_DIR "@SHIFT_EXAMPLES_DIR@"
 /* 1 when STEP CAD files can be read (STEPcode, meson option step) */
 #define SHIFT_HAVE_STEP @SHIFT_HAVE_STEP@
+/* 1 when core can run calculations on the GPU (Vulkan, meson option gpu) */
+#define SHIFT_HAVE_GPU @SHIFT_HAVE_GPU@
 
 #endif

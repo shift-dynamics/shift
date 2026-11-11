@@ -17,6 +17,8 @@ build/test/shift-test --gtest_filter='CadRound.*'     # one group
 | `test_cad_round_contact.cc` | Other shapes on the exact surfaces of STEP parts |
 | `test_cad_contact.cc` | The sprocket, track links and idlers, and Hertz contact of an ellipse |
 | `test_cad_line_contact.cc` | Lines on curved faces: cams, gear teeth, a bent ring |
+| `test_cad_hard_contact.cc` | Exceptional cases of STEP surfaces: rings, many regions, conformal faces, saddles, poles, trims, thin walls, helices |
+| `test_cad_conformal_contact.cc` | Area contact of conformal faces: a brake shoe on its drum, a B-spline face on a copy of itself |
 | `test_collision_geometry_input.cc` | Collision geometry from the model input |
 
 ## Kinds of test
@@ -583,11 +585,17 @@ A box given by its dimensions and the same box from a STEP file have the same co
 
 ![BoxIsTheSameBoxFromAStepFile](images/CadRound.BoxIsTheSameBoxFromAStepFile.jpg)
 
-### `CadRound.BoxOnItsFaceStandsOnFourCorners`
+### `CadRound.BoxOnItsFaceRestsOnTheFace`
 
-A box flat on a face: four points at the corners of the surface.
+A box flat on a face: an area of contact over all of its 4 by 6 mm face, each point at the depth, centered on the face (see the section on conformal faces).
 
-![BoxOnItsFaceStandsOnFourCorners](images/CadRound.BoxOnItsFaceStandsOnFourCorners.jpg)
+![BoxOnItsFaceRestsOnTheFace](images/CadRound.BoxOnItsFaceRestsOnTheFace.jpg)
+
+### `CadRound.BoxTippingOntoAnEdgeHasNoStep`
+
+A box tipping from flat over 0.1 rad with its edge 10 µm in the face: the area of the faces gives way to the edge's contact as the face lifts, with no step in the force of more than 1% between poses 25 µrad apart.
+
+![BoxTippingOntoAnEdgeHasNoStep](images/CadRound.BoxTippingOntoAnEdgeHasNoStep.jpg)
 
 ### `CadRound.BoxCornerOnAFace`
 
@@ -619,11 +627,11 @@ A cylinder lying on a face: a line of three points.
 
 ![CylinderOnAFaceIsALine](images/CadRound.CylinderOnAFaceIsALine.jpg)
 
-### `CadRound.CylinderOnItsEndStandsOnItsRim`
+### `CadRound.CylinderOnItsEndRestsOnTheEnd`
 
-A cylinder on its end: its rim, four arcs, lies in the face, a line of contact all round it, centered on the axis.
+A cylinder on its end: an area of contact over the disk of its end, centered on the axis.
 
-![CylinderOnItsEndStandsOnItsRim](images/CadRound.CylinderOnItsEndStandsOnItsRim.jpg)
+![CylinderOnItsEndRestsOnTheEnd](images/CadRound.CylinderOnItsEndRestsOnTheEnd.jpg)
 
 ### `CadRound.CylinderIsTheSameCylinderFromAStepFile`
 
@@ -754,6 +762,216 @@ The torus turned about its axis through a full turn in 400 poses, 10 µm deep. T
 The torus rolls at 1 m/s from the straight start through the S-bend, steered by the walls, and into the straight end. It stays upright and at its resting height, follows the 30 mm offset of the bend to within the 1.5 mm clearance of the slot, and gains no energy.
 
 ![TorusRollsAlongTheChannel](images/CadRound.TorusRollsAlongTheChannel.jpg)
+
+## A torus threaded on a tube: a saddle on a convex face
+
+The tube of `scripts/make_channel_step.py`, 20 mm in radius, swept along a cubic B-spline path that descends 120 mm over its 800 mm and bends 60 mm across in an S. Its section is an exact circle in four rational quadratic quarters, so its side is four rational B-spline faces. The torus is threaded on it: the tube passes through its hole, 30 mm in radius, and the torus hangs from the top of its hole, where its inner face is a saddle, curved one way along the tube and the other way around it.
+
+### `CadRound.TorusHangsOnATube`
+
+The torus hanging 20 µm below where it first touches: one point, at the top of the tube, its normal up and square to the path, at 10 mm (the clearance) from the axis.
+
+![TorusHangsOnATube](images/CadRound.TorusHangsOnATube.jpg)
+
+### `CadRound.TorusAroundATubeTouchesEverywhere`
+
+The torus moved 20 µm beyond the clearance in a direction turned about the tube's axis through a full turn in 400 poses: the point goes round the tube and the hole, across the four seams of the tube and the two of the torus's inner faces, and at each pose there is one point, 20 µm deep, opposite the direction of the move.
+
+![TorusAroundATubeTouchesEverywhere](images/CadRound.TorusAroundATubeTouchesEverywhere.jpg)
+
+### `CadRound.TippedTorusOnATubeTouchesTwice`
+
+The torus centered on the tube's axis and tipped about a line across it, as a ring jammed on a rod: two points, the top of its hole behind the center and the bottom ahead of it, mirrored through the center, at one depth.
+
+![TippedTorusOnATubeTouchesTwice](images/CadRound.TippedTorusOnATubeTouchesTwice.jpg)
+
+### `CadRound.ThreadedTorusSlidesAlongTheTube`
+
+The torus slides down the tube from 1 m/s through the S-bend, where it swings out across the tube and rocks on it, and on into the straight end. Its center stays within the clearance of the axis, its axis within 15 degrees of the tangent, and it gains no energy.
+
+![ThreadedTorusSlidesAlongTheTube](images/CadRound.ThreadedTorusSlidesAlongTheTube.jpg)
+
+## Exceptional cases of CAD surfaces
+
+Parts of `scripts/make_hard_contact_step.py`, each made to test a case that contact of
+CAD surfaces can get wrong: a circle of contact, more regions of contact than starting
+points, surfaces that curve alike, saddles, the poles of a sphere's parameters, trims,
+thin walls and helices. The ball, `ball.step`, is 10 mm in radius, steel, with the poles
+of its spherical surface on its z axis; its upper and lower hemispheres are two faces.
+The nut running down a bolt is the example `cad/nut_on_bolt.json`: its contact is a
+helical line over three turns, too slow to simulate in a test.
+
+### `CadHard.BallInAConicalSeatRestsOnACircle`
+
+A cone of 45 degrees, in two faces of half a turn, under the ball on its axis: they touch round a circle, where the gap between them is straight. The contact is a ring, a line in 36 points round the axis, 3 in each slice of 30 degrees, whose lengths make up the circle, at one depth; the forces sum along the axis, with nothing across it.
+
+![BallInAConicalSeatRestsOnACircle](images/CadHard.BallInAConicalSeatRestsOnACircle.jpg)
+
+### `CadHard.BallOffTheAxisOfAConicalSeatHasASmoothForce`
+
+The ball 10 µm into the seat and moved off its axis by up to 40 µm in 401 poses: the ring is deeper on one side, then lifts on the other and closes to an arc, with no jump in the force. The figure shows the last of the poses with the most points: 37 mm of the 44 mm ring still touching, 15 µm deep on the side the ball moved to.
+
+![BallOffTheAxisOfAConicalSeatHasASmoothForce](images/CadHard.BallOffTheAxisOfAConicalSeatHasASmoothForce.jpg)
+
+### `CadHard.BallSettlesInAConicalSeat`
+
+Dropped on the axis from 5 µm above the seat, the ball lands on the whole ring at once and comes to rest there, centered to 0.1 µm.
+
+![BallSettlesInAConicalSeat](images/CadHard.BallSettlesInAConicalSeat.jpg)
+
+### `CadHard.PlateOnTwelveBumpsTouchesEach`
+
+The flat underside of a box, a plane face, on one B-spline face with twelve bumps 2 mm high: a point on the top of each.
+
+![PlateOnTwelveBumpsTouchesEach](images/CadHard.PlateOnTwelveBumpsTouchesEach.jpg)
+
+### `CadHard.SplineSheetOnTwelveBumpsTouchesEach`
+
+A flat B-spline face on the twelve bumps: two B-spline faces touching in twelve regions, more than the eight starting points once kept for a pair of faces, now 32.
+
+![SplineSheetOnTwelveBumpsTouchesEach](images/CadHard.SplineSheetOnTwelveBumpsTouchesEach.jpg)
+
+### `CadHard.BallInATightSocketTouchesWhereItIsPushed`
+
+A spherical socket 10.01 mm in radius around the ball, the surfaces curved alike: moved 2 µm beyond the 10 µm clearance, in directions over the socket's lower half down to its pole, there is one point, 2 µm deep, its normal back towards the center.
+
+![BallInATightSocketTouchesWhereItIsPushed](images/CadHard.BallInATightSocketTouchesWhereItIsPushed.jpg)
+
+### `CadHard.BallPushedRoundATightSocketHasASmoothForce`
+
+The ball moved round the socket 2 µm beyond the clearance, across its pole and the seams of its halves: the force changes by less than 0.1% from one pose to the next.
+
+![BallPushedRoundATightSocketHasASmoothForce](images/CadHard.BallPushedRoundATightSocketHasASmoothForce.jpg)
+
+### `CadHard.LinkOfAChainHangsOnTheNext`
+
+Two linked tori, 40 mm and 10 mm in radius, square to each other: their inner faces are saddles, and they touch at one point between them, at the depth they were moved into each other.
+
+![LinkOfAChainHangsOnTheNext](images/CadHard.LinkOfAChainHangsOnTheNext.jpg)
+
+### `CadHard.TwistedLinkStillTouchesAtOnePoint`
+
+The hanging link twisted about the line between the links by up to 25 degrees either way: one point at one depth. Twisted by more than 30 degrees the tube of each link also cuts into the other's, on both sides, and the links touch at three points.
+
+![TwistedLinkStillTouchesAtOnePoint](images/CadHard.TwistedLinkStillTouchesAtOnePoint.jpg)
+
+### `CadHard.LinkOfAChainSwingsOnTheNext`
+
+The hanging link swings across the fixed one from 0.2 m/s: it stays linked and hanging, and gains no energy.
+
+![LinkOfAChainSwingsOnTheNext](images/CadHard.LinkOfAChainSwingsOnTheNext.jpg)
+
+### `CadHard.BallRollsInABowlAtItsPeriod`
+
+A spherical bowl 100 mm in radius: released from rest 0.1 rad up the side, the ball rolls without slipping and rocks with the period 2π √(7 (R − r) / (5 g)); after half of it the ball is at rest up the other side, as far from the bottom.
+
+![BallRollsInABowlAtItsPeriod](images/CadHard.BallRollsInABowlAtItsPeriod.jpg)
+
+### `CadHard.BallOnItsPoleOnASplineFace`
+
+The ball on a flat B-spline face, resting on the pole of its spherical surface, where the parameters of the surface degenerate, and tipped so that the point crosses the pole: one point, at one depth, below the center. The normal and curvature at a pole are their limits from beside it.
+
+![BallOnItsPoleOnASplineFace](images/CadHard.BallOnItsPoleOnASplineFace.jpg)
+
+### `CadHard.BallOnItsPoleOnABump`
+
+The ball's pole on the top of a bump: two curved faces, one point, at the top of the bump.
+
+![BallOnItsPoleOnABump](images/CadHard.BallOnItsPoleOnABump.jpg)
+
+### `CadHard.BallOnTheRimOfAHoleInASplineFace`
+
+A flat B-spline face trimmed by a hole 6 mm in radius: the ball over the hole rests on its rim, a circle 8 mm below its center. It touches the bore of the hole just below the rim all round: a ring, a line round the bore's axis, at one depth.
+
+![BallOnTheRimOfAHoleInASplineFace](images/CadHard.BallOnTheRimOfAHoleInASplineFace.jpg)
+
+### `CadHard.BallOverTheTrimOfASplineFaceHasTheDepthOfTheRim`
+
+The ball 10 µm into the face, moved from over the face to over the hole: its depth is 10 µm while its pole is over the face, and over the hole that of the rim's nearest point, with no step where the pole crosses the trim.
+
+![BallOverTheTrimOfASplineFaceHasTheDepthOfTheRim](images/CadHard.BallOverTheTrimOfASplineFaceHasTheDepthOfTheRim.jpg)
+
+### `CadHard.ThinShellPushesBackOnTheSideTouched`
+
+A dome 1 mm thick, less than the 3 mm that the shell's contact reaches into it: a ball on its top is pushed up, one under it pushed down, each by the face it touches.
+
+![ThinShellPushesBackOnTheSideTouched](images/CadHard.ThinShellPushesBackOnTheSideTouched.jpg)
+
+### `CadHard.DeepIntoAThinShellStillPushesBackOut`
+
+The ball pushed into the top of the shell by more than half its thickness, and through it: still pushed back out of the top it came through, as deep as it went.
+
+![DeepIntoAThinShellStillPushesBackOut](images/CadHard.DeepIntoAThinShellStillPushesBackOut.jpg)
+
+### `CadHard.BallBouncesOffAThinShell`
+
+Dropped on the crown at 3 m/s from 1 mm above it, the ball bounces off without passing through, and gains no energy.
+
+![BallBouncesOffAThinShell](images/CadHard.BallBouncesOffAThinShell.jpg)
+
+### `CadHard.NutRestsOnTheThreadAllRound`
+
+A nut 2 µm down onto a bolt with a square thread of 4 mm lead: its flank lies on the bolt's along three turns of a helix. The flanks are of the same shape, so they touch over an area: points over the flanks all round the axis, so that the bolt holds the nut up without tipping it.
+
+![NutRestsOnTheThreadAllRound](images/CadHard.NutRestsOnTheThreadAllRound.jpg)
+
+### `CadHard.BallInAHelicalGrooveRestsOnBothFlanks`
+
+A groove swept along a helix 150 mm in radius: the ball in it rests on both flanks, two points of one pair of faces, either side of the groove.
+
+![BallInAHelicalGrooveRestsOnBothFlanks](images/CadHard.BallInAHelicalGrooveRestsOnBothFlanks.jpg)
+
+### `CadHard.BallRollsDownAHelicalGroove`
+
+Released at rest in the groove, the ball rolls down the helix on both flanks: it follows the groove round, stays in it, and gains no energy.
+
+![BallRollsDownAHelicalGroove](images/CadHard.BallRollsDownAHelicalGroove.jpg)
+
+## Conformal faces: area contact
+
+Faces of the same shape, a brake shoe whose inner face fits its drum (`drum.step`, `brake_shoe.step`) and a B-spline face on a copy of itself (`eggcrate_cover.step`), touch over an area. They are found by fitting the depths of the samples of the smaller face to those of a small rigid motion of faces of one shape, and the area is integrated by Gauss's rule on a grid over that face, each point carrying its share of the area and a pressure proportional to its depth (an elastic foundation: that of a flat punch on a half space of the size of the contact, or of the materials' `layer_thickness`). Two flat faces that face each other conform by their shape alone: the area where they overlap is found exactly by clipping the polygons of their trims, and it takes over from the contact of their edges and corners as the faces come within 18° of facing (from 26°) and as the share of the smaller face in contact rises from 10% to 50%.
+
+### `CadConformal.BrakeShoeTouchesItsDrumOverTheArc`
+
+The shoe pressed 10 µm onto the drum: points over all of its inner face, each as deep as the shoe's motion along its normal, 10 µm cos θ. The normal force is the foundation's integral of cos² θ, and the sum of the point forces, on which friction acts, is 2 sin α / (α + sin 2α / 2) = 1.100 times the normal force, the classical drum brake's.
+
+![BrakeShoeTouchesItsDrumOverTheArc](images/CadConformal.BrakeShoeTouchesItsDrumOverTheArc.jpg)
+
+### `CadConformal.PressingTheShoeInHasNoJump`
+
+From 2 µm above the drum to 10 µm into it: each point enters the contact at no depth, so the force grows from nothing with no jump.
+
+![PressingTheShoeInHasNoJump](images/CadConformal.PressingTheShoeInHasNoJump.jpg)
+
+### `CadConformal.TiltedShoeLoadsOneSide`
+
+Tilted by 1e-4 rad across its width and pressed in 1 µm, the shoe still fits the drum: its depth falls to nothing at one edge, and the area holds it towards the other.
+
+![TiltedShoeLoadsOneSide](images/CadConformal.TiltedShoeLoadsOneSide.jpg)
+
+### `CadConformal.CoverOnTheBumpsIsAreaContact`
+
+The copy of the twelve bumps facing down, pressed 5 µm down: points over the whole face, each 5 µm n_z deep, their areas along z adding up to the 130 by 100 mm rectangle of the face.
+
+![CoverOnTheBumpsIsAreaContact](images/CadConformal.CoverOnTheBumpsIsAreaContact.jpg)
+
+### `CadConformal.CoverOfAnotherShapeIsNot`
+
+The copy scaled by 1.001 is not the bumps' shape, though all of its samples are near them: it touches them at points, as other B-spline faces do.
+
+![CoverOfAnotherShapeIsNot](images/CadConformal.CoverOfAnotherShapeIsNot.jpg)
+
+### `CadConformal.BrakeShoeSlowsTheDrum`
+
+A drum spinning at 20 rad/s under a 1 kg shoe resting on it by its weight, on a prismatic joint: it slows at μ R 1.100 m g / I, to 5e-5 of the slowing expected over 0.05 s.
+
+![BrakeShoeSlowsTheDrum](images/CadConformal.BrakeShoeSlowsTheDrum.jpg)
+
+### `CadConformal.LinedBrakeShoeSlowsTheDrumAlike`
+
+The same with layers 5 mm thick on both parts: the shoe rests at the depth of the layers' foundation, and the drum slows alike.
+
+![LinedBrakeShoeSlowsTheDrumAlike](images/CadConformal.LinedBrakeShoeSlowsTheDrumAlike.jpg)
 
 ## A track on its sprocket
 
@@ -996,7 +1214,7 @@ Inside the backlash there is no contact.
 
 ### `BentLine.RingOnAPlaneIsAQuarterCircle`
 
-The ring on a plane: a line along a quarter circle, of the length of that arc.
+The ring on a plane: a line along a quarter circle, of the length of that arc, in three slices of 30° of turning.
 
 ![RingOnAPlaneIsAQuarterCircle](images/BentLine.RingOnAPlaneIsAQuarterCircle.jpg)
 
@@ -1026,6 +1244,13 @@ These check input or arithmetic, so there is no contact to draw.
 | `TerrainContact.RefusesANegativeStiffness` | A negative stiffness is refused. |
 | `Bunnies/CollisionExampleStart.NothingOverlaps` | No body of a collision example, of any size, starts in contact (bunnies). |
 | `Skulls/CollisionExampleStart.NothingOverlaps` | The same for the skulls. |
+| `ContactForce.AreaPointLaw` | The law of a point carrying an area: linear, its stiffness the foundation's pressure per depth times the area, of the layers given or of a punch of the patch area. |
+| `CadHard.FieldSeedsFindTheSameContact` | At the same poses, the seeds from the closest-point fields (`contact_seeds` set to `field`) find every point the seeds from the samples do, one for one, with the same depth, normal, weight and length: the twisting chain links (one point), the ball moving in the conical seat (a ring), the sheet on the twelve bumps (twelve points), the ball in the helical groove (two) and the nut on the bolt (an area over each flank). |
+| `CadSpeed.SeatRing` | A benchmark, not run with the tests (`meson test -C build-release --benchmark cad_contact_speed`): the time of a contact test of the ball moving in the conical seat, each pose a new pair (cold) or the pair kept from the last pose (warm), with the seeds from the samples and from the closest-point fields. |
+| `CadSpeed.TwelveBumps` | The same benchmark for the sheet sliding on the twelve bumps. |
+| `CadSpeed.ChainLinks` | The same for the twisting chain links. |
+| `CadSpeed.BallInAGroove` | The same for the ball moving along the helical groove. |
+| `CadSpeed.NutOnABolt` | The same for the nut screwing down the bolt. |
 
 ## Making the figures
 
@@ -1036,7 +1261,7 @@ renders. The records of the track models are over 1 GB each.
 
 ```bash
 mkdir -p /tmp/contact
-SHIFT_CONTACT_RECORD=/tmp/contact build-release/test/shift-test --gtest_filter='CadRound*:CadContact*:CadLineContact*:*CamFaces*:*CurvedOnCurved*:GearToothContact*:BentLine*:ContactGeometry*:ContactPrimitives*:ContactForce*:Collision*:TerrainContact*:HertzEllipse*:StickSlip*:AllTypes/ContactGeometryPairs*:Bunnies/CollisionExample.*:Skulls/CollisionExample.*'
+SHIFT_CONTACT_RECORD=/tmp/contact build-release/test/shift-test --gtest_filter='CadRound*:CadHard*:CadConformal*:CadContact*:CadLineContact*:*CamFaces*:*CurvedOnCurved*:GearToothContact*:BentLine*:ContactGeometry*:ContactPrimitives*:ContactForce*:Collision*:TerrainContact*:HertzEllipse*:StickSlip*:AllTypes/ContactGeometryPairs*:Bunnies/CollisionExample.*:Skulls/CollisionExample.*'
 python3 test/contact/make_figures.py /tmp/contact test/contact/images
 ```
 

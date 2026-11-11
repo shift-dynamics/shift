@@ -9,6 +9,8 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
+#include "shift/core/force_module/soil_contact.h"
+#include "shift/core/terrain/scm.h"
 
 bool shift::core::force_module::TrackSoil::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -20,7 +22,10 @@ shift::core::force_module::TrackSoil::Create() {
 }
 
 void shift::core::force_module::TrackSoil::DeclareParameters() {
-  DeclareParameter("soil", &soil_, "the soil (see force_module::Soil)", true);
+  DeclareParameter("soil", &soil_,
+                   "the soil (see force_module::Soil); on a terrain of type "
+                   "\"scm\", defaults to the terrain's",
+                   false);
   DeclareParameter("shoes", &shoe_names_,
                    "the bodies (links) carrying a shoe", true)
     .set_row_dim(-1);
@@ -75,7 +80,40 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
                    false);
 }
 
-void shift::core::force_module::TrackSoil::Connect() {}
+void shift::core::force_module::TrackSoil::Connect() {
+  scm_ = nullptr;
+  for(auto terrain : context_->get_active_terrain()) {
+    if(auto scm = dynamic_cast<shift::core::terrain::Scm*>(terrain)) {
+      scm_ = scm;
+    }
+  }
+}
+
+/* whether a soil_contact force module lists every one of the shoes */
+static bool SoilContactCovers(
+  shift::core::Context* context,
+  const std::vector<shift::core::body::Base*>& shoes) {
+  for(auto module : context->get_active_force_modules()) {
+    auto soil = dynamic_cast<shift::core::force_module::SoilContact*>(module);
+    if(!soil) {
+      continue;
+    }
+    std::vector<shift::core::body::Base*> bodies;
+    for(const auto& name : soil->get_body_names()) {
+      bodies.push_back(
+        context->FindActiveBody(name, soil->get_parent_assembly()));
+    }
+    bool covers = true;
+    for(auto shoe : shoes) {
+      covers = covers &&
+               std::find(bodies.begin(), bodies.end(), shoe) != bodies.end();
+    }
+    if(covers) {
+      return true;
+    }
+  }
+  return false;
+}
 
 static ksl_vec3_t Normalized(ksl_vec3_t v, const std::string& what) {
   const double length = ksl_vec3_l2norm(&v);
@@ -88,7 +126,10 @@ static ksl_vec3_t Normalized(ksl_vec3_t v, const std::string& what) {
 
 void shift::core::force_module::TrackSoil::Load() {
   const std::string prefix = "Track soil force module '" + name_ + "'";
-  soil_properties_ = soil_.Resolve(prefix);
+  has_soil_ = soil_.is_given();
+  if(has_soil_) {
+    soil_properties_ = soil_.Resolve(prefix);
+  }
   if(shoe_names_.empty()) {
     throw shift::core::Exception(prefix + ": needs its shoes");
   }
@@ -117,6 +158,15 @@ void shift::core::force_module::TrackSoil::Load() {
     }
     shoes_.push_back(body);
   }
+  if(!scm_ && !has_soil_) {
+    throw shift::core::Exception(prefix + ": needs its soil");
+  }
+  if(scm_ && !SoilContactCovers(context_, shoes_)) {
+    throw shift::core::Exception(
+      prefix + ": on the terrain of type \"scm\", the shoes' bodies must be "
+               "listed by a soil_contact force module, which carries them on "
+               "the soil");
+  }
   load_indices_.assign(shoes_.size(), -2);
   equation_count_ =
     static_cast<int>(shoes_.size()) * get_shoe_state_count();
@@ -126,15 +176,30 @@ void shift::core::force_module::TrackSoil::Load() {
 
 double shift::core::force_module::TrackSoil::Pressure(double z,
                                                       double z_p) const {
+  return Pressure(soil_properties_, z, z_p);
+}
+
+double shift::core::force_module::TrackSoil::Pressure(
+  const SoilProperties& soil, double z, double z_p) const {
   const double b = std::min(length_, width_);
-  const double load = soil_properties_.Pressure(b, z);
+  const double load = soil.Pressure(b, z);
   if(!(z_p > 0.0)) {
     return load;
   }
-  const double reached = soil_properties_.Pressure(b, z_p);
+  const double reached = soil.Pressure(b, z_p);
   const double unload =
     reached - unloading_ratio_ * reached / z_p * (z_p - z);
   return std::max(0.0, std::min(load, unload));
+}
+
+void shift::core::force_module::TrackSoil::ToTerrain(const ksl_vec3_t& p,
+                                                    double& x, double& y,
+                                                    double& z) const {
+  const ksl_SE3_t& frame = scm_->get_pose();
+  const ksl_vec3_t r = {{p.x - frame.t.x, p.y - frame.t.y, p.z - frame.t.z}};
+  x = ksl_dot_vv(&frame.R.v0, &r);
+  y = ksl_dot_vv(&frame.R.v1, &r);
+  z = ksl_dot_vv(&frame.R.v2, &r);
 }
 
 void shift::core::force_module::TrackSoil::Service(const double* y,
@@ -144,11 +209,9 @@ void shift::core::force_module::TrackSoil::Service(const double* y,
 
 void shift::core::force_module::TrackSoil::Evaluate(const double* y,
                                                     double* dy, bool apply) {
-  const SoilProperties& soil = soil_properties_;
   const int stations = stations_along_ * stations_across_;
   const int count = get_shoe_state_count();
   const double area = length_ * width_ / stations;
-  const double tan_phi = std::tan(soil.friction_angle);
   double normal_total = 0.0, traction = 0.0, side = 0.0;
   for(size_t s = 0; s < shoes_.size(); s++) {
     const double* q = y + s * count;
@@ -169,6 +232,34 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
       return w;
     };
     const ksl_vec3_t normal = world(normal_);
+
+    /* the soil under the shoe: over the grid of a deformable terrain, the
+    terrain's, which soil_contact carries the shoe on; elsewhere the ground
+    plane's */
+    const ksl_vec3_t o = point(center_);
+    bool over_scm = false;
+    const SoilProperties* shoe_soil = has_soil_ ? &soil_properties_ : nullptr;
+    if(scm_) {
+      double x, y, z;
+      ToTerrain(o, x, y, z);
+      long i, k;
+      over_scm = scm_->NearestNode(x, y, i, k);
+      if(over_scm) {
+        shoe_soil = scm_->NodeSoil(i, k);
+      } else if(!has_soil_) {
+        shoe_soil = scm_->SoilAt(o);
+      }
+    }
+    /* the depth of a point below the ground: the undisturbed surface of the
+    terrain over its grid */
+    auto depth = [&](const ksl_vec3_t& p) {
+      if(!over_scm) {
+        return p.z - ground_;
+      }
+      double x, y, z, z_x, z_y;
+      ToTerrain(p, x, y, z);
+      return z - scm_->LocalZ(x, y, z_x, z_y);
+    };
     /* the shoe's directions in the ground plane */
     ksl_vec3_t a = world(along_), c = world(across_);
     a.z = 0.0;
@@ -196,10 +287,13 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
         ksl_axpy_vv(((k + 0.5) / stations_across_ - 0.5) * width_, &across_,
                     &p);
         points[n] = point(p);
-        const double z = points[n].z - ground_;
+        const double z = depth(points[n]);
         deepest = std::max(deepest, z);
         center_depth += z / stations;
-        if(rate) {
+        if(rate && over_scm) {
+          /* the rut is the terrain's: forget it, as off the soil */
+          rate[n] = -q[n] / rut_time_;
+        } else if(rate) {
           rate[n] = std::max(0.0, z - q[n]) / plastic_time_;
           if(z < 0.0) {
             /* off the soil: the rut stays behind, and the shoe comes down
@@ -207,12 +301,12 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
             rate[n] += q[n] * std::expm1(z / contact_depth_) / rut_time_;
           }
         }
-        if(!facing || !(z > 0.0)) {
+        if(!facing || !(z > 0.0) || over_scm || !shoe_soil) {
           continue;
         }
-        pressure[n] = Pressure(z, q[n]);
-        strength[n] = (soil.cohesion * -std::expm1(-z / contact_depth_) +
-                       pressure[n] * tan_phi) *
+        pressure[n] = Pressure(*shoe_soil, z, q[n]);
+        strength[n] = (shoe_soil->cohesion * -std::expm1(-z / contact_depth_) +
+                       pressure[n] * std::tan(shoe_soil->friction_angle)) *
                       area;
       }
     }
@@ -229,16 +323,16 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
         deepest > 0.0 ? -std::expm1(-deepest / contact_depth_) : 0.0;
       const ksl_screw_t velocity =
         context_->GetBodyVelocity(load_indices_[s]);
-      const ksl_vec3_t o = point(center_);
       ksl_vec3_t v;
       ksl_cross_vv(&velocity.ang, &o, &v);
       ksl_axpy_vv(1.0, &velocity.lin, &v);
       rate[stations] = w * v.x - (1.0 - w) * jx / shear_time_;
       rate[stations + 1] = w * v.y - (1.0 - w) * jy / shear_time_;
     }
-    if(!(deepest > 0.0)) {
+    if(!(deepest > 0.0) || !shoe_soil) {
       continue;
     }
+    const SoilProperties& soil = *shoe_soil;
 
     /* the forces: normal at the stations, shear in proportion to their
     strength, earth pressure at the center; all oppose the displacement */
@@ -273,7 +367,7 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
       ksl_axpy_vv(-mobilized * strength[n], &dir, &f);
       add(f, points[n]);
     }
-    add(earth, point(center_));
+    add(earth, o);
     if(apply) {
       context_->AddBodyLoad(load_indices_[s], load);
     }

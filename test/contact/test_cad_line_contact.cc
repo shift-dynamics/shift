@@ -651,12 +651,13 @@ static ksl_SE3_t GroundAtZ(double at) {
 TEST(BentLine, RingOnAPlaneIsAQuarterCircle) {
   // examples/cad/ring_sector.step: a tube of radius 8 mm bent to 30 mm over a
   // quarter of a turn. The line bends with it: its stations are on the circle,
-  // at the depth, and their lengths add up to the arc
+  // at the depth, and their lengths add up to the arc. The line turns by a
+  // quarter of a turn: three slices of 30 degrees, three stations each
   const double radius = 0.03, tube = 0.008, depth = 1e-5;
   CamScene scene("ring_sector", "", true);
   const auto& pair = scene.Test(GroundAtZ(tube - depth));
   ASSERT_TRUE(pair.collision);
-  ASSERT_EQ(pair.manifold.size(), 3u);
+  ASSERT_EQ(pair.manifold.size(), 9u);
   double length = 0.0;
   for(const auto& c : pair.manifold) {
     EXPECT_GT(c.length, 0.0);

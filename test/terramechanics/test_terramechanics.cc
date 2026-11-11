@@ -302,25 +302,49 @@ TEST(BekkerWong, Standstill) {
 /* the soil under a track shoe */
 
 /* a shoe of 0.2 m by 0.5 m with 20 mm grousers, flat at depth z on LETE
-sand (z down, the ground at 0) */
-static std::string ShoeModel(double z) {
+sand (z down, the ground at 0). With a grid, the ranges x and y of a terrain
+of type scm of LETE sand at the ground, a box of the shoe for soil_contact,
+which lists the shoe if soil_contact; and track_soil has its own soil only if
+own_soil. */
+static std::string ShoeModel(double z, const std::string& grid = "",
+                             bool soil_contact = true, bool own_soil = true) {
   std::ostringstream s;
   s.precision(17);
   s << R"({"model_parameters": {"version": "0.2",
   "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
             "time": "seconds"},
   "gravity": [0, 0, 9.81], "solvers": [{"type": "rnca"}],
-  "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]},
+  "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]},)";
+  if(!grid.empty()) {
+    s << R"(
+ "frames": [{"name": "terrain", "T": [0, 0, 0]}],
+ "terrain": [{"type": "scm", "name": "sand", "parent": [["fixed"], "terrain"],
+   )" << grid << R"(, "spacing": 0.05,
+   "soil": {"name": "lete_sand", "unit_weight": 16000}}],)";
+  }
+  s << R"(
  "assemblies": [{"name": "a",
-  "bodies": [{"name": "shoe", "center_of_mass": [0, 0, 0],
+  "bodies": [{"name": "shoe", "center_of_mass": [0, 0, 0],)"
+    << (grid.empty() ? "" : R"(
+    "collision_geometry": [{"name": "plate", "type": "box", "contact": false,
+      "half_extents": [0.1, 0.25, 0.01], "pose": {"T": [0, 0, -0.01]}}],)")
+    << R"(
     "inertia": {"mass": 30, "Ixx": 1, "Iyy": 1, "Izz": 1, "Ixy": 0,
                 "Iyz": 0, "Izx": 0}}],
   "joints": [{"name": "j", "type": "float", "parent": [["fixed"], "origin"],
     "child": [["shoe"], "origin"],
     "initial_displacement": {"T": [0, 0, )"
     << z << R"(], "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}}],
-  "force_modules": [{"type": "track_soil", "name": "soil",
-    "soil": {"name": "lete_sand", "unit_weight": 16000},
+  "force_modules": [)"
+    << (!grid.empty() && soil_contact
+          ? R"({"type": "soil_contact", "name": "soil_contact",
+                "bodies": ["shoe"]}, )"
+          : "")
+    << R"({"type": "track_soil", "name": "soil",)"
+    << (own_soil ? R"(
+    "soil": {"name": "lete_sand", "unit_weight": 16000},)"
+                 : "")
+    << R"(
     "shoes": ["shoe"], "shoe_center": [0, 0, 0], "shoe_length": 0.2,
     "shoe_width": 0.5, "grouser_height": 0.02}]}]})";
   return s.str();
@@ -328,11 +352,11 @@ static std::string ShoeModel(double z) {
 
 class TrackSoilTest : public testing::Test {
 protected:
-  void Load(double z) {
+  void Load(double z, const std::string& grid = "", bool own_soil = true) {
     const std::string path = testing::TempDir() + "/track_shoe.json";
     {
       std::ofstream file(path);
-      file << ShoeModel(z);
+      file << ShoeModel(z, grid, true, own_soil);
     }
     context_.LoadJSON(path);
     std::remove(path.c_str());
@@ -475,6 +499,92 @@ TEST_F(TrackSoilTest, AShoeOnTheSoilKeepsItsRut) {
   Load(0.03);
   y_[0] = 0.05;
   EXPECT_EQ(Rates()[0], 0.0);
+}
+
+/* over the grid of a terrain of type scm, soil_contact carries the shoe:
+track_soil adds only the earth pressure on the leading grouser and the side,
+with the terrain's soil and the sinkage below its undisturbed surface, and
+its stations forget their plastic sinkage */
+TEST_F(TrackSoilTest, OnDeformableSoilOnlyTheEarthPressure) {
+  Load(0.03, R"("x": [-1, 1], "y": [-1, 1])", false);
+  const SoilProperties s =
+    ResolveSoil(R"({"name": "lete_sand", "unit_weight": 16000})");
+  const double kp = std::pow(std::tan(M_PI / 4 + s.friction_angle / 2), 2);
+  auto passive = [&](double h) {
+    return 0.5 * 16000.0 * h * h * kp + 2.0 * s.cohesion * h * std::sqrt(kp);
+  };
+  const double j = 0.02;
+  const double mobilized = 1.0 - std::exp(-j / s.shear_modulus);
+  y_[6] = -j;
+  std::vector<double> out = Outputs();
+  EXPECT_NEAR(out[0], 0.03, 1e-12);
+  EXPECT_EQ(out[1], 0.0); // no pressure of track_soil's own
+  const double traction = mobilized * 0.5 * passive(0.02);
+  EXPECT_NEAR(out[2], traction, 1e-9 * traction);
+  y_[6] = 0.0;
+  y_[7] = j;
+  out = Outputs();
+  const double side = mobilized * 0.2 * passive(0.03);
+  EXPECT_NEAR(out[3], -side, 1e-9 * side);
+  y_[0] = 0.05;
+  EXPECT_NEAR(Rates()[0], -0.05 / 0.5, 1e-12);
+}
+
+/* beyond the grid, the shoe takes all of track_soil's forces on the ground
+plane, with its own soil or, without one, the terrain's */
+TEST_F(TrackSoilTest, BeyondTheGridAllOfTheForces) {
+  for(bool own_soil : {true, false}) {
+    shift::core::Context context;
+    const std::string path = testing::TempDir() + "/track_shoe_beyond.json";
+    {
+      std::ofstream file(path);
+      file << ShoeModel(0.03, R"("x": [3, 4], "y": [-1, 1])", true, own_soil);
+    }
+    context.LoadJSON(path);
+    std::remove(path.c_str());
+    context.UpdateDHVA();
+    TrackSoil* soil = nullptr;
+    for(auto module : context.get_active_force_modules()) {
+      if(auto m = dynamic_cast<TrackSoil*>(module)) {
+        soil = m;
+      }
+    }
+    ASSERT_NE(soil, nullptr);
+    std::vector<double> y(context.get_q().begin(), context.get_q().end());
+    y.resize(y.size() + context.get_auxiliary_state_count(), 0.0);
+    soil->UpdateOutputs(0.0, y.data());
+    std::vector<double> out;
+    soil->AppendOutputs(out);
+    const SoilProperties s =
+    ResolveSoil(R"({"name": "lete_sand", "unit_weight": 16000})");
+    const double load =
+      (s.k_c / 0.2 + s.k_phi) * std::pow(0.03, s.n) * 0.2 * 0.5;
+    EXPECT_NEAR(out[1], load, 1e-9 * load) << own_soil;
+  }
+}
+
+TEST(TrackSoil, NeedsSoilContactOnDeformableSoil) {
+  const std::string path = testing::TempDir() + "/track_shoe_checks.json";
+  auto error = [&](const std::string& model) -> std::string {
+    {
+      std::ofstream file(path);
+      file << model;
+    }
+    shift::core::Context context;
+    std::string message;
+    try {
+      context.LoadJSON(path);
+    } catch(const std::exception& e) {
+      message = e.what();
+    }
+    std::remove(path.c_str());
+    return message;
+  };
+  EXPECT_NE(error(ShoeModel(0.03, R"("x": [-1, 1], "y": [-1, 1])", false))
+              .find("must be listed by a soil_contact force module"),
+            std::string::npos);
+  EXPECT_NE(error(ShoeModel(0.03, "", true, false)).find("needs its soil"),
+            std::string::npos);
 }
 
 /* ------------------------------------------------------------------------ */

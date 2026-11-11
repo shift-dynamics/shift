@@ -46,6 +46,9 @@ public:
   double friction = -1.0;          //!< Coulomb friction coefficient
   double contact_stiffness = 0.0;  //!< force per depth, 0 if not given
   double wear_coefficient = 0.0;   //!< K / H of Archard, 0 for no wear
+  /*! thickness of an elastic layer, as a brake lining, for the area contact
+   * of conformal faces; 0 if the body is solid */
+  double layer_thickness = 0.0;
 
 protected:
   virtual void DeclareParameters() override;
@@ -319,15 +322,26 @@ public:
     return registered_;
   }
 
-  /*! \brief the elastic law of a point of CAD contact
-   * (collision_geometry::ContactPair::point_laws), \f$f = k d^n\f$ for the
-   * modulus \f$e^*\f$ of the pair: of a line (\f$n = 1\f$) for a point carrying
-   * a length of a line of contact, Hertz (\f$n = 3/2\f$) otherwise; returns the
-   * stiffness linearized at depth, \f$\mathrm{d}f / \mathrm{d}d\f$, for
-   * \f$n = 3/2\f$ */
+  /*!
+  @brief the elastic law of a point of CAD contact
+  (collision_geometry::ContactPair::point_laws), \f$f = k d^n\f$ for the
+  modulus \f$e^*\f$ of the pair: of a line (\f$n = 1\f$) for a point carrying
+  a length of a line of contact, Hertz (\f$n = 3/2\f$) for a point, and an
+  elastic foundation (\f$n = 1\f$) for a point carrying an area \f$a\f$ of
+  the contact of conformal faces: a pressure \f$p = k_f d\f$, so \f$k = k_f
+  a\f$. The foundation modulus \f$k_f\f$ is that of the elastic layers of the
+  materials (foundation, see ContactMaterial::layer_thickness) if they have
+  any, else that of a rigid flat punch on a half space of modulus \f$e^*\f$,
+  \f$k_f = 2 e^* / (\pi r)\f$ with \f$r = \sqrt{a_p / \pi}\f$ the radius of the
+  area \f$a_p\f$ of the faces in contact (ContactPoint::patch_area): the force
+  of a uniform depth over it is then the punch's, \f$2 e^* r d\f$, and the
+  force goes to nothing with the area, as a face tilts onto its edge. Returns
+  the stiffness linearized at depth, \f$\mathrm{d}f / \mathrm{d}d\f$, for
+  \f$n = 3/2\f$
+  */
   static double PointLaw(const collision_geometry::ContactPoint& c,
                          double modulus, double depth, double& stiffness,
-                         double& exponent);
+                         double& exponent, double foundation = 0.0);
 
   /*! \brief resolve the materials of the collision geometry, combine the
    * properties of each pair of materials and exclude jointed bodies */
@@ -358,6 +372,9 @@ private:
     double damping = -1.0;     //!< c, negative to follow from restitution
     double damping_ratio = 0.0; //!< zeta of the restitution
     double friction = 0.0;
+    /*! pressure per depth of the elastic layers of the materials, for the
+     * area contact of conformal faces; 0 if neither has a layer */
+    double foundation = 0.0;
   };
   struct Geometry {
     int material = 0;

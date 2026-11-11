@@ -19,7 +19,7 @@ layout(std140, binding = 6) uniform Terrain {
                      // edge, z = maximum level
   vec4 scale;        // x, y spacing of the control points (m)
   ivec4 samples;     // control points along x, y; z = 1 for the cubic
-                     // B-spline, 0 for bilinear
+                     // B-spline, 0 for bilinear, 2 for Catmull-Rom
 } terrain;
 
 // the control points: z (down) of the terrain frame, read exactly
@@ -48,7 +48,7 @@ void Along(int k, int n, bool bicubic, out ivec2 index, out vec2 weight) {
 // bilinear surface, and for the bicubic the control point extrapolated
 // linearly by one more along each axis (the natural end condition)
 float ControlZ(int i, int j) {
-  bool bicubic = terrain.samples.z != 0;
+  bool bicubic = terrain.samples.z == 1;
   ivec2 ii, jj;
   vec2 wi, wj;
   Along(i, terrain.samples.x, bicubic, ii, wi);
@@ -76,6 +76,17 @@ void Basis(float a, out vec4 b, out vec4 db) {
             3.0 + 6.0 * a - 9.0 * a2, 3.0 * a2) / 6.0;
 }
 
+// Catmull-Rom basis b and its derivative db at a in [0, 1): the cubic that
+// passes through the control points, with the slopes of their neighbours
+void CatmullRomBasis(float a, out vec4 b, out vec4 db) {
+  float a2 = a * a;
+  float a3 = a2 * a;
+  b = vec4(-a + 2.0 * a2 - a3, 2.0 - 5.0 * a2 + 3.0 * a3,
+           a + 4.0 * a2 - 3.0 * a3, -a2 + a3) * 0.5;
+  db = vec4(-1.0 + 4.0 * a - 3.0 * a2, -10.0 * a + 9.0 * a2,
+            1.0 + 8.0 * a - 9.0 * a2, -2.0 * a + 3.0 * a2) * 0.5;
+}
+
 // z (down) of the surface at xy of the terrain frame and its slopes
 // dz/dx, dz/dy
 float LocalZ(vec2 xy, out vec2 slope) {
@@ -91,8 +102,13 @@ float LocalZ(vec2 xy, out vec2 slope) {
   }
   // the 4 x 4 control points around the cell
   vec4 bs, dbs, bt, dbt;
-  Basis(f.x, bs, dbs);
-  Basis(f.y, bt, dbt);
+  if(terrain.samples.z == 2) { // through the samples (deformable terrain)
+    CatmullRomBasis(f.x, bs, dbs);
+    CatmullRomBasis(f.y, bt, dbt);
+  } else {
+    Basis(f.x, bs, dbs);
+    Basis(f.y, bt, dbt);
+  }
   float z = 0.0;
   vec2 dz = vec2(0.0);
   for(int b = 0; b < 4; b++) {

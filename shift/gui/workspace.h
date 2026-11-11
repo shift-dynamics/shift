@@ -79,6 +79,8 @@ public:
     float elevation = 0.35f;   /*!< radians, see Camera */
     bool hide_floor = false;   /*!< hide the floor even if the model shows
                                 * it (a model with a terrain hides it) */
+    bool bilinear_terrain = false; /*!< View > Smooth deformable terrain
+                                      off */
     QString follow_body;       /*!< if given, the camera is placed at the
                                 * start and follows this body to time */
     bool follow_ground = false; /*!< follow the ground under the body, see
@@ -302,6 +304,8 @@ private:
   } playback_panel_;
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
+  /*! View > Smooth deformable terrain */
+  QAction* smooth_terrain_action_ = nullptr;
   QLabel* status_label_ = nullptr;
   QLabel* time_label_ = nullptr;
   QLabel* rate_label_ = nullptr;

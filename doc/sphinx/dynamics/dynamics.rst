@@ -85,20 +85,20 @@ Expanding the spatial equations of motion and translating to the body center of 
     mI & 0\\ 0 & \bar{I}_{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{\dot{v}}_f^{fc}\\
-    \dot{\underline{\omega}}_f^{fc}
+    \underline{\dot{v}}_{fc}^{f}\\
+    \dot{\underline{\omega}}_{fc}^{f}
   \end{Bmatrix} +
   \begin{bmatrix}
-    \tilde{\omega}_f^{fc} & 0 \\
-    \tilde{v}_f^{fc} & \tilde{\omega}_f^{fc}
+    \tilde{\omega}_{fc}^{f} & 0 \\
+    \tilde{v}_{fc}^{f} & \tilde{\omega}_{fc}^{f}
   \end{bmatrix}
   \begin{bmatrix}
     mI & 0\\
     0 & \bar{I}_{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{v}_f^{fc}\\
-    \underline{\omega}_f^{fc}
+    \underline{v}_{fc}^{f}\\
+    \underline{\omega}_{fc}^{f}
   \end{Bmatrix}
 
 
@@ -113,12 +113,12 @@ Expanding the spatial equations of motion and translating to the body center of 
     mI & 0\\ 0 & \bar{I}_{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{\dot{v}}_{fc} + \tilde{v}\underline{\omega} \\
-    \dot{\underline{\omega}}_{fc}
+    \underline{\dot{v}}_{fc}^{f} + \tilde{v}_{fc}^{f}\underline{\omega}_{fc}^{f} \\
+    \dot{\underline{\omega}}_{fc}^{f}
   \end{Bmatrix} +
   \begin{Bmatrix}
-    m\tilde{\omega}_f^{fc}\underline{v}_f^{fc}\\
-    \underline{\omega}_f^{fc}\bar{I}_{cc}\underline{\omega}_f^{fc}
+    m\tilde{\omega}_{fc}^{f}\underline{v}_{fc}^{f}\\
+    \tilde{\omega}_{fc}^{f}\bar{I}_{cc}\underline{\omega}_{fc}^{f}
   \end{Bmatrix}
 
 
@@ -141,7 +141,7 @@ Which yields the Newton-Euler equations of motion:
   \end{Bmatrix}+
   \begin{Bmatrix}
   0\\
-  \underline{\omega}_f^{fc}\bar{I}_{cc}\underline{\omega}_f^{fc}
+  \tilde{\omega}_{fc}^{f}\bar{I}_{cc}\underline{\omega}_{fc}^{f}
   \end{Bmatrix}
 
 

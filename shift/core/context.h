@@ -50,6 +50,10 @@ namespace terrain {
 class Base;
 }
 
+namespace gpu {
+class Device;
+}
+
 namespace constraint {
 class Chord;
 }
@@ -104,9 +108,19 @@ public:
     return active_lights_;
   }
 
+  /*! \brief the GPU, made on the first call and shared by the objects of
+   * the context that compute on it (e.g. terrain::Sph), which keep it while
+   * they use it; throws if there is none, or shift was built without Vulkan
+   * (see gpu::Device) */
+  std::shared_ptr<gpu::Device> GetGpuDevice();
+
   /*! \brief the active terrains, see terrain::Base::Query */
   const std::vector<terrain::Base*>& get_active_terrain() const {
     return active_terrain_;
+  }
+
+  const std::vector<logger::Base*>& get_active_loggers() const {
+    return active_loggers_;
   }
 
   /*! \brief collision geometry of the fixed body, given at the top level of
@@ -152,6 +166,10 @@ public:
   const std::vector<shift::core::force_module::Base*>&
   get_active_force_modules() const {
     return active_force_modules_;
+  }
+
+  const std::vector<shift::core::sensor::Base*>& get_active_sensors() const {
+    return active_sensors_;
   }
 
   const std::vector<int>& get_pcl() const {
@@ -327,6 +345,12 @@ public:
     return body_loads_;
   }
 
+  /*! \brief the external spatial force on a body group (see
+   * GetBodyLoadIndex) from the force modules, in the fixed frame, referred to
+   * its origin, summed in the last evaluation of the forces; zero for the
+   * fixed body (index -1) */
+  ksl_coscrew_t GetBodyLoad(int load_index) const;
+
   inline shift::core::Jacobian& get_jacobian() {
     return jacobian_;
   }
@@ -364,8 +388,38 @@ public:
   }
 
   /*! \brief the path of a file named by the model, empty if it is not found
-   * (see utility::FindFile) */
+   * (see utility::FindFile); recorded with RecordFile. A name given to
+   * set_file_map is found where the map puts it. */
   std::string FindFile(const std::string& name);
+
+  /*! \brief note that the model read the file at path, such as a texture
+   * that a mesh file names, so that a logger can keep a copy of every file
+   * the model needs (get_files_read) */
+  void RecordFile(const std::string& path);
+
+  /*! \brief the files the model has read, absolute and without repeats, in
+   * the order first read */
+  const std::vector<std::string>& get_files_read() const {
+    return files_read_;
+  }
+
+  /*! \brief the names by which the model asked FindFile for each file
+   * read, as name -> its path in get_files_read */
+  const std::map<std::string, std::string>& get_file_names() const {
+    return file_names_;
+  }
+
+  /*! \brief the paths of files by the names the model gives them, which
+   * FindFile takes before looking for them, such as those of a model taken
+   * from a log (set before LoadJSON) */
+  void set_file_map(std::map<std::string, std::string> file_map) {
+    file_map_ = std::move(file_map);
+  }
+
+  /*! \brief the model as read from its file (YAML as JSON) */
+  const Json::Value& get_model_json() const {
+    return root_;
+  }
 
   inline const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
     return &active_joints_;
@@ -553,7 +607,8 @@ public:
   /*! \brief called by the integrators after each accepted step, at the
    * accepted state y (the state of the last evaluation of the equations of
    * motion of the step): history that the forces depend on changes here
-   * only, e.g. the contact normals the penetration depths stay near */
+   * only, e.g. the contact normals the penetration depths stay near and
+   * the deformation of the terrain (terrain::Base::AcceptStep) */
   void AcceptStep(const std::vector<double>& y);
 
   /*! \brief pairs of collision geometry found in contact by the most recent
@@ -867,6 +922,9 @@ private:
 
   std::string filename_;
   Json::Value root_;
+  std::vector<std::string> files_read_;
+  std::map<std::string, std::string> file_map_;
+  std::map<std::string, std::string> file_names_;
   std::string indentation_ = "  ";
 
   /*! \brief Parameters used to configure a simulation */
@@ -994,6 +1052,7 @@ private:
   std::vector<light::Base*> active_lights_ = {};
   std::vector<sensor::Base*> active_sensors_ = {};
   std::vector<terrain::Base*> active_terrain_ = {};
+  std::shared_ptr<gpu::Device> gpu_device_;
 
   std::vector<integrator::Base*> active_integrators_ = {};
   std::vector<logger::Base*> active_loggers_ = {};

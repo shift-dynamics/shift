@@ -62,6 +62,14 @@ struct SceneTerrain {
   float x_scale = 1.f; /*!< spacing of the control points (m) */
   float y_scale = 1.f;
   bool bicubic = true;
+  /*! a deformable terrain (shift::core::terrain::Scm): the control points
+   * are the levels of its nodes, which the physics interpolates bilinearly;
+   * the viewport may draw them smoothly (Viewport::set_smooth_terrain) */
+  bool deformable = false;
+  /*! of a deformable terrain: its mesh (mesh_index) has this many
+   * triangle pairs along each side of a cell, so that the ray tracer can
+   * draw the smooth surface (Viewport::ShapeRtTerrain) */
+  int mesh_subdivisions = 1;
   QMatrix4x4 pose; /*!< terrain frame to world */
 };
 
@@ -150,6 +158,18 @@ private:
 struct Poses {
   double time = 0.0;
   std::vector<QMatrix4x4> bodies;
+};
+
+/*! \brief a rectangle of control points of a terrain (SceneTerrain) that
+ * changed, a deformable terrain (shift::core::terrain::Scm) at the time
+ * shown */
+struct TerrainUpdate {
+  int terrain = 0; /*!< in Scene::terrains */
+  int x = 0;       /*!< first control point along x */
+  int y = 0;       /*!< first control point along y */
+  int width = 0;
+  int height = 0;
+  std::vector<float> z; /*!< width * height, x fastest */
 };
 
 /*! \brief world space bounding box of the scene meshes in the given poses */

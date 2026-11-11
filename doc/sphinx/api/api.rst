@@ -171,6 +171,8 @@ Force modules
 
 .. doxygenclass:: shift::core::force_module::Track
 
+.. doxygenclass:: shift::core::force_module::SoilContact
+
 .. doxygenclass:: shift::core::force_module::TrackSoil
 
 .. doxygenclass:: shift::core::force_module::Soil
@@ -250,6 +252,8 @@ Terrain
 .. doxygenclass:: shift::core::terrain::Base
 
 .. doxygenclass:: shift::core::terrain::Basic
+
+.. doxygenclass:: shift::core::terrain::Scm
 
 Lights
 ------

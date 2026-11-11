@@ -284,35 +284,84 @@ TEST_F(CadContact, NothingTouchesAtTheSeats) {
 }
 
 TEST_F(CadContact, BushingInSeatIsALine) {
-  // a bushing moved down its seat by the clearance and depth: a line across
-  // the width of the sprocket at the bottom of the seat
-  for(double depth : {0.3e-3, 0.05e-3}) {
-    SCOPED_TRACE(depth);
-    Track t;
-    t.links = 1;
-    t.drop = kSeatRadius - kBushingRadius + depth;
-    shift::core::Context context;
-    Load(context, "cad_seat", t);
-    context.DetectContacts();
-    shift::test::RecordContacts(context);
-    ASSERT_EQ(context.get_contacts().size(), 1u);
-    const auto& pair = *context.get_contacts()[0];
-    ASSERT_TRUE(pair.point_laws);
-    const bool sprocket_is_a = pair.a->get_name() == "sprocket";
-    double length = 0.0;
-    for(const auto& c : pair.manifold) {
-      EXPECT_GT(c.length, 0.0);
-      length += c.length;
-      EXPECT_NEAR(c.depth, depth, 1e-9);
-      const ksl_vec3_t& on_sprocket = sprocket_is_a ? c.point_a : c.point_b;
-      EXPECT_NEAR(on_sprocket.x, kPitchRadius - kSeatRadius, 1e-9);
-      EXPECT_NEAR(on_sprocket.y, 0.0, 1e-9);
-      EXPECT_LE(std::fabs(on_sprocket.z), 0.5 * kSprocketWidth + 1e-9);
-      // the sprocket pushes the bushing up (+x)
-      EXPECT_NEAR(c.normal.x, sprocket_is_a ? 1.0 : -1.0, 1e-9);
-    }
-    EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+  // a bushing moved down its seat by the clearance and 20 um: a line across
+  // the width of the sprocket at the bottom of the seat. Their radii differ by
+  // the clearance, 1 mm in 30: nearly conformal, but the overlap wraps only
+  // 11 degrees round the seat, and the contact is a line
+  const double depth = 20e-6;
+  Track t;
+  t.links = 1;
+  t.drop = kSeatRadius - kBushingRadius + depth;
+  shift::core::Context context;
+  Load(context, "cad_seat", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  ASSERT_TRUE(pair.point_laws);
+  const bool sprocket_is_a = pair.a->get_name() == "sprocket";
+  double length = 0.0;
+  for(const auto& c : pair.manifold) {
+    EXPECT_GT(c.length, 0.0);
+    EXPECT_EQ(c.weight, 1.0);
+    length += c.length;
+    EXPECT_NEAR(c.depth, depth, 1e-9);
+    const ksl_vec3_t& on_sprocket = sprocket_is_a ? c.point_a : c.point_b;
+    EXPECT_NEAR(on_sprocket.x, kPitchRadius - kSeatRadius, 1e-9);
+    EXPECT_NEAR(on_sprocket.y, 0.0, 1e-9);
+    EXPECT_LE(std::fabs(on_sprocket.z), 0.5 * kSprocketWidth + 1e-9);
+    // the sprocket pushes the bushing up (+x)
+    EXPECT_NEAR(c.normal.x, sprocket_is_a ? 1.0 : -1.0, 1e-9);
   }
+  EXPECT_NEAR(length, kSprocketWidth, 1e-9);
+}
+
+TEST_F(CadContact, BushingDeepInSeatWrapsRoundIt) {
+  // 0.3 mm past the clearance c of 1 mm, the axes e = c + d apart, the overlap
+  // wraps round the seat (radius R) to where the bushing (r) crosses it, cos t
+  // = (R^2 + e^2 - r^2) / (2 R e), 38.9 degrees either side: an area of contact
+  // over R 2 t of the seat's arc, each point on the seat or the bushing, its
+  // depth the distance to its other end
+  const double depth = 0.3e-3, clearance = kSeatRadius - kBushingRadius;
+  const double e = clearance + depth;
+  const double wrap = std::acos((kSeatRadius * kSeatRadius + e * e -
+                                 kBushingRadius * kBushingRadius) /
+                                (2.0 * kSeatRadius * e));
+  Track t;
+  t.links = 1;
+  t.drop = clearance + depth;
+  shift::core::Context context;
+  Load(context, "cad_seat_deep", t);
+  context.DetectContacts();
+  shift::test::RecordContacts(context);
+  ASSERT_EQ(context.get_contacts().size(), 1u);
+  const auto& pair = *context.get_contacts()[0];
+  const bool sprocket_is_a = pair.a->get_name() == "sprocket";
+  ASSERT_GE(pair.manifold.size(), 16u);
+  // the axes of the seat and of the bushing, moved down (-x) by c + d
+  const double seat_x = kPitchRadius, bushing_x = kPitchRadius - clearance - depth;
+  double area = 0.0, widest = 0.0;
+  for(const auto& c : pair.manifold) {
+    ASSERT_GT(c.area, 0.0);
+    EXPECT_EQ(c.weight, 1.0);
+    const ksl_vec3_t& on_sprocket = sprocket_is_a ? c.point_a : c.point_b;
+    const ksl_vec3_t& on_bushing = sprocket_is_a ? c.point_b : c.point_a;
+    // the end on the face the area is integrated over lies on it
+    EXPECT_TRUE(std::fabs(std::hypot(on_sprocket.x - seat_x, on_sprocket.y) - kSeatRadius) < 1e-9 ||
+                std::fabs(std::hypot(on_bushing.x - bushing_x, on_bushing.y) - kBushingRadius) < 1e-9);
+    const double apart = std::hypot(on_sprocket.x - on_bushing.x,
+                                    on_sprocket.y - on_bushing.y);
+    EXPECT_NEAR(c.depth, apart, 1e-12);
+    EXPECT_LE(c.depth, depth + 1e-12);
+    // the angle round the seat's axis, from the bottom
+    widest = std::max(widest, std::fabs(std::atan2(on_sprocket.y, seat_x - on_sprocket.x)));
+    area += c.area;
+  }
+  EXPECT_LE(widest, wrap);
+  EXPECT_GT(widest, 0.9 * wrap);
+  EXPECT_NEAR(pair.depth, depth, 1e-9);
+  EXPECT_NEAR(area, kSeatRadius * 2.0 * wrap * kSprocketWidth,
+              5e-3 * kSeatRadius * 2.0 * wrap * kSprocketWidth);
 }
 
 TEST_F(CadContact, LineOverASeamHasNoPointsAtItsEnds) {
@@ -426,7 +475,7 @@ TEST_F(CadContact, LinksSettleOnTheSprocket) {
   t.links = 3;
   t.first_angle = -1.5 * kLinkAngle;
   t.youngs_modulus = 2e9;
-  t.time_span = 0.2;
+  t.time_span = 0.25; // the bushings settle in their seats by then
   shift::core::Context context;
   Load(context, "cad_settle", t);
   context.Simulate();
@@ -1168,7 +1217,7 @@ TEST_F(CadContact, PegInTheWallIsPushedOut) {
   // the peg upright, its shaft 2 mm into the wall of the hole (the shaft's
   // axis 2.5 mm off the hole's), the underside of its head 1 mm over the
   // plate: deeper than the pair's max_depth, 1.5 mm, but the surfaces overlap
-  // along the wall, and its line of contact pushes the peg out
+  // along the wall, and their contact pushes the peg out
   const double t[3] = {0.0, 0.0025, -0.001};
   shift::core::Context start;
   const std::string at_start = PegModel("peg_in_wall", t, 0.0, 1e-6);
@@ -1181,17 +1230,22 @@ TEST_F(CadContact, PegInTheWallIsPushedOut) {
   // the pair's max_depth, the lesser of the two parts'
   ASSERT_LT(std::min(pair->a->get_max_depth(), pair->b->get_max_depth()),
             0.002);
-  double length = 0.0;
+  // the shaft's surface wraps round the wall's as deep as that, the radii
+  // near: an area of contact along the wall, as deep as the overlap (less
+  // what the peg moves in 1 us) at its middle, its load (the integral of the
+  // depth) along the normal from the plate into the shaft, -y
+  EXPECT_NEAR(pair->depth, 0.002, 1e-6);
+  const double sense = pair->a->get_name() == "plate" ? 1.0 : -1.0;
+  ksl_vec3_t load = {{0.0, 0.0, 0.0}};
   for(const auto& c : pair->manifold) {
-    // along the wall, at the depth of the overlap (less what the peg moves in
-    // 1 us), the normal from the plate into the shaft, -y
-    EXPECT_NEAR(c.depth, 0.002, 1e-6);
-    const double sense = pair->a->get_name() == "plate" ? 1.0 : -1.0;
-    EXPECT_NEAR(sense * c.normal.y, -1.0, 1e-9);
-    length += c.length;
+    ASSERT_GT(c.area, 0.0);
+    for(int k = 0; k < 3; k++) {
+      load.at[k] += sense * c.weight * c.area * c.depth * c.normal.at[k];
+    }
   }
-  // a line along the wall, away from its ends by the depth
-  EXPECT_GT(length, 0.75 * 0.02);
+  const double size = ksl_vec3_l2norm(&load);
+  ASSERT_GT(size, 0.0);
+  EXPECT_NEAR(load.y / size, -1.0, 1e-6);
 
   const std::string path = PegModel("peg_in_wall", t, 0.0, 0.005);
   shift::core::Context context;

@@ -21,6 +21,16 @@ section placed at each control point of the path, across the path's normal
 there. A torus standing in the slot rests on both flanks, and touches a wall
 when it turns or tips.
 
+examples/cad/tube.step: a tube of 20 mm radius swept along a cubic B-spline
+path that descends 120 mm (+z) over 800 mm along x and bends 60 mm across (+y)
+in an S between x = 200 and 600 mm, its ends closed by planes square to the
+path. Its section is an exact circle in four quarters, each a rational
+quadratic arc, so the side of the tube is four faces, rational B-spline
+surfaces centered on its top, bottom and sides, whose control points are those
+of the quarter placed at each control point of the path, square to the S there.
+The tube is straight to x = 150 mm. The hole of the torus, 30 mm in
+radius, passes over the tube with 10 mm of clearance.
+
 In millimeters.
 
 Usage: make_channel_step.py [output directory] (default examples/cad)
@@ -53,6 +63,20 @@ PATH = [(x, OFFSET * min(max((x - 200.0) / 400.0, 0.0), 1.0) ** 2 *
          (3.0 - 2.0 * min(max((x - 200.0) / 400.0, 0.0), 1.0)))
         for x in (0.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0,
                   450.0, 500.0, 550.0, 600.0, 650.0, 700.0, 750.0, 800.0)]
+
+
+# the tube: its radius, and its path (x, y, z): an S-bend of TUBE_OFFSET across
+# along a smoothstep from x = 200 to 600 mm, descending TUBE_DROP over its
+# length
+TUBE_RADIUS = 20.0
+TUBE_OFFSET = 60.0
+TUBE_DROP = 120.0
+TUBE_PATH = [(x, TUBE_OFFSET * min(max((x - 200.0) / 400.0, 0.0), 1.0) ** 2 *
+              (3.0 - 2.0 * min(max((x - 200.0) / 400.0, 0.0), 1.0)),
+              TUBE_DROP * x / 800.0)
+             for x in (0.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0,
+                       400.0, 450.0, 500.0, 550.0, 600.0, 650.0, 700.0, 750.0,
+                       800.0)]
 
 
 def uniform_knots(count, degree=3):
@@ -116,20 +140,19 @@ def curve_point(points, knots, t):
                      for i, p in enumerate(points)) for k in range(3))
 
 
-def path_radius():
-    """the least radius of curvature of the path, sampled"""
-    points = [(x, y, 0.0) for x, y in PATH]
+def path_radius(points):
+    """the least radius of curvature of a cubic B-spline path, sampled"""
     knots = uniform_knots(len(points))
     least = math.inf
     h = 1e-4
     for s in range(1, 1000):
         t = s / 1000.0
         a, b, c = (curve_point(points, knots, t + d) for d in (-h, 0.0, h))
-        d1 = [(c[k] - a[k]) / (2 * h) for k in range(2)]
-        d2 = [(c[k] - 2 * b[k] + a[k]) / (h * h) for k in range(2)]
-        cross = abs(d1[0] * d2[1] - d1[1] * d2[0])
-        if cross > 0.0:
-            least = min(least, math.hypot(*d1) ** 3 / cross)
+        d1 = [(c[k] - a[k]) / (2 * h) for k in range(3)]
+        d2 = [(c[k] - 2 * b[k] + a[k]) / (h * h) for k in range(3)]
+        bend = math.hypot(*cross(d1, d2))
+        if bend > 0.0:
+            least = min(least, math.hypot(*d1) ** 3 / bend)
     return least
 
 
@@ -351,6 +374,103 @@ def channel(step, name):
     return shell.solid(name)
 
 
+def unit(a):
+    n = math.hypot(*a)
+    return tuple(x / n for x in a)
+
+
+def tube_frames():
+    """at each control point of the tube's path: the point, the unit tangent
+    t of the S that the control points follow (so that the sections on the
+    straight ends, where its slope across is zero, are square to them), and
+    the unit side and top across it, side level and (t, side, top)
+    right-handed, top up (-z) as far as t allows"""
+    out = []
+    for point in TUBE_PATH:
+        s = min(max((point[0] - 200.0) / 400.0, 0.0), 1.0)
+        t = unit((1.0, TUBE_OFFSET * 6.0 * s * (1.0 - s) / 400.0,
+                  TUBE_DROP / 800.0))
+        side = unit(cross((0.0, 0.0, -1.0), t))
+        out.append((point, t, side, cross(t, side)))
+    return out
+
+
+def tube(step, name):
+    """the side in four faces, quarter k from the angle 45 - k 90 degrees to
+    45 - (k + 1) 90 degrees about the path, measured from side towards top, so
+    that the top, the sides and the bottom are each in the middle of a face:
+    the angle decreases along v so that du x dv is outward"""
+    shell = Shell(step)
+    frames = tube_frames()
+    last = len(frames) - 1
+    u_knots = uniform_knots(len(frames))
+    weight = math.sqrt(0.5)
+
+    def at(i, angle, radius=TUBE_RADIUS):
+        point, _, side, top = frames[i]
+        return tuple(point[k] + radius * (math.cos(angle) * side[k] +
+                                          math.sin(angle) * top[k])
+                     for k in range(3))
+
+    def quarter(i, k):
+        """the three control points of quarter k across control point i"""
+        a = 0.25 * math.pi - 0.5 * math.pi * k
+        return [at(i, a), at(i, a - 0.25 * math.pi, TUBE_RADIUS / weight),
+                at(i, a - 0.5 * math.pi)]
+
+    # the outward normal, du x dv, at the middle of quarter 0
+    rows = [quarter(i, 0) for i in range(len(frames))]
+    du = [rows[9][1][k] - rows[7][1][k] for k in range(3)]
+    dv = [rows[8][2][k] - rows[8][0][k] for k in range(3)]
+    middle = at(8, 0.0)
+    outward = [middle[k] - frames[8][0][k] for k in range(3)]
+    assert sum(a * b for a, b in zip(cross(du, dv), outward)) > 0.0
+
+    corner = {(i, k): shell.vertex(at(i, 0.25 * math.pi - 0.5 * math.pi * k))
+              for i in (0, last) for k in range(4)}
+    seams = [shell.edge(corner[(0, k)], corner[(last, k)], spline_curve(
+        step, [at(i, 0.25 * math.pi - 0.5 * math.pi * k)
+               for i in range(len(frames))],
+        u_knots)) for k in range(4)]
+
+    def arc(i, k):
+        points = quarter(i, k)
+        curve = step.add(
+            "(BOUNDED_CURVE()B_SPLINE_CURVE(2,(%s),.UNSPECIFIED.,.F.,.F.)"
+            "B_SPLINE_CURVE_WITH_KNOTS((3,3),(0.,1.),.UNSPECIFIED.)CURVE()"
+            "GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_CURVE((1.0,%r,"
+            "1.0))REPRESENTATION_ITEM(''))" % (
+                ','.join('#%d' % step.point(p) for p in points), weight))
+        return shell.edge(corner[(i, k)], corner[(i, (k + 1) % 4)], curve)
+
+    starts = [arc(0, k) for k in range(4)]
+    ends = [arc(last, k) for k in range(4)]
+    weights = ','.join('(1.0,%r,1.0)' % weight for _ in frames)
+    distinct = sorted(set(u_knots))
+    for k in range(4):
+        rows = ','.join('(%s)' % ','.join('#%d' % step.point(p)
+                                          for p in quarter(i, k))
+                        for i in range(len(frames)))
+        surface = step.add(
+            "(BOUNDED_SURFACE()B_SPLINE_SURFACE(3,2,(%s),.UNSPECIFIED.,.F.,"
+            ".F.,.F.)B_SPLINE_SURFACE_WITH_KNOTS((%s),(3,3),(%s),(0.,1.),"
+            ".UNSPECIFIED.)GEOMETRIC_REPRESENTATION_ITEM()"
+            "RATIONAL_B_SPLINE_SURFACE((%s))REPRESENTATION_ITEM('')"
+            "SURFACE())" % (
+                rows, ','.join(str(u_knots.count(x)) for x in distinct),
+                ','.join(step.num(x) for x in distinct), weights))
+        shell.face(surface, [(seams[k], True), (ends[k], True),
+                             (seams[(k + 1) % 4], False), (starts[k], False)])
+    # the ends, counterclockwise seen from outside: the angle decreases about
+    # -t at the start, and increases about t at the end
+    point, t, side, _ = frames[0]
+    shell.plane(point, tuple(-x for x in t), side,
+                [(e, True) for e in starts])
+    point, t, side, _ = frames[last]
+    shell.plane(point, t, side, [(e, False) for e in reversed(ends)])
+    return shell.solid(name)
+
+
 def main():
     directory = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), '..', 'examples', 'cad')
@@ -362,7 +482,15 @@ def main():
           'a block with a slot along a cubic B-spline path, the slot one '
           'B-spline face; its least radius of curvature is %.0f mm. In '
           'millimeters. Written by scripts/make_channel_step.py' %
-          path_radius(), [('channel', channel, (0.55, 0.57, 0.60))])
+          path_radius([(x, y, 0.0) for x, y in PATH]),
+          [('channel', channel, (0.55, 0.57, 0.60))])
+    write(os.path.join(directory, 'tube.step'), 'tube',
+          'a tube of %g mm radius swept along a cubic B-spline path, its side '
+          'four rational B-spline faces; the least radius of curvature of '
+          'the path is %.0f mm. In millimeters. Written by '
+          'scripts/make_channel_step.py' % (TUBE_RADIUS,
+                                            path_radius(TUBE_PATH)),
+          [('tube', tube, (0.55, 0.57, 0.60))])
 
 
 if __name__ == '__main__':
