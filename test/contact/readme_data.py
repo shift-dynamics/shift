@@ -195,7 +195,7 @@ helical line over three turns, too slow to simulate in a test.""", [
  ("CadHard.ThinShellPushesBackOnTheSideTouched", None, "A dome 1 mm thick, less than the 3 mm that the shell's contact reaches into it: a ball on its top is pushed up, one under it pushed down, each by the face it touches."),
  ("CadHard.DeepIntoAThinShellStillPushesBackOut", None, "The ball pushed into the top of the shell by more than half its thickness, and through it: still pushed back out of the top it came through, as deep as it went."),
  ("CadHard.BallBouncesOffAThinShell", None, "Dropped on the crown at 3 m/s from 1 mm above it, the ball bounces off without passing through, and gains no energy."),
- ("CadHard.NutRestsOnTheThreadAllRound", None, "A nut 2 µm down onto a bolt with a square thread of 4 mm lead: its flank lies on the bolt's along three turns of a helix. The flanks are of the same shape, so they touch over an area: points over the flanks all round the axis, so that the bolt holds the nut up without tipping it."),
+ ("CadHard.NutRestsOnTheThreadAllRound", None, "A nut of 14 mm radius 2 µm down onto a bolt with a square thread of 4 mm lead over six turns on a shank of 8 mm radius: its flank lies on the bolt's along three turns of a helix. The flanks are of the same shape, so they touch over an area: points over the flanks all round the axis, so that the bolt holds the nut up without tipping it."),
  ("CadHard.BallInAHelicalGrooveRestsOnBothFlanks", None, "A groove swept along a helix 150 mm in radius: the ball in it rests on both flanks, two points of one pair of faces, either side of the groove."),
  ("CadHard.BallRollsDownAHelicalGroove", None, "Released at rest in the groove, the ball rolls down the helix on both flanks: it follows the groove round, stays in it, and gains no energy."),
 ]),
@@ -211,7 +211,8 @@ helical line over three turns, too slow to simulate in a test.""", [
 ("A track on its sprocket", """The sprocket, links and idlers of `examples/cad`. These are the parts the contact was
 written for: cylinders in seats, grousers on the ground, seams between faces.""", [
  ("CadContact.NothingTouchesAtTheSeats", None, 'Bushings at the middle of their seats have 1 mm of clearance all around: no contact.'),
- ("CadContact.BushingInSeatIsALine", None, "A bushing in a seat: a line between parallel cylinders, one inside the other."),
+ ("CadContact.BushingInSeatIsALine", None, "A bushing in a seat 1 mm larger, 20 µm past the clearance: nearly conformal, but the overlap wraps only 11 degrees round the seat, and the contact is a line between the parallel cylinders."),
+ ("CadContact.BushingDeepInSeatWrapsRoundIt", None, "The bushing 0.3 mm past the clearance: the overlap wraps 38.9 degrees either side, to where the bushing crosses the seat, and the contact is an area over that arc of the seat, its area that of the arc to 0.5%."),
  ("CadContact.LineOverASeamHasNoPointsAtItsEnds", None, "A line that crosses a seam between two faces stays one line, with no extra points at its ends."),
  ("CadContact.GrousersOnTheGround", None, "A link upside down, its grousers' tips 0.2 mm into the ground: twelve points, the corners of the tips of the three grousers."),
  ("CadContact.ToothTipOnTheGround", None, "The tip of a tooth on the ground: a line at the given depth."),
