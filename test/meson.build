@@ -7,6 +7,7 @@ test_sources = [
   'main.cc',
   'test_bitfield.cc',
   'test_examples.cc',
+  'test_frame_orientation.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
   'contact/contact_record.cc',
@@ -79,7 +80,8 @@ if not is_disabler(shift_gui_dep)
   test_sources += ['test_instance_bvh.cc', 'test_video_encoder.cc',
                    'test_embedded_texture.cc', 'test_camera.cc',
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
-                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc']
+                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
+                   'test_workspace_tree.cc']
   test_deps += [shift_gui_dep]
 endif
 

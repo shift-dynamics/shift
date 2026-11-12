@@ -353,11 +353,34 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   }
 }
 
+void shift::gui::Simulation::Reload(const Json::Value& model) {
+  if(model_path_.empty()) {
+    throw shift::core::Exception("no model has been loaded");
+  }
+  // a copy: LoadModel sets it
+  const std::string path = model_path_;
+  JoinWorker();
+  scm_views_.clear();
+  context_.reset();
+  bodies_.clear();
+  scene_ = Scene();
+  ClearResults();
+  // a log's files stay where they were taken out to
+  LoadModel(path, file_map_, &model);
+}
+
 void shift::gui::Simulation::LoadModel(
-  const std::string& path, std::map<std::string, std::string> file_map) {
+  const std::string& path, std::map<std::string, std::string> file_map,
+  const Json::Value* model) {
+  model_path_ = path;
+  file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
-  context->LoadJSON(path);
+  if(model) {
+    context->LoadJSON(*model, path);
+  } else {
+    context->LoadJSON(path);
+  }
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by

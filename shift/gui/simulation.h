@@ -4,6 +4,8 @@
 #include "shift/core/topology.h"
 #include "shift/gui/scene.h"
 
+#include <json/json.h>
+
 #include <condition_variable>
 #include <map>
 #include <cstdint>
@@ -65,6 +67,12 @@ public:
    * so that a Run from the log writes no files, and the rows of the log
    * become the knot points, as if they had just been computed. */
   void Load(const std::string& filename);
+
+  /*! \brief load the model again from model, its JSON as edited (see
+   * Context::get_model_json), discarding the results; its files are found
+   * as they were for the model loaded last. Throws on failure, leaving no
+   * model loaded. */
+  void Reload(const Json::Value& model);
 
   bool is_loaded() const {
     return context_ != nullptr;
@@ -187,9 +195,11 @@ private:
 
   struct StopRequested {};
 
-  /*! \brief load the model file path, with Context::set_file_map */
+  /*! \brief load the model file path, with Context::set_file_map; from
+   * model if it is given, as if read from path */
   void LoadModel(const std::string& path,
-                 std::map<std::string, std::string> file_map);
+                 std::map<std::string, std::string> file_map,
+                 const Json::Value* model = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
   void RemoveLogDirectory();
@@ -203,6 +213,10 @@ private:
 
   std::string filename_;
   std::string log_directory_; /*!< files taken out of a log */
+  /*! the path and file map of the model loaded last, even if it failed to
+   * load, see Context::set_file_map */
+  std::string model_path_;
+  std::map<std::string, std::string> file_map_;
   std::unique_ptr<shift::core::Context> context_;
   std::vector<shift::core::body::Base*> bodies_;
   Scene scene_;

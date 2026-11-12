@@ -321,7 +321,15 @@ void shift::core::parameter::Value::ReadJSON(Json::Value& object) {
       break;
     }
     case KSL_MAT3X3: {
-      ReadJSON_KSL_MAT3X3(object);
+      // a rotation may be given in another form than a matrix (the keys
+      // "quaternion", "q", "Q" and "euler_angles" of a frame)
+      if(quaternion_maps_to_mat3x3_) {
+        ReadJSON_KSL_QUATERNION(object);
+      } else if(euler_angles_maps_to_mat3x3_) {
+        ReadJSON_EULERANGLES(object);
+      } else {
+        ReadJSON_KSL_MAT3X3(object);
+      }
       break;
     }
     case KSL_MAT4X4: {
@@ -833,79 +841,53 @@ void shift::core::parameter::Value::ReadJSON_KSL_MAT4X4(
 
 void shift::core::parameter::Value::ReadJSON_EULERANGLES(
   Json::Value& json_value) {
-  if(!json_value.isObject()) {
-    throw shift::core::Exception(
-      "JSON Parsing error: required key has incorrectly formatted "
-      "data; expected KSL_EULERANGLES");
-    return;
+  const std::string expected =
+    "JSON parsing error: expected Euler angles as {\"angles\": [a0, a1, "
+    "a2], \"axes\": [\"z\", \"y\", \"x\"]}, the rotation R = "
+    "R_axes[0](a0) R_axes[1](a1) R_axes[2](a2); \"axes\" is one of the "
+    "twelve sequences of x, y and z (or 0, 1 and 2) and defaults to x, y, z";
+  if(!json_value.isObject() || !json_value.isMember("angles") ||
+     !json_value["angles"].isArray() || json_value["angles"].size() != 3) {
+    throw shift::core::Exception(expected);
   }
-
-  ksl_axis_enum_t sequence = KSL_AXIS_XYZ;
   ksl_vec3_t angles;
-  if(json_value.isMember("angles") && json_value["angles"].size() == 3) {
-    for(int i = 0; i < 3; i++) {
-      if(!json_value["angles"][i].isDouble()) {
-        throw shift::core::Exception(
-          "JSON Parsing error: angles object is incorrectly formatted");
-      }
-      angles.at[i] = json_value["angles"][i].asDouble();
+  for(int i = 0; i < 3; i++) {
+    if(!json_value["angles"][i].isDouble()) {
+      throw shift::core::Exception(expected);
     }
-  } else {
-    throw shift::core::Exception(
-      "JSON Parsing error: \"euler_angles\" object has no key \"angles\"");
-    return;
+    angles.at[i] = json_value["angles"][i].asDouble();
   }
-
+  ksl_axis_enum_t sequence = KSL_AXIS_XYZ;
   if(json_value.isMember("axes")) {
-    if(json_value["axes"].isArray() && json_value["axes"].size() == 3) {
-      for(int i = 0; i < 3; i++) {
-        if(json_value["angles"][i].isString()) {
-          if(json_value["angles"][i].asString() == "x") {
-            axes_.at[i] = 0;
-          } else if(json_value["angles"][i].asString() == "y") {
-            axes_.at[i] = 1;
-          } else if(json_value["angles"][i].asString() == "z") {
-            axes_.at[i] = 2;
-          }
-        } else if(json_value["angles"][i].isInt()) {
-          axes_.at[i] = json_value["angles"][i].asInt();
-        } else {
-          throw shift::core::Exception(
-            "JSON Parsing error: angles object is incorrectly formatted, "
-            "expected integer gets 0, 1, or 2 - or string gets x, y, "
-            "or z");
-          return;
-        }
-      }
-      sequence = ksl_axis_getEulerAngles(axes_);
-      if(sequence == KSL_AXIS_INVALID) {
-        throw shift::core::Exception(
-          "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
-          "formatted, expected three integer gets {0, 1, 2} or three "
-          "string gets {x, y, z}");
-        return;
+    const Json::Value& axes = json_value["axes"];
+    if(!axes.isArray() || axes.size() != 3) {
+      throw shift::core::Exception(expected);
+    }
+    for(int i = 0; i < 3; i++) {
+      if(axes[i].isString() && (axes[i].asString() == "x" ||
+                                axes[i].asString() == "y" ||
+                                axes[i].asString() == "z")) {
+        axes_.at[i] = axes[i].asString()[0] - 'x';
+      } else if(axes[i].isInt() && axes[i].asInt() >= 0 &&
+                axes[i].asInt() <= 2) {
+        axes_.at[i] = axes[i].asInt();
       } else {
+        throw shift::core::Exception(expected);
       }
-    } else {
-      throw shift::core::Exception(
-        "JSON Parsing error: \"euler_angles\" axes object is incorrectly "
-        "formatted, expected three integer gets or three "
-        "string gets following the format [0, 1, 2] or "
-        "[\"x\", \"y\", \"z\"], where the axes follow one of the twelve "
-        "Euler angle conventions (XYZ, YZX, ZXY, XZY, YXZ, ZYX, XYX, XZX, "
-        "YXY, YZY, ZXZ, or ZYZ).");
-      return;
+    }
+    sequence = ksl_axis_getEulerAngles(axes_);
+    if(sequence == KSL_AXIS_INVALID) {
+      throw shift::core::Exception(expected);
     }
   }
-
   if(euler_angles_maps_to_mat3x3_) {
     ksl_mat3x3_t* data = std::any_cast<ksl_mat3x3_t*>(data_);
     ksl_mat3x3_setFromEulerAngles(data, sequence, &angles);
   } else {
-    ksl_vec3_t* data = std::any_cast<ksl_vec3_t*>(data_);
-    *data = angles;
+    ksl_eulerangles_t* data = std::any_cast<ksl_eulerangles_t*>(data_);
+    data->angles = angles;
+    data->axis = sequence;
   }
-
   loaded_from_file_ = true;
 }
 
@@ -947,6 +929,55 @@ void shift::core::parameter::Value::ReadJSON_POSE(Json::Value& json_value) {
   }
 
   loaded_from_file_ = true;
+}
+
+const void* shift::core::parameter::Value::get_address() const {
+  if(!data_.has_value()) {
+    return nullptr;
+  }
+  switch(parameter_type_) {
+    case STRING:
+      return get_data<std::string>();
+    case STRING_ARRAY:
+      return get_data<std::vector<std::string>>();
+    case STRING_2DARRAY:
+      return get_data<std::vector<std::vector<std::string>>>();
+    case INT:
+      return get_data<int>();
+    case INT_ARRAY:
+      return get_data<std::vector<int>>();
+    case DOUBLE:
+      return get_data<double>();
+    case DOUBLE_ARRAY:
+      return get_data<std::vector<double>>();
+    case KSL_VEC3:
+      return get_data<ksl_vec3_t>();
+    case KSL_VEC4:
+      return get_data<ksl_vec4_t>();
+    case KSL_QUATERNION:
+      return get_data<ksl_quaternion_t>();
+    case KSL_SCREW:
+      return get_data<ksl_screw_t>();
+    case KSL_COSCREW:
+      return get_data<ksl_coscrew_t>();
+    case KSL_INERTIA:
+      return get_data<ksl_inertia_t>();
+    case KSL_MAT3X3:
+      return get_data<ksl_mat3x3_t>();
+    case KSL_MAT4X4:
+      return get_data<ksl_mat4x4_t>();
+    case KSL_EULERANGLES:
+      return get_data<ksl_eulerangles_t>();
+    case KSL_SE3:
+      return get_data<ksl_SE3_t>();
+    case BOOLEAN:
+      return get_data<bool>();
+    case PARAMETER_LIST:
+      return get_data<List>();
+    case PARAMETER_ARRAY:
+      return get_data<ArrayBase>();
+  }
+  return nullptr;
 }
 
 void shift::core::parameter::Value::Print() const {

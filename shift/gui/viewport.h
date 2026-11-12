@@ -84,8 +84,10 @@ public:
   explicit Viewport(QWindow* parent = nullptr);
   ~Viewport() override;
 
-  /*! \brief show the scene of a newly loaded simulation */
-  void set_simulation(Simulation* simulation);
+  /*! \brief show the scene of a newly loaded simulation; frame_scene
+   * places the camera to see all of it, else the camera stays (as for the
+   * same model loaded again) */
+  void set_simulation(Simulation* simulation, bool frame_scene = true);
 
   void set_render_mode(RenderMode mode);
   RenderMode get_render_mode() const {

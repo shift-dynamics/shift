@@ -3,7 +3,11 @@
 
 #include "shift/gui/simulation.h"
 
+#include <map>
+#include <string>
 #include <vector>
+
+#include <json/json.h>
 
 #include <QElapsedTimer>
 #include <QMainWindow>
@@ -17,6 +21,7 @@ class QDial;
 class QDoubleSpinBox;
 class QGroupBox;
 class QLabel;
+class QLineEdit;
 class QPushButton;
 class QSlider;
 class QSpinBox;
@@ -38,6 +43,10 @@ class Assembly;
 namespace joint {
 class Base;
 }
+namespace parameter {
+class List;
+class Value;
+}
 } // namespace core
 
 namespace gui {
@@ -49,10 +58,19 @@ class Viewport;
 /*!
 @brief Main window, following the layout of the original OpenGL workspace
 
-- left panel, Scene tab: model tree (bodies and joints, with joint values and
-  mobility numbers) above a context panel for the selected item; selecting a
-  joint shows its influence coefficients and jog sliders (Tx..Rz, or roll,
-  pitch and yaw for the quaternion of a spherical or float joint)
+- left panel, Scene tab: model tree above the parameters of the selected
+  object and a context panel for it. The tree follows the nesting of the
+  model file: every object read from it (assemblies, bodies, joints,
+  constraints, force modules, sensors, controllers, frames, geometry, ...)
+  is an item in a folder named by its key, with joint values and mobility
+  numbers. The parameters panel lists every parameter the selected object
+  declares, read from the object as it is, and edits the selected one: a
+  parameter that may change while the model runs is set at once, any other
+  is written into the model's JSON and the model is loaded again from it
+  (File > Save model as writes it out). Orientations are edited as roll,
+  pitch and yaw. Selecting a joint also shows its
+  influence coefficients and jog sliders (Tx..Rz, or roll, pitch and yaw for
+  the quaternion of a spherical or float joint)
 - left panel, Simulation tab: model parameters and Run, and the export of
   the results as a video
 - below the tabs: play/pause button and playback slider
@@ -62,6 +80,15 @@ class Workspace : public QMainWindow {
   Q_OBJECT
 
 public:
+  /*! one step of a path into the model's JSON: a key, or an array index */
+  struct JsonStep {
+    std::string key;
+    int index = -1;
+    bool operator==(const JsonStep& other) const {
+      return key == other.key && index == other.index;
+    }
+  };
+
   explicit Workspace(QWidget* parent = nullptr);
   ~Workspace() override;
 
@@ -96,6 +123,12 @@ public:
    * up to request.time first if it is after the start. Returns at once;
    * the work is done from the event loop once the viewport can render. */
   void SaveImage(const ImageRequest& request);
+
+  /*! \brief write the model, with the edits made to its parameters, to a
+   * JSON file (File > Save model as); the objects of each array keep the
+   * order of the model file. Returns false, with why in error, if it could
+   * not. */
+  bool SaveModel(const QString& filename, QString* error = nullptr);
 
 private:
   /*! one jog slider row for a joint coordinate; the slider is a rate
@@ -139,15 +172,52 @@ private:
   void UpdateFollow();
   QWidget* AddVideoBox();
 
+  /*! \brief load filename, or the model JSON model as if read from it;
+   * keep_view leaves the camera and the selection as they were */
+  bool LoadModel(const QString& filename, const Json::Value* model,
+                 QString* error, bool keep_view);
+  /*! \brief load the model again from model_json_, as edited; on failure,
+   * load it as it was before the edit, previous, and give why in error */
+  bool ReloadModel(const Json::Value& previous, QString& error);
+  /*! \brief the file name, marked if the model has been edited */
+  void UpdateWindowTitle();
+  /*! \brief File > Save model as: write model_json_ */
+  void SaveModelAs();
+  /*! \brief File > Revert model: load the model file, dropping edits */
+  void RevertModel();
   void OpenDialog();
   void About();
   void PopulateTree();
-  /*! \brief the items of the fixed body: its frames, lights, terrain and
-   * collision geometry such as the floor */
-  void AddFixedItems();
-  void AddAssemblyItem(shift::core::Assembly* assembly,
-                       QTreeWidgetItem* parent);
-  void AddBodyItem(shift::core::body::Base* body, QTreeWidgetItem* parent);
+  /*! \brief the item of an object read from the model file, the element of
+   * the array key of its parent, with the items of its arrays below it */
+  QTreeWidgetItem* AddObjectItem(shift::core::parameter::List* object,
+                                 const std::string& key,
+                                 QTreeWidgetItem* parent, int depth,
+                                 const std::vector<JsonStep>* path);
+  /*! \brief below item, a folder for each array of the object that has
+   * elements, holding their items, and an item for each object parameter
+   * that holds arrays (as model_parameters) */
+  void AddObjectChildren(shift::core::parameter::List* object,
+                         QTreeWidgetItem* item, int depth,
+                         const std::vector<JsonStep>* path);
+  /*! \brief the path of an object in model_json_, nullptr if it is not in
+   * the model file (as the default floor) */
+  const std::vector<JsonStep>* FindObjectPath(const shift::core::parameter::List* object);
+  /*! \brief list the parameters of an object in the parameters panel */
+  void ShowParameters(shift::core::parameter::List* object,
+                      const QString& title);
+  /*! \brief the rows of the parameters of object below parent; path is
+   * where the object is in model_json_, nullptr if it is not there */
+  void AddParameterRows(shift::core::parameter::List* object,
+                        QTreeWidgetItem* parent, int depth,
+                        const std::vector<JsonStep>* path);
+  /*! \brief show the editor of the selected parameter row */
+  void SelectParameterRow();
+  /*! \brief apply the editor to the selected parameter */
+  void ApplyParameterEdit();
+  /*! \brief read the shown values again; while the simulation runs, only
+   * those of parameters that may change as it runs */
+  void UpdateParameterPanel();
   void UpdateTree();
   void SelectTreeItem();
   void ClearSliders();
@@ -219,6 +289,50 @@ private:
   QTreeWidget* tree_widget_ = nullptr;
   /*! the tree item of each active joint, nullptr if not in the tree */
   std::vector<QTreeWidgetItem*> joint_items_;
+
+  /* every parameter of the selected object; keys are the aliases of the
+  value, the first the one shown and written */
+  struct ParameterRow {
+    QTreeWidgetItem* item = nullptr;
+    shift::core::parameter::Value* value = nullptr;
+    std::vector<std::string> keys;
+    bool in_file = false; /*!< the object is in model_json_, at path */
+    std::vector<JsonStep> path;       /*!< of the object holding the parameter */
+  };
+  struct {
+    QGroupBox* group_box = nullptr;
+    QLabel* title = nullptr;
+    QTreeWidget* tree = nullptr;
+    shift::core::parameter::List* selected = nullptr;
+    std::vector<ParameterRow> rows;
+    /* the editor of the selected row */
+    QWidget* editor = nullptr;
+    QLabel* editor_key = nullptr;
+    QWidget* editor_fields = nullptr; /*!< rebuilt for each row */
+    QLineEdit* line_edit = nullptr;   /*!< a number, string or JSON text */
+    QComboBox* combo_box = nullptr;   /*!< a boolean or a string of a set */
+    QDoubleSpinBox* angles[3] = {};   /*!< roll, pitch, yaw in degrees */
+    QPushButton* apply_button = nullptr;
+    QLabel* editor_note = nullptr;
+    int editing_row = -1;
+  } parameter_panel_;
+
+  /*! \brief set the parameter of row to json in model_json_, replacing
+   * the keys of its aliases */
+  void SetJsonParameter(const ParameterRow& row, const Json::Value& json);
+
+  /*! the model as read from its file, with the edits made in the viewer */
+  Json::Value model_json_;
+  bool model_edited_ = false;
+  /*! what LoadModel selects again when it keeps the view */
+  struct Reselect {
+    QString path;          /*!< of the tree item, see PathKey */
+    std::string parameter; /*!< key of the parameter row */
+    QString follow_body;   /*!< the body the camera follows */
+  } reselect_;
+  QString model_filename_;
+  /*! where each object read from the model file is in model_json_ */
+  std::map<const shift::core::parameter::List*, std::vector<JsonStep>> object_paths_;
 
   struct {
     QGroupBox* group_box = nullptr;

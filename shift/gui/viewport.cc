@@ -298,7 +298,8 @@ shift::gui::Viewport::~Viewport() {
   ReleaseRhi();
 }
 
-void shift::gui::Viewport::set_simulation(Simulation* simulation) {
+void shift::gui::Viewport::set_simulation(Simulation* simulation,
+                                          bool frame_scene) {
   set_follow_body(-1);
   simulation_ = simulation;
   poses_ = Poses();
@@ -309,7 +310,9 @@ void shift::gui::Viewport::set_simulation(Simulation* simulation) {
     simulation_->TakePoses(poses_);
   }
   scene_dirty_ = true;
-  FrameScene();
+  if(frame_scene) {
+    FrameScene();
+  }
 }
 
 void shift::gui::Viewport::set_render_mode(RenderMode mode) {

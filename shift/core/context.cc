@@ -110,6 +110,23 @@ void shift::core::Context::LoadJSON(const std::string filename) {
   } else {
     file >> root_;
   }
+  ReadModel(filename);
+}
+
+void shift::core::Context::LoadJSON(const Json::Value& model,
+                                    const std::string& filename) {
+  filename_ = filename;
+  files_read_.clear();
+  file_names_.clear();
+  if(!model.isObject()) {
+    throw shift::core::Exception("The model of '" + filename +
+                                 "' must be an object at its top level");
+  }
+  root_ = model;
+  ReadModel(filename);
+}
+
+void shift::core::Context::ReadModel(const std::string& filename) {
   ReadJSON(root_);
   AddDefaultFloor();
   set_parent(this);
