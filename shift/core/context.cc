@@ -143,6 +143,7 @@ void shift::core::Context::PostLoad(const std::string) {
   UpdateDHVA();
 
   SetupLookup();
+  DetectTrees();
   jacobian_.Initialize();
   InitializeMobility();
   InitializeInertia();
@@ -2410,7 +2411,12 @@ void shift::core::Context::SetupLookup() {
 
   pcldq_.resize(dq_count_);
   for(size_t i = 0; i < active_joints_.size(); i++) {
+    /* the parent variable is the last one of the nearest joint above that is
+    not rigid; a rigid joint has no variables */
     int parent_index = pcl_[i];
+    while(parent_index != -1 && joint_dof_[parent_index] == 0) {
+      parent_index = pcl_[parent_index];
+    }
     int variable_index = dq_lookup_[i];
     if(variable_index != -1) {
       if(parent_index != -1) {
@@ -2495,6 +2501,38 @@ void shift::core::Context::SetupLookup() {
         pcl_compressed_[joint_lookup_[i]] = joint_lookup_[parent];
       }
     }
+  }
+}
+
+int shift::core::Context::CompressedIndex(int i) const {
+  while(i > -1 && joint_lookup_[i] < 0) {
+    i = pcl_[i];
+  }
+  return i < 0 ? -1 : joint_lookup_[i];
+}
+
+void shift::core::Context::DetectTrees() {
+  /* a chord constraint joins the virtual body at the end of its cut joint to
+  the body the joint attached to; the loop it closes runs through the trees
+  of both (one tree, or two trees and the fixed body) */
+  std::vector<int> loop_bodies;
+  for(auto chord : chord_constraints_) {
+    for(auto body : {chord->get_parent_body(), chord->get_child_body()}) {
+      if(body != nullptr && body != get_fixed_body()) {
+        loop_bodies.push_back(CompressedIndex(body->get_index()));
+      }
+    }
+  }
+  trees_ = topology::DetectTrees(pcl_compressed_, joint_dof_compressed_,
+                                 joint_lookup_, loop_bodies);
+
+  for(auto& tree : trees_) {
+    std::stringstream ss;
+    ss << "Tree with root joint '" << active_joints_[tree.root_joint]->get_name()
+       << "': " << topology::Tree::KindName(tree.kind) << ", "
+       << tree.bodies.size() << " bodies, " << tree.dq_count
+       << " degrees of freedom";
+    SHIFT_DEBUG(ss.str());
   }
 }
 

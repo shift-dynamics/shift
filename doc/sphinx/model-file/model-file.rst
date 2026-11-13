@@ -101,6 +101,28 @@ sets up and solves the equations of motion (see :ref:`about`).
 
 .. shift-parameters:: shift/core/solver/rnca.cc
 
+Models without closed loops can instead use an articulated-body solver (see
+:ref:`articulated_body_algorithms`), which needs no constraint Jacobian or
+generalized mass matrix:
+
+* ``"type": "aba"``, the articulated-body algorithm, for serial chains and
+  branched trees;
+* ``"type": "dca"``, the divide-and-conquer algorithm, for serial chains and
+  branched trees with mass and inertia in every body. It is slower than
+  ``"aba"`` on one processor; its assemblies are organized for parallel
+  evaluation.
+
+Both take only the ``type`` parameter and stop with an error, at
+initialization, on a model they cannot solve.
+
+``"type": "auto"`` chooses for each tree of the model: the trees without closed
+loops are solved by ``"aba"`` (or ``"dca"``, see ``tree_solver``) and the trees
+with closed loops by RNCA, whose parameters it also takes. The tree solver adds
+no work to the RNCA solve, so a model of several robots, one of which has a
+closed loop, pays the cost of the constraint Jacobian for that one only.
+
+.. shift-parameters:: shift/core/solver/auto.cc
+
 Integrators
 ***********
 

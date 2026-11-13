@@ -43,6 +43,12 @@ PC                               *PC*               parent child list
 :math:`\underline{\mathbf{h}}`   h                  influence coefficient matrix
 :math:`\underline{\mathbf{v}}`   v                  velocity screw :math:`\left(\underline{\mathbf{v}} = \begin{Bmatrix}\underline{v}\\\underline{\omega}\end{Bmatrix}\right)`
 :math:`\underline{\mathbf{g}}^*` g                  externally applied forces, such as from gravity
+:math:`\underline{\mathbf{a}}^q` aq                 quadratic acceleration of a body, its acceleration with :math:`\underline{\ddot{q}} = \underline{0}`
+:math:`\underline{\mathbf{k}}^*` wrench             wrench applied by a joint to its child body
+:math:`\underline{\mathbf{z}}^*` z                  bias wrench of a body, see :ref:`articulated_body_algorithms`
+:math:`M^A`                      inertia_a          articulated-body inertia
+:math:`\Psi`                     psi                mobility (inverse articulated-body inertia) of a subassembly
+:math:`\underline{\mathbf{b}}`   bias               bias accelerations of the handles of a subassembly
 ================================ ===============    ===========
 
 

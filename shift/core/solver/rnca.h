@@ -92,11 +92,29 @@ public:
 
   virtual void Initialize() override;
 
+protected:
+  virtual void DeclareParameters() override;
+
+  /*! \brief solve the joint accelerations of the delegated trees (see
+   * delegated_body_), after RNCA has solved the rest; return true on
+   * failure. RNCA itself delegates nothing. */
+  virtual bool SolveDelegated() {
+    return false;
+  }
+
+  /*! \brief the compressed bodies, and the generalized velocities in
+   * permutation orders 1 and 3, of the trees that another solver handles
+   * (see solver::Auto). Their rows and columns are left out of the mass
+   * matrix, so they add no operations to the factorization, and their
+   * accelerations are not written. All false for RNCA. */
+  std::vector<bool> delegated_body_;
+  std::vector<bool> delegated_dq_;
+  std::vector<bool> delegated_po3_;
+
 private:
   static bool registered_;
   static std::unique_ptr<RNCA> Create();
 
-  virtual void DeclareParameters() override;
   void CountOperations();
   void RecordOperations();
   void CountPointers();

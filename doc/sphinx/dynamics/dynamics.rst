@@ -66,7 +66,7 @@ The final form of the spatial equations of motion may be written as:
 .. math::
   :label: eq:spatial_final
 
-  M_{ff}\underline{\dot{\mathbf{v}}}_f = [ad]_{cf}^*M_{ff}\underline{\mathbf{v}}_f + \underline{\mathbf{g}}_f^*
+  M_{ff}\underline{\dot{\mathbf{v}}}_f = \underline{\mathbf{g}}_f^* - [ad]_{fc}^*M_{ff}\underline{\mathbf{v}}_f
 
 
 Comparison to Newton-Euler Equations
