@@ -172,7 +172,13 @@ struct DHVA {
         number of non rigid joints + 1 for the fixed inertial reference frame */
   ksl_screw_t* aq =
     nullptr; /*!< an array of body accelerations equal to the
-        number of non rigid joints + 1 for the fixed inertial reference frame */
+        number of non rigid joints + 1 for the fixed inertial reference frame:
+        the terms of each spatial acceleration that are quadratic in the
+        velocities. Every joint forms aq_child = aq_parent + v_parent x H dq,
+        the cross product with the parent velocity; it equals the product
+        with the child velocity, v_child = v_parent + H dq, since
+        (H dq) x (H dq) = 0. The inverted floating joint, whose columns are
+        fixed in neither body, differentiates them term by term. */
 #else
   std::vector<double> dc;
   std::vector<ksl_SE3_t> d;
@@ -244,6 +250,60 @@ size_t dhva_size_ = 0;
 // }
 
 /*!
+@brief One tree of the kinematic forest: the bodies that reach the fixed body
+through the same joint
+
+Removing the fixed body from the spanning tree of a model leaves a forest. Each
+tree in it has one root body, attached to the fixed body by its joint, and is
+dynamically independent of the other trees unless a chord constraint closes a
+loop through it (forces that couple trees, such as contact, are evaluated
+before the equations of motion are solved). Bodies attached to their parents by
+rigid joints are merged into their parents, so a tree lists the compressed
+(non rigid) joints, see Context::get_pcl_compressed().
+
+The kind of a tree determines the algorithms that can solve its equations of
+motion:
+
+- `kSerialChain`: every body has at most one child body.
+- `kBranched`: some body has two or more child bodies, and there are no
+  closed loops.
+- `kClosedLoop`: a chord constraint closes a loop through a body of the
+  tree, either within the tree or through another tree or the fixed body;
+  solved with the constraint Jacobian by solver::RNCA.
+
+Serial chains and branched trees are solved by the articulated-body algorithm
+(solver::ABA) or the divide-and-conquer algorithm (solver::DCA), or by
+solver::RNCA.
+*/
+struct Tree {
+  enum class Kind { kSerialChain, kBranched, kClosedLoop };
+
+  Kind kind = Kind::kSerialChain;
+
+  /*! compressed joint (and body) indices of the tree in level-increasing
+   * order (permutation order 1); bodies[0] is the root */
+  std::vector<int> bodies;
+
+  /*! index of the root joint in Context::get_active_joints() */
+  int root_joint = -1;
+
+  /*! number of generalized velocities of the tree */
+  size_t dq_count = 0;
+
+  static std::string KindName(Kind kind) {
+    switch(kind) {
+    case Kind::kSerialChain:
+      return "serial chain";
+    case Kind::kBranched:
+      return "branched tree";
+    case Kind::kClosedLoop:
+      return "closed loop";
+    }
+    return "";
+  }
+};
+
+/*!
 @brief Struct that defines offsets into DHVA array.
 */
 struct Offsets {
@@ -275,6 +335,23 @@ bool MatchFullyQualifiedName(const std::vector<std::string>&,
 bool InPath(std::vector<int>& pcl, int j, int k);
 
 bool IsSubstructureHead(int, std::vector<std::vector<int>>&);
+
+/*!
+\brief split the compressed spanning tree into the trees of the kinematic
+forest and classify each one, see Tree
+\param pcl_compressed compressed parent child list (permutation order 1, -1
+for the fixed body)
+\param joint_dof_compressed degrees of freedom of each compressed joint
+\param joint_lookup compressed index of each active joint, -1 for a rigid
+joint
+\param loop_bodies compressed indices of the bodies joined by chord
+constraints; their trees are closed loops
+*/
+std::vector<Tree>
+DetectTrees(const std::vector<int>& pcl_compressed,
+            const std::vector<unsigned int>& joint_dof_compressed,
+            const std::vector<int>& joint_lookup,
+            const std::vector<int>& loop_bodies);
 
 bool IsSubstructureMember(int, std::vector<std::vector<int>>&);
 

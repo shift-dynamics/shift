@@ -132,7 +132,7 @@ void shift::core::joint::gearinv_dh(const shift::core::Context& context,
 }
 
 /* The velocity of the child is that of the parent plus h q', and the
-quadratic acceleration that of the parent plus V x h q' (the screw h
+quadratic acceleration that of the parent plus V_parent x h q' (the screw h
 moves with the parent) plus (dh/dq) q'^2 (h changes as the child moves). */
 static void GearDhva(const shift::core::Context& context,
                      shift::core::topology::DHVA& dhva,
@@ -152,7 +152,7 @@ static void GearDhva(const shift::core::Context& context,
   ksl_screw_t aq_sum = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   ksl_product_as(rate, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_product_as(rate * rate, &dh_dq, &aq_change);
   ksl_add_ss(&aq_relative, &aq_change, &aq_sum);
   ksl_add_ss(aq_parent, &aq_sum, aq_child);

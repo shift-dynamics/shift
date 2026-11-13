@@ -41,6 +41,7 @@ theory
    notation/notation
    topology/topology
    dynamics/dynamics
+   dynamics/articulated_body_algorithms
    contact/contact
 
 developer reference
