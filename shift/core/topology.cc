@@ -116,6 +116,53 @@ bool shift::core::topology::IsSubstructureMember(
   return false;
 }
 
+std::vector<shift::core::topology::Tree> shift::core::topology::DetectTrees(
+  const std::vector<int>& pcl_compressed,
+  const std::vector<unsigned int>& joint_dof_compressed,
+  const std::vector<int>& joint_lookup, const std::vector<int>& loop_bodies) {
+  std::vector<Tree> trees;
+  const int n = static_cast<int>(pcl_compressed.size());
+
+  /* the tree of each compressed body; parents precede children in
+  permutation order 1, so one pass assigns every body the tree of its parent */
+  std::vector<int> tree_of(n, -1);
+  std::vector<int> child_count(n, 0);
+  for(int j = 0; j < n; j++) {
+    const int parent = pcl_compressed[j];
+    if(parent < 0) {
+      tree_of[j] = static_cast<int>(trees.size());
+      trees.emplace_back();
+    } else {
+      tree_of[j] = tree_of[parent];
+      child_count[parent]++;
+    }
+    trees[tree_of[j]].bodies.push_back(j);
+    trees[tree_of[j]].dq_count += joint_dof_compressed[j];
+  }
+  for(size_t i = 0; i < joint_lookup.size(); i++) {
+    const int j = joint_lookup[i];
+    if(j > -1 && pcl_compressed[j] < 0) {
+      trees[tree_of[j]].root_joint = static_cast<int>(i);
+    }
+  }
+
+  for(auto& tree : trees) {
+    tree.kind = Tree::Kind::kSerialChain;
+    for(int j : tree.bodies) {
+      if(child_count[j] > 1) {
+        tree.kind = Tree::Kind::kBranched;
+        break;
+      }
+    }
+  }
+  for(int j : loop_bodies) {
+    if(j > -1) {
+      trees[tree_of[j]].kind = Tree::Kind::kClosedLoop;
+    }
+  }
+  return trees;
+}
+
 void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
                                             std::vector<int>& p_inv) {
   if(p.size() != p_inv.size()) {

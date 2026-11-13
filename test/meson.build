@@ -30,6 +30,7 @@ test_sources = [
   'test_rigid_joint.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',
+  'test_tree_solvers.cc',
   'test_light.cc',
   'test_beam.cc',
   'test_belt.cc',
@@ -101,13 +102,19 @@ shift_test = executable(
 )
 
 # everything except the per-model cases, which are registered one by one below
-test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*:CadSpeed.*'],
+test('shift-test', shift_test,
+     args: ['--gtest_filter=-Examples/*:CadSpeed.*:SolverSpeed.*'],
      timeout: 3600)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc
 benchmark('cad_contact_speed', shift_test,
           args: ['--gtest_filter=CadSpeed.*'], timeout: 0)
+
+# the time of one evaluation of the equations of motion of trees without
+# closed loops by the rnca, aba and dca solvers (test/test_tree_solvers.cc)
+benchmark('solver_speed', shift_test,
+          args: ['--gtest_filter=SolverSpeed.*'], timeout: 0)
 
 # the GPU tests on Mesa's software Vulkan driver, lavapipe, so that they run
 # without a GPU (on Arch Linux: the vulkan-swrast package)

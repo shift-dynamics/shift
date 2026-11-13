@@ -185,6 +185,12 @@ public:
     return pcl_compressed_;
   }
 
+  /*! \brief the trees of the kinematic forest, see topology::Tree, in the
+   * order of their root bodies in get_pcl_compressed() */
+  const std::vector<topology::Tree>& get_trees() const {
+    return trees_;
+  }
+
   const std::vector<shift::core::body::Base*>&
   get_active_articulated_bodies() const {
     return active_articulated_bodies_;
@@ -866,6 +872,16 @@ private:
 
   void SetupLookup();
 
+  /*! \brief split the compressed spanning tree into the trees of the
+   * kinematic forest and classify each one, see topology::Tree */
+  void DetectTrees();
+
+  /*! \brief the compressed index of the body at active joint index i: i if
+   * its joint is not rigid, else that of the nearest body above it that is
+   * not attached by a rigid joint; -1 for the fixed body or a body welded to
+   * it */
+  int CompressedIndex(int i) const;
+
   /*! \brief set mapping between positions of generalized coordinates in
   q to dq
   */
@@ -1006,6 +1022,7 @@ private:
   unsigned int non_rigid_joint_count_ = 0;
   std::vector<int> pcl_;            /*!< parent child list */
   std::vector<int> pcl_compressed_; /*!< compressed parent child list */
+  std::vector<topology::Tree> trees_; /*!< trees of the kinematic forest */
   std::vector<std::vector<int>> loop_members_;
   std::vector<std::vector<int>> positive_loop_members_;
   std::vector<std::vector<int>> negative_loop_members_;

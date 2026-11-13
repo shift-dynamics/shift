@@ -106,6 +106,14 @@ void shift::core::solver::RNCA::Initialize() {
 
   infinity_norm_failure_ = false;
 
+  if(delegated_body_.size() != context_->get_non_rigid_joint_count()) {
+    delegated_body_.assign(context_->get_non_rigid_joint_count(), false);
+  }
+  if(delegated_dq_.size() != dq_count_) {
+    delegated_dq_.assign(dq_count_, false);
+  }
+  delegated_po3_.assign(dq_count_, false);
+
   context_->get_jacobian().RemoveConstraintViolations();
   context_->get_jacobian().Analyze();
   context_->UpdateDHVA();
@@ -252,6 +260,11 @@ shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
 }
 
 void shift::core::solver::RNCA::Memoize() {
+  /* the permutation to order 3 changes when the Jacobian is analyzed again */
+  const auto& pv_31 = context_->get_jacobian().get_pv31();
+  for(unsigned int l = 0; l < dq_count_; l++) {
+    delegated_po3_[pv_31[l]] = delegated_dq_[l];
+  }
   CountOperations();
   RecordOperations();
   CountPointers();
@@ -1368,7 +1381,7 @@ void shift::core::solver::RNCA::SetupRHS() {
 #pragma omp parallel for
 #endif
   for(size_t i = 0; i < non_rigid_joint_count; i++) {
-    if(has_mass[i]) {
+    if(has_mass[i] && !delegated_body_[i]) {
       ksl_inertia_transformed(&inertia[i], &dhva.d[d_reference_frames[i]],
                               &inertia_p[i]);
     }
@@ -1758,7 +1771,7 @@ void shift::core::solver::RNCA::SetupMassMatrix() {
   int ks_3;
   int k_3;
   for(int j = (int)dq_count_ - 1; j > -1; j--) {
-    if(has_mass_dq[j]) {
+    if(has_mass_dq[j] && !delegated_dq_[j]) {
       m_3 = pv_31[j];
       // m_1 = j;
       // ks_1 = (m_1 * (m_1 + 1)) / 2;
@@ -1891,7 +1904,7 @@ void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
   int ks_3;
   int k_3;
   for(int j = (int)dq_count_ - 1; j > -1; j--) {
-    if(has_mass_dq[j]) {
+    if(has_mass_dq[j] && !delegated_dq_[j]) {
       m_3 = pv_31[j];
       // m_1 = j;
       // ks_1 = (m_1 * (m_1 + 1)) / 2;
@@ -1962,6 +1975,9 @@ void shift::core::solver::RNCA::FactorAndSolve() {
         p2 += 3;
       }
       nd++;
+    } else if(delegated_po3_[i]) {
+      /* a delegated variable has an empty row and column: no operations */
+      ni++;
     } else {
       /* Invert the pivot: M[i] = 1.0 / M[i]; */
       assert(fabs(*(memoized_pointers_[i])) > 1e-9);
@@ -2022,7 +2038,9 @@ void shift::core::solver::RNCA::FactorAndSolve() {
         *(memoized_pointers_[p3++]) -= *(memoized_pointers_[p2++]) * fl_[i];
       }
       // Part of x <-- D^{-1} b: ddq[i] = M[] * Q[i];
-      ddq[pv_13[i]] = *(memoized_pointers_[i]) * fl_[i];
+      if(!delegated_po3_[i]) {
+        ddq[pv_13[i]] = *(memoized_pointers_[i]) * fl_[i];
+      }
       ni++;
     }
   }
@@ -2123,6 +2141,9 @@ bool shift::core::solver::RNCA::Solve(const double t,
 #endif
 
   FactorAndSolve();
+  if(SolveDelegated()) {
+    return true;
+  }
 
 #if SHIFT_VERIFY_EQUATIONS_
 #if SHIFT_LOG_LEVEL > 4
@@ -2385,6 +2406,13 @@ bool shift::core::solver::RNCA::Verify(const double t,
 
   cblas_dgemv(CblasRowMajor, CblasTrans, dq_count_, dq_count_, 1.0, B,
               dq_count_, la_po3, 1, 1.0, fl_po3, 1);
+
+  /* the rows of delegated variables are empty; another solver checks them */
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(delegated_po3_[i]) {
+      fl_po3[i] = fl[i];
+    }
+  }
 
   /* per-entry scale: sum_j |Ml_ij * ddq_j| + sum_j |B_ji * la_j| */
   double fl_scale[dq_count_];
