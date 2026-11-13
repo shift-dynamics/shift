@@ -931,6 +931,20 @@ void shift::core::parameter::Value::ReadJSON_POSE(Json::Value& json_value) {
   loaded_from_file_ = true;
 }
 
+void shift::core::parameter::Value::ConnectDriver(const std::string& driver) {
+  if(role_ != INPUT) {
+    throw shift::core::Exception("'" + key_ + "' is not an input" +
+                                 (role_ == OUTPUT ? " but an output" : "") +
+                                 ", so " + driver + " cannot set it");
+  }
+  if(!driver_.empty() && driver_ != driver) {
+    throw shift::core::Exception("input '" + key_ + "' is set by " + driver_ +
+                                 " already, so " + driver +
+                                 " cannot set it too");
+  }
+  driver_ = driver;
+}
+
 const void* shift::core::parameter::Value::get_address() const {
   if(!data_.has_value()) {
     return nullptr;

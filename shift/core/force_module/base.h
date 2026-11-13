@@ -102,22 +102,14 @@ public:
     (void)y;
   }
 
-  /*! \brief names of the module's output values (such as pressures or
-   * forces), which loggers record as columns named \<module\>_\<output\> */
-  virtual std::vector<std::string> get_output_names() const {
-    return {};
-  }
-  /*! \brief compute the output values for the state y at time t, without
-   * applying forces or setting rates; Context::WriteStates calls it before
-   * the loggers, while the kinematics are those of y */
+  /*! \brief compute the module's outputs (DeclareOutput: pressures, forces
+   * and the like) for the state y at time t, without applying forces or
+   * setting rates; Context::WriteStates calls it before the loggers, which
+   * record the outputs they are connected to, while the kinematics are those
+   * of y */
   virtual void UpdateOutputs(double t, const double* y) {
     (void)t;
     (void)y;
-  }
-  /*! \brief append the output values of the last UpdateOutputs, in the
-   * order of get_output_names */
-  virtual void AppendOutputs(std::vector<double>& values) const {
-    (void)values;
   }
 
   /*! \brief add the module's forces to the context and set the time

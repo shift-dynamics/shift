@@ -479,9 +479,9 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
+  /*! \brief the names of the outputs, in the order of outputs_ */
+  std::vector<std::string> OutputNames() const;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the torque of the engine at the speed \f$\omega\f$ and throttle, and the
    * fuel fraction after the governor and the fuel cut */

@@ -119,6 +119,45 @@ by ``time_step``, which only sets how often results are reported.
 
 .. shift-parameters:: shift/core/integrator/ode113.cc
 
+.. _fast-modes:
+
+Why the steps are small: the fast modes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ODE113 is an explicit method: it stays stable only while each step is short
+compared with the fastest motion of the model. Near a state, the model
+behaves like the linear equations
+:math:`\dot{\underline{x}} = \mathbf{A}\,\underline{x}`, and each
+eigenvalue :math:`\lambda = \sigma \pm i\omega` of :math:`\mathbf{A}` is a
+mode, a motion that oscillates at :math:`\omega` (rad/s) and grows or
+decays at the rate :math:`\sigma` (1/s). The steps stay stable roughly while
+
+.. math::
+
+   h\,|\lambda| \lesssim 1
+
+for every mode, so a stiff spring, a heavily damped joint or a friction law
+that changes steeply with slip speed (a clutch, a limited-slip differential)
+can force steps far shorter than the motion that matters needs. Raising
+``relative_error`` then barely helps: the steps are limited by stability,
+not by accuracy.
+
+``shift-cli --linearize <time>`` simulates the model to that time, computes
+:math:`\mathbf{A}` there by finite differences of the equations of motion
+(the forces of the force modules and controllers and the rates of their
+internal states included), and prints the fastest modes, ten by default
+(``--modes <n>`` for more). For each mode it lists the eigenvalue, the
+frequency and damping ratio, the step :math:`h = 1/|\lambda|` it allows, and
+the coordinates and internal states that take part in it most:
+
+.. code:: bash
+
+   build/shift/main/shift-cli --linearize 8 --modes 5 examples/polo_r_wrc/polo_r_wrc.json
+
+A model with closed loops is linearized without Baumgarte stabilization, so
+the motions that would break a loop show up as eigenvalues of 0 and do not
+hide the modes of the mechanism.
+
 ``"type": "rk4"``: the classical fixed step Runge–Kutta method, with steps
 of ``step_size``.
 
@@ -304,6 +343,14 @@ any other.
 rotations, for a body that is not otherwise joined, or is held only by
 force modules.
 
+A part of a model that no path of joints joins to ``fixed`` does not need
+one: *Shift* adds a floating joint named ``_float_joint[k]`` from the origin
+of ``fixed`` to the origin of the body of that part with the most joints (the
+first in the file among equals), with the identity as its initial
+displacement and zero initial velocity, and says so in an information
+message. Write the floating joint yourself to choose the body, its initial
+pose or its initial velocity.
+
 .. shift-parameters:: shift/core/joint/float.cc
 
 ``"type": "rigid"``: no motion; the child is fixed to the parent at
@@ -379,6 +426,30 @@ A model has one terrain, on a frame of the fixed body. Tires drive on terrain
 ``"type": "basic"``: an elevation map from a TIFF image.
 
 .. shift-parameters:: shift/core/terrain/base.cc shift/core/terrain/basic.cc
+
+A texture tiled over a large terrain repeats, and the eye picks out the
+pattern. With ``texture_variation`` the viewer shifts the tiles by random
+amounts in small patches, blending between them, and varies the brightness
+slowly over tens of meters, so that the tiles no longer show.
+
+``surfaces`` lay up to two other textures over the terrain's in patches, such
+as dirt and grass among gravel. Each covers about the fraction ``coverage``
+of the ground, in patches about ``patch_size`` across, placed by a noise of
+the position on the terrain; the second lies over the first. The edges of a
+patch follow the texture below it, so that bright stones show through the
+edge of dirt laid over gravel. Surfaces change only the look, not the shape
+of the terrain or its soil.
+
+.. code-block:: json
+
+   "texture_filename": "qrc:/textures/pebbles.jpg", "texture_scale": 0.5,
+   "texture_variation": true,
+   "surfaces": [{"texture_filename": "qrc:/textures/dry_sand.jpg",
+                 "texture_scale": 2.0, "coverage": 0.35, "patch_size": 8.0},
+                {"texture_filename": "qrc:/textures/grass.jpg",
+                 "texture_scale": 2.0, "coverage": 0.15, "patch_size": 25.0}]
+
+.. shift-parameters:: shift/core/terrain/surface_texture.cc
 
 ``"type": "scm"``: deformable soil (the Soil Contact Model), a grid of nodes
 ``spacing`` apart over the ranges ``x`` and ``y`` of the terrain frame. The
@@ -504,5 +575,13 @@ Lights
 Lights illuminate the 3D view. ``type`` is ``directional``, ``point``,
 ``spot`` or ``ies`` (a measured luminaire, from an IES file). A light on a
 frame of a moving body moves with it.
+
+A light's ``intensity`` can change while the model runs, set by a
+controller (see :ref:`map`), to switch a lamp on and off. ``glow`` names
+geometries of the light's body that light up with it, as the lens of a lamp:
+the viewer adds to their shading their own color times the light's ``Kd``
+and intensity, so that a stop lamp's lens turns bright red as the brake is
+pressed. A mesh file that several bodies load is drawn once for all of
+them, and glows on all of them.
 
 .. shift-parameters:: shift/core/light/base.cc shift/core/light/spot.cc shift/core/light/ies.cc

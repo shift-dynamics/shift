@@ -256,6 +256,16 @@ public:
 
   enum LogLevel { NONE = 0, ATTRIBUTE = 1, INTERVAL = 3, ALWAYS = 4 };
 
+  /*! the role of a value in its component (see List::DeclareInput and
+   * List::DeclareOutput):
+   * - PARAMETER: read from the model file;
+   * - INPUT: a number that the component reads each time it is evaluated,
+   *   and that another component (a controller) sets as the model runs; the
+   *   model file may give its value until something sets it;
+   * - OUTPUT: a number that the component computes, for other components to
+   *   read; not read from the model file. */
+  enum Role { PARAMETER, INPUT, OUTPUT };
+
   Value& operator[](int index) {
     return operator[]((unsigned int)(index));
   }
@@ -355,6 +365,28 @@ public:
   bool is_runtime() const {
     return runtime_;
   }
+  Value& set_role(Role role) {
+    role_ = role;
+    return *this;
+  }
+  Role get_role() const {
+    return role_;
+  }
+  bool is_input() const {
+    return role_ == INPUT;
+  }
+  bool is_output() const {
+    return role_ == OUTPUT;
+  }
+  /*! \brief the fully qualified name of the component that sets this input,
+   * empty if none does */
+  const std::string& get_driver() const {
+    return driver_;
+  }
+  /*! \brief record driver (a fully qualified name) as the component that sets
+   * this input; throws if the value is not an input, or if another component
+   * already sets it. Connecting the same driver again does nothing. */
+  void ConnectDriver(const std::string& driver);
   /*! \brief whether the value was read from the model file, rather than
    * left at its default */
   bool is_loaded_from_file() const {
@@ -463,6 +495,8 @@ private:
                                         // during simulation
   bool load_from_json_ = true;          //!< load from json input file
   bool runtime_ = false;                //!< may be changed as the model runs
+  Role role_ = PARAMETER;               //!< parameter, input or output
+  std::string driver_; //!< the component that sets this input, if any
   std::any data_;                       //!< contains pointer to value
   std::string description_;
   bool required_;

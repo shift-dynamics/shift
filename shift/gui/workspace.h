@@ -1,9 +1,12 @@
 #ifndef SHIFT_GUI_WORKSPACE_H_
 #define SHIFT_GUI_WORKSPACE_H_
 
+#include "shift/gui/settings.h"
 #include "shift/gui/simulation.h"
+#include "shift/gui/viewport.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -11,6 +14,7 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
+#include <QMatrix4x4>
 #include <QSize>
 #include <QVector3D>
 
@@ -68,7 +72,11 @@ class Viewport;
   parameter that may change while the model runs is set at once, any other
   is written into the model's JSON and the model is loaded again from it
   (File > Save model as writes it out). Orientations are edited as roll,
-  pitch and yaw. Selecting a joint also shows its
+  pitch and yaw. Each coordinate frame, joint with an axis (revolute,
+  prismatic, screw, gear) and body has an eye beside its icon that shows
+  or hides its axes, the line of its axis, or its meshes in the viewport;
+  a folder of them has an eye for all of them. When a model is opened the
+  bodies are shown, the frames and joint axes hidden. Selecting a joint also shows its
   influence coefficients and jog sliders (Tx..Rz, or roll, pitch and yaw for
   the quaternion of a spherical or float joint)
 - left panel, Simulation tab: model parameters and Run, and the export of
@@ -130,6 +138,16 @@ public:
    * not. */
   bool SaveModel(const QString& filename, QString* error = nullptr);
 
+  /*! \brief the settings of Edit > Settings, read at start from
+   * Settings::get_default_path */
+  const Settings& get_settings() const {
+    return settings_;
+  }
+
+  const Viewport* get_viewport() const {
+    return viewport_;
+  }
+
 private:
   /*! one jog slider row for a joint coordinate; the slider is a rate
    * control that recenters when released, the spin box sets a target value.
@@ -187,6 +205,16 @@ private:
   void RevertModel();
   void OpenDialog();
   void About();
+  /*! \brief Edit > Settings: change the settings and save them */
+  void SettingsDialog();
+  /*! \brief give the viewport the settings */
+  void ApplySettings();
+  /*! \brief the eye of an item was clicked: show or hide what it draws
+   * (a folder: that of all of its items with an eye) */
+  void ToggleVisibility(QTreeWidgetItem* item);
+  /*! \brief show the eyes of the items and their folders as the shown and
+   * hidden sets have them, and give the viewport what is shown */
+  void UpdateVisibility();
   void PopulateTree();
   /*! \brief the item of an object read from the model file, the element of
    * the array key of its parent, with the items of its arrays below it */
@@ -331,6 +359,28 @@ private:
     QString follow_body;   /*!< the body the camera follows */
   } reselect_;
   QString model_filename_;
+  /*! an item of the tree with an eye: a coordinate frame (its axes), a
+   * joint (the line of its axis, two for a gear) or a body (its meshes) */
+  struct EyeItem {
+    enum Kind { kFrame, kJoint, kBody };
+    Kind kind = kFrame;
+    QTreeWidgetItem* item = nullptr;
+    QString path;       /*!< see PathKey */
+    int body_index = 0; /*!< of the simulation: of the frame, or the body */
+    QMatrix4x4 frame;   /*!< a frame, with respect to the body origin */
+    std::vector<Viewport::JointAxis> lines; /*!< a joint */
+  };
+  std::vector<EyeItem> eye_items_;
+  /*! folders of items with an eye, whose eye is for all of them */
+  std::vector<QTreeWidgetItem*> eye_folders_;
+  /*! by path, kept when the model is loaded again: the frames and joints
+   * shown, and the bodies hidden; a model opens with none of them */
+  std::set<QString> shown_frames_;
+  std::set<QString> shown_joints_;
+  std::set<QString> hidden_bodies_;
+  bool IsShown(const EyeItem& eye) const;
+  Settings settings_;
+
   /*! where each object read from the model file is in model_json_ */
   std::map<const shift::core::parameter::List*, std::vector<JsonStep>> object_paths_;
 

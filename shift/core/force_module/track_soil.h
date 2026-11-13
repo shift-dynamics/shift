@@ -120,9 +120,9 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
+  /*! \brief the names of the outputs, in the order of outputs_ */
+  std::vector<std::string> OutputNames() const;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   const SoilProperties& get_soil() const {
     return soil_properties_;

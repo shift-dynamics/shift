@@ -59,6 +59,9 @@ void shift::core::force_module::AppliedLoad::DeclareParameters() {
                    "makes the load an impulse of this length, whose integral "
                    "over time is force times the duration; optional",
                    false);
+  DeclareOutput("load_scale", &output_scale_,
+                "the scale of the load at the time, the product of scale and "
+                "of the pulse or the curve");
 }
 
 void shift::core::force_module::AppliedLoad::Connect() {
@@ -192,14 +195,4 @@ void shift::core::force_module::AppliedLoad::Service(const double*, double*) {
 void shift::core::force_module::AppliedLoad::UpdateOutputs(double t,
                                                            const double*) {
   output_scale_ = Scale(t);
-}
-
-std::vector<std::string>
-shift::core::force_module::AppliedLoad::get_output_names() const {
-  return {"scale"};
-}
-
-void shift::core::force_module::AppliedLoad::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(output_scale_);
 }

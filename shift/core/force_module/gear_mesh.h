@@ -192,9 +192,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the number of pairs of teeth in contact, \f$m(x) + 1\f$, smooth: 2
    * for the fraction contact_ratio - 1 of the mesh, centered on \f$x = 0\f$, and 1

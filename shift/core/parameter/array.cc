@@ -3,11 +3,15 @@
 #include "shift/core/force_module/contact.h"
 #include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
+#include "shift/core/logger/base.h"
 #include "shift/core/terrain/soil_map.h"
+#include "shift/core/terrain/surface_texture.h"
 
 /* define specializations of Array class */
 template class shift::core::parameter::Array<shift::core::Assembly>;
 template class shift::core::parameter::Array<shift::core::Frame>;
+template class shift::core::parameter::Array<
+  shift::core::logger::LoggedComponent>;
 template class shift::core::parameter::Array<
   shift::core::force_module::ContactMaterial>;
 template class shift::core::parameter::Array<
@@ -22,6 +26,8 @@ template class shift::core::parameter::Array<
   shift::core::force_module::TrackSpan>;
 template class shift::core::parameter::Array<
   shift::core::terrain::MappedSoil>;
+template class shift::core::parameter::Array<
+  shift::core::terrain::SurfaceTexture>;
 
 template <class T>
 void shift::core::parameter::Array<T>::ReadJSON(Json::Value& json_array) {

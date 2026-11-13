@@ -33,6 +33,13 @@ the trailing arms of either side.
 matches "mesh" by "translation" (vehicle coordinates) before they are cut and
 split, e.g. wheels modelled lower than the hubs of the suspension.
 
+"images" (optional) replace images of the source, by name (as Blender names
+them on import: usually the file name, e.g. "plate_baseColor.png"), with
+image files, by
+paths relative to the configuration file, e.g. a license plate drawn by the
+example's generator. The replacement is mapped as the image it replaces, so it
+must be laid out the same way.
+
 {
   "scale": 1.0,
   "axes": [[0, 1, 0], [1, 0, 0], [0, 0, -1]],
@@ -177,6 +184,15 @@ def main():
                        "%6.3f) faces=%d" % ((body, p["source"][:40]) +
                        tuple((lo + hi) / 2) + tuple(hi - lo) +
                        (len(p.data.polygons),)))
+
+    for name, path in config.get("images", {}).items():
+        if name not in bpy.data.images:
+            raise SystemExit("no image " + name + " in the source; it has " +
+                             ", ".join(i.name for i in bpy.data.images))
+        # the source's images are packed on import: load the replacement and
+        # point every user of the source's image to it
+        bpy.data.images[name].user_remap(bpy.data.images.load(os.path.join(
+            os.path.dirname(os.path.abspath(config_path)), path)))
 
     largest = config.get("max_texture_size", 0)
     for image in bpy.data.images:

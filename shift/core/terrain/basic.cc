@@ -53,6 +53,16 @@ void shift::core::terrain::Basic::DeclareParameters() {
                "strength of the normal map: its slopes are multiplied by "
                "this factor; defaults to 1",
                false);
+  DeclareParameter("texture_variation", &texture_variation_,
+               "break up the repetition of the texture in the viewer: tiles "
+               "shifted by random amounts in patches, and the brightness "
+               "varied over tens of meters; defaults to false",
+               false);
+  DeclareParameter("surfaces", &surfaces_,
+               "other textures drawn over the terrain's in patches, at most "
+               "2, each with \"texture_filename\", \"coverage\" and "
+               "\"patch_size\" (see terrain::SurfaceTexture); optional",
+               false);
   DeclareParameter(
     "coordinate_type", &coordinate_type_,
     "specify coordinate convention to be used in model: acceptable values are "
@@ -186,6 +196,28 @@ void shift::core::terrain::Basic::Load() {
     } catch(const shift::core::Exception& e) {
       SHIFT_WARNING(std::string(e.what()) + "; drawn without a normal map");
     }
+  }
+  /* the surfaces, like the texture, only change the look */
+  const std::string owner = "Terrain " + get_name();
+  if(int(surfaces_.get_data().size()) > kMaxSurfaces) {
+    throw shift::core::Exception(owner + ": at most " +
+                                 std::to_string(kMaxSurfaces) +
+                                 " surfaces can be drawn");
+  }
+  surface_list_.clear();
+  for(auto& surface : surfaces_.get_data()) {
+    surface->Check(owner);
+    std::string texture, normal_map;
+    try {
+      texture = FindFile(surface->get_texture_filename());
+      if(!surface->get_normal_map_filename().empty()) {
+        normal_map = FindFile(surface->get_normal_map_filename());
+      }
+    } catch(const shift::core::Exception& e) {
+      SHIFT_WARNING(std::string(e.what()) + "; drawn without it");
+    }
+    surface->set_paths(texture, normal_map);
+    surface_list_.push_back(surface.get());
   }
 }
 

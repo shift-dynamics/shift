@@ -21,6 +21,9 @@ class Context;
 namespace body {
 class Base;
 }
+namespace light {
+class Base;
+}
 namespace terrain {
 class Scm;
 }
@@ -235,6 +238,9 @@ private:
   /*! the first of deltas_ of each knot point, which lead to it from the
    * previous one */
   std::vector<size_t> knot_deltas_;
+  /*! the intensity of each light of the scene at each knot point,
+   * light_sources_.size() each */
+  std::vector<float> light_values_;
   double wall_start_ = 0.0;
   double real_time_factor_ = 0.0;
 
@@ -244,6 +250,9 @@ private:
   double shown_time_ = 0.0;
   Poses poses_;
   bool poses_changed_ = false;
+  /*! the light of the model of each of the scene's lights */
+  std::vector<const shift::core::light::Base*> light_sources_;
+  std::vector<float> shown_lights_; /*!< their intensities at the time shown */
   std::vector<ScmView> scm_views_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */

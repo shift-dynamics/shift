@@ -172,6 +172,11 @@ public:
     return active_sensors_;
   }
 
+  const std::vector<shift::core::controller::Base*>&
+  get_active_controllers() const {
+    return active_controllers_;
+  }
+
   const std::vector<int>& get_pcl() const {
     return pcl_;
   }
@@ -185,6 +190,9 @@ public:
     return active_articulated_bodies_;
   }
 
+  const std::vector<solver::Base*>& get_active_solvers() const {
+    return active_solvers_;
+  }
   const std::vector<integrator::Base*>& get_active_integrators() const {
     return active_integrators_;
   }
@@ -809,6 +817,10 @@ private:
    * file from other data sources */
   void LoadData();
   void LoadExactShapes();
+
+  /*! \brief add a floating joint from the fixed body to each part of the
+   * model that no path of joints joins to the fixed body */
+  void AddFloatingJoints();
 
   /*! \brief sort active bodies and joints by level increasing order in
    * spanning tree

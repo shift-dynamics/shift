@@ -1,6 +1,8 @@
 /* the model tree of the viewer follows the nesting of the model file, and the
 parameters panel lists every parameter of the selected object */
 #include "shift/config.h"
+#include "shift/gui/settings.h"
+#include "shift/gui/viewport.h"
 #include "shift/gui/workspace.h"
 
 #include <gtest/gtest.h>
@@ -8,13 +10,17 @@ parameters panel lists every parameter of the selected object */
 #include <json/json.h>
 
 #include <QApplication>
+#include <QColor>
 #include <QDoubleSpinBox>
+#include <QVector4D>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QTreeWidgetItemIterator>
 #include <QTreeWidget>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -376,4 +382,316 @@ TEST(WorkspaceTree, SavedModelKeepsTheOrderOfArrays) {
   ArrayOrders(expected, "", expected_orders);
   EXPECT_EQ(saved_orders, expected_orders);
   EXPECT_EQ(saved, expected);
+}
+
+/* the frames on the bodies the viewport draws */
+static size_t FramesShown(const shift::gui::Workspace& workspace) {
+  return workspace.get_viewport()->get_frame_axes().size();
+}
+
+/* whether the axes of an item are shown: 0 no, 1 yes, 2 some of a folder's;
+-1 if it has no eye */
+static int Eye(const QTreeWidgetItem* item) {
+  const QVariant visible = item->data(0, Qt::UserRole + 4);
+  return visible.isValid() ? visible.toInt() : -1;
+}
+
+/* click the eye of an item, as the user does: along the row from its left
+until a click changes it; the icon before the eye takes no clicks */
+static void ClickEye(QTreeWidget* tree, QTreeWidgetItem* item) {
+  tree->scrollToItem(item);
+  const QRect rect = tree->visualItemRect(item);
+  const int before = Eye(item);
+  for(int x = rect.left(); x < rect.left() + 120; x += 2) {
+    const QPointF point(x, rect.center().y());
+    for(QEvent::Type type :
+        {QEvent::MouseButtonPress, QEvent::MouseButtonRelease}) {
+      QMouseEvent event(type, point, tree->viewport()->mapToGlobal(point),
+                        Qt::LeftButton,
+                        type == QEvent::MouseButtonPress ? Qt::LeftButton
+                                                         : Qt::NoButton,
+                        Qt::NoModifier);
+      QApplication::sendEvent(tree->viewport(), &event);
+    }
+    if(Eye(item) != before) {
+      return;
+    }
+  }
+  ADD_FAILURE() << "no eye on " << item->text(0).toStdString();
+}
+
+TEST(WorkspaceTree, EyeShowsTheAxesOfFrames) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/force_modules/gear_mesh.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+
+  // the frames of the fixed body and of each body, all hidden at first;
+  // bodies have an eye, shown; the model file has none
+  QTreeWidgetItem* root = tree->topLevelItem(0);
+  QTreeWidgetItem* fixed_frames = Child(root, "frames");
+  ASSERT_TRUE(fixed_frames);
+  EXPECT_EQ(Eye(fixed_frames), 0);
+  QTreeWidgetItem* axis_2 = Child(fixed_frames, "axis_2");
+  ASSERT_TRUE(axis_2);
+  EXPECT_EQ(Eye(axis_2), 0);
+  QTreeWidgetItem* pinion = FindItem(tree, "pinion");
+  ASSERT_TRUE(pinion);
+  QTreeWidgetItem* pinion_frames = Child(pinion, "frames");
+  ASSERT_TRUE(pinion_frames);
+  EXPECT_EQ(Eye(pinion_frames), 0);
+  EXPECT_EQ(Eye(Child(pinion_frames, "origin")), 0);
+  EXPECT_EQ(Eye(pinion), 1);
+  EXPECT_EQ(Eye(root), -1);
+  EXPECT_EQ(FramesShown(workspace), 0u);
+
+  // one frame
+  ClickEye(tree, axis_2);
+  EXPECT_EQ(Eye(axis_2), 1);
+  ASSERT_EQ(FramesShown(workspace), 1u);
+  const auto& shown = workspace.get_viewport()->get_frame_axes().front();
+  EXPECT_EQ(shown.body_index, 0);
+  EXPECT_FLOAT_EQ(shown.frame(0, 3), 0.15f);
+  EXPECT_EQ(Eye(fixed_frames), Child(fixed_frames, "origin") ? 2 : 1);
+
+  // a folder shows all of its frames, then hides them
+  ClickEye(tree, pinion_frames);
+  EXPECT_EQ(Eye(pinion_frames), 1);
+  EXPECT_EQ(Eye(Child(pinion_frames, "origin")), 1);
+  const size_t with_pinion = FramesShown(workspace);
+  EXPECT_EQ(with_pinion, 1u + pinion_frames->childCount());
+
+  // the frames shown stay shown when an edit loads the model again
+  tree->setCurrentItem(FindItem(tree, "mesh (gear_mesh)"));
+  EditParameter(parameters, "pitch_radius_1", "0.06");
+  EXPECT_EQ(FramesShown(workspace), with_pinion);
+  pinion_frames = Child(FindItem(tree, "pinion"), "frames");
+  EXPECT_EQ(Eye(pinion_frames), 1);
+
+  ClickEye(tree, pinion_frames);
+  EXPECT_EQ(Eye(pinion_frames), 0);
+  EXPECT_EQ(FramesShown(workspace), 1u);
+
+  // opening a model shows none
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/force_modules/gear_mesh.json", &error));
+  EXPECT_EQ(FramesShown(workspace), 0u);
+}
+
+TEST(WorkspaceTree, EyeShowsJointAxesAndHidesBodies) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/joints/screw_and_gear.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  const shift::gui::Viewport* viewport = workspace.get_viewport();
+
+  // joints with an axis have an eye, hidden at first; a rigid joint has none
+  QTreeWidgetItem* bearing = FindItem(tree, "gear_a_bearing (revolute)");
+  QTreeWidgetItem* gear = FindItem(tree, "gear_a_to_gear_b (gear)");
+  QTreeWidgetItem* screw = FindItem(tree, "screw_right (screw)");
+  QTreeWidgetItem* rigid = FindItem(tree, "board_fixed (rigid)");
+  ASSERT_TRUE(bearing && gear && screw && rigid);
+  EXPECT_EQ(Eye(bearing), 0);
+  EXPECT_EQ(Eye(gear), 0);
+  EXPECT_EQ(Eye(screw), 0);
+  EXPECT_EQ(Eye(rigid), -1);
+  EXPECT_TRUE(viewport->get_joint_axes().empty());
+
+  // a revolute joint: one line, along the z axis of its parent frame on the
+  // fixed body
+  ClickEye(tree, bearing);
+  ASSERT_EQ(viewport->get_joint_axes().size(), 1u);
+  EXPECT_EQ(viewport->get_joint_axes()[0].body_index, 0);
+  EXPECT_EQ(Eye(bearing->parent()), 2);
+
+  // a gear joint: the axes of both gears, on their bodies
+  ClickEye(tree, gear);
+  ASSERT_EQ(viewport->get_joint_axes().size(), 3u);
+  const int gear_a = viewport->get_joint_axes()[1].body_index;
+  const int gear_b = viewport->get_joint_axes()[2].body_index;
+  EXPECT_NE(gear_a, 0);
+  EXPECT_NE(gear_b, 0);
+  EXPECT_NE(gear_a, gear_b);
+  // in the world the axis of gear a is that of its bearing: the same line
+  // (the poses come with the first frame drawn, which offscreen never is)
+  const_cast<shift::gui::Viewport*>(viewport)->UpdatePoses();
+  shift::gui::Poses poses;
+  viewport->get_poses(poses);
+  ASSERT_FALSE(poses.bodies.empty());
+  auto world = [&](const shift::gui::Viewport::JointAxis& axis) {
+    const QMatrix4x4 pose = poses.bodies[axis.body_index] * axis.line;
+    return std::make_pair(pose.column(3).toVector3D(),
+                          pose.column(2).toVector3D());
+  };
+  const auto [bearing_point, bearing_axis] =
+    world(viewport->get_joint_axes()[0]);
+  const auto [gear_point, gear_axis] = world(viewport->get_joint_axes()[1]);
+  EXPECT_NEAR(std::fabs(QVector3D::dotProduct(bearing_axis, gear_axis)), 1.f,
+              1e-5f);
+  EXPECT_NEAR((bearing_point - gear_point).length(), 0.f, 1e-5f);
+
+  // the joint color, purple
+  EXPECT_NEAR(viewport->get_joint_color().x(), 0xa0 / 255.f, 1e-6f);
+
+  // hiding a body; then all of them with their folder, and back
+  QTreeWidgetItem* body = FindItem(tree, "gear_a");
+  ASSERT_TRUE(body);
+  EXPECT_EQ(Eye(body), 1);
+  ClickEye(tree, body);
+  EXPECT_EQ(Eye(body), 0);
+  const std::vector<bool>& hidden = viewport->get_hidden_bodies();
+  ASSERT_EQ(std::count(hidden.begin(), hidden.end(), true), 1);
+  EXPECT_TRUE(hidden[gear_a]);
+  EXPECT_EQ(Eye(body->parent()), 2);
+  ClickEye(tree, body->parent());
+  EXPECT_EQ(Eye(body->parent()), 1);
+  EXPECT_EQ(std::count(viewport->get_hidden_bodies().begin(),
+                       viewport->get_hidden_bodies().end(), true),
+            0);
+  ClickEye(tree, body->parent());
+  EXPECT_EQ(std::count(viewport->get_hidden_bodies().begin(),
+                       viewport->get_hidden_bodies().end(), true),
+            body->parent()->childCount());
+}
+
+/* the world direction of the arrow of joint axis i, +z of its line */
+static QVector3D ArrowDirection(shift::gui::Workspace& workspace, size_t i) {
+  auto* viewport = const_cast<shift::gui::Viewport*>(workspace.get_viewport());
+  viewport->UpdatePoses();
+  shift::gui::Poses poses;
+  viewport->get_poses(poses);
+  const auto& axis = viewport->get_joint_axes().at(i);
+  return (poses.bodies.at(axis.body_index) * axis.line)
+    .column(2)
+    .toVector3D()
+    .normalized();
+}
+
+TEST(WorkspaceTree, JointArrowPointsAlongTheGivenAxis) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/joints/screw_and_gear.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  QTreeWidgetItem* bearing = FindItem(tree, "gear_a_bearing (revolute)");
+  ASSERT_TRUE(bearing);
+  ClickEye(tree, bearing);
+  ASSERT_EQ(workspace.get_viewport()->get_joint_axes().size(), 1u);
+  const QVector3D given = ArrowDirection(workspace, 0);
+
+  // the axis the file gives, reversed: the arrow turns around
+  tree->setCurrentItem(bearing);
+  EditParameter(parameters, "axis", "[0, 0, -1]");
+  ASSERT_EQ(workspace.get_viewport()->get_joint_axes().size(), 1u);
+  EXPECT_NEAR(QVector3D::dotProduct(ArrowDirection(workspace, 0), given),
+              -1.f, 1e-5f);
+}
+
+TEST(WorkspaceTree, SettingsPersist) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  const std::string path =
+    (std::filesystem::current_path() / "settings" / "settings.json").string();
+  std::filesystem::remove_all(std::filesystem::current_path() / "settings");
+
+  // no file yet: the defaults
+  shift::gui::Settings settings;
+  ASSERT_TRUE(settings.Load(path));
+  EXPECT_EQ(settings.get_frame_scale(),
+            shift::gui::Settings::kDefaultFrameScale);
+
+  // saved, with its directory made, keeping keys it does not know
+  settings.set_frame_scale(0.5);
+  ASSERT_TRUE(settings.Save(path));
+  {
+    std::ifstream file(path);
+    Json::Value json;
+    file >> json;
+    json["from_a_later_version"] = 7;
+    std::ofstream(path) << json;
+  }
+  shift::gui::Settings read;
+  ASSERT_TRUE(read.Load(path));
+  EXPECT_EQ(read.get_frame_scale(), 0.5);
+  read.set_frame_scale(0.75);
+  ASSERT_TRUE(read.Save(path));
+  std::ifstream file(path);
+  Json::Value json;
+  file >> json;
+  EXPECT_EQ(json["frame_scale"].asDouble(), 0.75);
+  EXPECT_EQ(json["joint_color"].asString(), "#a040e0");
+  EXPECT_EQ(json["joint_thickness"].asDouble(),
+            shift::gui::Settings::kDefaultJointThickness);
+  EXPECT_EQ(json["from_a_later_version"].asInt(), 7);
+
+  // the joint color, as #rrggbb
+  read.set_joint_color(QColor(0x20, 0x80, 0x40));
+  ASSERT_TRUE(read.Save(path));
+  shift::gui::Settings colored;
+  ASSERT_TRUE(colored.Load(path));
+  EXPECT_EQ(colored.get_joint_color(), QColor(0x20, 0x80, 0x40));
+  std::ofstream(path) << "{\"joint_color\": \"not a color\"}";
+  shift::gui::Settings bad_color;
+  EXPECT_FALSE(bad_color.Load(path));
+  EXPECT_EQ(bad_color.get_joint_color(),
+            shift::gui::Settings::get_default_joint_color());
+
+  // the thickness of the joint axes
+  read.set_joint_thickness(0.02);
+  ASSERT_TRUE(read.Save(path));
+  shift::gui::Settings thick;
+  ASSERT_TRUE(thick.Load(path));
+  EXPECT_EQ(thick.get_joint_thickness(), 0.02);
+  std::ofstream(path) << "{\"joint_thickness\": 0}";
+  shift::gui::Settings bad_thickness;
+  std::string thickness_error;
+  EXPECT_FALSE(bad_thickness.Load(path, &thickness_error));
+  EXPECT_NE(thickness_error.find("joint_thickness"), std::string::npos);
+
+  // a bad value is reported and the defaults kept
+  std::ofstream(path) << "{\"frame_scale\": -1}";
+  shift::gui::Settings bad;
+  std::string error;
+  EXPECT_FALSE(bad.Load(path, &error));
+  EXPECT_NE(error.find("frame_scale"), std::string::npos);
+  EXPECT_EQ(bad.get_frame_scale(), shift::gui::Settings::kDefaultFrameScale);
+
+  // the viewer reads ~/.shift/settings.json at start
+  const QByteArray home = qgetenv("HOME");
+  const std::filesystem::path fake_home =
+    std::filesystem::current_path() / "home";
+  std::filesystem::remove_all(fake_home);
+  qputenv("HOME", QByteArray::fromStdString(fake_home.string()));
+  shift::gui::Settings saved;
+  saved.set_frame_scale(1.5);
+  saved.set_joint_color(QColor(255, 0, 0));
+  saved.set_joint_thickness(0.03);
+  ASSERT_TRUE(saved.Save(shift::gui::Settings::get_default_path()));
+  EXPECT_TRUE(std::filesystem::exists(fake_home / ".shift" / "settings.json"));
+  {
+    shift::gui::Workspace workspace;
+    EXPECT_EQ(workspace.get_settings().get_frame_scale(), 1.5);
+    EXPECT_EQ(workspace.get_viewport()->get_frame_axes_scale(), 1.5f);
+    EXPECT_EQ(workspace.get_viewport()->get_joint_color(),
+              QVector3D(1.f, 0.f, 0.f));
+    EXPECT_EQ(workspace.get_viewport()->get_joint_thickness(), 0.03f);
+  }
+  qputenv("HOME", home);
 }

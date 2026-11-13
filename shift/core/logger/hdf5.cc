@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 
 #include "shift/core/context.h"
 #include "shift/core/factory.h"
@@ -185,36 +186,22 @@ void shift::core::logger::HDF5::WriteStates(const double t,
         }
         offset += count;
       }
-      outputs_.clear();
-      H5::Group modules = hdf5_file_.createGroup("/force_modules");
-      for(auto& module : context_->get_active_force_modules()) {
-        const auto names = module->get_output_names();
-        if(names.empty()) {
-          continue;
-        }
-        H5::Group group =
-          modules.createGroup(module->FullyQualifiedName(module->get_name()));
-        for(const auto& name : names) {
-          outputs_.push_back(CreateSeries(group, name, 0));
-        }
+    }
+    /* /<kind>/<component>/<output> of each output the logger is connected
+    to (ConnectOutputs); /force_modules is always there */
+    outputs_.clear();
+    std::map<std::string, H5::Group> groups;
+    groups["/force_modules"] = hdf5_file_.createGroup("/force_modules");
+    for(const auto& channel : channels_) {
+      const std::string kind = "/" + channel.kind;
+      const std::string name = kind + "/" + channel.component;
+      if(!groups.count(kind)) {
+        groups[kind] = hdf5_file_.createGroup(kind);
       }
-      H5::Group sensors;
-      bool have_sensors = false;
-      for(auto& sensor : context_->get_active_sensors()) {
-        const auto names = sensor->get_output_names();
-        if(names.empty()) {
-          continue;
-        }
-        if(!have_sensors) {
-          sensors = hdf5_file_.createGroup("/sensors");
-          have_sensors = true;
-        }
-        H5::Group group =
-          sensors.createGroup(sensor->FullyQualifiedName(sensor->get_name()));
-        for(const auto& name : names) {
-          outputs_.push_back(CreateSeries(group, name, 0));
-        }
+      if(!groups.count(name)) {
+        groups[name] = groups[kind].createGroup(channel.component);
       }
+      outputs_.push_back(CreateSeries(groups[name], channel.output, 0));
     }
   }
   if(rows_ == 0) {
@@ -225,19 +212,10 @@ void shift::core::logger::HDF5::WriteStates(const double t,
   for(size_t k = 0; k < states_.size(); k++) {
     Append(states_[k], y.data() + state_offsets_[k]);
   }
-  if(!outputs_.empty()) {
-    /* the force modules' outputs of y, see Context::WriteStates */
-    output_values_.clear();
-    for(auto& module : context_->get_active_force_modules()) {
-      module->AppendOutputs(output_values_);
-    }
-    for(auto& sensor : context_->get_active_sensors()) {
-      sensor->AppendOutputs(output_values_);
-    }
-    assert(output_values_.size() == outputs_.size());
-    for(size_t k = 0; k < outputs_.size(); k++) {
-      Append(outputs_[k], &output_values_[k]);
-    }
+  /* the outputs of y, see Context::WriteStates */
+  assert(channels_.size() == outputs_.size());
+  for(size_t k = 0; k < outputs_.size(); k++) {
+    Append(outputs_[k], channels_[k].value);
   }
   rows_++;
   hdf5_file_.flush(H5F_SCOPE_LOCAL);

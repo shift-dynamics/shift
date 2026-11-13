@@ -24,6 +24,22 @@ struct Vertex {
 
 /*! \brief triangle mesh in body (origin frame) coordinates with its
  * material, uploaded once and drawn for each of its SceneInstance */
+/*! \brief a texture drawn over a triplanar mesh's own in patches where a
+ * noise of the body x, y is above level (SurfaceNoiseLevel) */
+struct SceneSurface {
+  int base_color_layer = -1; /*!< in Scene::texture_layers, sRGB */
+  int normal_layer = -1;     /*!< tangent space, -1 if none */
+  float normal_scale = 1.f;
+  float texture_scale = 1.f; /*!< tile size (m) */
+  float patch_size = 10.f;   /*!< size of the patches (m) */
+  float level = 1.f;         /*!< noise level above which it shows */
+};
+
+/*! \brief the noise level above which surface number surface (0 or 1) of
+ * a mesh covers the fraction coverage of it: a quantile of the noise of
+ * surfaces.glsl (Fbm), which this repeats */
+float SurfaceNoiseLevel(int surface, double coverage);
+
 struct SceneMesh {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
@@ -40,9 +56,21 @@ struct SceneMesh {
   float normal_scale = 1.f;
   bool triplanar = false; /*!< project along the body axes instead of uv */
   float texture_scale = 1.f; /*!< triplanar tile size */
+  /*! triplanar textures: shift their tiles at random in patches, and vary
+   * the brightness, so that the tiles do not show */
+  bool texture_variation = false;
+  /*! triplanar: textures drawn over the mesh's own in patches
+   * (shift::core::terrain::SurfaceTexture), at most two */
+  std::vector<SceneSurface> surfaces;
 
   QVector3D bounds_min;
   QVector3D bounds_max;
+
+  /*! the light (Scene::lights) the mesh glows with, -1 if none
+   * (shift::core::light::Base::get_glow): its color times the light's
+   * diffuse color and intensity is added to its shading. Bodies that load
+   * the same files share the mesh, and so the glow */
+  int glow_light = -1;
 
   /*! the terrain (Scene::terrains) the mesh triangulates, -1 if none: it is
    * drawn tessellated from the terrain's maps where the device can, and as
@@ -82,8 +110,10 @@ struct SceneLight {
   int body_index = 0;
   QMatrix4x4 frame; /*!< light frame with respect to the body origin */
   QVector3D ambient;  /*!< Ka */
-  QVector3D diffuse;  /*!< Kd times intensity */
-  QVector3D specular; /*!< Ks times intensity */
+  QVector3D diffuse;  /*!< Kd */
+  QVector3D specular; /*!< Ks */
+  float intensity = 1.f; /*!< factor of diffuse and specular at the start;
+                          * Poses::lights at the time shown */
   QVector3D attenuation{1.f, 0.f, 0.f}; /*!< c, l, q */
   float cone_angle = 0.f;       /*!< spot: half angle (rad) */
   float inner_cone_angle = 0.f; /*!< spot: half angle of full light */
@@ -158,6 +188,9 @@ private:
 struct Poses {
   double time = 0.0;
   std::vector<QMatrix4x4> bodies;
+  /*! the intensity of each of Scene::lights at the time (a controller may
+   * change it, as a brake lamp); empty: SceneLight::intensity */
+  std::vector<float> lights;
 };
 
 /*! \brief a rectangle of control points of a terrain (SceneTerrain) that

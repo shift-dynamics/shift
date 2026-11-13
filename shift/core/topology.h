@@ -3,6 +3,7 @@
 
 #include <assert.h>
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -284,6 +285,19 @@ bool IsSubstructureMember(int, std::vector<std::vector<int>>&);
 */
 void SetInversePermutation(const std::vector<int>& p,
                            std::vector<int>& pInverse);
+
+/*!
+\brief Find the floating parts of a model: the groups of bodies that no path
+of joints joins to the fixed body
+\param body_count number of bodies, indexed 0, ..., body_count - 1
+\param joint_bodies the two bodies of each joint; -1 is the fixed body
+\return for each floating part, in the order of its lowest body index, the
+index of its body with the most joints (the lowest index among equals); a
+body with no joints at all is a floating part of its own
+*/
+std::vector<int>
+FindFloatingRoots(int body_count,
+                  const std::vector<std::array<int, 2>>& joint_bodies);
 
 std::string GetJointType(dh_fptr f);
 

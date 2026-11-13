@@ -27,10 +27,13 @@ At each output time step the logger appends a row to each of:
   joint's offsets into them; /states/free: the states of the free bodies
   (body::Free), where the model has them, so that q, dq and free are the
   whole state of the integrators (Context::get_state_count)
-- /force_modules/\<assembly\>__\<name\>/\<output\>: each output of each force module (such
-  as a cylinder's head_pressure or force), one value per row
-- /sensors/\<assembly\>__\<name\>/\<output\>: each output of each sensor that has
-  outputs (such as the pose of a frame of a Marker), one value per row
+- /force_modules/\<assembly\>__\<name\>/\<output\>: each output of a force
+  module that the logger records (such as a cylinder's head_pressure or
+  force; see Base::ConnectOutputs), one value per row
+- /sensors/\<assembly\>__\<name\>/\<output\> and
+  /controllers/\<assembly\>__\<name\>/\<output\>: the same, of the sensors
+  (such as the pose of a frame of a Marker) and the controllers, where the
+  logger records any
 - /terrain/\<name\>, for each deformable terrain (terrain::Scm): the nodes
   whose levels changed at each output time, not the whole grid. Its
   attributes node_count ([nx, ny]), x0, y0 and spacing place node (i, j) at
@@ -117,8 +120,7 @@ private:
   Series time_;
   std::vector<Series> states_;  //!< q and dq, where the model has them
   std::vector<size_t> state_offsets_, state_counts_;
-  std::vector<Series> outputs_; //!< one per output of each force module
-  std::vector<double> output_values_;
+  std::vector<Series> outputs_; //!< one per channel
 
   /*! \brief the changes of the levels of a deformable terrain */
   struct TerrainLog {

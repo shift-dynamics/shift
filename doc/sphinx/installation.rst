@@ -31,6 +31,7 @@ assimp                    loading meshes (OBJ, glTF, ...)
 graphviz (libgvc)         drawing the body and frame graphs
 hdf5 (C++)                the HDF5 logger
 cblas                     dense linear algebra
+LAPACKE                   eigenvalues of ``shift-cli --linearize``
 qhull                     convex hulls for collision geometry
 libtiff                   terrain elevation maps
 OpenMP, threads

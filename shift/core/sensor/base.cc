@@ -30,3 +30,10 @@ void shift::core::sensor::Base::ActivateObjects(bool parent_is_active) {
   assert(context_);
   context_->ActivateObject(this, parent_is_active && active_);
 }
+
+void shift::core::sensor::Base::DeclareSignalOutputs() {
+  DeclareOutput("value", &value_, "the signal the sensor measures");
+  if(has_rate_) {
+    DeclareOutput("rate", &rate_, "the time derivative of the signal");
+  }
+}

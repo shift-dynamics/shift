@@ -1,0 +1,162 @@
+{
+  "comment": "bodies of examples/polo_r_wrc/polo_r_wrc.json from the Volkswagen Polo R WRC glTF (see examples/polo_r_wrc/readme.rst), for ../split_vehicle_gltf.py. The source is in meters, with its front at -y and its left at +x after Blender's import; the tires touch z = 0. The source's glow of the position lights, front and back, carries headlight beams that reach about 1 m ahead of the bumper; it goes to the body beams, which the model does not use (the tail lights keep their own glow). The glow of the brake lights goes to brake_lamps, from which generate_polo_r_wrc.py cuts the lenses that light up as the car brakes. The license plate texture is replaced with polo_r_wrc_plate.png, written by generate_polo_r_wrc.py.",
+  "scale": 1.0,
+  "axes": [
+    [
+      0,
+      -1,
+      0
+    ],
+    [
+      -1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1
+    ]
+  ],
+  "max_texture_size": 1024,
+  "image_format": "JPEG",
+  "images": {
+    "Material.003_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_plate.png"
+  },
+  "default": "chassis",
+  "mirror": [
+    "right_",
+    "left_"
+  ],
+  "bodies": {
+    "chassis": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "right_front_wheel": [
+      1.205,
+      0.7475,
+      -0.314
+    ],
+    "left_front_wheel": [
+      1.205,
+      -0.7475,
+      -0.314
+    ],
+    "right_rear_wheel": [
+      -1.205,
+      0.7475,
+      -0.314
+    ],
+    "left_rear_wheel": [
+      -1.205,
+      -0.7475,
+      -0.314
+    ],
+    "right_front_knuckle": [
+      1.205,
+      0.66,
+      -0.314
+    ],
+    "left_front_knuckle": [
+      1.205,
+      -0.66,
+      -0.314
+    ],
+    "right_rear_knuckle": [
+      -1.205,
+      0.66,
+      -0.314
+    ],
+    "left_rear_knuckle": [
+      -1.205,
+      -0.66,
+      -0.314
+    ],
+    "beams": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "brake_lamps": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "rules": [
+    {
+      "body": "right_front_wheel",
+      "mesh": "WheelF[LR]",
+      "box": [
+        0.8,
+        1.6,
+        0.55,
+        0.95,
+        -0.7,
+        0.05
+      ]
+    },
+    {
+      "body": "right_front_knuckle",
+      "mesh": "caliper_F[LR]",
+      "box": [
+        0.8,
+        1.6,
+        0.55,
+        0.95,
+        -0.7,
+        0.05
+      ]
+    },
+    {
+      "body": "right_rear_wheel",
+      "mesh": "WheelB[LR]",
+      "box": [
+        -1.6,
+        -0.8,
+        0.55,
+        0.95,
+        -0.7,
+        0.05
+      ]
+    },
+    {
+      "body": "right_rear_knuckle",
+      "mesh": "caliper_B[LR]",
+      "box": [
+        -1.6,
+        -0.8,
+        0.55,
+        0.95,
+        -0.7,
+        0.05
+      ]
+    },
+    {
+      "body": "beams",
+      "mesh": "lights_position_front_and_back",
+      "box": [
+        -3.0,
+        4.0,
+        -2.0,
+        2.0,
+        -3.0,
+        1.0
+      ]
+    },
+    {
+      "body": "brake_lamps",
+      "mesh": "lights_brakes",
+      "box": [
+        -3.0,
+        4.0,
+        -2.0,
+        2.0,
+        -3.0,
+        1.0
+      ]
+    }
+  ]
+}

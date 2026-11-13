@@ -1,6 +1,7 @@
 #include "shift/core/controller/base.h"
 #include "shift/core/context.h"
 #include "shift/core/controller/ik7dof.h"
+#include "shift/core/controller/map.h"
 #include "shift/core/controller/pid.h"
 #include "shift/core/controller/schedule.h"
 
@@ -9,7 +10,8 @@ registration, in the static library */
 bool shift::core::controller::Modules::is_initialized() {
   return shift::core::controller::IK7DOF::is_registered() &&
          shift::core::controller::PID::is_registered() &&
-         shift::core::controller::Schedule::is_registered();
+         shift::core::controller::Schedule::is_registered() &&
+         shift::core::controller::Map::is_registered();
 }
 
 void shift::core::controller::Base::DeclareParameters() {

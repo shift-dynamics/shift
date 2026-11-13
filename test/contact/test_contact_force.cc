@@ -260,9 +260,11 @@ TEST(ContactForce, ArchardWear) {
     }
   }
   ASSERT_NE(contact, nullptr);
-  const auto names = contact->get_output_names();
+  const auto names = contact->get_output_keys();
   std::vector<double> worn;
-  contact->AppendOutputs(worn);
+  for(const auto& key : contact->get_output_keys()) {
+    worn.push_back(contact->GetOutput(key));
+  }
   ASSERT_EQ(names.size(), 2u);
   ASSERT_EQ(worn.size(), 2u);
   for(size_t i = 0; i < names.size(); i++) {

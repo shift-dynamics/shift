@@ -144,6 +144,7 @@ void shift::core::Context::PostLoad(const std::string) {
   /* process topology */
   ActivateObjects(true);
   Connect();
+  AddFloatingJoints();
   LevelOrderSort();
   ProcessVirtualBodies();
   ProcessPCL();
@@ -177,7 +178,10 @@ void shift::core::Context::PostLoad(const std::string) {
 }
 
 void shift::core::Context::ActivateLoggers() {
+  /* every component has declared its outputs by now, in its Load or
+  Connect */
   for(auto& logger : active_loggers_) {
+    logger->ConnectOutputs();
     logger->Initialize();
   }
 }
@@ -964,6 +968,42 @@ void shift::core::Context::LoadData() {
     collision_geometry->Load();
   }
   LoadExactShapes();
+}
+
+void shift::core::Context::AddFloatingJoints() {
+  /* index the articulated bodies; joints to other bodies (a free body, which
+  may have no joints, see SetupFreeBodies) are left to the checks there */
+  std::unordered_map<const shift::core::body::Base*, int> index;
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    index[active_articulated_bodies_[i]] = static_cast<int>(i);
+  }
+  index[get_fixed_body()] = -1;
+  std::vector<std::array<int, 2>> joint_bodies;
+  for(auto& joint : active_joints_) {
+    const auto parent = index.find(joint->get_parent_body());
+    const auto child = index.find(joint->get_child_body());
+    if(parent != index.end() && child != index.end()) {
+      joint_bodies.push_back({parent->second, child->second});
+    }
+  }
+
+  const std::vector<int> roots = shift::core::topology::FindFloatingRoots(
+    static_cast<int>(active_articulated_bodies_.size()), joint_bodies);
+  for(const int root : roots) {
+    auto* body = active_articulated_bodies_[root];
+    auto joint =
+      shift::core::Factory<shift::core::joint::Base>::get()->Create("float");
+    joint->set_name("_float_joint[" + std::to_string(joints_.size()) + "]");
+    joint->set_type("float");
+    joint->set_context(this);
+    joint->Attach(get_fixed_body(), get_fixed_body()->get_origin(), body,
+                  body->get_origin());
+    SHIFT_INFO("No joints connect body '" + body->get_name() +
+               "' to the fixed body; added floating joint '" +
+               joint->get_name() + "' from the origin of fixed to its origin");
+    active_joints_.push_back(joint.get());
+    joints_.push_back(std::move(joint));
+  }
 }
 
 void shift::core::Context::LevelOrderSort() {
@@ -3506,8 +3546,16 @@ void shift::core::Context::get_current_time(double& time, double& delta_time) {
 
 void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
-  /* the force modules' outputs (pressures, forces) of this state, then the
-  sensors', which may report the forces */
+  /* the outputs of this state: the sensors' signals, then the controllers',
+  which read them and set the inputs they drive, then the force modules'
+  (pressures, forces), then the sensors' other outputs, which may report the
+  forces */
+  for(auto& sensor : active_sensors_) {
+    sensor->Update(y.data());
+  }
+  for(auto& controller : active_controllers_) {
+    controller->UpdateOutputs(time, y.data());
+  }
   for(auto& force_module : active_force_modules_) {
     force_module->UpdateOutputs(time, y.data());
   }

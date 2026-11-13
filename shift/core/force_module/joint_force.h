@@ -45,8 +45,8 @@ f = -\left( \sigma_0 z + \sigma_1 \dot{z} + c_v v \right)
 with the static_friction \f$f_s\f$, the stribeck_velocity \f$v_b\f$ and the
 bristle_damping \f$\sigma_1\f$.
 
-Outputs: friction (the force on the joint), and with bristles stick, the share
-of the static friction in use, \f$\sigma_0 |z| / f_s\f$.
+Outputs: friction_force (the force on the joint), and with bristles stick,
+the share of the static friction in use, \f$\sigma_0 |z| / f_s\f$.
 
 JSON:
 \code
@@ -76,9 +76,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   double get_friction() const {
     return force_;
@@ -154,9 +152,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the force of the map at (x, y) */
   double Force(double x, double y) const;

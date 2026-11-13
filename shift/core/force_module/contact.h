@@ -349,7 +349,6 @@ public:
   virtual void Service(const double* y, double* dy) override;
   /*! \brief the volume worn from each collision geometry whose material
    * wears, named wear_\<geometry\> */
-  virtual std::vector<std::string> get_output_names() const override;
   virtual void UpdateOutputs(double t, const double* y) override;
 
   /*! \brief the sets of bristles of stick_slip_all in use */
@@ -360,7 +359,6 @@ public:
     }
     return count;
   }
-  virtual void AppendOutputs(std::vector<double>& values) const override;
   virtual void Connect() override {}
 
 private:

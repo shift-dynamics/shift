@@ -63,6 +63,7 @@ void shift::core::sensor::Joint::Connect() {
       "' are quaternions; measure a frame instead");
   }
   has_rate_ = position_;
+  DeclareSignalOutputs();
 }
 
 void shift::core::sensor::Joint::Update(const double* y) {

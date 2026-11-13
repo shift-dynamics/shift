@@ -92,10 +92,12 @@ JSON:
   rated_pressure_drop (optional, default 5e5 Pa) across it.
 - transition_pressure (optional, default 5 % of rated_pressure_drop): the
   pressure drop below which the flow through the valve becomes laminar.
-- command (optional, default 0, closed): the valve opening, -1 to 1. It
-  can be changed as the model runs: by set_command, or by a schedule
-  controller (see controller::Schedule) that follows control points in time,
-  such as "force_modules/boom_cylinder/command". supply_pressure, leakage,
+- command (optional, default 0, closed): the valve opening, -1 to 1, an
+  input of the cylinder (parameter::List::DeclareInput). It can be changed
+  as the model runs: by set_command, by a PID controller ("component":
+  "boom_cylinder", "input": "command"), or by a schedule controller (see
+  controller::Schedule) that follows control points in time, such as
+  "force_modules/boom_cylinder/command". supply_pressure, leakage,
   friction, end_stop_stiffness and end_stop_damping can also be changed as the
   model runs.
 - relief_flow_gain (optional, default rated_flow / (0.1 relief_pressure)):
@@ -152,11 +154,7 @@ public:
   void Hold(double force, const double* y) override;
   void Service(const double* y, double* dy) override;
 
-  /*! \brief logged outputs: head_pressure, rod_pressure, force,
-   * extension, opening, head_flow and rod_flow */
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the valve opening, -1 to 1 (the parameter command) */
   void set_command(double u) {

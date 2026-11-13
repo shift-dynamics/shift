@@ -195,6 +195,22 @@ public:
   void set_initial_displacement(const double* q);
   void set_initial_velocity(const double* dq);
 
+  /*! \brief set the type of a joint that the system creates, which has no
+  JSON to read it from */
+  void set_type(const std::string& type) {
+    type_ = type;
+  }
+
+  /*! \brief set the parent and child bodies and frames of a joint that the
+  system creates, which has no names to Connect() by */
+  void Attach(shift::core::body::Base* parent_body, Frame* parent_frame,
+              shift::core::body::Base* child_body, Frame* child_frame) {
+    parent_body_ptr_ = parent_body;
+    parent_frame_ptr_ = parent_frame;
+    child_body_ptr_ = child_body;
+    child_frame_ptr_ = child_frame;
+  }
+
   void set_system_child_body(shift::core::body::Base* body) {
     system_child_body_ptr_ = body;
   }

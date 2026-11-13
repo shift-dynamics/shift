@@ -169,7 +169,7 @@ when the journal is in contact), peak_pressure, friction_torque (on the
 journal), side_flow (of oil out of the ends of the bearing), radial_force and
 tangential_force (\f$\underline{f} \cdot \underline{u}_1\f$,
 \f$\underline{f} \cdot \underline{u}_2\f$), load
-(\f$|\underline{f}|\f$), viscosity and temperature_rise.
+(\f$|\underline{f}|\f$), effective_viscosity and temperature_rise.
 */
 class JournalBearing : public Base {
 public:
@@ -192,9 +192,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the integrals I_1 and I_2 over the film (see above) for the
    * eccentricity ratio epsilon, s and q */

@@ -67,9 +67,7 @@ public:
   void Connect() override;
   void Update(const double*) override {}
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the number of values reported for each frame */
   static constexpr size_t kValuesPerFrame = 16;
@@ -78,6 +76,8 @@ protected:
   void DeclareParameters() override;
 
 private:
+  /*! \brief the names of the outputs, in the order of their values */
+  std::vector<std::string> OutputNames() const;
   std::vector<std::vector<std::string>> frame_names_;
   std::string coordinate_system_ = "global";
   std::vector<body::Base*> bodies_;

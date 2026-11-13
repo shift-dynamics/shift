@@ -606,7 +606,10 @@ unsigned int shift::core::Substructure::RemoveConstraintViolations() {
 
   assert(context_);
   context_->UpdateDH();
-  double initial_error = EvaluateConstraints(context_->get_dhva());
+  /* the error includes trace(R) - 3 in each angular component, so that a loop
+  closed by a half-turn, where the skew-symmetric part of R vanishes, is not
+  accepted as assembled */
+  double initial_error = EvaluateConstraintsNewtonRaphson(context_->get_dhva());
 
   SHIFT_DEBUG("Initial constraint error for substructure " +
               std::to_string(index_) + ": " + std::to_string(initial_error));
@@ -620,7 +623,7 @@ unsigned int shift::core::Substructure::RemoveConstraintViolations() {
     NewtonRaphsonSolver();
     Updateq();
     context_->UpdateDH();
-    error = EvaluateConstraints(context_->get_dhva());
+    error = EvaluateConstraintsNewtonRaphson(context_->get_dhva());
 
     SHIFT_DEBUG("[" << step << "] error: " + std::to_string(error));
     ++step;

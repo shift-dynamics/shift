@@ -67,10 +67,11 @@ Force modules, sensors and controllers
           :alt: vehicle_control
      - :tree:`examples/vehicle`
      - :doc:`../force-modules/tire`, sensors and PID controllers: a
-       passenger car with Fiala or PAC2002 tires, on flat ground or a rally
-       stage (``vehicle_control.json``, ``vehicle_control_magic.json``,
-       ``vehicle_terrain.json``), and single tires (``tire_fiala.json``,
-       ``tire_pac2002.json``)
+       passenger car with Fiala, PAC2002 or Iowa tires, on flat ground or a
+       rally stage (``vehicle_control.json``, ``vehicle_control_magic.json``,
+       ``vehicle_control_iowa.json``, ``vehicle_terrain.json``,
+       ``vehicle_terrain_iowa.json``), and single tires (``tire_fiala.json``,
+       ``tire_pac2002.json``, ``tire_iowa.json``)
    * - .. image:: ../images/examples/raptor.jpg
           :width: 220px
           :alt: raptor
@@ -80,6 +81,23 @@ Force modules, sensors and controllers
        powertrain over rolling ground, around a route of schedules for the
        throttle, gears, brakes and steering (model by VTX,
        CC-BY-NC-SA-4.0, see :source:`examples/raptor/readme.rst`)
+   * - .. image:: ../images/examples/polo_r_wrc.jpg
+          :width: 220px
+          :alt: polo_r_wrc
+     - :source:`examples/polo_r_wrc/polo_r_wrc.json`
+     - a World Rally Car, 43 bodies and 55 joints: McPherson struts at all four
+       corners, added to a body-only source model, Iowa tires and a four wheel
+       drive powertrain after the published figures (six speed sequential,
+       fixed drive to front and rear limited slip differentials), over a gravel
+       stage; ``polo_r_wrc_suspension.json`` leaves off the body shell to show
+       the suspension at work (model by amogusstrikesback2, CC-BY-4.0, see
+       :source:`examples/polo_r_wrc/readme.rst`)
+   * - .. image:: ../images/examples/polo_r_wrc_suspension.jpg
+          :width: 220px
+          :alt: polo_r_wrc_suspension
+     - :source:`examples/polo_r_wrc/polo_r_wrc_suspension.json`
+     - the Polo R WRC without its body shell at 8 s: the struts, lower arms,
+       tie rods and halfshafts follow the wheels over the stage
    * - .. image:: ../images/examples/m1a2.jpg
           :width: 220px
           :alt: m1a2

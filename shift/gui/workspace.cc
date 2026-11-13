@@ -4,6 +4,7 @@
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/context.h"
+#include "shift/core/frame.h"
 #include "shift/core/substructure.h"
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
@@ -26,9 +27,13 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QDial>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QFormLayout>
 #include <QFileDialog>
 #include <QDir>
 #include <QFileInfo>
@@ -41,13 +46,17 @@
 #include <QLineEdit>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QPalette>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QQuaternion>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QStyledItemDelegate>
 #include <QStringList>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -74,6 +83,109 @@ static constexpr int kGeometryItem = QTreeWidgetItem::UserType + 3;
 /*! any other object read from the model file */
 static constexpr int kObjectItem = QTreeWidgetItem::UserType + 4;
 static constexpr int kTickMilliseconds = 16;
+/* of a frame item or a folder of frames: whether its axes are shown, 0
+none, 1 all, 2 some (of a folder); items without it have no eye */
+static constexpr int kVisibleRole = Qt::UserRole + 4;
+/* set by a click on the eye; the workspace toggles the item */
+static constexpr int kToggleRole = Qt::UserRole + 5;
+static constexpr int kEyeGap = 4; /*!< pixels between the icon and the eye */
+
+namespace shift {
+namespace gui {
+
+/*!
+@brief Draws an eye beside the icon of the items of the model tree that can
+be shown or hidden (kVisibleRole); a click on it sets kToggleRole
+*/
+class VisibilityDelegate : public QStyledItemDelegate {
+public:
+  using QStyledItemDelegate::QStyledItemDelegate;
+
+  void paint(QPainter* painter, const QStyleOptionViewItem& option,
+             const QModelIndex& index) const override {
+    if(!HasEye(index)) {
+      QStyledItemDelegate::paint(painter, option, index);
+      return;
+    }
+    QStyleOptionViewItem item(option);
+    initStyleOption(&item, index);
+    // the icon and the eye side by side, as one decoration
+    const QSize size = item.decorationSize;
+    const qreal ratio = painter->device()->devicePixelRatioF();
+    QPixmap pixmap(QSize(2 * size.width() + kEyeGap, size.height()) * ratio);
+    pixmap.setDevicePixelRatio(ratio);
+    pixmap.fill(Qt::transparent);
+    {
+      QPainter p(&pixmap);
+      p.drawPixmap(0, 0, item.icon.pixmap(size, ratio));
+      p.drawPixmap(size.width() + kEyeGap, 0,
+                   EyeIcon(index.data(kVisibleRole).toInt()).pixmap(size, ratio));
+    }
+    item.icon = QIcon(pixmap);
+    item.decorationSize = QSize(2 * size.width() + kEyeGap, size.height());
+    item.features |= QStyleOptionViewItem::HasDecoration;
+    QStyle* style = item.widget ? item.widget->style() : QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &item, painter, item.widget);
+  }
+
+  QSize sizeHint(const QStyleOptionViewItem& option,
+                 const QModelIndex& index) const override {
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    if(HasEye(index)) {
+      size.rwidth() += option.decorationSize.width() + kEyeGap;
+    }
+    return size;
+  }
+
+  bool editorEvent(QEvent* event, QAbstractItemModel* model,
+                   const QStyleOptionViewItem& option,
+                   const QModelIndex& index) override {
+    const QEvent::Type type = event->type();
+    if(HasEye(index) && (type == QEvent::MouseButtonPress ||
+                         type == QEvent::MouseButtonRelease ||
+                         type == QEvent::MouseButtonDblClick)) {
+      auto* mouse = static_cast<QMouseEvent*>(event);
+      if(mouse->button() == Qt::LeftButton &&
+         EyeRect(option, index).contains(mouse->position().toPoint())) {
+        if(type == QEvent::MouseButtonRelease) {
+          model->setData(index, true, kToggleRole);
+        }
+        return true; // the click is the eye's: no selection, no expanding
+      }
+    }
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
+  }
+
+private:
+  static bool HasEye(const QModelIndex& index) {
+    return index.column() == 0 && index.data(kVisibleRole).isValid();
+  }
+
+  static QIcon EyeIcon(int visible) {
+    static const QIcon shown(":/icons/visible.png");
+    static const QIcon hidden(":/icons/invisible_grey.png");
+    static const QIcon some(":/icons/visible_grey.png");
+    return visible == 1 ? shown : visible == 2 ? some : hidden;
+  }
+
+  /* where paint draws the eye */
+  QRect EyeRect(const QStyleOptionViewItem& option,
+                const QModelIndex& index) const {
+    QStyleOptionViewItem item(option);
+    initStyleOption(&item, index);
+    const QSize size = item.decorationSize;
+    item.decorationSize = QSize(2 * size.width() + kEyeGap, size.height());
+    item.features |= QStyleOptionViewItem::HasDecoration;
+    QStyle* style = item.widget ? item.widget->style() : QApplication::style();
+    const QRect decoration = style->subElementRect(
+      QStyle::SE_ItemViewItemDecoration, &item, item.widget);
+    return QRect(decoration.left() + size.width() + kEyeGap, decoration.top(),
+                 size.width(), decoration.height());
+  }
+};
+
+} // namespace gui
+} // namespace shift
 
 /*! gain dial 0..100 maps to a slider rate multiplier of 0.01..100 */
 static double DialGain(const QDial* dial) {
@@ -91,6 +203,12 @@ shift::gui::Workspace::Workspace(QWidget* parent)
   resize(1400, 860);
   InitializeLayout();
   InitializeMenus();
+
+  std::string settings_error;
+  if(!settings_.Load(Settings::get_default_path(), &settings_error)) {
+    qWarning("%s", settings_error.c_str());
+  }
+  ApplySettings();
 
   tick_timer_ = new QTimer(this);
   connect(tick_timer_, &QTimer::timeout, this, &Workspace::Tick);
@@ -124,6 +242,12 @@ void shift::gui::Workspace::InitializeMenus() {
   QAction* quit_action = file_menu->addAction("&Quit");
   quit_action->setShortcut(QKeySequence::Quit);
   connect(quit_action, &QAction::triggered, this, &QWidget::close);
+
+  QMenu* edit_menu = menuBar()->addMenu("&Edit");
+  QAction* settings_action = edit_menu->addAction("&Settings…");
+  settings_action->setShortcut(QKeySequence::Preferences);
+  connect(settings_action, &QAction::triggered, this,
+          &Workspace::SettingsDialog);
 
   QMenu* view_menu = menuBar()->addMenu("&View");
   QAction* ray_traced = view_menu->addAction("&Ray traced");
@@ -178,6 +302,16 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   scene_splitter->addWidget(tree_widget_);
   connect(tree_widget_, &QTreeWidget::itemSelectionChanged, this,
           &Workspace::SelectTreeItem);
+  // the eyes of the frames
+  tree_widget_->setItemDelegateForColumn(
+    0, new VisibilityDelegate(tree_widget_));
+  connect(tree_widget_, &QTreeWidget::itemChanged, this,
+          [this](QTreeWidgetItem* item, int column) {
+            if(column == 0 && item->data(0, kToggleRole).toBool()) {
+              item->setData(0, kToggleRole, QVariant());
+              ToggleVisibility(item);
+            }
+          });
 
   // parameters panel: every parameter of the selected object
   auto& parameters = parameter_panel_;
@@ -914,6 +1048,17 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   tree_widget_->clear();
   joint_items_.clear();
   object_paths_.clear();
+  eye_items_.clear();
+  eye_folders_.clear();
+  viewport_->set_frame_axes({});
+  viewport_->set_joint_axes({});
+  viewport_->set_hidden_bodies({});
+  if(!keep_view) {
+    // a model opens with its bodies shown, no frames and no joint axes
+    shown_frames_.clear();
+    shown_joints_.clear();
+    hidden_bodies_.clear();
+  }
   geometry_panel_.selected = nullptr;
 
   std::string error;
@@ -1429,6 +1574,8 @@ each object, and so on down the nested assemblies */
 void shift::gui::Workspace::PopulateTree() {
   tree_widget_->clear();
   object_paths_.clear();
+  eye_items_.clear();
+  eye_folders_.clear();
   shift::core::Context* context = simulation_.get_context();
   joint_items_.assign(context->get_active_joints().size(), nullptr);
 
@@ -1452,6 +1599,227 @@ void shift::gui::Workspace::PopulateTree() {
   AddObjectChildren(context, root, 1, &path);
   root->setExpanded(true);
   UpdateTree();
+  UpdateVisibility();
+}
+
+/* a displacement as a matrix, column major as ksl_SE3_t */
+static QMatrix4x4 SE3Matrix(const ksl_SE3_t& d) {
+  const double* a = d.as_array;
+  return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
+                    float(a[1]), float(a[4]), float(a[7]), float(a[10]),
+                    float(a[2]), float(a[5]), float(a[8]), float(a[11]), 0.f,
+                    0.f, 0.f, 1.f);
+}
+
+bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
+  switch(eye.kind) {
+  case EyeItem::kFrame:
+    return shown_frames_.count(eye.path) > 0;
+  case EyeItem::kJoint:
+    return shown_joints_.count(eye.path) > 0;
+  case EyeItem::kBody:
+    return hidden_bodies_.count(eye.path) == 0;
+  }
+  return false;
+}
+
+/* the body (index of the simulation) a frame is on and its pose with
+respect to the body origin; false if the body is not drawn */
+static bool FramePlace(const shift::core::Frame& frame,
+                       shift::gui::Simulation& simulation, int& body_index,
+                       QMatrix4x4& pose) {
+  const auto& bodies = simulation.get_bodies();
+  const shift::core::body::Base* body = frame.get_parent_body();
+  auto found = std::find(bodies.begin(), bodies.end(), body);
+  if(!body || body == simulation.get_context()) {
+    found = bodies.begin(); // the fixed body
+  }
+  if(found == bodies.end() || !frame.get_d_wrt_origin()) {
+    return false;
+  }
+  body_index = static_cast<int>(found - bodies.begin());
+  pose = SE3Matrix(*frame.get_d_wrt_origin());
+  return true;
+}
+
+/* the lines of the axes of a joint, along the z axis of their matrices,
+which points in the positive sense of the joint as the model file gives it
+(its parent and child, not the way the topology may traverse it): of a
+revolute, prismatic or screw joint its axis, given in its parent frame,
+through the origin of that frame; of a gear joint the axes of the two
+gears, the z axes of its parent and child frames, about which the line of
+centers and the child gear turn for a positive q. False if it has none. */
+static bool JointLines(shift::core::joint::Base& joint,
+                       shift::gui::Simulation& simulation,
+                       std::vector<shift::gui::Viewport::JointAxis>& lines) {
+  lines.clear();
+  auto add = [&](shift::core::Frame* frame, const QVector3D& axis) {
+    shift::gui::Viewport::JointAxis line;
+    if(frame && axis.lengthSquared() > 0.f &&
+       FramePlace(*frame, simulation, line.body_index, line.line)) {
+      line.line.rotate(QQuaternion::rotationTo(QVector3D(0.f, 0.f, 1.f),
+                                               axis.normalized()));
+      lines.push_back(line);
+    }
+  };
+  const std::string& type = joint.get_type();
+  if(type == "revolute" || type == "prismatic" || type == "screw") {
+    QVector3D axis(0.f, 0.f, 1.f);
+    const shift::core::parameter::Value* value = joint.Find("axis");
+    if(value && value->has_data() &&
+       value->get_value_type() == shift::core::parameter::Value::KSL_VEC3) {
+      const ksl_vec3_t* a = value->get_data<ksl_vec3_t>();
+      axis = QVector3D(float(a->x), float(a->y), float(a->z));
+    }
+    add(joint.get_parent_frame(), axis);
+  } else if(type == "gear") {
+    add(joint.get_parent_frame(), QVector3D(0.f, 0.f, 1.f));
+    add(joint.get_child_frame(), QVector3D(0.f, 0.f, 1.f));
+  }
+  return !lines.empty();
+}
+
+void shift::gui::Workspace::ToggleVisibility(QTreeWidgetItem* item) {
+  // a folder shows all of its items unless all are shown
+  const bool show = item->data(0, kVisibleRole).toInt() != 1;
+  for(const EyeItem& eye : eye_items_) {
+    if(eye.item != item && eye.item->parent() != item) {
+      continue;
+    }
+    std::set<QString>& set = eye.kind == EyeItem::kFrame   ? shown_frames_
+                             : eye.kind == EyeItem::kJoint ? shown_joints_
+                                                           : hidden_bodies_;
+    if(show == (eye.kind != EyeItem::kBody)) {
+      set.insert(eye.path);
+    } else {
+      set.erase(eye.path);
+    }
+  }
+  UpdateVisibility();
+}
+
+void shift::gui::Workspace::UpdateVisibility() {
+  std::vector<Viewport::FrameAxes> frames;
+  std::vector<Viewport::JointAxis> joints;
+  std::vector<bool> hidden(simulation_.is_loaded()
+                             ? simulation_.get_bodies().size()
+                             : 0,
+                           false);
+  for(const EyeItem& eye : eye_items_) {
+    const bool shown = IsShown(eye);
+    eye.item->setData(0, kVisibleRole, shown ? 1 : 0);
+    if(eye.kind == EyeItem::kFrame && shown) {
+      frames.push_back({eye.body_index, eye.frame});
+    } else if(eye.kind == EyeItem::kJoint && shown) {
+      joints.insert(joints.end(), eye.lines.begin(), eye.lines.end());
+    } else if(eye.kind == EyeItem::kBody && !shown &&
+              eye.body_index < static_cast<int>(hidden.size())) {
+      hidden[eye.body_index] = true;
+    }
+  }
+  for(QTreeWidgetItem* folder : eye_folders_) {
+    int items = 0, shown = 0;
+    for(int i = 0; i < folder->childCount(); i++) {
+      const QVariant visible = folder->child(i)->data(0, kVisibleRole);
+      if(visible.isValid()) {
+        items++;
+        shown += visible.toInt() == 1 ? 1 : 0;
+      }
+    }
+    folder->setData(0, kVisibleRole,
+                    shown == 0 ? 0 : shown == items ? 1 : 2);
+  }
+  viewport_->set_frame_axes(std::move(frames));
+  viewport_->set_joint_axes(std::move(joints));
+  viewport_->set_hidden_bodies(std::move(hidden));
+}
+
+void shift::gui::Workspace::ApplySettings() {
+  viewport_->set_frame_axes_scale(float(settings_.get_frame_scale()));
+  viewport_->set_joint_thickness(float(settings_.get_joint_thickness()));
+  const QColor& color = settings_.get_joint_color();
+  viewport_->set_joint_color(QVector3D(float(color.redF()),
+                                       float(color.greenF()),
+                                       float(color.blueF())));
+}
+
+void shift::gui::Workspace::SettingsDialog() {
+  QDialog dialog(this);
+  dialog.setWindowTitle("Settings");
+  auto* layout = new QFormLayout(&dialog);
+  auto* frame_scale = new QDoubleSpinBox;
+  frame_scale->setRange(0.001, 1000.0);
+  frame_scale->setDecimals(3);
+  frame_scale->setSingleStep(0.05);
+  frame_scale->setSuffix(" m");
+  frame_scale->setValue(settings_.get_frame_scale());
+  frame_scale->setToolTip("the length of the arrows of the coordinate frames "
+                          "shown (the eye beside a frame in the Scene tree)");
+  layout->addRow("Coordinate frame scale", frame_scale);
+  // the color of the joint axes: a swatch that opens a color picker
+  QColor joint_color = settings_.get_joint_color();
+  auto* color_button = new QPushButton;
+  color_button->setToolTip("the color of the axes of the joints shown (the "
+                           "eye beside a joint in the Scene tree)");
+  auto show_color = [color_button](const QColor& color) {
+    QPixmap swatch(40, 16);
+    swatch.fill(color);
+    color_button->setIcon(QIcon(swatch));
+    color_button->setIconSize(swatch.size());
+    color_button->setText(color.name(QColor::HexRgb));
+  };
+  show_color(joint_color);
+  layout->addRow("Joint color", color_button);
+  auto* joint_thickness = new QDoubleSpinBox;
+  joint_thickness->setRange(0.0001, 10.0);
+  joint_thickness->setDecimals(4);
+  joint_thickness->setSingleStep(0.001);
+  joint_thickness->setSuffix(" m");
+  joint_thickness->setValue(settings_.get_joint_thickness());
+  joint_thickness->setToolTip("the diameter of the lines of the joint axes");
+  layout->addRow("Joint axis thickness", joint_thickness);
+  // the viewport shows the settings as they are changed
+  auto preview = [this, frame_scale, joint_thickness, &joint_color] {
+    viewport_->set_frame_axes_scale(float(frame_scale->value()));
+    viewport_->set_joint_thickness(float(joint_thickness->value()));
+    viewport_->set_joint_color(QVector3D(float(joint_color.redF()),
+                                         float(joint_color.greenF()),
+                                         float(joint_color.blueF())));
+  };
+  connect(frame_scale, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(joint_thickness, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(color_button, &QPushButton::clicked, &dialog, [&] {
+    const QColor color =
+      QColorDialog::getColor(joint_color, &dialog, "Joint color");
+    if(color.isValid()) {
+      joint_color = color;
+      show_color(joint_color);
+      preview();
+    }
+  });
+  auto* note = new QLabel(QString("Saved in %1").arg(
+    QDir::toNativeSeparators(QString::fromStdString(
+      Settings::get_default_path()))));
+  note->setStyleSheet("color: gray");
+  layout->addRow(note);
+  auto* buttons =
+    new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+  layout->addRow(buttons);
+  if(dialog.exec() != QDialog::Accepted) {
+    ApplySettings();
+    return;
+  }
+  settings_.set_frame_scale(frame_scale->value());
+  settings_.set_joint_color(joint_color);
+  settings_.set_joint_thickness(joint_thickness->value());
+  ApplySettings();
+  std::string error;
+  if(!settings_.Save(Settings::get_default_path(), &error)) {
+    QMessageBox::warning(this, "Settings not saved",
+                         QString::fromStdString(error));
+  }
 }
 
 const std::vector<shift::gui::Workspace::JsonStep>*
@@ -1504,6 +1872,16 @@ void shift::gui::Workspace::AddObjectChildren(
         delete folder;
       } else {
         folder->setExpanded(true);
+        // a folder of frames, joints or bodies: an eye for all of them
+        bool eyes = false;
+        for(int i = 0; i < folder->childCount(); i++) {
+          eyes = eyes || folder->child(i)->data(0, kVisibleRole).isValid();
+        }
+        if(eyes) {
+          folder->setData(0, kVisibleRole, 0);
+          folder->setToolTip(0, "the eye shows or hides all of these");
+          eye_folders_.push_back(folder);
+        }
       }
     } else if(value->is_list()) {
       // an object parameter holding arrays, as model_parameters
@@ -1590,6 +1968,35 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
   }
   if(item_type == kJointItem) {
     joint_items_[index] = item;
+  }
+  // an eye to show a frame's axes, a joint's axis or a body's meshes
+  EyeItem eye;
+  eye.item = item;
+  eye.path = item->data(0, kPathRole).toString();
+  const char* eye_tip = nullptr;
+  if(auto* frame = dynamic_cast<shift::core::Frame*>(object)) {
+    if(FramePlace(*frame, simulation_, eye.body_index, eye.frame)) {
+      eye.kind = EyeItem::kFrame;
+      eye_tip = "the eye shows or hides the axes of the frame: x red, y "
+                "green, z blue";
+    }
+  } else if(auto* joint = dynamic_cast<shift::core::joint::Base*>(object)) {
+    if(JointLines(*joint, simulation_, eye.lines)) {
+      eye.kind = EyeItem::kJoint;
+      eye_tip = "the eye shows or hides the axis of the joint (a gear: of "
+                "both gears), an arrow in its positive sense";
+    }
+  } else if(item_type == kBodyItem) {
+    eye.kind = EyeItem::kBody;
+    eye.body_index = index;
+    eye_tip = "the eye shows or hides the body";
+  }
+  if(eye_tip) {
+    eye_items_.push_back(eye);
+    item->setData(0, kVisibleRole, 0);
+    if(item->toolTip(0).isEmpty()) {
+      item->setToolTip(0, eye_tip);
+    }
   }
   if(inactive) {
     item->setForeground(

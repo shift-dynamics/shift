@@ -40,6 +40,12 @@ layout(std140, binding = 1) uniform Material {
   vec4 material;      // x = metallic, y = roughness, z = triplanar,
                       // w = 1 / texture scale
   ivec4 layers;       // base color, metallic roughness, normal; -1: none
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures
+  ivec4 surface_layers; // base color and normal of surfaces 0 and 1
+  vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
+                      // level, w = 1 / patch size
+  vec4 emission;      // rgb: factor of the base color emitted (a lamp's
+                      // lens, lit)
 } mesh;
 
 // image based lighting of the sky, indexed by the z component of a direction
@@ -54,6 +60,7 @@ layout(binding = 5) uniform sampler2DArray textures;
 #define LIGHTS_BINDING 8
 #define IES_BINDING 9
 #include "lights.glsl"
+#include "surfaces.glsl"
 
 const float PI = 3.14159265358979;
 
@@ -81,25 +88,65 @@ vec4 SampleLayer(int layer, vec2 p) {
   return texture(textures, vec3(p, float(layer)));
 }
 
-// triplanar projection along the body axes, p in texture tiles
-vec4 SampleTriplanar(int layer, vec3 p, vec3 w) {
-  return SampleLayer(layer, p.zy) * w.x + SampleLayer(layer, p.xz) * w.y +
-         SampleLayer(layer, p.xy) * w.z;
+// one plane of a triplanar projection, q in texture tiles with its screen
+// space derivatives (taken where control flow is uniform), its tiles shifted
+// at random if vary
+vec4 SamplePlane(int layer, vec2 q, vec2 dx, vec2 dy, bool vary) {
+  if(!vary) {
+    return textureGrad(textures, vec3(q, float(layer)), dx, dy);
+  }
+  TileShift t = TileVariation(q, true);
+  return BlendTiles(textureGrad(textures, vec3(q + t.a, float(layer)), dx, dy),
+                    textureGrad(textures, vec3(q + t.b, float(layer)), dx, dy),
+                    t.f);
+}
+
+// the weights of the three planes, without those too small to see
+vec3 PlaneWeights(vec3 w) {
+  w *= step(vec3(0.02), w);
+  return w / max(w.x + w.y + w.z, 1e-6);
+}
+
+// triplanar projection along the body axes, p in texture tiles, dpx and dpy
+// its screen space derivatives
+vec4 SampleTriplanar(int layer, vec3 p, vec3 w, vec3 dpx, vec3 dpy,
+                     bool vary) {
+  w = PlaneWeights(w);
+  vec4 s = vec4(0.0);
+  if(w.x > 0.0) {
+    s += SamplePlane(layer, p.zy, dpx.zy, dpy.zy, vary) * w.x;
+  }
+  if(w.y > 0.0) {
+    s += SamplePlane(layer, p.xz, dpx.xz, dpy.xz, vary) * w.y;
+  }
+  if(w.z > 0.0) {
+    s += SamplePlane(layer, p.xy, dpx.xy, dpy.xy, vary) * w.z;
+  }
+  return s;
 }
 
 // triplanar normal mapping with the whiteout blend (B. Golus, "Normal
 // Mapping for a Triplanar Shader"); n is the body space surface normal
-vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale) {
-  vec3 tx = SampleLayer(layer, p.zy).xyz * 2.0 - 1.0;
-  vec3 ty = SampleLayer(layer, p.xz).xyz * 2.0 - 1.0;
-  vec3 tz = SampleLayer(layer, p.xy).xyz * 2.0 - 1.0;
-  tx.xy *= scale;
-  ty.xy *= scale;
-  tz.xy *= scale;
-  tx = vec3(tx.xy + n.zy, abs(tx.z) * n.x);
-  ty = vec3(ty.xy + n.xz, abs(ty.z) * n.y);
-  tz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
-  return normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
+vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale,
+                     vec3 dpx, vec3 dpy, bool vary) {
+  w = PlaneWeights(w);
+  vec3 sum = vec3(0.0);
+  if(w.x > 0.0) {
+    vec3 tx = SamplePlane(layer, p.zy, dpx.zy, dpy.zy, vary).xyz * 2.0 - 1.0;
+    tx.xy *= scale;
+    sum += vec3(tx.xy + n.zy, abs(tx.z) * n.x).zyx * w.x;
+  }
+  if(w.y > 0.0) {
+    vec3 ty = SamplePlane(layer, p.xz, dpx.xz, dpy.xz, vary).xyz * 2.0 - 1.0;
+    ty.xy *= scale;
+    sum += vec3(ty.xy + n.xz, abs(ty.z) * n.y).xzy * w.y;
+  }
+  if(w.z > 0.0) {
+    vec3 tz = SamplePlane(layer, p.xy, dpx.xy, dpy.xy, vary).xyz * 2.0 - 1.0;
+    tz.xy *= scale;
+    sum += vec3(tz.xy + n.xy, abs(tz.z) * n.z) * w.z;
+  }
+  return normalize(sum);
 }
 
 // tangent frame from screen space derivatives (C. Schueler, "Followup:
@@ -179,17 +226,28 @@ void main() {
   float metallic = mesh.material.x;
   float roughness = mesh.material.y;
   bool triplanar = mesh.material.z > 0.5;
+  bool vary = mesh.variation.x > 0.5;
+  // derivatives of the body position, here where control flow is uniform
+  vec3 dbx = dFdx(body_position);
+  vec3 dby = dFdy(body_position);
   vec3 p = body_position * mesh.material.w;
+  vec3 dpx = dbx * mesh.material.w;
+  vec3 dpy = dby * mesh.material.w;
   vec3 w = pow(abs(nb), vec3(4.0));
   w /= w.x + w.y + w.z;
 
+  float below_brightness = 0.5; // of the texture, for the surfaces' edges
   if(mesh.layers.x >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(mesh.layers.x, p, w)
+    vec4 s = triplanar ? SampleTriplanar(mesh.layers.x, p, w, dpx, dpy, vary)
                        : SampleLayer(mesh.layers.x, uv);
+    below_brightness = dot(s.rgb, vec3(0.333));
     albedo *= SrgbToLinear(s.rgb);
   }
+  if(triplanar && vary) {
+    albedo *= MacroBrightness(body_position.xy);
+  }
   if(mesh.layers.y >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(mesh.layers.y, p, w)
+    vec4 s = triplanar ? SampleTriplanar(mesh.layers.y, p, w, dpx, dpy, vary)
                        : SampleLayer(mesh.layers.y, uv);
     roughness *= s.g;
     metallic *= s.b;
@@ -199,12 +257,45 @@ void main() {
       // the bumps of the front face; the back face has the opposite normal
       n = side * normalize(body_rotation *
                            TriplanarNormal(mesh.layers.z, p, side * nb, w,
-                                           mesh.albedo.w));
+                                           mesh.albedo.w, dpx, dpy, vary));
     } else {
       vec3 t = SampleLayer(mesh.layers.z, uv).xyz * 2.0 - 1.0;
       t.xy *= mesh.albedo.w;
       n = normalize(CotangentFrame(n, world_position, uv) * t);
     }
+  }
+  // the surfaces drawn over the texture in patches, each with its own
+  // texture and normal map
+  for(int i = 0; i < 2 && triplanar; i++) {
+    int color_layer = i == 0 ? mesh.surface_layers.x : mesh.surface_layers.z;
+    int normal_layer = i == 0 ? mesh.surface_layers.y : mesh.surface_layers.w;
+    vec4 surface = mesh.surface[i];
+    if(color_layer < 0) {
+      continue;
+    }
+    float m = SurfaceMask(body_position.xy, i, surface.w, surface.z,
+                          below_brightness);
+    if(m <= 0.0) {
+      continue;
+    }
+    vec3 q = body_position * surface.x;
+    vec4 s = SampleTriplanar(color_layer, q, w, dbx * surface.x,
+                             dby * surface.x, vary);
+    vec3 color = SrgbToLinear(s.rgb);
+    if(vary) {
+      color *= MacroBrightness(body_position.xy);
+    }
+    albedo = mix(albedo, color, m);
+    below_brightness = mix(below_brightness, dot(s.rgb, vec3(0.333)), m);
+    vec3 surface_normal = normalize(body_rotation * nb); // seen side
+    if(normal_layer >= 0) {
+      surface_normal = side * normalize(body_rotation *
+                                        TriplanarNormal(normal_layer, q,
+                                                        side * nb, w, surface.y,
+                                                        dbx * surface.x,
+                                                        dby * surface.x, vary));
+    }
+    n = normalize(mix(n, surface_normal, m));
   }
   roughness = clamp(roughness, 0.05, 1.0);
   metallic = clamp(metallic, 0.0, 1.0);
@@ -244,6 +335,7 @@ void main() {
                    (1.0 - smoothstep(cad.edges.x, cad.edges.x + 1.0,
                                      edge_pixels));
 #endif
+  color += mesh.emission.rgb * albedo;
   color = color / (color + vec3(1.0));
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
 }

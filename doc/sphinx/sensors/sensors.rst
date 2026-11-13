@@ -13,15 +13,19 @@ module it puts nothing back into the model. Sensors are listed in the
   They are updated each time the equations of motion are set up, after the
   kinematics and before the controllers and force modules. A signal sensor
   may also provide the time derivative of its signal, which the derivative
-  term of a PID controller uses.
-* Logging sensors (``body_load``, ``marker``) report several values to the
-  loggers at each output time. The CSV logger writes them as columns named
-  ``<sensor>__<output>`` and the HDF5 logger as datasets
-  ``/sensors/<sensor>/<output>``, where ``<sensor>`` is the sensor's fully
-  qualified name (``<assembly>__<name>``). Their bodies are found by name
-  anywhere in the model, so they can sit in an assembly of their own: a body
-  of the sensor's own assembly first, then the body of that fully qualified
-  name, then the one body of that name.
+  term of a PID controller uses. Its outputs are the signal, ``value``, and
+  the derivative, ``rate``, if it has one.
+* Logging sensors (``body_load``, ``marker``) report several values at each
+  output time, as their outputs. Their bodies are found by name anywhere in
+  the model, so they can sit in an assembly of their own: a body of the
+  sensor's own assembly first, then the body of that fully qualified name,
+  then the one body of that name.
+
+The loggers record the sensors' outputs (every one, or those of the sensors
+a logger names; see :ref:`logging`): the CSV logger as columns named
+``<sensor>__<output>`` and the HDF5 logger as datasets
+``/sensors/<sensor>/<output>``, where ``<sensor>`` is the sensor's fully
+qualified name (``<assembly>__<name>``).
 
 Keys of every sensor:
 

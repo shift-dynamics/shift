@@ -108,6 +108,11 @@ struct MaterialUniforms {
   float material[4]; // x = metallic, y = roughness, z = triplanar,
                      // w = 1 / texture scale
   int32_t layers[4]; // base color, metallic roughness, normal; -1: none
+  float variation[4]; // x = 1: vary the tiles of triplanar textures
+  int32_t surface_layers[4]; // base color and normal of surfaces 0 and 1
+  float surface[2][4]; // x = 1 / texture scale, y = normal scale, z = noise
+                       // level, w = 1 / patch size
+  float emission[4]; // rgb: factor of the base color added to the shading
 };
 
 /*! per instance vertex attributes: the body origin pose, column major */
@@ -115,6 +120,132 @@ struct InstanceAttributes {
   float model[16];
 };
 static_assert(sizeof(InstanceAttributes) == 64);
+
+/*! a vertex of the arrows of a coordinate frame, see axes.vert */
+struct AxesVertex {
+  float position[3];
+  float normal[3];
+  float color[3];
+};
+
+/*! per frame or joint axis drawn, see axes.vert */
+struct AxesInstance {
+  float model[16];
+  float tint[4];
+};
+static_assert(sizeof(AxesInstance) == 80);
+
+/* the arrows of a coordinate frame, one unit long: along each axis a
+cylinder and a cone at its end, x red, y green and z blue; arrow_indices of
+the indices are theirs. Then the arrow of a joint axis, white, from -1 to 1
+along z, pointing to +z: a cylinder of radius 1, scaled to the thickness of
+the line, and a cone three times as wide over the last 12 % of its length. */
+static void MakeAxesMesh(std::vector<AxesVertex>& vertices,
+                         std::vector<uint32_t>& indices,
+                         uint32_t& arrow_indices) {
+  constexpr int kSegments = 24;
+  constexpr float kShaftRadius = 0.025f;
+  constexpr float kShaftLength = 0.78f;
+  constexpr float kHeadRadius = 0.07f;
+  const float kColors[3][3] = {
+    {0.92f, 0.16f, 0.14f}, {0.18f, 0.78f, 0.18f}, {0.20f, 0.38f, 0.98f}};
+  vertices.clear();
+  indices.clear();
+  for(int axis = 0; axis < 3; axis++) {
+    QVector3D e, u, v;
+    e[axis] = 1.f;
+    u[(axis + 1) % 3] = 1.f;
+    v[(axis + 2) % 3] = 1.f;
+    const float* color = kColors[axis];
+    auto add = [&](const QVector3D& p, const QVector3D& n) {
+      AxesVertex vertex;
+      for(int i = 0; i < 3; i++) {
+        vertex.position[i] = p[i];
+        vertex.normal[i] = n[i];
+        vertex.color[i] = color[i];
+      }
+      vertices.push_back(vertex);
+      return static_cast<uint32_t>(vertices.size() - 1);
+    };
+    // the slope of the cone's side
+    const float head_length = 1.f - kShaftLength;
+    const float slope = std::hypot(head_length, kHeadRadius);
+    const QVector3D tip = e;
+    const QVector3D base = kShaftLength * e;
+    const uint32_t base_center = add(base, -e);
+    for(int k = 0; k < kSegments; k++) {
+      const float a0 = 2.f * float(M_PI) * float(k) / kSegments;
+      const float a1 = 2.f * float(M_PI) * float(k + 1) / kSegments;
+      const QVector3D r0 = std::cos(a0) * u + std::sin(a0) * v;
+      const QVector3D r1 = std::cos(a1) * u + std::sin(a1) * v;
+      // shaft
+      const uint32_t s0 = add(kShaftRadius * r0, r0);
+      const uint32_t s1 = add(kShaftRadius * r1, r1);
+      const uint32_t s2 = add(base + kShaftRadius * r1, r1);
+      const uint32_t s3 = add(base + kShaftRadius * r0, r0);
+      indices.insert(indices.end(), {s0, s1, s2, s0, s2, s3});
+      // the base of the head
+      const uint32_t b0 = add(base + kHeadRadius * r0, -e);
+      const uint32_t b1 = add(base + kHeadRadius * r1, -e);
+      indices.insert(indices.end(), {base_center, b1, b0});
+      // the side of the head
+      const QVector3D n0 = (head_length * r0 + kHeadRadius * e) / slope;
+      const QVector3D n1 = (head_length * r1 + kHeadRadius * e) / slope;
+      const QVector3D nm = (n0 + n1).normalized();
+      const uint32_t h0 = add(base + kHeadRadius * r0, n0);
+      const uint32_t h1 = add(base + kHeadRadius * r1, n1);
+      const uint32_t h2 = add(tip, nm);
+      indices.insert(indices.end(), {h0, h1, h2});
+    }
+  }
+  arrow_indices = static_cast<uint32_t>(indices.size());
+
+  constexpr int kLineSegments = 16;
+  constexpr float kLineRadius = 1.f;
+  constexpr float kLineHeadRadius = 3.f;
+  constexpr float kLineHeadLength = 0.24f; // of the length 2
+  auto add = [&](const QVector3D& p, const QVector3D& n) {
+    AxesVertex vertex;
+    for(int i = 0; i < 3; i++) {
+      vertex.position[i] = p[i];
+      vertex.normal[i] = n[i];
+      vertex.color[i] = 1.f;
+    }
+    vertices.push_back(vertex);
+    return static_cast<uint32_t>(vertices.size() - 1);
+  };
+  const QVector3D z(0.f, 0.f, 1.f);
+  const QVector3D head_base = (1.f - kLineHeadLength) * z;
+  const float head_slope = std::hypot(kLineHeadLength, kLineHeadRadius);
+  const uint32_t tail_center = add(-z, -z);
+  const uint32_t head_center = add(head_base, -z);
+  for(int k = 0; k < kLineSegments; k++) {
+    const float a0 = 2.f * float(M_PI) * float(k) / kLineSegments;
+    const float a1 = 2.f * float(M_PI) * float(k + 1) / kLineSegments;
+    const QVector3D r0(std::cos(a0), std::sin(a0), 0.f);
+    const QVector3D r1(std::cos(a1), std::sin(a1), 0.f);
+    // shaft, closed at the tail
+    const uint32_t s0 = add(kLineRadius * r0 - z, r0);
+    const uint32_t s1 = add(kLineRadius * r1 - z, r1);
+    const uint32_t s2 = add(head_base + kLineRadius * r1, r1);
+    const uint32_t s3 = add(head_base + kLineRadius * r0, r0);
+    indices.insert(indices.end(), {s0, s1, s2, s0, s2, s3});
+    const uint32_t t0 = add(kLineRadius * r0 - z, -z);
+    const uint32_t t1 = add(kLineRadius * r1 - z, -z);
+    indices.insert(indices.end(), {tail_center, t1, t0});
+    // the base of the head
+    const uint32_t b0 = add(head_base + kLineHeadRadius * r0, -z);
+    const uint32_t b1 = add(head_base + kLineHeadRadius * r1, -z);
+    indices.insert(indices.end(), {head_center, b1, b0});
+    // the side of the head
+    const QVector3D n0 = (kLineHeadLength * r0 + kLineHeadRadius * z) / head_slope;
+    const QVector3D n1 = (kLineHeadLength * r1 + kLineHeadRadius * z) / head_slope;
+    const uint32_t h0 = add(head_base + kLineHeadRadius * r0, n0);
+    const uint32_t h1 = add(head_base + kLineHeadRadius * r1, n1);
+    const uint32_t h2 = add(z, (n0 + n1).normalized());
+    indices.insert(indices.end(), {h0, h1, h2});
+  }
+}
 
 struct RtUniforms {
   float inverse_view[16];
@@ -140,9 +271,13 @@ struct RtInstance {
   int32_t offsets[4]; // x = root node, y..w = texture layers as in
                       // MaterialUniforms
   float previous_body_to_world[16]; // pose in the previous frame
-  float optical[4]; // x = opacity
+  float optical[4]; // x = opacity, yzw = glow (CopyEmission)
+  float variation[4]; // as in MaterialUniforms
+  int32_t surface_layers[4];
+  float surface[2][4];
 };
-static_assert(sizeof(RtInstance) == 288);
+static_assert(sizeof(RtInstance) == 352);
+static_assert(sizeof(MaterialUniforms) == 128);
 
 struct DenoiseUniforms {
   float previous_view_projection[16];
@@ -230,6 +365,47 @@ static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
   layers[2] = mesh.normal_layer;
 }
 
+/*! the variation of the textures of a mesh and its surfaces, as in
+ * MaterialUniforms */
+static void CopySurfaces(const shift::gui::SceneMesh& mesh, float* variation,
+                         int32_t* surface_layers, float surface[2][4]) {
+  variation[0] = mesh.texture_variation ? 1.f : 0.f;
+  variation[1] = variation[2] = variation[3] = 0.f;
+  for(int i = 0; i < 2; i++) {
+    surface_layers[2 * i] = surface_layers[2 * i + 1] = -1;
+    surface[i][0] = surface[i][1] = surface[i][3] = 1.f;
+    surface[i][2] = 2.f;
+    if(i < static_cast<int>(mesh.surfaces.size())) {
+      const auto& s = mesh.surfaces[i];
+      surface_layers[2 * i] = s.base_color_layer;
+      surface_layers[2 * i + 1] = s.normal_layer;
+      surface[i][0] = 1.f / s.texture_scale;
+      surface[i][1] = s.normal_scale;
+      surface[i][2] = s.level;
+      surface[i][3] = 1.f / s.patch_size;
+    }
+  }
+}
+
+/*! the glow of a mesh at the time shown, as rgb: the diffuse color times
+ * the intensity of the light it glows with (SceneMesh::glow_light), or 0 */
+static void CopyEmission(const shift::gui::Scene& scene,
+                         const shift::gui::SceneMesh& mesh,
+                         const shift::gui::Poses& poses, float* emission) {
+  emission[0] = emission[1] = emission[2] = 0.f;
+  if(mesh.glow_light < 0 ||
+     mesh.glow_light >= static_cast<int>(scene.lights.size())) {
+    return;
+  }
+  const auto& light = scene.lights[mesh.glow_light];
+  const float intensity = mesh.glow_light < int(poses.lights.size())
+                            ? poses.lights[mesh.glow_light]
+                            : light.intensity;
+  for(int k = 0; k < 3; k++) {
+    emission[k] = light.diffuse[k] * intensity;
+  }
+}
+
 /*! world space box of a body space box under a pose */
 static void TransformBox(const QMatrix4x4& pose, const QVector3D& box_min,
                   const QVector3D& box_max, float* out_min, float* out_max) {
@@ -257,10 +433,14 @@ static int FillLights(const shift::gui::Scene& scene,
   out = LightUniforms{};
   int count = 0;
   QVector3D ambient;
-  for(const auto& light : scene.lights) {
+  for(size_t i = 0; i < scene.lights.size(); i++) {
+    const auto& light = scene.lights[i];
     if(count == kMaxLights) {
       break;
     }
+    // as bright as at the time shown (a controller may switch it)
+    const float intensity =
+      i < poses.lights.size() ? poses.lights[i] : light.intensity;
     if(light.body_index >= int(poses.bodies.size())) {
       continue;
     }
@@ -275,9 +455,9 @@ static int FillLights(const shift::gui::Scene& scene,
     CopyVector(frame.column(0).toVector3D().normalized(), cos_inner,
                d.axis_x);
     // pi: a white matte surface facing the light shows its color Kd
-    CopyVector(float(M_PI) * light.diffuse, float(light.ies_profile),
-               d.diffuse);
-    CopyVector(float(M_PI) * light.specular, 0.f, d.specular);
+    CopyVector(float(M_PI) * intensity * light.diffuse,
+               float(light.ies_profile), d.diffuse);
+    CopyVector(float(M_PI) * intensity * light.specular, 0.f, d.specular);
     CopyVector(light.attenuation, 0.f, d.attenuation);
     ambient += light.ambient;
   }
@@ -331,6 +511,39 @@ void shift::gui::Viewport::set_floor_enabled(bool enabled) {
   floor_enabled_ = enabled;
   rt_frame_ = 0;
   rt_history_valid_ = false;
+  update();
+}
+
+void shift::gui::Viewport::set_frame_axes(std::vector<FrameAxes> axes) {
+  frame_axes_ = std::move(axes);
+  update();
+}
+
+void shift::gui::Viewport::set_frame_axes_scale(float scale) {
+  frame_axes_scale_ = scale;
+  update();
+}
+
+void shift::gui::Viewport::set_joint_axes(std::vector<JointAxis> axes) {
+  joint_axes_ = std::move(axes);
+  update();
+}
+
+void shift::gui::Viewport::set_joint_color(const QVector3D& color) {
+  joint_color_ = color;
+  update();
+}
+
+void shift::gui::Viewport::set_joint_thickness(float thickness) {
+  joint_thickness_ = thickness;
+  update();
+}
+
+void shift::gui::Viewport::set_hidden_bodies(std::vector<bool> hidden) {
+  hidden_bodies_ = std::move(hidden);
+  // the ray tracer's instances hold the bodies' boxes
+  rt_instances_dirty_ = true;
+  rt_frame_ = 0;
   update();
 }
 
@@ -698,6 +911,12 @@ void shift::gui::Viewport::initialize() {
 }
 
 void shift::gui::Viewport::ReleaseAll() {
+  axes_pipeline_.reset();
+  axes_instances_.reset();
+  axes_indices_.reset();
+  axes_vertices_.reset();
+  axes_mesh_uploaded_ = false;
+  axes_instance_count_ = 0;
   cad_pipeline_.reset();
   gpu_cads_.clear();
   cad_ubo_.reset();
@@ -785,6 +1004,23 @@ void shift::gui::Viewport::CreateDeviceResources() {
   ies_texture_->create();
 
   raster_bindings_.reset(rhi_->newShaderResourceBindings());
+
+  // the arrows of the coordinate frames, uploaded with the first frame
+  {
+    std::vector<AxesVertex> vertices;
+    std::vector<uint32_t> indices;
+    MakeAxesMesh(vertices, indices, axes_arrow_index_count_);
+    axes_vertices_.reset(rhi_->newBuffer(
+      QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer,
+      quint32(vertices.size() * sizeof(AxesVertex))));
+    axes_vertices_->create();
+    axes_indices_.reset(rhi_->newBuffer(
+      QRhiBuffer::Immutable, QRhiBuffer::IndexBuffer,
+      quint32(indices.size() * sizeof(uint32_t))));
+    axes_indices_->create();
+    axes_index_count_ = static_cast<uint32_t>(indices.size());
+    axes_mesh_uploaded_ = false;
+  }
 
   using Tables = EnvironmentTables;
   auto make_table = [&](int width, int height) {
@@ -953,6 +1189,31 @@ void shift::gui::Viewport::CreatePipelines() {
   floor_pipeline_.reset(make_pipeline("floor.vert.qsb", "floor.frag.qsb",
                                       raster_bindings_.get(), true));
   floor_pipeline_->create();
+
+  // the arrows of the coordinate frames: binding 0 their vertices, binding
+  // 1 the pose of each frame, as the meshes
+  axes_pipeline_.reset(make_pipeline("axes.vert.qsb", "axes.frag.qsb",
+                                     raster_bindings_.get(), true));
+  QRhiVertexInputLayout axes_layout;
+  axes_layout.setBindings(
+    {QRhiVertexInputBinding(sizeof(AxesVertex)),
+     QRhiVertexInputBinding(sizeof(AxesInstance),
+                            QRhiVertexInputBinding::PerInstance)});
+  axes_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, position)),
+     QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, normal)),
+     QRhiVertexInputAttribute(0, 2, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, color)),
+     QRhiVertexInputAttribute(1, 3, QRhiVertexInputAttribute::Float4, 0),
+     QRhiVertexInputAttribute(1, 4, QRhiVertexInputAttribute::Float4, 16),
+     QRhiVertexInputAttribute(1, 5, QRhiVertexInputAttribute::Float4, 32),
+     QRhiVertexInputAttribute(1, 6, QRhiVertexInputAttribute::Float4, 48),
+     QRhiVertexInputAttribute(1, 7, QRhiVertexInputAttribute::Float4,
+                              offsetof(AxesInstance, tint))});
+  axes_pipeline_->setVertexInputLayout(axes_layout);
+  axes_pipeline_->create();
 
   // terrains: the bindings of the meshes, with the terrain's uniforms and
   // control points for the tessellation stages
@@ -1157,7 +1418,9 @@ void shift::gui::Viewport::CreatePipelines() {
     svgf_taa_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_position_[p]),
        load(3, rt_color_), load(4, rt_taa_[q]), store(5, rt_taa_[p]),
-       store(6, rt_output_), load(7, rt_accumulation_)});
+       store(6, rt_output_), load(7, rt_accumulation_),
+       load(8, rt_position_[q]), load(9, rt_normal_[p]),
+       load(10, rt_normal_[q])});
   }
 
   rt_pipeline_.reset(NewComputePipeline("raytrace.comp.qsb",
@@ -1928,14 +2191,22 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       CopyVector(mesh.albedo, mesh.normal_scale, material.albedo);
       CopyMaterial(mesh, material.material, material.layers);
       material.layers[3] = -1; // unused
+      CopySurfaces(mesh, material.variation, material.surface_layers,
+                   material.surface);
+      CopyEmission(scene, mesh, poses_, material.emission);
       batch->updateDynamicBuffer(material_ubo_.get(),
                                  quint32(i) * material_stride_,
                                  sizeof(material), &material);
     }
     std::vector<InstanceAttributes> instances(scene.instances.size());
     for(size_t i = 0; i < instances.size(); i++) {
-      CopyMatrix(poses_.bodies[scene.instances[i].body_index],
-                 instances[i].model);
+      // a hidden body's meshes collapse to a point, and draw nothing
+      const int body = scene.instances[i].body_index;
+      if(is_body_shown(body)) {
+        CopyMatrix(poses_.bodies[body], instances[i].model);
+      } else {
+        std::fill(instances[i].model, instances[i].model + 16, 0.f);
+      }
     }
     if(!instances.empty()) {
       batch->updateDynamicBuffer(
@@ -1958,6 +2229,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       material.material[3] = 1.f;
       material.layers[0] = material.layers[1] = material.layers[2] = -1;
       material.layers[3] = -1;
+      CopySurfaces(SceneMesh(), material.variation, material.surface_layers,
+                   material.surface);
       batch->updateDynamicBuffer(
         material_ubo_.get(),
         quint32(scene.meshes.size() + gpu.cad_index) * material_stride_,
@@ -1965,7 +2238,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       std::vector<InstanceAttributes> instances(cad.bodies.size());
       for(size_t i = 0; i < instances.size(); i++) {
         QMatrix4x4 pose = poses_.bodies[cad.bodies[i]];
-        pose.scale(cad.scale);
+        pose.scale(is_body_shown(cad.bodies[i]) ? cad.scale : 0.f);
         CopyMatrix(pose, instances[i].model);
       }
       batch->updateDynamicBuffer(
@@ -2016,6 +2289,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     }
   }
 
+  batch = UploadFrameAxes(batch, view_projection, false);
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
   const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
   const QRhiCommandBuffer::DynamicOffset zero_offset(1, 0);
@@ -2055,6 +2329,14 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     cb->setViewport(viewport);
     for(const auto& gpu : gpu_terrains_) {
       const int mesh_index = scene.terrains[gpu.terrain_index].mesh_index;
+      bool shown = false; // as the instances of its mesh
+      for(const SceneInstance& instance : scene.instances) {
+        shown = shown || (instance.mesh_index == mesh_index &&
+                          is_body_shown(instance.body_index));
+      }
+      if(!shown) {
+        continue;
+      }
       const QRhiCommandBuffer::DynamicOffset offset(1, quint32(mesh_index) *
                                                          material_stride_);
       cb->setShaderResources(gpu.bindings.get(), 1, &offset);
@@ -2083,6 +2365,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     cb->setShaderResources(raster_bindings_.get(), 1, &zero_offset);
     cb->draw(6);
   }
+  DrawFrameAxes(cb, viewport);
   cb->endPass();
 }
 
@@ -2126,6 +2409,9 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
       CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
       instances[i].optical[0] = mesh.opacity;
+      CopyEmission(scene, mesh, poses_, instances[i].optical + 1);
+      CopySurfaces(mesh, instances[i].variation, instances[i].surface_layers,
+                   instances[i].surface);
     } else {
       // CAD geometry: its triangles are scaled, its faces may have colors
       const SceneCad& cad = scene.cads[instance.mesh_index - mesh_count];
@@ -2139,8 +2425,16 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       instances[i].optical[0] = cad.opacity;
       instances[i].offsets[1] = instances[i].offsets[2] =
         instances[i].offsets[3] = -1;
+      CopySurfaces(SceneMesh(), instances[i].variation,
+                   instances[i].surface_layers, instances[i].surface);
     }
     instances[i].offsets[0] = rt_roots_[instance.mesh_index];
+    if(!is_body_shown(instance.body_index)) {
+      // far beyond anything a ray reaches: its triangles are never tested
+      for(int k = 0; k < 3; k++) {
+        instances[i].box_min[k] = instances[i].box_max[k] = 1e30f;
+      }
+    }
   }
   batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
                             quint32(instances.size() * sizeof(RtInstance)),
@@ -2190,6 +2484,13 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   bool bodies_moved = false;
   if(have_poses) {
     instance_count = static_cast<int>(rt_instance_list_.size());
+    // a light switched on or off changes the glow of its meshes, which the
+    // instances hold, and what the progressive mean converges to
+    if(poses_.lights != rt_light_values_) {
+      rt_light_values_ = poses_.lights;
+      rt_instances_dirty_ = true;
+      rt_frame_ = 0;
+    }
     // after a frame with motion the instances still hold the old previous
     // poses, so upload once more with previous = current
     if(rt_instances_dirty_ || rt_instances_moving_) {
@@ -2286,12 +2587,106 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     rt_previous_view_projection_ = view_projection;
   }
 
+  batch = UploadFrameAxes(batch, view_projection, true);
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
+  const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
   cb->setGraphicsPipeline(blit_pipeline_.get());
-  cb->setViewport(QRhiViewport(0, 0, float(size.width()), float(size.height())));
+  cb->setViewport(viewport);
   cb->setShaderResources(blit_bindings_.get());
   cb->draw(6);
+  DrawFrameAxes(cb, viewport);
   cb->endPass();
+}
+
+QRhiResourceUpdateBatch* shift::gui::Viewport::UploadFrameAxes(
+  QRhiResourceUpdateBatch* batch, const QMatrix4x4& view_projection,
+  bool frame_uniforms) {
+  axes_instance_count_ = 0;
+  axes_frame_instance_count_ = 0;
+  if((frame_axes_.empty() && joint_axes_.empty()) || !simulation_ ||
+     poses_.bodies.empty() || !axes_pipeline_) {
+    return batch;
+  }
+  if(!batch) {
+    batch = rhi_->nextResourceUpdateBatch();
+  }
+  if(!axes_mesh_uploaded_) {
+    std::vector<AxesVertex> vertices;
+    std::vector<uint32_t> indices;
+    MakeAxesMesh(vertices, indices, axes_arrow_index_count_);
+    batch->uploadStaticBuffer(axes_vertices_.get(), vertices.data());
+    batch->uploadStaticBuffer(axes_indices_.get(), indices.data());
+    axes_mesh_uploaded_ = true;
+  }
+  if(frame_uniforms) {
+    // ray traced, the raster pass did not set the camera: only the fields
+    // the arrows read, view_projection to camera_position
+    FrameUniforms frame{};
+    CopyMatrix(view_projection, frame.view_projection);
+    CopyMatrix(view_projection.inverted(), frame.inverse_view_projection);
+    CopyVector(camera_.get_position(), 1.f, frame.camera_position);
+    batch->updateDynamicBuffer(frame_ubo_.get(), 0,
+                               offsetof(FrameUniforms, sun_direction), &frame);
+  }
+  std::vector<AxesInstance> instances;
+  instances.reserve(frame_axes_.size() + joint_axes_.size());
+  // radius across the z axis (x, y), scale along it
+  auto add = [&](int body, const QMatrix4x4& frame, const QVector3D& tint,
+                 float radius) {
+    if(body < 0 || body >= static_cast<int>(poses_.bodies.size())) {
+      return;
+    }
+    QMatrix4x4 pose = poses_.bodies[body] * frame;
+    pose.scale(radius, radius, frame_axes_scale_);
+    instances.emplace_back();
+    CopyMatrix(pose, instances.back().model);
+    CopyVector(tint, 1.f, instances.back().tint);
+  };
+  for(const FrameAxes& axes : frame_axes_) {
+    add(axes.body_index, axes.frame, QVector3D(1.f, 1.f, 1.f),
+        frame_axes_scale_);
+  }
+  axes_frame_instance_count_ = static_cast<uint32_t>(instances.size());
+  for(const JointAxis& axis : joint_axes_) {
+    add(axis.body_index, axis.line, joint_color_, 0.5f * joint_thickness_);
+  }
+  if(instances.empty()) {
+    return batch;
+  }
+  const quint32 bytes = quint32(instances.size() * sizeof(AxesInstance));
+  if(!axes_instances_ || axes_instances_->size() < bytes) {
+    axes_instances_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                          QRhiBuffer::VertexBuffer, bytes));
+    axes_instances_->create();
+  }
+  batch->updateDynamicBuffer(axes_instances_.get(), 0, bytes,
+                             instances.data());
+  axes_instance_count_ = static_cast<uint32_t>(instances.size());
+  return batch;
+}
+
+void shift::gui::Viewport::DrawFrameAxes(QRhiCommandBuffer* cb,
+                                         const QRhiViewport& viewport) {
+  if(axes_instance_count_ == 0) {
+    return;
+  }
+  const QRhiCommandBuffer::DynamicOffset zero_offset(1, 0);
+  cb->setGraphicsPipeline(axes_pipeline_.get());
+  cb->setViewport(viewport);
+  cb->setShaderResources(raster_bindings_.get(), 1, &zero_offset);
+  const QRhiCommandBuffer::VertexInput inputs[2] = {
+    {axes_vertices_.get(), 0}, {axes_instances_.get(), 0}};
+  cb->setVertexInput(0, 2, inputs, axes_indices_.get(), 0,
+                     QRhiCommandBuffer::IndexUInt32);
+  // the arrows of the frames, then the lines of the joints
+  if(axes_frame_instance_count_ > 0) {
+    cb->drawIndexed(axes_arrow_index_count_, axes_frame_instance_count_);
+  }
+  if(axes_instance_count_ > axes_frame_instance_count_) {
+    cb->drawIndexed(axes_index_count_ - axes_arrow_index_count_,
+                    axes_instance_count_ - axes_frame_instance_count_,
+                    axes_arrow_index_count_, 0, axes_frame_instance_count_);
+  }
 }
 
 void shift::gui::Viewport::mousePressEvent(QMouseEvent* event) {
@@ -2525,7 +2920,8 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
   std::vector<int> stack;
   for(const auto& instance : RtInstanceList(scene)) {
     if(instance.mesh_index >= static_cast<int>(pick_roots_.size()) ||
-       instance.body_index >= static_cast<int>(poses_.bodies.size())) {
+       instance.body_index >= static_cast<int>(poses_.bodies.size()) ||
+       !is_body_shown(instance.body_index)) {
       continue;
     }
     // the ray in body coordinates; poses are rigid, so t is unchanged

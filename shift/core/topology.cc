@@ -126,6 +126,53 @@ void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
   }
 }
 
+std::vector<int> shift::core::topology::FindFloatingRoots(
+  int body_count, const std::vector<std::array<int, 2>>& joint_bodies) {
+  /* adjacency of the bodies; the fixed body -1 is stored at body_count */
+  const int fixed = body_count;
+  std::vector<std::vector<int>> adjacent(body_count + 1);
+  for(const auto& ends : joint_bodies) {
+    const int a = ends[0] < 0 ? fixed : ends[0];
+    const int b = ends[1] < 0 ? fixed : ends[1];
+    assert(a <= body_count && b <= body_count);
+    adjacent[a].push_back(b);
+    adjacent[b].push_back(a);
+  }
+
+  /* label every body with the part it belongs to, by breadth-first search
+  from the fixed body first and then from each body not yet reached; return
+  from each search the body with the most joints */
+  std::vector<bool> reached(body_count + 1, false);
+  std::vector<int> queue;
+  auto search = [&](int start) {
+    reached[start] = true;
+    queue.assign(1, start);
+    int root = start;
+    for(size_t k = 0; k < queue.size(); k++) {
+      const int body = queue[k];
+      if(adjacent[body].size() > adjacent[root].size() ||
+         (adjacent[body].size() == adjacent[root].size() && body < root)) {
+        root = body;
+      }
+      for(const int next : adjacent[body]) {
+        if(!reached[next]) {
+          reached[next] = true;
+          queue.push_back(next);
+        }
+      }
+    }
+    return root;
+  };
+  search(fixed);
+  std::vector<int> roots;
+  for(int start = 0; start < body_count; start++) {
+    if(!reached[start]) {
+      roots.push_back(search(start));
+    }
+  }
+  return roots;
+}
+
 std::string shift::core::topology::GetJointType(dh_fptr f) {
   if(f == shift::core::joint::spherical_dh) {
     return "SPHERICAL";

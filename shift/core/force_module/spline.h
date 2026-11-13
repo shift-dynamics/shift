@@ -74,8 +74,8 @@ the same sliding value at that rate, \f$\dot{z} = (\mathrm{sgn}(v) \, g(v) /
 \sigma_0 - z) / t_b\f$, which meets the equation above where they join and leaves
 the sliding friction as it is.
 
-Outputs: angle, torque, normal_force, friction and stick, the share of the static
-friction in use, \f$\sigma_0 |z| / \mu_s\f$.
+Outputs: angle, torque, normal_force, friction_force and stick, the share of
+the static friction in use, \f$\sigma_0 |z| / \mu_s\f$.
 
 JSON (SI units, angles in radians):
 \code
@@ -108,9 +108,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the normal force \f$n\f$ on the teeth under the torque \f$\tau\f$ */
   double NormalForce(double torque) const;

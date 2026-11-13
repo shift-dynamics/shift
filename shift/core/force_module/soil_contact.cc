@@ -31,6 +31,12 @@ void shift::core::force_module::SoilContact::DeclareParameters() {
                    "names of the bodies' collision geometry that presses on "
                    "the soil; defaults to all of it",
                    false);
+  DeclareOutput("normal_force", &normal_force_,
+                "total pressure force of the soil");
+  DeclareOutput("contact_nodes", &contact_nodes_,
+                "number of nodes of the terrain in contact");
+  DeclareOutput("sinkage", &sinkage_,
+                "deepest sinkage, from the undisturbed surface");
 }
 
 void shift::core::force_module::SoilContact::Load() {
@@ -408,14 +414,4 @@ void shift::core::force_module::SoilContact::Service(const double*, double*) {
 void shift::core::force_module::SoilContact::UpdateOutputs(double,
                                                            const double*) {
   Evaluate(false);
-}
-
-std::vector<std::string>
-shift::core::force_module::SoilContact::get_output_names() const {
-  return {"normal_force", "contact_nodes", "sinkage"};
-}
-
-void shift::core::force_module::SoilContact::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {normal_force_, contact_nodes_, sinkage_});
 }
