@@ -208,6 +208,21 @@ void shift::core::force_module::Belt::Load() {
                                    "first pulley's frame");
     }
   }
+
+  /* the outputs: the tension of each span, and the slip over each pulley */
+  for(size_t k = 0; k < tension_.size(); k++) {
+    const std::string span = "span_" + std::to_string(k);
+    DeclareOutput(span + "_tension", &tension_[k],
+                  "tension of " + span + ", from pulley " +
+                    std::to_string(k) + " to the next");
+  }
+  if(slips()) {
+    for(size_t k = 0; k < slip_.size(); k++) {
+      const std::string pulley = "pulley_" + std::to_string(k);
+      DeclareOutput(pulley + "_slip", &slip_[k],
+                    "slip speed of the belt over " + pulley);
+    }
+  }
 }
 
 void shift::core::force_module::Belt::Evaluate(const double* states,
@@ -399,26 +414,4 @@ void shift::core::force_module::Belt::UpdateOutputs(double t,
                                                     const double* y) {
   (void)t;
   Evaluate(y + state_offset_, nullptr);
-}
-
-std::vector<std::string>
-shift::core::force_module::Belt::get_output_names() const {
-  std::vector<std::string> names;
-  for(size_t k = 0; k < pulleys_.size(); k++) {
-    names.push_back("span_" + std::to_string(k) + "_tension");
-  }
-  if(slips()) {
-    for(size_t k = 0; k < pulleys_.size(); k++) {
-      names.push_back("pulley_" + std::to_string(k) + "_slip");
-    }
-  }
-  return names;
-}
-
-void shift::core::force_module::Belt::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), tension_.begin(), tension_.end());
-  if(slips()) {
-    values.insert(values.end(), slip_.begin(), slip_.end());
-  }
 }

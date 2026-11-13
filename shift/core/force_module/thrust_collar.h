@@ -130,9 +130,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the thickness \f$h_f\f$ of the film at the gap \f$h\f$ */
   double FilmThickness(double gap) const;

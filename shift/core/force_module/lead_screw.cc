@@ -90,6 +90,20 @@ void shift::core::force_module::LeadScrew::DeclareParameters() {
                    "sliding speed over which the friction falls from the "
                    "static to friction; optional, default 0.01",
                    false);
+  DeclareOutput("axial_force", &axial_force_,
+                "force on the screw along the axis");
+  DeclareOutput("torque", &torque_, "torque on the screw about the axis");
+  DeclareOutput("deflection", &deflection_,
+                "deflection of the thread along the axis");
+  DeclareOutput("normal_force", &normal_force_,
+                "normal force on the flanks of the thread");
+  DeclareOutput("friction_force", &friction_force_,
+                "magnitude of the friction force on the flanks");
+  DeclareOutput("turns", &turns_,
+                "rotation of the screw relative to the nut, in turns");
+  DeclareOutput("stick", &stick_,
+                "share of the static friction in use, 1 at the limit of "
+                "holding");
 }
 
 shift::core::force_module::LeadScrew::Attachment
@@ -333,17 +347,4 @@ void shift::core::force_module::LeadScrew::Compute(const double* y, double* dy,
     load.at[c] = -load.at[c];
   }
   context_->AddBodyLoad(nut_.load_index, load);
-}
-
-std::vector<std::string>
-shift::core::force_module::LeadScrew::get_output_names() const {
-  return {"axial_force",  "torque",         "deflection",
-          "normal_force", "friction_force", "turns",
-          "stick"};
-}
-
-void shift::core::force_module::LeadScrew::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {axial_force_, torque_, deflection_,
-                               normal_force_, friction_force_, turns_, stick_});
 }

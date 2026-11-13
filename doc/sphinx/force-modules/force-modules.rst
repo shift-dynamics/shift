@@ -27,9 +27,11 @@ relief valve opening, first touch in a contact), the change is made smooth
 over a small band. The variable step integrators then see no jumps, and the
 results do not depend on the step size.
 
-**Outputs.** A force module may name output values, such as the pressures
-of a cylinder or the tensions of a belt. The loggers record them as
-columns named ``<assembly>__<module>__<output>`` (see :ref:`logging`).
+**Outputs.** A force module may publish output values, such as the
+pressures of a cylinder or the tensions of a belt, for other components to
+read and for the loggers to record. A logger records every output, or those
+of the modules it names, as columns named ``<assembly>__<module>__<output>``
+(see :ref:`logging`).
 
 **Starting in equilibrium.** A hydraulic cylinder with ``"hold": true``
 starts with the pressures that hold the model still; the forces of all such
@@ -73,6 +75,7 @@ Keys of every force module:
    beam
    belt
    hydraulic-cylinder
+   electric-motor
    lead-screw
    gear-mesh
    journal-bearing
@@ -115,5 +118,8 @@ Keys of every force module:
      - a belt around two or more pulleys, with slip
    * - :doc:`hydraulic_cylinder <hydraulic-cylinder>`
      - a valve-controlled hydraulic cylinder on a prismatic joint
+   * - :doc:`electric_motor <electric-motor>`
+     - a DC or field-oriented brushless motor on a revolute joint, driven by
+       its current or voltage input
 
 To add a new kind of force module, see :doc:`writing-a-force-module`.

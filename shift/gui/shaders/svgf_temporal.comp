@@ -18,6 +18,9 @@ struct Instance { // keep in sync with raytrace.comp
   ivec4 offsets;
   mat4 previous_body_to_world;
   vec4 optical; // unused here, but part of the stride of the array
+  vec4 variation; // the same
+  ivec4 surface_layers;
+  vec4 surface[2];
 };
 
 layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp

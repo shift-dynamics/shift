@@ -21,5 +21,7 @@
     <file>cad.tese.qsb</file>
     <file>cad.frag.qsb</file>
     <file>cad_triangulate.comp.qsb</file>
+    <file>axes.vert.qsb</file>
+    <file>axes.frag.qsb</file>
   </qresource>
 </RCC>

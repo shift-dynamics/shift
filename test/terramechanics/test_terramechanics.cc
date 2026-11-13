@@ -384,7 +384,9 @@ protected:
   std::vector<double> Outputs() {
     soil_->UpdateOutputs(0.0, State().data());
     std::vector<double> v;
-    soil_->AppendOutputs(v);
+    for(const auto& key : soil_->get_output_keys()) {
+      v.push_back(soil_->GetOutput(key));
+    }
     return v;
   }
 
@@ -554,7 +556,9 @@ TEST_F(TrackSoilTest, BeyondTheGridAllOfTheForces) {
     y.resize(y.size() + context.get_auxiliary_state_count(), 0.0);
     soil->UpdateOutputs(0.0, y.data());
     std::vector<double> out;
-    soil->AppendOutputs(out);
+    for(const auto& key : soil->get_output_keys()) {
+      out.push_back(soil->GetOutput(key));
+    }
     const SoilProperties s =
     ResolveSoil(R"({"name": "lete_sand", "unit_weight": 16000})");
     const double load =

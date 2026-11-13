@@ -108,12 +108,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  /*! \brief logged outputs: the tension of each span k (from pulley k to
-   * the next), span_<k>_tension, and with friction the slip speed of the
-   * belt over each pulley, pulley_<k>_slip */
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   size_t get_pulley_count() const {
     return pulleys_.size();

@@ -116,11 +116,14 @@ real truck:
 Regenerating
 ------------
 
-*raptor.json* is written by *generate_raptor.py*::
+*raptor.json*, the terrain and the license plate are written by
+*generate_raptor.py*::
 
     python3 generate_raptor.py raptor.json
 
-The meshes are written by *shift/scripts/split_vehicle_gltf.py* with the
+The source has no license plate: *license_plate.obj* is a plate of 12 by 6
+inches reading SHIFT (*license_plate.png*), on the rear bumper above the
+hitch, drawn with the chassis. The other meshes are written by *shift/scripts/split_vehicle_gltf.py* with the
 configuration *shift/scripts/vehicle_splits/raptor.json*, from the glTF
 download of the source model (Blender 4.2 or later)::
 

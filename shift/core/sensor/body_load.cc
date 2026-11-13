@@ -35,11 +35,13 @@ void shift::core::sensor::BodyLoad::Connect() {
     }
     bodies_.push_back(body);
   }
-  loads_.assign(6 * bodies_.size(), 0.0);
+  DeclareOutputs(OutputNames(), &loads_,
+                 "force (N) or moment (N m, about the body's origin) of the "
+                 "force modules on the body, in the fixed frame");
 }
 
 std::vector<std::string>
-shift::core::sensor::BodyLoad::get_output_names() const {
+shift::core::sensor::BodyLoad::OutputNames() const {
   std::vector<std::string> names;
   for(const auto& name : body_names_) {
     for(const char* component : {"_fx", "_fy", "_fz", "_mx", "_my", "_mz"}) {
@@ -63,9 +65,4 @@ void shift::core::sensor::BodyLoad::UpdateOutputs(double, const double*) {
       loads_[6 * k + 3 + c] = load.ang.at[c] - arm.at[c];
     }
   }
-}
-
-void shift::core::sensor::BodyLoad::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), loads_.begin(), loads_.end());
 }

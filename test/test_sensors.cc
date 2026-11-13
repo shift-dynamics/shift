@@ -67,7 +67,9 @@ static std::vector<double> Outputs(shift::core::Context& context,
                                    shift::core::sensor::Base* sensor) {
   sensor->UpdateOutputs(context.get_force_time(), nullptr);
   std::vector<double> values;
-  sensor->AppendOutputs(values);
+  for(const auto& key : sensor->get_output_keys()) {
+    values.push_back(sensor->GetOutput(key));
+  }
   return values;
 }
 
@@ -88,7 +90,7 @@ TEST(Sensors, BodyLoadReportsTheForceOnABodyByName) {
   context.Simulate();
   auto* sensor = FindSensor(context, "loads");
   ASSERT_NE(sensor, nullptr);
-  const std::vector<std::string> names = sensor->get_output_names();
+  const std::vector<std::string> names = sensor->get_output_keys();
   const std::vector<std::string> expected = {
     "body_fx", "body_fy", "body_fz", "body_mx", "body_my", "body_mz"};
   EXPECT_EQ(names, expected);
@@ -135,7 +137,7 @@ TEST(Sensors, MarkerReportsThePoseAndVelocityOfAFrame) {
     context.Simulate();
     auto* sensor = FindSensor(context, "marker");
     ASSERT_NE(sensor, nullptr);
-    const std::vector<std::string> names = sensor->get_output_names();
+    const std::vector<std::string> names = sensor->get_output_keys();
     ASSERT_EQ(names.size(), 16u);
     EXPECT_EQ(names[0], "body_tip_x");
     EXPECT_EQ(names[3], "body_tip_qw");

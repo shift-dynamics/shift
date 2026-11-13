@@ -30,6 +30,14 @@
     <file>restraint_folder.png</file>
     <file>terrain_folder.png</file>
     <file>pointcloud_folder.png</file>
+    <file>sensor.png</file>
+    <file>sensor_folder.png</file>
+    <file>controller.png</file>
+    <file>controller_folder.png</file>
+    <file>clipboard.png</file>
+    <file>clipboard_folder.png</file>
+    <file>blank_folder.png</file>
+    <file>io_folder.png</file>
     <file>play_button.png</file>
     <file>pause_button.png</file>
     <file>visible.png</file>

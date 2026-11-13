@@ -15,6 +15,14 @@ renders a table of each key, whether it is required, and its description,
 so that the tables stay in step with the code. Without :function:, every
 call in the file is listed. Several files may be given, separated by blanks,
 for an object whose base class declares keys too.
+
+Inputs and outputs (DeclareInput("key", &data, "description") and
+DeclareOutput) are listed too, never required, with their description
+marked "Input." or "Output.": an input may be given in the model file and is
+set by another component as the model runs; an output is computed by the
+object and is not a key of the model file. Outputs whose names are made from
+the model (DeclareOutput("span_" + std::to_string(k) + "_tension", ...)) are
+left out.
 """
 
 import os
@@ -87,7 +95,8 @@ def _function_body(text, name):
 
 
 def read_parameters(path, function=None):
-    """[(key, required, description)] of the DeclareParameter calls."""
+    """[(key, required, description)] of the DeclareParameter, DeclareInput
+    and DeclareOutput calls."""
     with open(path, encoding='utf-8') as f:
         text = f.read()
     if function:
@@ -96,7 +105,8 @@ def read_parameters(path, function=None):
             raise ValueError('no function %s in %s' % (function, path))
         text = body
     parameters = []
-    for match in re.finditer(r'\bDeclareParameter\s*\(', text):
+    for match in re.finditer(r'\bDeclare(Parameter|Input|Output)\s*\(', text):
+        role = match.group(1)
         end = _call_end(text, match.end())
         arguments = _split_arguments(text[match.end():end - 1])
         if len(arguments) < 3:
@@ -104,10 +114,20 @@ def read_parameters(path, function=None):
         key = _STRING.findall(arguments[0])
         if not key:
             continue
-        description = ''.join(_STRING.findall(','.join(arguments[2:-1]) if
-                                              len(arguments) > 3 else
-                                              arguments[2]))
-        required = len(arguments) > 3 and arguments[-1].strip() == 'true'
+        if role == 'Output' and not re.fullmatch(_STRING.pattern,
+                                                 arguments[0].strip()):
+            # an output named in Load from the model, as one per pulley of a
+            # belt: the module's page lists those
+            continue
+        if role == 'Parameter':
+            description = ''.join(_STRING.findall(
+                ','.join(arguments[2:-1]) if len(arguments) > 3
+                else arguments[2]))
+            required = len(arguments) > 3 and arguments[-1].strip() == 'true'
+        else:
+            description = ''.join(_STRING.findall(','.join(arguments[2:])))
+            description = role + '. ' + description
+            required = False
         parameters.append((_unescape(key[0]), required,
                            _unescape(description)))
     return parameters

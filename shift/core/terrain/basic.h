@@ -6,6 +6,7 @@
 #include "shift/core/force_module/soil.h"
 #include "shift/core/terrain/base.h"
 #include "shift/core/terrain/soil_map.h"
+#include "shift/core/terrain/surface_texture.h"
 
 namespace shift {
 namespace core {
@@ -39,6 +40,12 @@ interpolation_type:
 Beyond the map the bilinear surface continues with the samples of its edges.
 The bicubic surface continues along its slope at the edges for about a cell,
 and then levels off.
+
+texture_variation (optional) breaks up the repetition of the texture: the
+viewer shifts the tiles by random amounts in patches a few tiles across,
+blending between them, and varies the brightness over tens of meters.
+surfaces (optional, see SurfaceTexture, at most kMaxSurfaces) are other
+textures drawn over the terrain's in patches, e.g. dirt among gravel.
 
 soil (optional, see force_module::Soil) is the soil of the terrain, and
 soil_map (optional, see SoilMap) gives soils by area from an integer TIFF;
@@ -173,6 +180,16 @@ public:
   double get_normal_scale() const {
     return normal_scale_;
   }
+  /*! \brief whether the viewer breaks up the repetition of the textures */
+  bool get_texture_variation() const {
+    return texture_variation_;
+  }
+  /*! \brief the surfaces drawn over the terrain in patches, in order */
+  const std::vector<const SurfaceTexture*>& get_surfaces() const {
+    return surface_list_;
+  }
+  /*! \brief the most surfaces a terrain may have */
+  static constexpr int kMaxSurfaces = 2;
   /*! @} */
 
 protected:
@@ -224,6 +241,9 @@ private:
   double texture_scale_ = 1.0;
   std::string normal_map_filename_;
   double normal_scale_ = 1.0;
+  bool texture_variation_ = false;
+  parameter::Array<SurfaceTexture> surfaces_;
+  std::vector<const SurfaceTexture*> surface_list_;
   std::string coordinate_type_ = "sae";
   std::string interpolation_type_ = "bicubic";
 

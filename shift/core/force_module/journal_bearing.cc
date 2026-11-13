@@ -68,6 +68,25 @@ void shift::core::force_module::JournalBearing::DeclareParameters() {
                    "beta of the viscosity mu exp(-beta T) at the temperature "
                    "rise T (1/K); optional, default 0",
                    false);
+  DeclareOutput("eccentricity_ratio", &eccentricity_ratio_,
+                "eccentricity of the journal over the clearance");
+  DeclareOutput("min_film_thickness", &min_film_thickness_,
+                "thinnest oil film, negative when the journal is in contact");
+  DeclareOutput("peak_pressure", &peak_pressure_,
+                "highest pressure of the film");
+  DeclareOutput("friction_torque", &friction_torque_,
+                "friction torque on the journal");
+  DeclareOutput("side_flow", &side_flow_,
+                "flow of oil out of the ends of the bearing");
+  DeclareOutput("radial_force", &radial_force_,
+                "force of the film along the line of centers");
+  DeclareOutput("tangential_force", &tangential_force_,
+                "force of the film across the line of centers");
+  DeclareOutput("load", &load_, "magnitude of the force of the film");
+  DeclareOutput("effective_viscosity", &effective_viscosity_,
+                "viscosity of the oil at its temperature");
+  DeclareOutput("temperature_rise", &temperature_rise_,
+                "rise of the temperature of the oil");
 }
 
 shift::core::force_module::JournalBearing::Attachment
@@ -552,21 +571,4 @@ void shift::core::force_module::JournalBearing::Compute(const double* y,
     load.at[i] = -load.at[i];
   }
   context_->AddBodyLoad(bearing_.load_index, load);
-}
-
-std::vector<std::string>
-shift::core::force_module::JournalBearing::get_output_names() const {
-  return {"eccentricity_ratio", "min_film_thickness", "peak_pressure",
-          "friction_torque",    "side_flow",          "radial_force",
-          "tangential_force",   "load",               "viscosity",
-          "temperature_rise"};
-}
-
-void shift::core::force_module::JournalBearing::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(),
-                {eccentricity_ratio_, min_film_thickness_, peak_pressure_,
-                 friction_torque_, side_flow_, radial_force_,
-                 tangential_force_, load_, effective_viscosity_,
-                 temperature_rise_});
 }

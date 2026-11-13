@@ -91,6 +91,18 @@ public:
     (void)dy;
   }
 
+  /*! \brief compute the controller's outputs (DeclareOutput) for the state y
+   * at time t, and set the inputs of the components it drives to them, so
+   * that their outputs are those of y too; it applies no efforts and sets no
+   * rates. Context::WriteStates calls it after the sensors' Update and
+   * before the force modules' UpdateOutputs and the loggers, which record
+   * the outputs they are connected to. By default the outputs are those of
+   * the last Service. */
+  virtual void UpdateOutputs(double t, const double* y) {
+    (void)t;
+    (void)y;
+  }
+
 protected:
   std::string type_; //!< controller type
   unsigned int equation_count_ = 0; //!< number of internal states

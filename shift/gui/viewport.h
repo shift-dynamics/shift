@@ -26,6 +26,7 @@ class QRhiSampler;
 class QRhiShaderResourceBindings;
 class QRhiTexture;
 class QRhiTextureRenderTarget;
+class QRhiViewport;
 
 namespace shift {
 namespace gui {
@@ -84,8 +85,10 @@ public:
   explicit Viewport(QWindow* parent = nullptr);
   ~Viewport() override;
 
-  /*! \brief show the scene of a newly loaded simulation */
-  void set_simulation(Simulation* simulation);
+  /*! \brief show the scene of a newly loaded simulation; frame_scene
+   * places the camera to see all of it, else the camera stays (as for the
+   * same model loaded again) */
+  void set_simulation(Simulation* simulation, bool frame_scene = true);
 
   void set_render_mode(RenderMode mode);
   RenderMode get_render_mode() const {
@@ -136,6 +139,57 @@ public:
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
     poses = poses_;
+  }
+
+  /*! \brief a coordinate frame drawn as arrows along its axes, x red, y
+   * green and z blue (set_frame_axes) */
+  struct FrameAxes {
+    int body_index = 0;  /*!< into the poses */
+    QMatrix4x4 frame;    /*!< frame with respect to the body origin */
+  };
+  /*! \brief the coordinate frames to draw, none by default. They are drawn
+   * over the model, so that frames inside a body show, in both render
+   * modes. */
+  void set_frame_axes(std::vector<FrameAxes> axes);
+  const std::vector<FrameAxes>& get_frame_axes() const {
+    return frame_axes_;
+  }
+  /*! \brief the length of the arrows of the frames (m), see set_frame_axes;
+   * the line of a joint axis is twice as long, from -scale to scale along
+   * the axis (its thickness is set_joint_thickness) */
+  void set_frame_axes_scale(float scale);
+  /*! \brief the axis of a joint, drawn as an arrow through it that points
+   * in the positive sense of the joint */
+  struct JointAxis {
+    int body_index = 0; /*!< into the poses */
+    /*! the line with respect to the body origin: through its origin along
+     * its z axis, the arrow pointing to +z */
+    QMatrix4x4 line;
+  };
+  /*! \brief the joint axes to draw, none by default; drawn over the model
+   * as the frames */
+  void set_joint_axes(std::vector<JointAxis> axes);
+  const std::vector<JointAxis>& get_joint_axes() const {
+    return joint_axes_;
+  }
+  /*! \brief the color of the joint axes (sRGB as shown) */
+  void set_joint_color(const QVector3D& color);
+  const QVector3D& get_joint_color() const {
+    return joint_color_;
+  }
+  /*! \brief the diameter of the lines of the joint axes (m) */
+  void set_joint_thickness(float thickness);
+  float get_joint_thickness() const {
+    return joint_thickness_;
+  }
+  /*! \brief whether the meshes of each body, by index into the poses, are
+   * hidden; bodies past its end are shown */
+  void set_hidden_bodies(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_bodies() const {
+    return hidden_bodies_;
+  }
+  float get_frame_axes_scale() const {
+    return frame_axes_scale_;
   }
 
   /*! \brief frames rendered since the previous call */
@@ -256,6 +310,14 @@ private:
   void ShapeRtTerrain(const RtDeformableTerrain& terrain, int i0, int j0,
                       int i1, int j1, std::vector<RtTriangle>& triangles,
                       std::vector<BvhNode>& nodes, int& lo, int& hi) const;
+  /*! \brief upload the arrows of the frames (set_frame_axes) in the poses
+   * shown and the camera of view_projection; returns the batch to begin the
+   * render pass with (batch, or a new one if it is null) */
+  QRhiResourceUpdateBatch* UploadFrameAxes(QRhiResourceUpdateBatch* batch,
+                                           const QMatrix4x4& view_projection,
+                                           bool frame_uniforms);
+  /*! \brief draw the arrows uploaded by UploadFrameAxes, in a render pass */
+  void DrawFrameAxes(QRhiCommandBuffer* cb, const QRhiViewport& viewport);
   /*! \brief compute pipeline of a shader, laid out as bindings */
   QRhiComputePipeline* NewComputePipeline(const char* shader,
                                           QRhiShaderResourceBindings* bindings);
@@ -319,6 +381,29 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> mesh_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> sky_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> floor_pipeline_;
+
+  // coordinate frames drawn as arrows (set_frame_axes)
+  std::vector<FrameAxes> frame_axes_;
+  float frame_axes_scale_ = 0.25f;
+  std::vector<JointAxis> joint_axes_;
+  QVector3D joint_color_{0.63f, 0.25f, 0.88f};
+  float joint_thickness_ = 0.0075f;
+  uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
+  uint32_t axes_frame_instance_count_ = 0;
+  std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
+  /*! \brief whether the meshes of body are drawn */
+  bool is_body_shown(int body) const {
+    return body >= static_cast<int>(hidden_bodies_.size()) ||
+           !hidden_bodies_[body];
+  }
+  std::unique_ptr<QRhiBuffer> axes_vertices_;
+  std::unique_ptr<QRhiBuffer> axes_indices_;
+  uint32_t axes_index_count_ = 0;
+  bool axes_mesh_uploaded_ = false;
+  /*! per frame drawn, then per joint axis: AxesInstance */
+  std::unique_ptr<QRhiBuffer> axes_instances_;
+  uint32_t axes_instance_count_ = 0;
+  std::unique_ptr<QRhiGraphicsPipeline> axes_pipeline_;
 
   // terrains, tessellated on the GPU from their control points
   bool tessellation_supported_ = false;
@@ -431,6 +516,8 @@ private:
   int rt_parity_ = 0;
   QMatrix4x4 rt_last_view_projection_;
   bool rt_instances_dirty_ = true;
+  /*! the intensities of the lights at the last ray traced frame */
+  std::vector<float> rt_light_values_;
   /*! false after anything that invalidates the SVGF history (new scene,
    * resize, floor toggled, switching to ray tracing) */
   bool rt_history_valid_ = false;

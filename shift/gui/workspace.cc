@@ -1,61 +1,191 @@
 #include "shift/gui/workspace.h"
 
 #include "shift/core/assembly.h"
+#include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/context.h"
+#include "shift/core/frame.h"
 #include "shift/core/substructure.h"
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/body/virtual.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/light/base.h"
+#include "shift/core/parameter/array_base.h"
+#include "shift/core/parameter/list.h"
+#include "shift/core/parameter/value.h"
 #include "shift/core/terrain/base.h"
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
 #include "shift/gui/video_trimmer.h"
 #include "shift/gui/viewport.h"
 
+#include "ksl/axis.h"
 #include "ksl/mat3x3.h"
 #include "ksl/quaternion.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QDial>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QFormLayout>
 #include <QFileDialog>
+#include <QDir>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QImage>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QPalette>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QQuaternion>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QStyledItemDelegate>
+#include <QStringList>
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTimer>
 #include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <exception>
+#include <fstream>
+#include <iterator>
+#include <set>
+#include <sstream>
+#include <tuple>
 #include <stdexcept>
 
 
 static constexpr int kBodyItem = QTreeWidgetItem::UserType + 1;
 static constexpr int kJointItem = QTreeWidgetItem::UserType + 2;
 static constexpr int kGeometryItem = QTreeWidgetItem::UserType + 3;
+/*! any other object read from the model file */
+static constexpr int kObjectItem = QTreeWidgetItem::UserType + 4;
 static constexpr int kTickMilliseconds = 16;
+/* of a frame item or a folder of frames: whether its axes are shown, 0
+none, 1 all, 2 some (of a folder); items without it have no eye */
+static constexpr int kVisibleRole = Qt::UserRole + 4;
+/* set by a click on the eye; the workspace toggles the item */
+static constexpr int kToggleRole = Qt::UserRole + 5;
+static constexpr int kEyeGap = 4; /*!< pixels between the icon and the eye */
+
+namespace shift {
+namespace gui {
+
+/*!
+@brief Draws an eye beside the icon of the items of the model tree that can
+be shown or hidden (kVisibleRole); a click on it sets kToggleRole
+*/
+class VisibilityDelegate : public QStyledItemDelegate {
+public:
+  using QStyledItemDelegate::QStyledItemDelegate;
+
+  void paint(QPainter* painter, const QStyleOptionViewItem& option,
+             const QModelIndex& index) const override {
+    if(!HasEye(index)) {
+      QStyledItemDelegate::paint(painter, option, index);
+      return;
+    }
+    QStyleOptionViewItem item(option);
+    initStyleOption(&item, index);
+    // the icon and the eye side by side, as one decoration
+    const QSize size = item.decorationSize;
+    const qreal ratio = painter->device()->devicePixelRatioF();
+    QPixmap pixmap(QSize(2 * size.width() + kEyeGap, size.height()) * ratio);
+    pixmap.setDevicePixelRatio(ratio);
+    pixmap.fill(Qt::transparent);
+    {
+      QPainter p(&pixmap);
+      p.drawPixmap(0, 0, item.icon.pixmap(size, ratio));
+      p.drawPixmap(size.width() + kEyeGap, 0,
+                   EyeIcon(index.data(kVisibleRole).toInt()).pixmap(size, ratio));
+    }
+    item.icon = QIcon(pixmap);
+    item.decorationSize = QSize(2 * size.width() + kEyeGap, size.height());
+    item.features |= QStyleOptionViewItem::HasDecoration;
+    QStyle* style = item.widget ? item.widget->style() : QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &item, painter, item.widget);
+  }
+
+  QSize sizeHint(const QStyleOptionViewItem& option,
+                 const QModelIndex& index) const override {
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    if(HasEye(index)) {
+      size.rwidth() += option.decorationSize.width() + kEyeGap;
+    }
+    return size;
+  }
+
+  bool editorEvent(QEvent* event, QAbstractItemModel* model,
+                   const QStyleOptionViewItem& option,
+                   const QModelIndex& index) override {
+    const QEvent::Type type = event->type();
+    if(HasEye(index) && (type == QEvent::MouseButtonPress ||
+                         type == QEvent::MouseButtonRelease ||
+                         type == QEvent::MouseButtonDblClick)) {
+      auto* mouse = static_cast<QMouseEvent*>(event);
+      if(mouse->button() == Qt::LeftButton &&
+         EyeRect(option, index).contains(mouse->position().toPoint())) {
+        if(type == QEvent::MouseButtonRelease) {
+          model->setData(index, true, kToggleRole);
+        }
+        return true; // the click is the eye's: no selection, no expanding
+      }
+    }
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
+  }
+
+private:
+  static bool HasEye(const QModelIndex& index) {
+    return index.column() == 0 && index.data(kVisibleRole).isValid();
+  }
+
+  static QIcon EyeIcon(int visible) {
+    static const QIcon shown(":/icons/visible.png");
+    static const QIcon hidden(":/icons/invisible_grey.png");
+    static const QIcon some(":/icons/visible_grey.png");
+    return visible == 1 ? shown : visible == 2 ? some : hidden;
+  }
+
+  /* where paint draws the eye */
+  QRect EyeRect(const QStyleOptionViewItem& option,
+                const QModelIndex& index) const {
+    QStyleOptionViewItem item(option);
+    initStyleOption(&item, index);
+    const QSize size = item.decorationSize;
+    item.decorationSize = QSize(2 * size.width() + kEyeGap, size.height());
+    item.features |= QStyleOptionViewItem::HasDecoration;
+    QStyle* style = item.widget ? item.widget->style() : QApplication::style();
+    const QRect decoration = style->subElementRect(
+      QStyle::SE_ItemViewItemDecoration, &item, item.widget);
+    return QRect(decoration.left() + size.width() + kEyeGap, decoration.top(),
+                 size.width(), decoration.height());
+  }
+};
+
+} // namespace gui
+} // namespace shift
 
 /*! gain dial 0..100 maps to a slider rate multiplier of 0.01..100 */
 static double DialGain(const QDial* dial) {
@@ -73,6 +203,12 @@ shift::gui::Workspace::Workspace(QWidget* parent)
   resize(1400, 860);
   InitializeLayout();
   InitializeMenus();
+
+  std::string settings_error;
+  if(!settings_.Load(Settings::get_default_path(), &settings_error)) {
+    qWarning("%s", settings_error.c_str());
+  }
+  ApplySettings();
 
   tick_timer_ = new QTimer(this);
   connect(tick_timer_, &QTimer::timeout, this, &Workspace::Tick);
@@ -94,10 +230,24 @@ void shift::gui::Workspace::InitializeMenus() {
   QAction* open_action = file_menu->addAction("&Open…");
   open_action->setShortcut(QKeySequence::Open);
   connect(open_action, &QAction::triggered, this, &Workspace::OpenDialog);
+  QAction* save_action = file_menu->addAction("&Save model as…");
+  save_action->setShortcut(QKeySequence::SaveAs);
+  save_action->setToolTip("write the model, with the edits made to its "
+                          "parameters, to a JSON file");
+  connect(save_action, &QAction::triggered, this, &Workspace::SaveModelAs);
+  QAction* revert_action = file_menu->addAction("&Revert model");
+  revert_action->setToolTip("drop the edits and load the model file again");
+  connect(revert_action, &QAction::triggered, this, &Workspace::RevertModel);
   file_menu->addSeparator();
   QAction* quit_action = file_menu->addAction("&Quit");
   quit_action->setShortcut(QKeySequence::Quit);
   connect(quit_action, &QAction::triggered, this, &QWidget::close);
+
+  QMenu* edit_menu = menuBar()->addMenu("&Edit");
+  QAction* settings_action = edit_menu->addAction("&Settings…");
+  settings_action->setShortcut(QKeySequence::Preferences);
+  connect(settings_action, &QAction::triggered, this,
+          &Workspace::SettingsDialog);
 
   QMenu* view_menu = menuBar()->addMenu("&View");
   QAction* ray_traced = view_menu->addAction("&Ray traced");
@@ -144,10 +294,65 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   tree_widget_->setAlternatingRowColors(true);
   tree_widget_->setColumnCount(3);
   tree_widget_->setHeaderLabels({"", "value", "mobility"});
-  tree_widget_->setColumnWidth(0, 220);
+  // the names take the width the value and mobility columns leave
+  tree_widget_->header()->setStretchLastSection(false);
+  tree_widget_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+  tree_widget_->setColumnWidth(1, 70);
+  tree_widget_->setColumnWidth(2, 70);
   scene_splitter->addWidget(tree_widget_);
   connect(tree_widget_, &QTreeWidget::itemSelectionChanged, this,
           &Workspace::SelectTreeItem);
+  // the eyes of the frames
+  tree_widget_->setItemDelegateForColumn(
+    0, new VisibilityDelegate(tree_widget_));
+  connect(tree_widget_, &QTreeWidget::itemChanged, this,
+          [this](QTreeWidgetItem* item, int column) {
+            if(column == 0 && item->data(0, kToggleRole).toBool()) {
+              item->setData(0, kToggleRole, QVariant());
+              ToggleVisibility(item);
+            }
+          });
+
+  // parameters panel: every parameter of the selected object
+  auto& parameters = parameter_panel_;
+  parameters.group_box = new QGroupBox;
+  auto* parameters_layout = new QVBoxLayout(parameters.group_box);
+  parameters.title = new QLabel;
+  parameters.title->setStyleSheet("font-weight: bold");
+  parameters_layout->addWidget(parameters.title);
+  parameters.tree = new QTreeWidget;
+  parameters.tree->setColumnCount(2);
+  parameters.tree->setHeaderLabels({"parameter", "value"});
+  parameters.tree->setColumnWidth(0, 180);
+  parameters.tree->setAlternatingRowColors(true);
+  parameters.tree->setToolTip(QString());
+  parameters_layout->addWidget(parameters.tree);
+  connect(parameters.tree, &QTreeWidget::itemSelectionChanged, this,
+          &Workspace::SelectParameterRow);
+
+  // the editor of the selected parameter
+  parameters.editor = new QWidget;
+  auto* editor_layout = new QVBoxLayout(parameters.editor);
+  editor_layout->setContentsMargins(0, 0, 0, 0);
+  auto* editor_row = new QHBoxLayout;
+  parameters.editor_key = new QLabel;
+  parameters.editor_key->setStyleSheet("font-weight: bold");
+  editor_row->addWidget(parameters.editor_key);
+  parameters.editor_fields = new QWidget;
+  editor_row->addWidget(parameters.editor_fields, 1);
+  parameters.apply_button = new QPushButton("Apply");
+  connect(parameters.apply_button, &QPushButton::clicked, this,
+          &Workspace::ApplyParameterEdit);
+  editor_row->addWidget(parameters.apply_button);
+  editor_layout->addLayout(editor_row);
+  // below the fields, so that a long message wraps to its full height
+  parameters.editor_note = new QLabel;
+  parameters.editor_note->setWordWrap(true);
+  editor_layout->addWidget(parameters.editor_note);
+  parameters.editor->setVisible(false);
+  parameters_layout->addWidget(parameters.editor);
+  parameters.group_box->setVisible(false);
+  scene_splitter->addWidget(parameters.group_box);
 
   auto* dynamic_box = new QWidget;
   auto* dynamic_layout = new QVBoxLayout(dynamic_box);
@@ -804,19 +1009,65 @@ void shift::gui::Workspace::InitializeLayout() {
 
 bool shift::gui::Workspace::Open(const QString& filename,
                                  QString* error_message) {
+  return LoadModel(filename, nullptr, error_message, false);
+}
+
+static constexpr int kPathRole = Qt::UserRole + 3; /*!< QString, see PathKey */
+
+bool shift::gui::Workspace::LoadModel(const QString& filename,
+                                      const Json::Value* model,
+                                      QString* error_message, bool keep_view) {
+  // what to select again in the model loaded again; after a load that
+  // failed (the tree is empty), what was selected before it
+  auto& reselect = reselect_;
+  if(!keep_view) {
+    reselect = Reselect();
+  } else if(tree_widget_->topLevelItemCount() > 0) {
+    reselect = Reselect();
+    const auto items = tree_widget_->selectedItems();
+    if(!items.isEmpty()) {
+      reselect.path = items.front()->data(0, kPathRole).toString();
+    }
+    auto& panel = parameter_panel_;
+    if(panel.editing_row >= 0 &&
+       panel.editing_row < static_cast<int>(panel.rows.size())) {
+      reselect.parameter = panel.rows[panel.editing_row].keys.front();
+    }
+    if(camera_panel_.follow->isChecked()) {
+      reselect.follow_body = camera_panel_.body->currentText();
+    }
+  }
+
   QApplication::setOverrideCursor(Qt::WaitCursor);
-  viewport_->set_simulation(nullptr);
+  viewport_->set_simulation(nullptr, !keep_view);
   playing_ = false;
   jogging_ = nullptr;
   target_move_ = TargetMove();
   ClearSliders();
+  ShowParameters(nullptr, QString());
   tree_widget_->clear();
   joint_items_.clear();
+  object_paths_.clear();
+  eye_items_.clear();
+  eye_folders_.clear();
+  viewport_->set_frame_axes({});
+  viewport_->set_joint_axes({});
+  viewport_->set_hidden_bodies({});
+  if(!keep_view) {
+    // a model opens with its bodies shown, no frames and no joint axes
+    shown_frames_.clear();
+    shown_joints_.clear();
+    hidden_bodies_.clear();
+  }
   geometry_panel_.selected = nullptr;
 
   std::string error;
   try {
-    simulation_.Load(filename.toStdString());
+    if(model) {
+      simulation_.Reload(*model);
+    } else {
+      simulation_.Load(filename.toStdString());
+    }
   } catch(std::exception& e) {
     error = e.what();
   }
@@ -835,6 +1086,11 @@ bool shift::gui::Workspace::Open(const QString& filename,
     UpdateStatus();
     return false;
   }
+  if(!model) {
+    model_json_ = simulation_.get_context()->get_model_json();
+    model_edited_ = false;
+    model_filename_ = filename;
+  }
 
   PopulateTree();
   LoadModelParameters();
@@ -847,19 +1103,126 @@ bool shift::gui::Workspace::Open(const QString& filename,
   playback_panel_.slider->set_time(0.0);
   playback_panel_.slider->Enable(simulation_.has_results());
   playback_panel_.play_pause_button->setIcon(playback_panel_.play_icon);
-  viewport_->set_simulation(&simulation_);
+  viewport_->set_simulation(&simulation_, !keep_view);
   camera_panel_.follow->setChecked(false);
   camera_panel_.body->clear();
   for(const auto* body : simulation_.get_bodies()) {
     camera_panel_.body->addItem(QString::fromStdString(body->get_name()));
   }
   camera_panel_.group_box->setVisible(true);
+  if(!reselect.follow_body.isEmpty()) {
+    const int index = camera_panel_.body->findText(reselect.follow_body);
+    if(index >= 0) {
+      camera_panel_.body->setCurrentIndex(index);
+      camera_panel_.follow->setChecked(true);
+    }
+  }
   UpdateFloor();
-  // the floor plane would cut through a terrain
-  floor_action_->setChecked(simulation_.get_scene().terrains.empty());
-  setWindowTitle(QString("Shift — %1").arg(QFileInfo(filename).fileName()));
+  if(!keep_view) {
+    // the floor plane would cut through a terrain
+    floor_action_->setChecked(simulation_.get_scene().terrains.empty());
+  }
+  UpdateWindowTitle();
+
+  if(!reselect.path.isEmpty()) {
+    for(QTreeWidgetItemIterator it(tree_widget_); *it; ++it) {
+      if((*it)->data(0, kPathRole).toString() == reselect.path) {
+        tree_widget_->setCurrentItem(*it);
+        tree_widget_->scrollToItem(*it);
+        break;
+      }
+    }
+    auto& panel = parameter_panel_;
+    for(size_t i = 0; i < panel.rows.size(); i++) {
+      if(panel.rows[i].keys.front() == reselect.parameter) {
+        panel.tree->setCurrentItem(panel.rows[i].item);
+        break;
+      }
+    }
+  }
   UpdateStatus();
   return true;
+}
+
+bool shift::gui::Workspace::ReloadModel(const Json::Value& previous,
+                                        QString& error) {
+  if(LoadModel(model_filename_, &model_json_, &error, true)) {
+    model_edited_ = true;
+    UpdateWindowTitle();
+    return true;
+  }
+  // back to the model before the edit, which loaded
+  model_json_ = previous;
+  QString again;
+  LoadModel(model_filename_, &model_json_, &again, true);
+  return false;
+}
+
+void shift::gui::Workspace::UpdateWindowTitle() {
+  if(!simulation_.is_loaded()) {
+    setWindowTitle("Shift");
+    return;
+  }
+  setWindowTitle(QString("Shift — %1%2")
+                   .arg(QFileInfo(model_filename_).fileName(),
+                        model_edited_ ? " (edited)" : ""));
+}
+
+void shift::gui::Workspace::SaveModelAs() {
+  if(!simulation_.is_loaded()) {
+    return;
+  }
+  // the files the model names are found relative to it: save it beside the
+  // file it was read from
+  const QFileInfo info(model_filename_);
+  const QString suggestion =
+    info.dir().filePath(info.completeBaseName() + ".json");
+  const QString filename = QFileDialog::getSaveFileName(
+    this, "Save model as", suggestion, "Shift models (*.json)");
+  QString error;
+  if(!filename.isEmpty() && !SaveModel(filename, &error)) {
+    QMessageBox::critical(this, "Save failed", error);
+  }
+}
+
+bool shift::gui::Workspace::SaveModel(const QString& filename,
+                                      QString* error) {
+  if(!simulation_.is_loaded()) {
+    if(error) {
+      *error = "no model is loaded";
+    }
+    return false;
+  }
+  // the elements of each array keep their order; the keys of an object are
+  // written in alphabetical order
+  std::ofstream file(filename.toStdString());
+  Json::StreamWriterBuilder builder;
+  builder.settings_["indentation"] = "  ";
+  file << Json::writeString(builder, model_json_) << std::endl;
+  if(!file) {
+    if(error) {
+      *error = "Could not write " + filename;
+    }
+    return false;
+  }
+  model_filename_ = filename;
+  model_edited_ = false;
+  UpdateWindowTitle();
+  return true;
+}
+
+void shift::gui::Workspace::RevertModel() {
+  if(!simulation_.is_loaded()) {
+    return;
+  }
+  if(model_edited_ &&
+     QMessageBox::question(this, "Revert model",
+                           "Drop the edits and load " +
+                             QFileInfo(model_filename_).fileName() +
+                             " again?") != QMessageBox::Yes) {
+    return;
+  }
+  Open(model_filename_);
 }
 
 void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
@@ -988,19 +1351,143 @@ void shift::gui::Workspace::LoadModelParameters() {
 
 // -------------------------------------------------------------- model tree
 
-/* the tree follows the layout of the model file: the fixed body, with what
-is attached to it, above the assemblies with their bodies, joints and nested
-assemblies */
-void shift::gui::Workspace::PopulateTree() {
-  tree_widget_->clear();
-  joint_items_.assign(simulation_.get_context()->get_active_joints().size(),
-                      nullptr);
-  AddFixedItems();
-  for(auto& assembly : simulation_.get_context()->get_assemblies()) {
-    AddAssemblyItem(assembly.get(), nullptr);
+/* the keys of the arrays and objects in the order the tree shows them, as a
+model file usually has them; other keys follow in alphabetical order */
+static int KeyRank(const std::string& key) {
+  static const char* const kOrder[] = {
+    "model_parameters", "units", "solvers", "integrators", "loggers",
+    "frames", "lights", "geometry", "collision_geometry", "terrain",
+    "bodies", "joints", "constraints", "force_modules", "sensors",
+    "controllers", "assemblies"};
+  const int count = static_cast<int>(std::size(kOrder));
+  for(int i = 0; i < count; i++) {
+    if(key == kOrder[i]) {
+      return i;
+    }
   }
-  tree_widget_->expandAll();
-  UpdateTree();
+  return count;
+}
+
+/* the keys of the parameters of an object, in the order of KeyRank */
+static std::vector<std::string> SortedKeys(
+  const shift::core::parameter::List* object) {
+  std::vector<std::string> keys;
+  for(const auto& parameter : object->get_parameters()) {
+    keys.push_back(parameter.first);
+  }
+  std::stable_sort(keys.begin(), keys.end(),
+                   [](const std::string& a, const std::string& b) {
+                     return KeyRank(a) < KeyRank(b);
+                   });
+  return keys;
+}
+
+/* the value of a string parameter of an object, empty if it has none */
+static std::string StringParameter(shift::core::parameter::List* object,
+                                   const std::string& key) {
+  shift::core::parameter::Value* value = object->Find(key);
+  if(value && value->has_data() &&
+     value->get_value_type() == shift::core::parameter::Value::STRING) {
+    return value->get<std::string>();
+  }
+  return std::string();
+}
+
+/* whether an object has an array with elements, itself or in an object
+parameter; such an object is shown in the model tree */
+static bool HasObjects(shift::core::parameter::List* object, int depth) {
+  if(!object || depth > 32) {
+    return false;
+  }
+  for(const auto& parameter : object->get_parameters()) {
+    const shift::core::parameter::Value& value = parameter.second;
+    if(!value.has_data()) {
+      continue;
+    }
+    if(value.is_array()) {
+      auto* array = value.get_data<shift::core::parameter::ArrayBase>();
+      if(array && array->get_size() > 0) {
+        return true;
+      }
+    } else if(value.is_list() &&
+              HasObjects(value.get_data<shift::core::parameter::List>(),
+                         depth + 1)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static constexpr int kObjectRole = Qt::UserRole + 1;   /*!< parameter::List* */
+static constexpr int kInactiveRole = Qt::UserRole + 2; /*!< bool */
+
+static shift::core::parameter::List* ItemObject(const QTreeWidgetItem* item) {
+  return reinterpret_cast<shift::core::parameter::List*>(
+    item->data(0, kObjectRole).value<quintptr>());
+}
+
+/* the value at path in a model's JSON, nullptr if there is none */
+static const Json::Value* JsonAt(
+  const Json::Value& root,
+  const std::vector<shift::gui::Workspace::JsonStep>& path) {
+  const Json::Value* json = &root;
+  for(const auto& step : path) {
+    if(step.index >= 0) {
+      if(!json->isArray() ||
+         step.index >= static_cast<int>(json->size())) {
+        return nullptr;
+      }
+      json = &(*json)[step.index];
+    } else {
+      if(!json->isObject() || !json->isMember(step.key)) {
+        return nullptr;
+      }
+      json = &(*json)[step.key];
+    }
+  }
+  return json;
+}
+
+/* the element of the JSON array that object, element index of the array
+of objects read from it, was read from: the one of its name, as names are
+unique in an array, else the element at index if the array has as many
+elements as objects were read; -1 if none (as the default floor) */
+static int JsonElementIndex(const Json::Value& array,
+                            shift::core::parameter::List* object, int index) {
+  if(!array.isArray()) {
+    return -1;
+  }
+  const std::string name = StringParameter(object, "name");
+  if(!name.empty()) {
+    for(Json::ArrayIndex i = 0; i < array.size(); i++) {
+      if(array[i].isObject() && array[i].isMember("name") &&
+         array[i]["name"].isString() &&
+         array[i]["name"].asString() == name) {
+        return static_cast<int>(i);
+      }
+    }
+    return -1;
+  }
+  return index < static_cast<int>(array.size()) ? index : -1;
+}
+
+/* what identifies a tree item when the model is loaded again: its path in
+the model's JSON, or else the names of the items to it */
+static QString PathKey(
+  const std::vector<shift::gui::Workspace::JsonStep>* path,
+  const QTreeWidgetItem* item) {
+  QStringList parts;
+  if(path) {
+    for(const auto& step : *path) {
+      parts << (step.index >= 0 ? QString("#%1").arg(step.index)
+                                : QString::fromStdString(step.key));
+    }
+    return "/" + parts.join("/");
+  }
+  for(; item; item = item->parent()) {
+    parts.prepend(item->text(0));
+  }
+  return "~" + parts.join("/");
 }
 
 static QTreeWidgetItem* NewItem(QTreeWidgetItem* parent, QTreeWidget* tree,
@@ -1009,7 +1496,9 @@ static QTreeWidgetItem* NewItem(QTreeWidgetItem* parent, QTreeWidget* tree,
   QTreeWidgetItem* item =
     parent ? new QTreeWidgetItem(parent, {QString::fromStdString(text)}, type)
            : new QTreeWidgetItem(tree, {QString::fromStdString(text)}, type);
-  item->setIcon(0, QIcon(icon));
+  if(icon) {
+    item->setIcon(0, QIcon(icon));
+  }
   return item;
 }
 
@@ -1023,109 +1512,1226 @@ static const char* GeometryIcon(const std::string& type) {
   return ":/icons/convexhull.png";
 }
 
-void shift::gui::Workspace::AddFixedItems() {
+/* the icon of the folder of an array */
+static const char* FolderIcon(const std::string& key) {
+  static const std::pair<const char*, const char*> kIcons[] = {
+    {"assemblies", ":/icons/assembly_folder.png"},
+    {"bodies", ":/icons/body_folder.png"},
+    {"joints", ":/icons/joint_folder.png"},
+    {"constraints", ":/icons/io_folder.png"},
+    {"force_modules", ":/icons/restraint_folder.png"},
+    {"sensors", ":/icons/sensor_folder.png"},
+    {"controllers", ":/icons/controller_folder.png"},
+    {"frames", ":/icons/frame_folder.png"},
+    {"lights", ":/icons/light_folder.png"},
+    {"terrain", ":/icons/terrain_folder.png"},
+    {"solvers", ":/icons/clipboard_folder.png"},
+    {"integrators", ":/icons/clipboard_folder.png"},
+    {"loggers", ":/icons/clipboard_folder.png"},
+  };
+  for(const auto& icon : kIcons) {
+    if(key == icon.first) {
+      return icon.second;
+    }
+  }
+  return ":/icons/blank_folder.png";
+}
+
+/* the icon of an element of the array key, or of the object parameter key */
+static const char* ObjectIcon(const std::string& key, const std::string& type) {
+  if(key == "collision_geometry") {
+    return GeometryIcon(type);
+  }
+  static const std::pair<const char*, const char*> kIcons[] = {
+    {"assemblies", ":/icons/assembly.png"},
+    {"bodies", ":/icons/body.png"},
+    {"joints", ":/icons/joint.png"},
+    {"constraints", ":/icons/io.png"},
+    {"force_modules", ":/icons/restraint.png"},
+    {"sensors", ":/icons/sensor.png"},
+    {"controllers", ":/icons/controller.png"},
+    {"frames", ":/icons/frame.png"},
+    {"lights", ":/icons/light.png"},
+    {"terrain", ":/icons/terrain.png"},
+    {"geometry", ":/icons/cube.png"},
+    {"model_parameters", ":/icons/clipboard.png"},
+    {"solvers", ":/icons/clipboard.png"},
+    {"integrators", ":/icons/clipboard.png"},
+    {"loggers", ":/icons/clipboard.png"},
+  };
+  for(const auto& icon : kIcons) {
+    if(key == icon.first) {
+      return icon.second;
+    }
+  }
+  return nullptr;
+}
+
+/* the tree follows the layout of the model file: its top level, which is
+the fixed body, with a folder for each array of objects (assemblies, bodies,
+joints, force modules, sensors, controllers, frames, ...) holding an item for
+each object, and so on down the nested assemblies */
+void shift::gui::Workspace::PopulateTree() {
+  tree_widget_->clear();
+  object_paths_.clear();
+  eye_items_.clear();
+  eye_folders_.clear();
   shift::core::Context* context = simulation_.get_context();
+  joint_items_.assign(context->get_active_joints().size(), nullptr);
+
   // the fixed body is the first body of the simulation
-  QTreeWidgetItem* fixed =
-    NewItem(nullptr, tree_widget_, "fixed", ":/icons/anchor.png", kBodyItem);
-  fixed->setData(0, Qt::UserRole, 0);
-
-  auto& frames = context->get_frames();
-  if(!frames.empty()) {
-    QTreeWidgetItem* folder =
-      NewItem(fixed, nullptr, "frames", ":/icons/frame_folder.png");
-    for(auto& frame : frames) {
-      NewItem(folder, nullptr, frame->get_name(), ":/icons/frame.png");
-    }
+  std::string name = QFileInfo(model_filename_).fileName().toStdString();
+  if(name.empty()) {
+    name = context->get_name();
   }
-  auto& lights = context->get_lights();
-  if(!lights.empty()) {
-    QTreeWidgetItem* folder =
-      NewItem(fixed, nullptr, "lights", ":/icons/light_folder.png");
-    for(auto& light : lights) {
-      NewItem(folder, nullptr, light->get_name(), ":/icons/light.png");
-    }
-  }
-  auto& terrain = context->get_terrain();
-  if(!terrain.empty()) {
-    QTreeWidgetItem* folder =
-      NewItem(fixed, nullptr, "terrain", ":/icons/terrain_folder.png");
-    for(auto& patch : terrain) {
-      NewItem(folder, nullptr, patch->get_name(), ":/icons/terrain.png");
-    }
-  }
-  // collision geometry, such as the floor, directly under the fixed body
-  auto& geometry = context->get_fixed_collision_geometry();
-  for(size_t i = 0; i < geometry.size(); i++) {
-    QTreeWidgetItem* item =
-      NewItem(fixed, nullptr, geometry[i]->get_name(),
-              GeometryIcon(geometry[i]->get_type()), kGeometryItem);
-    item->setData(0, Qt::UserRole, int(i));
-  }
+  QTreeWidgetItem* root =
+    NewItem(nullptr, tree_widget_, name, ":/icons/anchor.png", kBodyItem);
+  root->setToolTip(0, "the model file; its top level is the fixed body, "
+                      "named \"" +
+                        QString::fromStdString(context->get_name()) + "\"");
+  root->setData(0, Qt::UserRole, 0);
+  root->setData(0, kObjectRole,
+                QVariant::fromValue(reinterpret_cast<quintptr>(
+                  static_cast<shift::core::parameter::List*>(context))));
+  const std::vector<JsonStep> path;
+  object_paths_[context] = path;
+  root->setData(0, kPathRole, PathKey(&path, root));
+  AddObjectChildren(context, root, 1, &path);
+  root->setExpanded(true);
+  UpdateTree();
+  UpdateVisibility();
 }
 
-void shift::gui::Workspace::AddAssemblyItem(shift::core::Assembly* assembly,
-                                            QTreeWidgetItem* parent) {
-  const std::string name =
-    assembly->get_name().empty() ? "assembly" : assembly->get_name();
-  QTreeWidgetItem* item =
-    NewItem(parent, tree_widget_, name, ":/icons/assembly.png");
+/* a displacement as a matrix, column major as ksl_SE3_t */
+static QMatrix4x4 SE3Matrix(const ksl_SE3_t& d) {
+  const double* a = d.as_array;
+  return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
+                    float(a[1]), float(a[4]), float(a[7]), float(a[10]),
+                    float(a[2]), float(a[5]), float(a[8]), float(a[11]), 0.f,
+                    0.f, 0.f, 1.f);
+}
 
-  if(!assembly->get_bodies().empty()) {
-    QTreeWidgetItem* folder =
-      NewItem(item, nullptr, "bodies", ":/icons/body_folder.png");
-    for(auto& body : assembly->get_bodies()) {
-      AddBodyItem(body.get(), folder);
+bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
+  switch(eye.kind) {
+  case EyeItem::kFrame:
+    return shown_frames_.count(eye.path) > 0;
+  case EyeItem::kJoint:
+    return shown_joints_.count(eye.path) > 0;
+  case EyeItem::kBody:
+    return hidden_bodies_.count(eye.path) == 0;
+  }
+  return false;
+}
+
+/* the body (index of the simulation) a frame is on and its pose with
+respect to the body origin; false if the body is not drawn */
+static bool FramePlace(const shift::core::Frame& frame,
+                       shift::gui::Simulation& simulation, int& body_index,
+                       QMatrix4x4& pose) {
+  const auto& bodies = simulation.get_bodies();
+  const shift::core::body::Base* body = frame.get_parent_body();
+  auto found = std::find(bodies.begin(), bodies.end(), body);
+  if(!body || body == simulation.get_context()) {
+    found = bodies.begin(); // the fixed body
+  }
+  if(found == bodies.end() || !frame.get_d_wrt_origin()) {
+    return false;
+  }
+  body_index = static_cast<int>(found - bodies.begin());
+  pose = SE3Matrix(*frame.get_d_wrt_origin());
+  return true;
+}
+
+/* the lines of the axes of a joint, along the z axis of their matrices,
+which points in the positive sense of the joint as the model file gives it
+(its parent and child, not the way the topology may traverse it): of a
+revolute, prismatic or screw joint its axis, given in its parent frame,
+through the origin of that frame; of a gear joint the axes of the two
+gears, the z axes of its parent and child frames, about which the line of
+centers and the child gear turn for a positive q. False if it has none. */
+static bool JointLines(shift::core::joint::Base& joint,
+                       shift::gui::Simulation& simulation,
+                       std::vector<shift::gui::Viewport::JointAxis>& lines) {
+  lines.clear();
+  auto add = [&](shift::core::Frame* frame, const QVector3D& axis) {
+    shift::gui::Viewport::JointAxis line;
+    if(frame && axis.lengthSquared() > 0.f &&
+       FramePlace(*frame, simulation, line.body_index, line.line)) {
+      line.line.rotate(QQuaternion::rotationTo(QVector3D(0.f, 0.f, 1.f),
+                                               axis.normalized()));
+      lines.push_back(line);
     }
-    if(folder->childCount() == 0) {
-      delete folder;
+  };
+  const std::string& type = joint.get_type();
+  if(type == "revolute" || type == "prismatic" || type == "screw") {
+    QVector3D axis(0.f, 0.f, 1.f);
+    const shift::core::parameter::Value* value = joint.Find("axis");
+    if(value && value->has_data() &&
+       value->get_value_type() == shift::core::parameter::Value::KSL_VEC3) {
+      const ksl_vec3_t* a = value->get_data<ksl_vec3_t>();
+      axis = QVector3D(float(a->x), float(a->y), float(a->z));
+    }
+    add(joint.get_parent_frame(), axis);
+  } else if(type == "gear") {
+    add(joint.get_parent_frame(), QVector3D(0.f, 0.f, 1.f));
+    add(joint.get_child_frame(), QVector3D(0.f, 0.f, 1.f));
+  }
+  return !lines.empty();
+}
+
+void shift::gui::Workspace::ToggleVisibility(QTreeWidgetItem* item) {
+  // a folder shows all of its items unless all are shown
+  const bool show = item->data(0, kVisibleRole).toInt() != 1;
+  for(const EyeItem& eye : eye_items_) {
+    if(eye.item != item && eye.item->parent() != item) {
+      continue;
+    }
+    std::set<QString>& set = eye.kind == EyeItem::kFrame   ? shown_frames_
+                             : eye.kind == EyeItem::kJoint ? shown_joints_
+                                                           : hidden_bodies_;
+    if(show == (eye.kind != EyeItem::kBody)) {
+      set.insert(eye.path);
+    } else {
+      set.erase(eye.path);
     }
   }
+  UpdateVisibility();
+}
 
-  const auto& active = simulation_.get_context()->get_active_joints();
-  if(!assembly->get_joints().empty()) {
-    QTreeWidgetItem* folder =
-      NewItem(item, nullptr, "joints", ":/icons/joint_folder.png");
-    for(auto& joint : assembly->get_joints()) {
-      auto found = std::find(active.begin(), active.end(), joint.get());
-      if(found == active.end()) {
-        continue; // inactive
+void shift::gui::Workspace::UpdateVisibility() {
+  std::vector<Viewport::FrameAxes> frames;
+  std::vector<Viewport::JointAxis> joints;
+  std::vector<bool> hidden(simulation_.is_loaded()
+                             ? simulation_.get_bodies().size()
+                             : 0,
+                           false);
+  for(const EyeItem& eye : eye_items_) {
+    const bool shown = IsShown(eye);
+    eye.item->setData(0, kVisibleRole, shown ? 1 : 0);
+    if(eye.kind == EyeItem::kFrame && shown) {
+      frames.push_back({eye.body_index, eye.frame});
+    } else if(eye.kind == EyeItem::kJoint && shown) {
+      joints.insert(joints.end(), eye.lines.begin(), eye.lines.end());
+    } else if(eye.kind == EyeItem::kBody && !shown &&
+              eye.body_index < static_cast<int>(hidden.size())) {
+      hidden[eye.body_index] = true;
+    }
+  }
+  for(QTreeWidgetItem* folder : eye_folders_) {
+    int items = 0, shown = 0;
+    for(int i = 0; i < folder->childCount(); i++) {
+      const QVariant visible = folder->child(i)->data(0, kVisibleRole);
+      if(visible.isValid()) {
+        items++;
+        shown += visible.toInt() == 1 ? 1 : 0;
       }
-      const int index = static_cast<int>(found - active.begin());
-      QTreeWidgetItem* joint_item =
-        NewItem(folder, nullptr,
-                joint->get_name() + " (" + joint->get_type() + ")",
-                ":/icons/joint.png", kJointItem);
-      joint_item->setData(0, Qt::UserRole, index);
-      joint_items_[index] = joint_item;
     }
-    if(folder->childCount() == 0) {
-      delete folder;
-    }
+    folder->setData(0, kVisibleRole,
+                    shown == 0 ? 0 : shown == items ? 1 : 2);
   }
-
-  for(auto& nested : assembly->get_assemblies()) {
-    AddAssemblyItem(nested.get(), item);
-  }
+  viewport_->set_frame_axes(std::move(frames));
+  viewport_->set_joint_axes(std::move(joints));
+  viewport_->set_hidden_bodies(std::move(hidden));
 }
 
-void shift::gui::Workspace::AddBodyItem(shift::core::body::Base* body,
-                                        QTreeWidgetItem* parent) {
-  // virtual bodies are massless helpers generated for joints
-  if(dynamic_cast<shift::core::body::Virtual*>(body)) {
+void shift::gui::Workspace::ApplySettings() {
+  viewport_->set_frame_axes_scale(float(settings_.get_frame_scale()));
+  viewport_->set_joint_thickness(float(settings_.get_joint_thickness()));
+  const QColor& color = settings_.get_joint_color();
+  viewport_->set_joint_color(QVector3D(float(color.redF()),
+                                       float(color.greenF()),
+                                       float(color.blueF())));
+}
+
+void shift::gui::Workspace::SettingsDialog() {
+  QDialog dialog(this);
+  dialog.setWindowTitle("Settings");
+  auto* layout = new QFormLayout(&dialog);
+  auto* frame_scale = new QDoubleSpinBox;
+  frame_scale->setRange(0.001, 1000.0);
+  frame_scale->setDecimals(3);
+  frame_scale->setSingleStep(0.05);
+  frame_scale->setSuffix(" m");
+  frame_scale->setValue(settings_.get_frame_scale());
+  frame_scale->setToolTip("the length of the arrows of the coordinate frames "
+                          "shown (the eye beside a frame in the Scene tree)");
+  layout->addRow("Coordinate frame scale", frame_scale);
+  // the color of the joint axes: a swatch that opens a color picker
+  QColor joint_color = settings_.get_joint_color();
+  auto* color_button = new QPushButton;
+  color_button->setToolTip("the color of the axes of the joints shown (the "
+                           "eye beside a joint in the Scene tree)");
+  auto show_color = [color_button](const QColor& color) {
+    QPixmap swatch(40, 16);
+    swatch.fill(color);
+    color_button->setIcon(QIcon(swatch));
+    color_button->setIconSize(swatch.size());
+    color_button->setText(color.name(QColor::HexRgb));
+  };
+  show_color(joint_color);
+  layout->addRow("Joint color", color_button);
+  auto* joint_thickness = new QDoubleSpinBox;
+  joint_thickness->setRange(0.0001, 10.0);
+  joint_thickness->setDecimals(4);
+  joint_thickness->setSingleStep(0.001);
+  joint_thickness->setSuffix(" m");
+  joint_thickness->setValue(settings_.get_joint_thickness());
+  joint_thickness->setToolTip("the diameter of the lines of the joint axes");
+  layout->addRow("Joint axis thickness", joint_thickness);
+  // the viewport shows the settings as they are changed
+  auto preview = [this, frame_scale, joint_thickness, &joint_color] {
+    viewport_->set_frame_axes_scale(float(frame_scale->value()));
+    viewport_->set_joint_thickness(float(joint_thickness->value()));
+    viewport_->set_joint_color(QVector3D(float(joint_color.redF()),
+                                         float(joint_color.greenF()),
+                                         float(joint_color.blueF())));
+  };
+  connect(frame_scale, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(joint_thickness, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(color_button, &QPushButton::clicked, &dialog, [&] {
+    const QColor color =
+      QColorDialog::getColor(joint_color, &dialog, "Joint color");
+    if(color.isValid()) {
+      joint_color = color;
+      show_color(joint_color);
+      preview();
+    }
+  });
+  auto* note = new QLabel(QString("Saved in %1").arg(
+    QDir::toNativeSeparators(QString::fromStdString(
+      Settings::get_default_path()))));
+  note->setStyleSheet("color: gray");
+  layout->addRow(note);
+  auto* buttons =
+    new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+  layout->addRow(buttons);
+  if(dialog.exec() != QDialog::Accepted) {
+    ApplySettings();
     return;
   }
-  const auto& bodies = simulation_.get_bodies();
-  auto found = std::find(bodies.begin(), bodies.end(), body);
-  if(found == bodies.end()) {
-    return; // inactive
+  settings_.set_frame_scale(frame_scale->value());
+  settings_.set_joint_color(joint_color);
+  settings_.set_joint_thickness(joint_thickness->value());
+  ApplySettings();
+  std::string error;
+  if(!settings_.Save(Settings::get_default_path(), &error)) {
+    QMessageBox::warning(this, "Settings not saved",
+                         QString::fromStdString(error));
   }
-  QTreeWidgetItem* item = NewItem(parent, nullptr, body->get_name(),
-                                  ":/icons/body.png", kBodyItem);
-  item->setData(0, Qt::UserRole, static_cast<int>(found - bodies.begin()));
+}
+
+const std::vector<shift::gui::Workspace::JsonStep>*
+shift::gui::Workspace::FindObjectPath(
+  const shift::core::parameter::List* object) {
+  auto found = object_paths_.find(object);
+  return found == object_paths_.end() ? nullptr : &found->second;
+}
+
+void shift::gui::Workspace::AddObjectChildren(
+  shift::core::parameter::List* object, QTreeWidgetItem* item, int depth,
+  const std::vector<JsonStep>* path) {
+  if(depth > 32) {
+    return;
+  }
+  for(const std::string& key : SortedKeys(object)) {
+    shift::core::parameter::Value* value = object->Find(key);
+    if(!value || !value->has_data()) {
+      continue;
+    }
+    std::vector<JsonStep> key_path;
+    if(path) {
+      key_path = *path;
+      key_path.push_back({key, -1});
+    }
+    if(value->is_array()) {
+      auto* array = value->get_data<shift::core::parameter::ArrayBase>();
+      if(!array || array->get_size() == 0) {
+        continue;
+      }
+      QTreeWidgetItem* folder = NewItem(item, nullptr, key, FolderIcon(key));
+      folder->setData(0, kInactiveRole, item->data(0, kInactiveRole));
+      folder->setData(0, kPathRole, PathKey(path ? &key_path : nullptr, folder));
+      // the elements of the array in the file, to find each object's
+      const Json::Value* json = path ? JsonAt(model_json_, key_path) : nullptr;
+      for(unsigned int i = 0; i < array->get_size(); i++) {
+        auto* element =
+          (*array)[i].get_data<shift::core::parameter::List>();
+        if(!element) {
+          continue;
+        }
+        const int index =
+          json ? JsonElementIndex(*json, element, static_cast<int>(i)) : -1;
+        std::vector<JsonStep> element_path = key_path;
+        element_path.push_back({std::string(), index});
+        AddObjectItem(element, key, folder, depth + 1,
+                      index >= 0 ? &element_path : nullptr);
+      }
+      if(folder->childCount() == 0) {
+        delete folder;
+      } else {
+        folder->setExpanded(true);
+        // a folder of frames, joints or bodies: an eye for all of them
+        bool eyes = false;
+        for(int i = 0; i < folder->childCount(); i++) {
+          eyes = eyes || folder->child(i)->data(0, kVisibleRole).isValid();
+        }
+        if(eyes) {
+          folder->setData(0, kVisibleRole, 0);
+          folder->setToolTip(0, "the eye shows or hides all of these");
+          eye_folders_.push_back(folder);
+        }
+      }
+    } else if(value->is_list()) {
+      // an object parameter holding arrays, as model_parameters
+      auto* nested = value->get_data<shift::core::parameter::List>();
+      if(HasObjects(nested, depth + 1)) {
+        QTreeWidgetItem* nested_item = NewItem(
+          item, nullptr, key, ObjectIcon(key, std::string()), kObjectItem);
+        nested_item->setData(0, Qt::UserRole, -1);
+        nested_item->setData(0, kObjectRole,
+                             QVariant::fromValue(
+                               reinterpret_cast<quintptr>(nested)));
+        nested_item->setData(0, kInactiveRole, item->data(0, kInactiveRole));
+        nested_item->setData(0, kPathRole,
+                             PathKey(path ? &key_path : nullptr, nested_item));
+        nested_item->setToolTip(
+          0, QString::fromStdString(value->get_description()));
+        if(path) {
+          object_paths_[nested] = key_path;
+        }
+        AddObjectChildren(nested, nested_item, depth + 1,
+                          path ? &key_path : nullptr);
+      }
+    }
+  }
+}
+
+QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
+  shift::core::parameter::List* object, const std::string& key,
+  QTreeWidgetItem* parent, int depth, const std::vector<JsonStep>* path) {
+  // virtual bodies are massless helpers generated for joints
+  if(dynamic_cast<shift::core::body::Virtual*>(object)) {
+    return nullptr;
+  }
+  const std::string name = StringParameter(object, "name");
+  const std::string type = StringParameter(object, "type");
+  std::string text = name;
+  if(text.empty()) {
+    text = key == "assemblies" ? "assembly" : (type.empty() ? key : type);
+  } else if(!type.empty() && key != "assemblies" && key != "bodies") {
+    text += " (" + type + ")";
+  }
+  const bool inactive =
+    !object->is_active() || parent->data(0, kInactiveRole).toBool();
+
+  // bodies, joints and the collision geometry of the fixed body have panels
+  // of their own
+  int item_type = kObjectItem;
+  int index = -1;
+  shift::core::Context* context = simulation_.get_context();
+  if(auto* body = dynamic_cast<shift::core::body::Base*>(object)) {
+    const auto& bodies = simulation_.get_bodies();
+    auto found = std::find(bodies.begin(), bodies.end(), body);
+    if(found != bodies.end()) {
+      item_type = kBodyItem;
+      index = static_cast<int>(found - bodies.begin());
+    }
+  } else if(auto* joint = dynamic_cast<shift::core::joint::Base*>(object)) {
+    const auto& active = context->get_active_joints();
+    auto found = std::find(active.begin(), active.end(), joint);
+    if(found != active.end()) {
+      item_type = kJointItem;
+      index = static_cast<int>(found - active.begin());
+    }
+  } else if(auto* geometry =
+              dynamic_cast<shift::core::collision_geometry::Base*>(object)) {
+    const auto& fixed = context->get_fixed_collision_geometry();
+    for(size_t i = 0; i < fixed.size(); i++) {
+      if(fixed[i].get() == geometry) {
+        item_type = kGeometryItem;
+        index = static_cast<int>(i);
+      }
+    }
+  }
+
+  QTreeWidgetItem* item =
+    NewItem(parent, nullptr, text, ObjectIcon(key, type), item_type);
+  item->setData(0, Qt::UserRole, index);
+  item->setData(0, kObjectRole,
+                QVariant::fromValue(reinterpret_cast<quintptr>(object)));
+  item->setData(0, kInactiveRole, inactive);
+  item->setData(0, kPathRole, PathKey(path, item));
+  if(path) {
+    object_paths_[object] = *path;
+  }
+  if(item_type == kJointItem) {
+    joint_items_[index] = item;
+  }
+  // an eye to show a frame's axes, a joint's axis or a body's meshes
+  EyeItem eye;
+  eye.item = item;
+  eye.path = item->data(0, kPathRole).toString();
+  const char* eye_tip = nullptr;
+  if(auto* frame = dynamic_cast<shift::core::Frame*>(object)) {
+    if(FramePlace(*frame, simulation_, eye.body_index, eye.frame)) {
+      eye.kind = EyeItem::kFrame;
+      eye_tip = "the eye shows or hides the axes of the frame: x red, y "
+                "green, z blue";
+    }
+  } else if(auto* joint = dynamic_cast<shift::core::joint::Base*>(object)) {
+    if(JointLines(*joint, simulation_, eye.lines)) {
+      eye.kind = EyeItem::kJoint;
+      eye_tip = "the eye shows or hides the axis of the joint (a gear: of "
+                "both gears), an arrow in its positive sense";
+    }
+  } else if(item_type == kBodyItem) {
+    eye.kind = EyeItem::kBody;
+    eye.body_index = index;
+    eye_tip = "the eye shows or hides the body";
+  }
+  if(eye_tip) {
+    eye_items_.push_back(eye);
+    item->setData(0, kVisibleRole, 0);
+    if(item->toolTip(0).isEmpty()) {
+      item->setToolTip(0, eye_tip);
+    }
+  }
+  if(inactive) {
+    item->setForeground(
+      0, tree_widget_->palette().brush(QPalette::Disabled, QPalette::Text));
+    item->setToolTip(0, "inactive: not part of the simulation");
+  }
+  AddObjectChildren(object, item, depth, path);
+  // an assembly shows what it holds; other objects show their own arrays
+  // (as the frames and geometry of a body) when opened
+  item->setExpanded(key == "assemblies");
+  return item;
+}
+
+// ---------------------------------------------------------- parameters panel
+
+static QString FormatNumber(double value) {
+  return QString::number(value, 'g', 6);
+}
+
+static QString FormatNumbers(const double* values, int count) {
+  QStringList list;
+  for(int i = 0; i < count; i++) {
+    list << FormatNumber(values[i]);
+  }
+  return "[" + list.join(", ") + "]";
+}
+
+/* a row of a matrix, given in column major order */
+static QString FormatMatrixRow(const double* values, int rows, int columns,
+                               int row) {
+  QStringList list;
+  for(int column = 0; column < columns; column++) {
+    list << FormatNumber(values[column * rows + row]);
+  }
+  return "[" + list.join(", ") + "]";
+}
+
+/* roll, pitch and yaw of a rotation, R = Rz(yaw) Ry(pitch) Rx(roll), in
+radians */
+static void RollPitchYaw(const ksl_mat3x3_t& rotation, double rpy[3]) {
+  ksl_vec3_t angles; // yaw, pitch, roll
+  ksl_mat3x3_getEulerAnglesWithReference(&rotation, KSL_AXIS_ZYX, &angles,
+                                         NULL);
+  for(int i = 0; i < 3; i++) {
+    rpy[i] = angles.at[2 - i];
+  }
+}
+
+static ksl_mat3x3_t RotationOfRollPitchYaw(const double rpy[3]) {
+  ksl_vec3_t angles = ksl_vec3(rpy[2], rpy[1], rpy[0]);
+  ksl_mat3x3_t rotation;
+  ksl_mat3x3_setFromEulerAngles(&rotation, KSL_AXIS_ZYX, &angles);
+  return rotation;
+}
+
+/* the rotation of an orientation parameter: a rotation matrix or a
+quaternion */
+static bool IsOrientation(const shift::core::parameter::Value& value) {
+  return value.get_value_type() == shift::core::parameter::Value::KSL_MAT3X3 ||
+         value.get_value_type() ==
+           shift::core::parameter::Value::KSL_QUATERNION;
+}
+
+static ksl_mat3x3_t OrientationOf(const shift::core::parameter::Value& value) {
+  if(value.get_value_type() == shift::core::parameter::Value::KSL_QUATERNION) {
+    ksl_quaternion_t quaternion = value.get<ksl_quaternion_t>();
+    ksl_mat3x3_t rotation;
+    ksl_quaternion_toMat3x3(&quaternion, &rotation);
+    return rotation;
+  }
+  return value.get<ksl_mat3x3_t>();
+}
+
+static QString FormatRollPitchYaw(const ksl_mat3x3_t& rotation) {
+  double rpy[3];
+  RollPitchYaw(rotation, rpy);
+  QStringList list;
+  for(double angle : rpy) {
+    const double degrees = angle * 180.0 / M_PI;
+    // no -0.00
+    list << QString::number(std::fabs(degrees) < 0.005 ? 0.0 : degrees, 'f',
+                            2);
+  }
+  return "roll, pitch, yaw = [" + list.join(", ") + "]°";
+}
+
+/* the text of a value, and the rows below it of a value too long for one
+line, as label and text */
+static QString FormatValue(const shift::core::parameter::Value& value,
+                           std::vector<std::pair<QString, QString>>& rows) {
+  rows.clear();
+  switch(value.get_value_type()) {
+    case shift::core::parameter::Value::STRING:
+      return QString::fromStdString(value.get<std::string>());
+    case shift::core::parameter::Value::STRING_ARRAY: {
+      QStringList list;
+      for(const auto& entry : value.get<std::vector<std::string>>()) {
+        list << "\"" + QString::fromStdString(entry) + "\"";
+      }
+      return "[" + list.join(", ") + "]";
+    }
+    case shift::core::parameter::Value::STRING_2DARRAY: {
+      const auto& table = value.get<std::vector<std::vector<std::string>>>();
+      for(size_t i = 0; i < table.size(); i++) {
+        QStringList list;
+        for(const auto& entry : table[i]) {
+          list << "\"" + QString::fromStdString(entry) + "\"";
+        }
+        rows.emplace_back(QString("[%1]").arg(i), "[" + list.join(", ") + "]");
+      }
+      return QString("%1 rows").arg(table.size());
+    }
+    case shift::core::parameter::Value::INT:
+      return QString::number(value.get<int>());
+    case shift::core::parameter::Value::INT_ARRAY: {
+      QStringList list;
+      for(int entry : value.get<std::vector<int>>()) {
+        list << QString::number(entry);
+      }
+      return "[" + list.join(", ") + "]";
+    }
+    case shift::core::parameter::Value::DOUBLE:
+      return FormatNumber(value.get<double>());
+    case shift::core::parameter::Value::DOUBLE_ARRAY: {
+      const auto& array = value.get<std::vector<double>>();
+      const int count = static_cast<int>(array.size());
+      if(count <= 6) {
+        return FormatNumbers(array.data(), count);
+      }
+      for(int i = 0; i < count; i += 6) {
+        rows.emplace_back(QString("[%1]").arg(i),
+                          FormatNumbers(array.data() + i, std::min(6, count - i)));
+      }
+      return QString("%1 values").arg(count);
+    }
+    case shift::core::parameter::Value::KSL_VEC3:
+      return FormatNumbers(value.get<ksl_vec3_t>().at, 3);
+    case shift::core::parameter::Value::KSL_VEC4:
+      return FormatNumbers(value.get<ksl_vec4_t>().at, 4);
+    case shift::core::parameter::Value::KSL_QUATERNION:
+      rows.emplace_back("x, y, z, w",
+                        FormatNumbers(value.get<ksl_quaternion_t>().at, 4));
+      return FormatRollPitchYaw(OrientationOf(value));
+    case shift::core::parameter::Value::KSL_SCREW: {
+      const ksl_screw_t& screw = value.get<ksl_screw_t>();
+      rows.emplace_back("lin", FormatNumbers(screw.lin.at, 3));
+      rows.emplace_back("ang", FormatNumbers(screw.ang.at, 3));
+      return FormatNumbers(screw.at, 6);
+    }
+    case shift::core::parameter::Value::KSL_COSCREW: {
+      const ksl_coscrew_t& coscrew = value.get<ksl_coscrew_t>();
+      rows.emplace_back("lin", FormatNumbers(coscrew.lin.at, 3));
+      rows.emplace_back("ang", FormatNumbers(coscrew.ang.at, 3));
+      return FormatNumbers(coscrew.at, 6);
+    }
+    case shift::core::parameter::Value::KSL_INERTIA: {
+      const ksl_inertia_t& inertia = value.get<ksl_inertia_t>();
+      rows.emplace_back("m", FormatNumber(inertia.m));
+      rows.emplace_back("m t", FormatNumbers(inertia.mt.at, 3));
+      rows.emplace_back("Ixx, Iyy, Izz", FormatNumbers(&inertia.Ixx, 3));
+      rows.emplace_back("Ixy, Iyz, Izx", FormatNumbers(&inertia.Ixy, 3));
+      return "m = " + FormatNumber(inertia.m);
+    }
+    case shift::core::parameter::Value::KSL_MAT3X3: {
+      const ksl_mat3x3_t& matrix = value.get<ksl_mat3x3_t>();
+      for(int row = 0; row < 3; row++) {
+        rows.emplace_back(QString("row %1").arg(row),
+                          FormatMatrixRow(matrix.as_array, 3, 3, row));
+      }
+      return FormatRollPitchYaw(matrix);
+    }
+    case shift::core::parameter::Value::KSL_MAT4X4: {
+      const ksl_mat4x4_t& matrix = value.get<ksl_mat4x4_t>();
+      for(int row = 0; row < 4; row++) {
+        rows.emplace_back(QString("row %1").arg(row),
+                          FormatMatrixRow(matrix.as_array, 4, 4, row));
+      }
+      return "4 × 4";
+    }
+    case shift::core::parameter::Value::KSL_EULERANGLES: {
+      const ksl_eulerangles_t& angles = value.get<ksl_eulerangles_t>();
+      QString axes;
+      if(angles.axis >= KSL_AXIS_XYZ && angles.axis < KSL_AXIS_INVALID) {
+        const ksl_vec3i_t axis = ksl_axis_getVector(angles.axis);
+        for(int i = 0; i < 3; i++) {
+          axes += QChar('X' + axis.at[i]);
+        }
+      }
+      return FormatNumbers(angles.angles.at, 3) + " rad, " + axes;
+    }
+    case shift::core::parameter::Value::KSL_SE3: {
+      const ksl_SE3_t& pose = value.get<ksl_SE3_t>();
+      rows.emplace_back("t", FormatNumbers(pose.t.at, 3));
+      for(int row = 0; row < 3; row++) {
+        rows.emplace_back(QString("R row %1").arg(row),
+                          FormatMatrixRow(pose.R.as_array, 3, 3, row));
+      }
+      return "t = " + FormatNumbers(pose.t.at, 3);
+    }
+    case shift::core::parameter::Value::BOOLEAN:
+      return value.get<bool>() ? "true" : "false";
+    case shift::core::parameter::Value::PARAMETER_LIST:
+    case shift::core::parameter::Value::PARAMETER_ARRAY:
+      break;
+  }
+  return QString();
+}
+
+static Json::Value JsonNumbers(const double* values, int count) {
+  Json::Value array(Json::arrayValue);
+  for(int i = 0; i < count; i++) {
+    array.append(values[i]);
+  }
+  return array;
+}
+
+/* the rows of a matrix in column major order, as the model file has them */
+static Json::Value JsonMatrix(const double* values, int size) {
+  Json::Value matrix(Json::arrayValue);
+  for(int row = 0; row < size; row++) {
+    Json::Value json_row(Json::arrayValue);
+    for(int column = 0; column < size; column++) {
+      json_row.append(values[column * size + row]);
+    }
+    matrix.append(json_row);
+  }
+  return matrix;
+}
+
+/* a value in the form the model file gives it, see Value::ReadJSON */
+static Json::Value ValueToJson(const shift::core::parameter::Value& value) {
+  switch(value.get_value_type()) {
+    case shift::core::parameter::Value::STRING:
+      return Json::Value(value.get<std::string>());
+    case shift::core::parameter::Value::STRING_ARRAY: {
+      Json::Value array(Json::arrayValue);
+      for(const auto& entry : value.get<std::vector<std::string>>()) {
+        array.append(entry);
+      }
+      return array;
+    }
+    case shift::core::parameter::Value::STRING_2DARRAY: {
+      Json::Value table(Json::arrayValue);
+      for(const auto& row : value.get<std::vector<std::vector<std::string>>>()) {
+        Json::Value json_row(Json::arrayValue);
+        for(const auto& entry : row) {
+          json_row.append(entry);
+        }
+        table.append(json_row);
+      }
+      return table;
+    }
+    case shift::core::parameter::Value::INT:
+      return Json::Value(value.get<int>());
+    case shift::core::parameter::Value::INT_ARRAY: {
+      Json::Value array(Json::arrayValue);
+      for(int entry : value.get<std::vector<int>>()) {
+        array.append(entry);
+      }
+      return array;
+    }
+    case shift::core::parameter::Value::DOUBLE:
+      return Json::Value(value.get<double>());
+    case shift::core::parameter::Value::DOUBLE_ARRAY: {
+      const auto& array = value.get<std::vector<double>>();
+      return JsonNumbers(array.data(), static_cast<int>(array.size()));
+    }
+    case shift::core::parameter::Value::KSL_VEC3:
+      return JsonNumbers(value.get<ksl_vec3_t>().at, 3);
+    case shift::core::parameter::Value::KSL_VEC4:
+      return JsonNumbers(value.get<ksl_vec4_t>().at, 4);
+    case shift::core::parameter::Value::KSL_QUATERNION:
+      return JsonNumbers(value.get<ksl_quaternion_t>().at, 4);
+    case shift::core::parameter::Value::KSL_SCREW:
+      return JsonNumbers(value.get<ksl_screw_t>().at, 6);
+    case shift::core::parameter::Value::KSL_COSCREW:
+      return JsonNumbers(value.get<ksl_coscrew_t>().at, 6);
+    case shift::core::parameter::Value::KSL_INERTIA: {
+      const ksl_inertia_t& inertia = value.get<ksl_inertia_t>();
+      Json::Value object(Json::objectValue);
+      object["mass"] = inertia.m;
+      object["Ixx"] = inertia.Ixx;
+      object["Iyy"] = inertia.Iyy;
+      object["Izz"] = inertia.Izz;
+      object["Ixy"] = inertia.Ixy;
+      object["Iyz"] = inertia.Iyz;
+      object["Izx"] = inertia.Izx;
+      return object;
+    }
+    case shift::core::parameter::Value::KSL_MAT3X3:
+      return JsonMatrix(value.get<ksl_mat3x3_t>().as_array, 3);
+    case shift::core::parameter::Value::KSL_MAT4X4:
+      return JsonMatrix(value.get<ksl_mat4x4_t>().as_array, 4);
+    case shift::core::parameter::Value::KSL_EULERANGLES: {
+      Json::Value object(Json::objectValue);
+      object["angles"] = JsonNumbers(value.get<ksl_eulerangles_t>().angles.at, 3);
+      return object;
+    }
+    case shift::core::parameter::Value::KSL_SE3: {
+      Json::Value object(Json::objectValue);
+      object["R"] = JsonMatrix(value.get<ksl_SE3_t>().R.as_array, 3);
+      return object;
+    }
+    case shift::core::parameter::Value::BOOLEAN:
+      return Json::Value(value.get<bool>());
+    case shift::core::parameter::Value::PARAMETER_LIST:
+    case shift::core::parameter::Value::PARAMETER_ARRAY:
+      break;
+  }
+  return Json::Value();
+}
+
+/* a rotation in the form of given, the orientation as the model file gives
+it: a quaternion [x, y, z, w], Euler angles {"angles": [...], "axes": [...]}
+about the same axes, or a 3x3 matrix row by row (also if the file gives
+none, unless the parameter is a quaternion) */
+static Json::Value OrientationToJson(
+  ksl_mat3x3_t rotation, shift::core::parameter::Value::ValueType type,
+  const Json::Value* given) {
+  const bool quaternion =
+    given ? given->isArray() && given->size() == 4 && (*given)[0].isNumeric()
+          : type == shift::core::parameter::Value::KSL_QUATERNION;
+  if(quaternion) {
+    ksl_quaternion_t q;
+    ksl_mat3x3_toQuaternion(&rotation, &q);
+    return JsonNumbers(q.at, 4);
+  }
+  if(given && given->isObject() && given->isMember("angles")) {
+    Json::Value euler = *given;
+    ksl_vec3i_t axes = {{0, 1, 2}};
+    if(given->isMember("axes") && (*given)["axes"].isArray() &&
+       (*given)["axes"].size() == 3) {
+      for(int i = 0; i < 3; i++) {
+        const Json::Value& axis = (*given)["axes"][i];
+        axes.at[i] = axis.isString() ? axis.asString()[0] - 'x'
+                                     : axis.asInt();
+      }
+    }
+    ksl_vec3_t angles;
+    ksl_mat3x3_getEulerAnglesWithReference(
+      &rotation, ksl_axis_getEulerAngles(axes), &angles, NULL);
+    euler["angles"] = JsonNumbers(angles.at, 3);
+    return euler;
+  }
+  return JsonMatrix(rotation.as_array, 3);
+}
+
+/* show a value in its row, with the rows below it of a long value */
+static void SetRowValue(QTreeWidgetItem* row,
+                        const shift::core::parameter::Value& value) {
+  std::vector<std::pair<QString, QString>> rows;
+  row->setText(1, FormatValue(value, rows));
+  while(row->childCount() > static_cast<int>(rows.size())) {
+    delete row->takeChild(row->childCount() - 1);
+  }
+  for(size_t i = 0; i < rows.size(); i++) {
+    QTreeWidgetItem* child = static_cast<int>(i) < row->childCount()
+                               ? row->child(static_cast<int>(i))
+                               : new QTreeWidgetItem(row);
+    child->setText(0, rows[i].first);
+    child->setText(1, rows[i].second);
+    child->setForeground(0, row->foreground(0));
+    child->setForeground(1, row->foreground(1));
+  }
+}
+
+void shift::gui::Workspace::ShowParameters(
+  shift::core::parameter::List* object, const QString& title) {
+  auto& panel = parameter_panel_;
+  panel.tree->clear();
+  panel.rows.clear();
+  panel.editing_row = -1;
+  panel.editor->setVisible(false);
+  panel.selected = object;
+  if(!object) {
+    panel.group_box->setVisible(false);
+    return;
+  }
+  panel.title->setText(title);
+  AddParameterRows(object, nullptr, 0, FindObjectPath(object));
+  panel.group_box->setVisible(true);
+}
+
+void shift::gui::Workspace::AddParameterRows(
+  shift::core::parameter::List* object, QTreeWidgetItem* parent, int depth,
+  const std::vector<JsonStep>* path) {
+  auto& panel = parameter_panel_;
+  if(depth > 32) {
+    return;
+  }
+  const QBrush default_brush =
+    panel.tree->palette().brush(QPalette::Disabled, QPalette::Text);
+  // the object as the file gives it
+  const Json::Value* json = path ? JsonAt(model_json_, *path) : nullptr;
+
+  // keys that share their data are aliases of one value (as "R",
+  // "rotation" and "quaternion" of a frame): one row shows them, under the
+  // key the file gives, else the plainest of them
+  std::map<const void*, std::vector<std::string>> aliases;
+  for(const auto& parameter : object->get_parameters()) {
+    if(parameter.second.has_data()) {
+      aliases[parameter.second.get_address()].push_back(parameter.first);
+    }
+  }
+  std::set<const void*> shown;
+  for(const auto& parameter : object->get_parameters()) {
+    shift::core::parameter::Value* value = object->Find(parameter.first);
+    if(!value || !value->has_data() ||
+       !shown.insert(value->get_address()).second) {
+      continue;
+    }
+    std::vector<std::string> keys = aliases[value->get_address()];
+    auto rank = [&](const std::string& key) {
+      const bool in_file = json && json->isObject() && json->isMember(key);
+      return std::make_tuple(!in_file,
+                             object->Find(key)->maps_to_other_type(),
+                             key.size(), key);
+    };
+    std::sort(keys.begin(), keys.end(),
+              [&](const std::string& a, const std::string& b) {
+                return rank(a) < rank(b);
+              });
+    const std::string& key = keys.front();
+    value = object->Find(key);
+
+    QTreeWidgetItem* row = parent ? new QTreeWidgetItem(parent)
+                                  : new QTreeWidgetItem(panel.tree);
+    row->setText(0, QString::fromStdString(key));
+    QString tooltip = QString::fromStdString(value->get_description());
+    if(keys.size() > 1) {
+      QStringList others;
+      for(size_t i = 1; i < keys.size(); i++) {
+        others << QString::fromStdString(keys[i]);
+      }
+      tooltip += "\n(also given as " + others.join(", ") + ")";
+    }
+    if(value->is_required()) {
+      tooltip += "\n(required)";
+    }
+    if(value->is_runtime()) {
+      tooltip += "\n(may change while the model runs)";
+    }
+    std::vector<JsonStep> key_path;
+    if(path) {
+      key_path = *path;
+      key_path.push_back({key, -1});
+    }
+    if(value->is_array()) {
+      auto* array = value->get_data<shift::core::parameter::ArrayBase>();
+      const size_t size = array ? array->get_size() : 0;
+      row->setText(1, size == 0 ? QString("none")
+                                : QString("%1 in the model tree").arg(size));
+    } else if(value->is_list()) {
+      auto* nested = value->get_data<shift::core::parameter::List>();
+      if(HasObjects(nested, depth + 1)) {
+        row->setText(1, "in the model tree");
+      } else if(nested) {
+        AddParameterRows(nested, row, depth + 1, path ? &key_path : nullptr);
+      }
+    } else {
+      bool from_file = false;
+      for(const auto& alias : keys) {
+        from_file = from_file || object->Find(alias)->is_loaded_from_file();
+      }
+      if(!from_file) {
+        // a default, not given in the model file
+        row->setForeground(0, default_brush);
+        row->setForeground(1, default_brush);
+        tooltip += "\n(default: not in the model file)";
+      }
+      SetRowValue(row, *value);
+      row->setData(0, Qt::UserRole, static_cast<int>(panel.rows.size()));
+      ParameterRow parameter_row;
+      parameter_row.item = row;
+      parameter_row.value = value;
+      parameter_row.keys = keys;
+      parameter_row.in_file = path != nullptr;
+      if(path) {
+        parameter_row.path = *path;
+      }
+      panel.rows.push_back(parameter_row);
+    }
+    tooltip = tooltip.trimmed();
+    row->setToolTip(0, tooltip);
+    row->setToolTip(1, tooltip);
+  }
+}
+
+void shift::gui::Workspace::UpdateParameterPanel() {
+  auto& panel = parameter_panel_;
+  if(!panel.selected || !simulation_.is_loaded()) {
+    return;
+  }
+  const bool computing = simulation_.is_computing();
+  for(const ParameterRow& row : panel.rows) {
+    if(!computing || row.value->is_runtime()) {
+      SetRowValue(row.item, *row.value);
+    }
+  }
+}
+
+// ---------------------------------------------------------- parameter editor
+
+void shift::gui::Workspace::SelectParameterRow() {
+  auto& panel = parameter_panel_;
+  panel.editing_row = -1;
+  panel.editor->setVisible(false);
+  QTreeWidgetItem* item = panel.tree->currentItem();
+  // the rows below a long value edit it
+  while(item && !item->data(0, Qt::UserRole).isValid()) {
+    item = item->parent();
+  }
+  if(!item || !simulation_.is_loaded()) {
+    return;
+  }
+  const int index = item->data(0, Qt::UserRole).toInt();
+  if(index < 0 || index >= static_cast<int>(panel.rows.size())) {
+    return;
+  }
+  panel.editing_row = index;
+  const ParameterRow& row = panel.rows[index];
+  const shift::core::parameter::Value& value = *row.value;
+
+  // new fields for the value
+  for(QWidget* widget : panel.editor_fields->findChildren<QWidget*>(
+        QString(), Qt::FindDirectChildrenOnly)) {
+    delete widget;
+  }
+  delete panel.editor_fields->layout();
+  auto* layout = new QHBoxLayout(panel.editor_fields);
+  layout->setContentsMargins(0, 0, 0, 0);
+  panel.line_edit = nullptr;
+  panel.combo_box = nullptr;
+  for(auto& angle : panel.angles) {
+    angle = nullptr;
+  }
+  const auto type = value.get_value_type();
+  if(type == shift::core::parameter::Value::BOOLEAN) {
+    panel.combo_box = new QComboBox;
+    panel.combo_box->addItems({"false", "true"});
+    panel.combo_box->setCurrentIndex(value.get<bool>() ? 1 : 0);
+    layout->addWidget(panel.combo_box);
+  } else if(type == shift::core::parameter::Value::STRING &&
+            !value.get_valid_string_values().empty()) {
+    panel.combo_box = new QComboBox;
+    for(const auto& option : value.get_valid_string_values()) {
+      panel.combo_box->addItem(QString::fromStdString(option));
+    }
+    panel.combo_box->setCurrentText(
+      QString::fromStdString(value.get<std::string>()));
+    layout->addWidget(panel.combo_box);
+  } else if(IsOrientation(value)) {
+    double rpy[3];
+    RollPitchYaw(OrientationOf(value), rpy);
+    const char* names[3] = {"roll", "pitch", "yaw"};
+    for(int i = 0; i < 3; i++) {
+      layout->addWidget(new QLabel(names[i]));
+      panel.angles[i] = new QDoubleSpinBox;
+      panel.angles[i]->setRange(i == 1 ? -90.0 : -180.0, i == 1 ? 90.0 : 180.0);
+      panel.angles[i]->setDecimals(3);
+      panel.angles[i]->setSuffix("°");
+      panel.angles[i]->setWrapping(i != 1);
+      panel.angles[i]->setValue(rpy[i] * 180.0 / M_PI);
+      panel.angles[i]->setToolTip(
+        "R = Rz(yaw) Ry(pitch) Rx(roll), in degrees");
+      layout->addWidget(panel.angles[i], 1);
+    }
+  } else {
+    panel.line_edit = new QLineEdit;
+    QString text;
+    if(type == shift::core::parameter::Value::STRING) {
+      text = QString::fromStdString(value.get<std::string>());
+    } else if(type == shift::core::parameter::Value::DOUBLE) {
+      text = QString::number(value.get<double>(), 'g', 12);
+    } else if(type == shift::core::parameter::Value::INT) {
+      text = QString::number(value.get<int>());
+    } else {
+      // JSON, as the file gives it if it does
+      std::vector<JsonStep> key_path = row.path;
+      key_path.push_back({row.keys.front(), -1});
+      const Json::Value* json =
+        row.in_file ? JsonAt(model_json_, key_path) : nullptr;
+      Json::StreamWriterBuilder builder;
+      builder.settings_["indentation"] = "";
+      text = QString::fromStdString(
+        Json::writeString(builder, json ? *json : ValueToJson(value)));
+      panel.line_edit->setToolTip("the value as JSON, as in the model file");
+    }
+    panel.line_edit->setText(text);
+    connect(panel.line_edit, &QLineEdit::returnPressed, this,
+            &Workspace::ApplyParameterEdit);
+    layout->addWidget(panel.line_edit);
+  }
+
+  panel.editor_key->setText(QString::fromStdString(row.keys.front()));
+  QString note;
+  bool editable = true;
+  if(value.is_runtime()) {
+    note = "applies at once, also while the model runs";
+  } else if(!row.in_file) {
+    note = "made when the model loads, not read from the model file: it "
+           "cannot be edited";
+    editable = false;
+  } else {
+    note = "read when the model loads: applying loads the model again";
+    if(simulation_.has_results() || simulation_.is_computing()) {
+      note += ", dropping the computed results";
+    }
+  }
+  panel.editor_note->setText(note);
+  panel.editor_note->setStyleSheet(QString());
+  panel.editor_fields->setEnabled(editable);
+  panel.apply_button->setEnabled(editable);
+  panel.editor->setVisible(true);
+}
+
+void shift::gui::Workspace::ApplyParameterEdit() {
+  auto& panel = parameter_panel_;
+  if(panel.editing_row < 0 ||
+     panel.editing_row >= static_cast<int>(panel.rows.size()) ||
+     !simulation_.is_loaded()) {
+    return;
+  }
+  const ParameterRow row = panel.rows[panel.editing_row];
+  shift::core::parameter::Value& value = *row.value;
+  const auto type = value.get_value_type();
+  auto fail = [&panel](const QString& message) {
+    panel.editor_note->setText(message);
+    panel.editor_note->setStyleSheet("color: #c0392b");
+  };
+
+  // the new value, in the form of the model file
+  Json::Value json;
+  if(panel.combo_box) {
+    json = type == shift::core::parameter::Value::BOOLEAN
+             ? Json::Value(panel.combo_box->currentIndex() == 1)
+             : Json::Value(panel.combo_box->currentText().toStdString());
+  } else if(panel.angles[0]) {
+    double rpy[3];
+    for(int i = 0; i < 3; i++) {
+      rpy[i] = panel.angles[i]->value() * M_PI / 180.0;
+    }
+    // in the form the file gives the orientation in, under its key
+    std::vector<JsonStep> key_path = row.path;
+    key_path.push_back({row.keys.front(), -1});
+    const Json::Value* given =
+      row.in_file ? JsonAt(model_json_, key_path) : nullptr;
+    json = OrientationToJson(RotationOfRollPitchYaw(rpy), type, given);
+  } else if(panel.line_edit) {
+    const QString text = panel.line_edit->text().trimmed();
+    bool ok = true;
+    if(type == shift::core::parameter::Value::STRING) {
+      json = Json::Value(text.toStdString());
+    } else if(type == shift::core::parameter::Value::DOUBLE) {
+      json = Json::Value(text.toDouble(&ok));
+    } else if(type == shift::core::parameter::Value::INT) {
+      json = Json::Value(text.toInt(&ok));
+    } else {
+      Json::CharReaderBuilder builder;
+      std::string errors;
+      std::istringstream in(text.toStdString());
+      ok = Json::parseFromStream(builder, in, &json, &errors);
+    }
+    if(!ok) {
+      fail("not a valid value");
+      return;
+    }
+  }
+
+  if(value.is_runtime()) {
+    // set at once, through the parameter's own reader
+    try {
+      value.ReadJSON(json);
+    } catch(std::exception& e) {
+      fail(QString::fromStdString(e.what()));
+      return;
+    }
+    if(row.in_file) {
+      SetJsonParameter(row, json);
+      model_edited_ = true;
+      UpdateWindowTitle();
+    }
+    UpdateParameterPanel();
+    return;
+  }
+  if(!row.in_file) {
+    return;
+  }
+  if((simulation_.has_results() || simulation_.is_computing()) &&
+     QMessageBox::question(
+       this, "Apply edit",
+       QString("%1 is read when the model loads. Applying it loads the model "
+               "again and drops the computed results. Apply?")
+         .arg(QString::fromStdString(row.keys.front()))) != QMessageBox::Yes) {
+    return;
+  }
+  // the run settings of the Simulation tab are kept, unless the edit is of
+  // the model parameters
+  const bool keep_run = row.path.empty() || row.path.front().key != "model_parameters";
+  const double end_time = simulation_.get_end_time();
+  const double time_step = simulation_.get_time_step();
+  const Json::Value previous = model_json_;
+  SetJsonParameter(row, json);
+  QString error;
+  if(!ReloadModel(previous, error)) {
+    // the model is as it was, with the parameter selected again
+    fail("not applied: " + error.section('\n', 1).trimmed());
+    return;
+  }
+  if(keep_run) {
+    simulation_.set_end_time(end_time);
+    simulation_.set_time_step(time_step);
+    LoadModelParameters();
+  }
+}
+
+void shift::gui::Workspace::SetJsonParameter(const ParameterRow& row,
+                                             const Json::Value& json) {
+  Json::Value* object = &model_json_;
+  for(const JsonStep& step : row.path) {
+    if(step.index >= 0) {
+      object = &(*object)[step.index];
+    } else {
+      object = &(*object)[step.key]; // made if the file has none
+    }
+  }
+  // the value replaces whichever of its keys the file gave
+  for(const auto& key : row.keys) {
+    object->removeMember(key);
+  }
+  (*object)[row.keys.front()] = json;
 }
 
 void shift::gui::Workspace::UpdateTree() {
+  UpdateParameterPanel();
   if(joint_items_.empty() || !simulation_.is_loaded()) {
     return;
   }
@@ -1161,6 +2767,7 @@ void shift::gui::Workspace::SelectTreeItem() {
   body_panel_.selected_body = -1;
   geometry_panel_.selected = nullptr;
   ClearSliders();
+  ShowParameters(nullptr, QString());
 
   const auto items = tree_widget_->selectedItems();
   if(items.isEmpty() || !simulation_.is_loaded()) {
@@ -1168,6 +2775,10 @@ void shift::gui::Workspace::SelectTreeItem() {
   }
   QTreeWidgetItem* item = items.front();
   const int index = item->data(0, Qt::UserRole).toInt();
+  ShowParameters(ItemObject(item), item->text(0));
+  if(index < 0) {
+    return; // an object without a panel of its own
+  }
 
   if(item->type() == kJointItem) {
     shift::core::joint::Base* joint =

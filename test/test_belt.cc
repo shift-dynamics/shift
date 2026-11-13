@@ -148,7 +148,7 @@ TEST(Belt, SpansAreTheTangentsAndCarryThePretension) {
   }
   EXPECT_NEAR(belt->get_wrap_angles()[0], M_PI + extra, 1e-12);
   EXPECT_NEAR(belt->get_wrap_angles()[1], M_PI - extra, 1e-12);
-  EXPECT_EQ(belt->get_output_names(),
+  EXPECT_EQ(belt->get_output_keys(),
             (std::vector<std::string>{"span_0_tension", "span_1_tension"}));
 }
 

@@ -286,3 +286,60 @@ TEST(Terrain, TireRestsOnTerrain) {
   EXPECT_LT(on_ground.z, -0.3); // resting, the tire is compressed
   EXPECT_NEAR(on_terrain.z, on_ground.z - 0.3, 1e-6);
 }
+
+/* the surfaces drawn over a terrain load in order, with their values, and
+the texture variation with them */
+TEST(Terrain, SurfacesLoadInOrder) {
+  const std::string file = "terrain_surfaces.tiff";
+  WriteTiff(testing::TempDir() + "/" + file, 4, 4,
+            [](int, int) { return 0.f; });
+  shift::core::Context context;
+  LoadWheel(context, "surfaces",
+            Terrain(file, R"(, "texture_variation": true, "surfaces": [
+              {"texture_filename": "qrc:/textures/dry_sand.jpg",
+               "texture_scale": 2.0, "coverage": 0.35, "patch_size": 8.0},
+              {"texture_filename": "qrc:/textures/grass.jpg",
+               "normal_map_filename": "qrc:/textures/grass_normal.jpg",
+               "normal_scale": 0.5, "coverage": 0.15}])"),
+            R"({"name": "terrain", "T": [0.0, 0.0, 0.0]})", -0.345, 0.0);
+  const auto* terrain = dynamic_cast<const shift::core::terrain::Basic*>(
+    context.get_active_terrain()[0]);
+  ASSERT_NE(terrain, nullptr);
+  EXPECT_TRUE(terrain->get_texture_variation());
+  const auto& surfaces = terrain->get_surfaces();
+  ASSERT_EQ(surfaces.size(), 2u);
+  EXPECT_EQ(surfaces[0]->get_texture_path(), "qrc:/textures/dry_sand.jpg");
+  EXPECT_TRUE(surfaces[0]->get_normal_map_path().empty());
+  EXPECT_DOUBLE_EQ(surfaces[0]->get_texture_scale(), 2.0);
+  EXPECT_DOUBLE_EQ(surfaces[0]->get_coverage(), 0.35);
+  EXPECT_DOUBLE_EQ(surfaces[0]->get_patch_size(), 8.0);
+  EXPECT_EQ(surfaces[1]->get_normal_map_path(),
+            "qrc:/textures/grass_normal.jpg");
+  EXPECT_DOUBLE_EQ(surfaces[1]->get_normal_scale(), 0.5);
+  EXPECT_DOUBLE_EQ(surfaces[1]->get_texture_scale(), 1.0); // the defaults
+  EXPECT_DOUBLE_EQ(surfaces[1]->get_patch_size(), 10.0);
+  std::remove((testing::TempDir() + "/" + file).c_str());
+}
+
+/* more surfaces than can be drawn, or a coverage out of range, do not load */
+TEST(Terrain, SurfacesAreChecked) {
+  const std::string file = "terrain_surfaces_checked.tiff";
+  WriteTiff(testing::TempDir() + "/" + file, 4, 4,
+            [](int, int) { return 0.f; });
+  const std::string sand =
+    R"({"texture_filename": "qrc:/textures/dry_sand.jpg"})";
+  for(const std::string& surfaces : std::vector<std::string>{
+         "[" + sand + ", " + sand + ", " + sand + "]",
+       R"([{"texture_filename": "qrc:/textures/dry_sand.jpg",
+            "coverage": 1.5}])",
+       R"([{"texture_filename": "qrc:/textures/dry_sand.jpg",
+            "patch_size": 0.0}])"}) {
+    shift::core::Context context;
+    EXPECT_ANY_THROW(LoadWheel(context, "surfaces_checked",
+                               Terrain(file, ", \"surfaces\": " + surfaces),
+                               R"({"name": "terrain", "T": [0.0, 0.0, 0.0]})",
+                               -0.345, 0.0))
+      << surfaces;
+  }
+  std::remove((testing::TempDir() + "/" + file).c_str());
+}

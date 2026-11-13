@@ -203,6 +203,21 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   mesh.normal_scale = float(terrain.get_normal_scale());
   mesh.triplanar = true; // along the world axes: the mesh is on the fixed body
   mesh.texture_scale = float(terrain.get_texture_scale());
+  mesh.texture_variation = terrain.get_texture_variation();
+  for(const auto* surface : terrain.get_surfaces()) {
+    shift::gui::SceneSurface s;
+    s.base_color_layer = textures.Load(surface->get_texture_path());
+    if(s.base_color_layer < 0) {
+      continue; // not found: drawn without it
+    }
+    s.normal_layer = textures.Load(surface->get_normal_map_path());
+    s.normal_scale = float(surface->get_normal_scale());
+    s.texture_scale = float(surface->get_texture_scale());
+    s.patch_size = float(surface->get_patch_size());
+    s.level = shift::gui::SurfaceNoiseLevel(
+      static_cast<int>(mesh.surfaces.size()), surface->get_coverage());
+    mesh.surfaces.push_back(s);
+  }
   /* twice the resolution of the control points, and at least
   kMinimumMeshSamples a side so that the curvature of a small map is drawn
   smoothly, at most kMaximumMeshSamples a side */
@@ -272,7 +287,8 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
 /* a light of the model, if its frame is on one of the bodies drawn */
 static void AddLight(const shift::core::light::Base& light,
                      const std::vector<shift::core::body::Base*>& bodies,
-                     shift::gui::Scene& scene) {
+                     shift::gui::Scene& scene,
+                     std::vector<const shift::core::light::Base*>& sources) {
   using shift::gui::Scene;
   using shift::gui::SceneLight;
   if(!light.get_frame()) {
@@ -303,8 +319,9 @@ static void AddLight(const shift::core::light::Base& light,
                      float(c.z * factor));
   };
   l.ambient = color(light.get_Ka(), 1.0);
-  l.diffuse = color(light.get_Kd(), light.get_intensity());
-  l.specular = color(light.get_Ks(), light.get_intensity());
+  l.diffuse = color(light.get_Kd(), 1.0);
+  l.specular = color(light.get_Ks(), 1.0);
+  l.intensity = float(light.get_intensity());
   l.attenuation = color(light.get_attenuation(), 1.0);
   if(auto spot = dynamic_cast<const shift::core::light::Spot*>(&light)) {
     l.cone_angle = float(spot->get_cone_angle());
@@ -325,6 +342,7 @@ static void AddLight(const shift::core::light::Base& light,
     scene.ies_profiles.push_back(std::move(profile));
   }
   scene.lights.push_back(l);
+  sources.push_back(&light);
 }
 
 shift::gui::Simulation::~Simulation() {
@@ -338,6 +356,7 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   scm_views_.clear();
   context_.reset();
   bodies_.clear();
+  light_sources_.clear();
   scene_ = Scene();
   ClearResults();
   RemoveLogDirectory();
@@ -353,11 +372,35 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   }
 }
 
+void shift::gui::Simulation::Reload(const Json::Value& model) {
+  if(model_path_.empty()) {
+    throw shift::core::Exception("no model has been loaded");
+  }
+  // a copy: LoadModel sets it
+  const std::string path = model_path_;
+  JoinWorker();
+  scm_views_.clear();
+  context_.reset();
+  bodies_.clear();
+  light_sources_.clear();
+  scene_ = Scene();
+  ClearResults();
+  // a log's files stay where they were taken out to
+  LoadModel(path, file_map_, &model);
+}
+
 void shift::gui::Simulation::LoadModel(
-  const std::string& path, std::map<std::string, std::string> file_map) {
+  const std::string& path, std::map<std::string, std::string> file_map,
+  const Json::Value* model) {
+  model_path_ = path;
+  file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
-  context->LoadJSON(path);
+  if(model) {
+    context->LoadJSON(*model, path);
+  } else {
+    context->LoadJSON(path);
+  }
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by
@@ -379,6 +422,8 @@ void shift::gui::Simulation::LoadModel(
   std::map<const shift::core::geometry::MeshAsset*, std::vector<int>>
     asset_meshes;
   std::vector<std::vector<int>> mesh_bodies;
+  std::map<const shift::core::geometry::Base*, std::vector<int>>
+    geometry_meshes; // for the lights that geometries glow with
   for(size_t i = 0; i < bodies_.size(); i++) {
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
@@ -401,6 +446,7 @@ void shift::gui::Simulation::LoadModel(
       for(int mesh_index : it->second) {
         mesh_bodies[mesh_index].push_back(static_cast<int>(i));
       }
+      geometry_meshes[geometry.get()] = it->second;
     }
   }
   for(size_t m = 0; m < mesh_bodies.size(); m++) {
@@ -452,9 +498,28 @@ void shift::gui::Simulation::LoadModel(
   }
   /* lights, on the bodies of their frames */
   for(auto light : context_->get_active_lights()) {
-    AddLight(*light, bodies_, scene_);
+    AddLight(*light, bodies_, scene_, light_sources_);
+  }
+  /* the meshes that glow with the lights */
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    for(const auto& name : light_sources_[k]->get_glow()) {
+      shift::core::body::Base* body = bodies_[scene_.lights[k].body_index];
+      for(auto& geometry : body->get_geometry()) {
+        auto meshes = geometry_meshes.find(geometry.get());
+        if(geometry->get_name() != name || meshes == geometry_meshes.end()) {
+          continue;
+        }
+        for(int m : meshes->second) {
+          scene_.meshes[m].glow_light = static_cast<int>(k);
+        }
+      }
+    }
   }
   scene_.body_count = static_cast<int>(bodies_.size());
+  shown_lights_.assign(light_sources_.size(), 0.f);
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    shown_lights_[k] = scene_.lights[k].intensity;
+  }
 
   state_size_ = context_->get_state_count();
   StoreInitialState();
@@ -526,6 +591,10 @@ void shift::gui::Simulation::Observe(double time,
     times_.push_back(time);
     states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
     knot_deltas_.push_back(deltas_.size());
+    // the lights as the controllers set them for this state
+    for(const auto* light : light_sources_) {
+      light_values_.push_back(float(light->get_intensity()));
+    }
   }
   // the levels changed, with the knot point just recorded (or the last one,
   // at a repeated time)
@@ -579,6 +648,7 @@ void shift::gui::Simulation::ClearResults() {
   std::lock_guard<std::mutex> lock(mutex_);
   times_.clear();
   states_.clear();
+  light_values_.clear();
   deltas_.clear();
   knot_deltas_.clear();
   base_delta_ = partial_begin_ = partial_end_ = 0;
@@ -673,6 +743,14 @@ void shift::gui::Simulation::ShowTime(double t) {
     for(size_t i = 0; i < state_size_; i++) {
       interpolated_[i] = y0[i] + p * (y1[i] - y0[i]);
     }
+    const size_t n = light_sources_.size();
+    if(light_values_.size() >= (i1 + 1) * n) {
+      for(size_t k = 0; k < n; k++) {
+        const float a = light_values_[i0 * n + k];
+        const float b = light_values_[i1 * n + k];
+        shown_lights_[k] = a + float(p) * (b - a);
+      }
+    }
     // the levels: those of knot i0 and the fraction p of the deltas to i1
     if(!scm_views_.empty()) {
       const auto knot_end = [&](size_t k) {
@@ -696,6 +774,9 @@ void shift::gui::Simulation::ShowTime(double t) {
 }
 
 void shift::gui::Simulation::ShowContextState() {
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    shown_lights_[k] = float(light_sources_[k]->get_intensity());
+  }
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
 }
@@ -703,6 +784,7 @@ void shift::gui::Simulation::ShowContextState() {
 void shift::gui::Simulation::UpdatePoses(
   const shift::core::topology::DHVA& dhva) {
   poses_.time = shown_time_;
+  poses_.lights = shown_lights_;
   poses_.bodies.resize(bodies_.size());
   for(size_t i = 0; i < bodies_.size(); i++) {
     if(bodies_[i] == context_->get_fixed_body()) {
@@ -1099,6 +1181,10 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
       states_.insert(states_.end(), states.begin() + r * state_size_,
                      states.begin() + (r + 1) * state_size_);
       knot_deltas_.push_back(deltas_.size());
+      // a log holds no lights: they stay as the model starts them
+      for(size_t k = 0; k < light_sources_.size(); k++) {
+        light_values_.push_back(scene_.lights[k].intensity);
+      }
       for(size_t v = 0; v < scm_views_.size(); v++) {
         ScmView& view = scm_views_[v];
         const TerrainRows& t = terrain_rows[v];

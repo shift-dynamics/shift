@@ -21,9 +21,11 @@ A sensor reports on the model as it runs, without changing it. It measures a
 scalar signal from the state, e.g. a joint coordinate or the velocity of a
 frame, for controllers to read by name: sensors are updated each time the
 equations of motion are set up, after the kinematics and before the
-controllers. A sensor may also have outputs that the loggers record at each
-output time, as columns named \<sensor\>_\<output\>, such as the poses of
-frames (Marker) or the loads on bodies (BodyLoad).
+controllers. A sensor of a signal publishes it as its output value (and
+rate, if it has one); others publish theirs, such as the poses of frames
+(Marker) or the loads on bodies (BodyLoad). The loggers record the outputs
+they are connected to at each output time, as columns named
+\<sensor\>__\<output\>.
 */
 class Base
   : public shift::core::Base
@@ -76,26 +78,21 @@ public:
    * kinematics in the context, which are up to date with y */
   virtual void Update(const double* y) = 0;
 
-  /*! \brief names of the sensor's outputs, which the loggers record; none
-   * by default */
-  virtual std::vector<std::string> get_output_names() const {
-    return {};
-  }
-  /*! \brief compute the outputs for the state y at time t; Context::
-   * WriteStates calls it before the loggers, while the kinematics are those
-   * of y */
+  /*! \brief compute the sensor's outputs (DeclareOutput) for the state y at
+   * time t; Context::WriteStates calls it after Update and before the
+   * loggers, which record the outputs they are connected to, while the
+   * kinematics are those of y */
   virtual void UpdateOutputs(double t, const double* y) {
     (void)t;
     (void)y;
   }
-  /*! \brief append the outputs of the last UpdateOutputs, in the order of
-   * get_output_names */
-  virtual void AppendOutputs(std::vector<double>& values) const {
-    (void)values;
-  }
 
 protected:
   virtual void DeclareParameters() override;
+  /*! \brief declare the signal as the output value, and its rate as the
+   * output rate if the sensor has one; a sensor of a signal calls it at the
+   * end of its Connect, once it knows has_rate */
+  void DeclareSignalOutputs();
   std::string type_; //!< sensor type
   double value_ = 0.0;
   double rate_ = 0.0;

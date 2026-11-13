@@ -43,13 +43,15 @@ shader_bundles = []
 foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
-                  'svgf_composite.comp', 'svgf_taa.comp']
+                  'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
+                  'axes.frag']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
-    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl'),
+    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
+                        'shaders/surfaces.glsl'),
   )
 endforeach
 
@@ -82,7 +84,8 @@ shader_bundles += custom_target(
   input: 'shaders/mesh.frag',
   output: 'cad.frag.qsb',
   command: [qsb, '-DCAD', '-o', '@OUTPUT@', '@INPUT@'],
-  depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl'),
+  depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl',
+                      'shaders/surfaces.glsl'),
 )
 
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them
@@ -125,6 +128,7 @@ shift_gui_lib = static_library(
   'environment.cc',
   'playback_slider.cc',
   'scene.cc',
+  'settings.cc',
   'simulation.cc',
   'video_encoder.cc',
   'video_trimmer.cc',

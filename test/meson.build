@@ -7,6 +7,7 @@ test_sources = [
   'main.cc',
   'test_bitfield.cc',
   'test_examples.cc',
+  'test_frame_orientation.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
   'contact/contact_record.cc',
@@ -27,6 +28,8 @@ test_sources = [
   'test_joint_axis.cc',
   'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',
+  'test_floating_joint.cc',
+  'test_half_turn_loop.cc',
   'test_light.cc',
   'test_beam.cc',
   'test_belt.cc',
@@ -47,6 +50,11 @@ test_sources = [
   'contact/test_terrain_contact.cc',
   'terramechanics/test_terramechanics.cc',
   'test_schedule.cc',
+  'test_map.cc',
+  'test_linearization.cc',
+  'test_component_io.cc',
+  'test_electric_motor.cc',
+  'test_logger_outputs.cc',
   'test_lead_screw.cc',
   'test_yaml.cc',
   'test_gear_mesh.cc',
@@ -79,7 +87,9 @@ if not is_disabler(shift_gui_dep)
   test_sources += ['test_instance_bvh.cc', 'test_video_encoder.cc',
                    'test_embedded_texture.cc', 'test_camera.cc',
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
-                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc']
+                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
+                   'test_workspace_tree.cc', 'test_surface_noise.cc',
+                   'test_light_glow.cc']
   test_deps += [shift_gui_dep]
 endif
 
@@ -162,6 +172,9 @@ stress_models = [
   # the M1A2 tank: two tracks of 78 links each
   'm1a2/m1a2.json',
   'm1a2/m1a2_step.json',
+  # the Polo R WRC without its body shell, for the viewer: the same
+  # simulation as polo_r_wrc/polo_r_wrc.json
+  'polo_r_wrc/polo_r_wrc_suspension.json',
 ]
 
 foreach model_path : example_models

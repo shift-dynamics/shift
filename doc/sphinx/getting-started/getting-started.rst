@@ -97,11 +97,92 @@ the potential, kinetic and total energy. The total energy stays at
 without friction. Any force module with outputs adds its own columns (see
 :ref:`logging`).
 
+``shift-cli --linearize <time>`` lists the fastest motions of the model at
+that time, which set how short the integrator's steps must be (see
+:ref:`fast-modes`).
+
 To watch the model, open it in the viewer:
 
 .. code:: bash
 
    build/shift/main/shift examples/pendulum/pendulum.json
+
+The tree in the *Scene* tab is laid out as the model file is: a folder for
+each list in the file (``assemblies``, ``bodies``, ``joints``,
+``constraints``, ``force_modules``, ``sensors``, ``controllers``, ``frames``,
+``geometry`` and so on) holds an item for each object in it, down through the
+nested assemblies. The top item is the model file itself, whose top level is
+the fixed body. Objects that are inactive are greyed out. A new kind of object
+appears in the tree as soon as its class declares its parameters; the viewer
+needs no change for it.
+
+Some items in the tree have an eye beside their icon, which shows or hides
+them in the view:
+
+* a coordinate frame, the ``origin`` of every body included: its axes, drawn
+  as arrows, x red, y green and z blue;
+* a revolute, prismatic or screw joint: its axis, drawn as an arrow through
+  the joint that points in its positive sense, along the ``axis`` the model
+  file gives in the joint's parent frame; a gear joint: the axes of both of
+  its gears, two arrows along the z axes of its parent and child frames;
+* a body: its geometry.
+
+The eye of a folder of them (``frames``, ``joints``, ``bodies``) shows or
+hides all of the items in it; it is grey when only some of them are shown.
+A model opens with its bodies shown and no frames or joint axes. Frames and
+joint axes are drawn over the model, so that those inside a body still show.
+What is shown stays shown when an edit loads the model again.
+
+*Edit > Settings* sets the length of the arrows (*Coordinate frame scale*,
+0.25 m at first); the arrow of a joint axis is twice as long, from minus to
+plus that length along the axis. It also sets the color of the joint axes
+(*Joint color*, purple at first), picked from a color dialog, and the
+diameter of their shafts (*Joint axis thickness*, 7.5 mm at first; the
+heads are three times as wide). The settings
+are saved in ``~/.shift/settings.json`` and read each time the viewer starts.
+
+Selecting an object lists all of its parameters below the tree, read from the
+object as it is. Parameters that the file leaves at their defaults are greyed
+out, and hovering over a parameter shows its description. A list or matrix
+too long for one line opens to show its rows. Keys that are other names for
+the same value are one row: the orientation of a frame, which the file may
+give as ``R``, ``rotation``, ``quaternion``, ``q``, ``Q`` or
+``euler_angles``, is one row under the key the file uses, and shows the
+orientation as roll, pitch and yaw.
+
+Selecting a parameter opens an editor below the list:
+
+* a true/false value, or a string with a fixed set of choices, is picked
+  from a list;
+* a number or a string is typed in;
+* an orientation is given as roll, pitch and yaw in degrees: turn the axes
+  about z by the yaw, then about the new y by the pitch, then about the
+  newest x by the roll, :math:`R = R_z(\psi)\, R_y(\theta)\, R_x(\phi)`
+  (the convention of the jog sliders and of the floor). It is written back
+  in the form the file gives it in: a matrix for ``R`` or ``rotation`` (and
+  for a frame whose file gives no orientation), ``[x, y, z, w]`` for a
+  quaternion, and Euler angles about the file's own ``axes`` for
+  ``euler_angles``;
+* any other value (a vector, an inertia, a list) is typed as in the model
+  file, e.g. ``[0, 0, 3]``.
+
+*Apply*, or Enter in a text field, sets the value. A parameter that may change while the
+model runs, such as the throttle of a powertrain, is set at once, also during
+a run. Any other parameter is read when the model loads, so applying it loads
+the model again, dropping the computed results (the viewer asks first). The
+camera, the selection and the time span and time step of the *Simulation*
+tab stay as they were. If the model rejects the value, the message below the
+editor says why, and the model is left as it was. Objects made when the
+model loads, such as the default floor, are not in the file and cannot be
+edited, apart from parameters that may change while the model runs.
+
+The title of the window marks a model with edits. *File > Save model as*
+writes the model with its edits to a JSON file, and *File > Revert model*
+drops them and loads the file again. The saved file keeps the objects of
+each list (bodies, joints, frames, ...) in the order of the model file; only
+the keys within each object come out in alphabetical order, and comments are
+dropped. Files the model names, such as meshes, are found relative to the
+model file, so save it in the same directory as the original.
 
 The viewer can also render a model to an image without user input, which
 is how the pictures in these documents are made

@@ -105,11 +105,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  /*! \brief logged outputs: the force and moment f of each pair k (as in
-   * get_forces), pair_<k>_fx, _fy, _fz, _mx, _my, _mz */
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief number of frame pairs, m */
   size_t get_pair_count() const {

@@ -32,6 +32,10 @@ layout(std140, binding = 1) uniform Material {
   vec4 material;      // x = metallic, y = roughness, z = triplanar,
                       // w = 1 / texture scale
   ivec4 layers;       // base color, metallic roughness, normal; -1: none
+  vec4 variation;     // as in mesh.frag
+  ivec4 surface_layers;
+  vec4 surface[2];
+  vec4 emission;      // as in mesh.frag
 } mesh;
 
 void main() {

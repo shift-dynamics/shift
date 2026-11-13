@@ -16,7 +16,17 @@
               "parts"},
     {src: "_static/m1a2.webm",
      caption: "An M1A2 tank on two tracks of 78 links (model by " +
-              "coderslava402, CC-BY-4.0)"}
+              "coderslava402, CC-BY-4.0)"},
+    {src: "_static/excavator_drive.webm",
+     caption: "A tracked excavator driving over soft sand, its tracks " +
+              "leaving ruts in the soil"},
+    {src: "_static/polo_r_wrc.webm",
+     caption: "A Volkswagen Polo R WRC on a gravel rally stage, on its own " +
+              "suspension and four wheel drive (model by " +
+              "amogusstrikesback2, CC-BY-4.0)"},
+    {src: "_static/rocks_hull.webm",
+     caption: "100,000 rocks of 16 convex hull shapes poured into a box, " +
+              "simulated on the GPU"}
   ];
 
   var figure = document.querySelector(".showreel");

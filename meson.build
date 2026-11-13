@@ -49,6 +49,7 @@ gvc_dep = dependency('libgvc')
 cgraph_dep = dependency('libcgraph')
 hdf5_dep = dependency('hdf5', language: 'cpp')
 cblas_dep = dependency('cblas')
+lapacke_dep = dependency('lapacke') # eigenvalues of linearized models
 threads_dep = dependency('threads')
 openmp_dep = dependency('openmp')
 qhull_dep = dependency('qhull_r')

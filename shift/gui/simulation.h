@@ -4,6 +4,8 @@
 #include "shift/core/topology.h"
 #include "shift/gui/scene.h"
 
+#include <json/json.h>
+
 #include <condition_variable>
 #include <map>
 #include <cstdint>
@@ -17,6 +19,9 @@ namespace shift {
 namespace core {
 class Context;
 namespace body {
+class Base;
+}
+namespace light {
 class Base;
 }
 namespace terrain {
@@ -65,6 +70,12 @@ public:
    * so that a Run from the log writes no files, and the rows of the log
    * become the knot points, as if they had just been computed. */
   void Load(const std::string& filename);
+
+  /*! \brief load the model again from model, its JSON as edited (see
+   * Context::get_model_json), discarding the results; its files are found
+   * as they were for the model loaded last. Throws on failure, leaving no
+   * model loaded. */
+  void Reload(const Json::Value& model);
 
   bool is_loaded() const {
     return context_ != nullptr;
@@ -187,9 +198,11 @@ private:
 
   struct StopRequested {};
 
-  /*! \brief load the model file path, with Context::set_file_map */
+  /*! \brief load the model file path, with Context::set_file_map; from
+   * model if it is given, as if read from path */
   void LoadModel(const std::string& path,
-                 std::map<std::string, std::string> file_map);
+                 std::map<std::string, std::string> file_map,
+                 const Json::Value* model = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
   void RemoveLogDirectory();
@@ -203,6 +216,10 @@ private:
 
   std::string filename_;
   std::string log_directory_; /*!< files taken out of a log */
+  /*! the path and file map of the model loaded last, even if it failed to
+   * load, see Context::set_file_map */
+  std::string model_path_;
+  std::map<std::string, std::string> file_map_;
   std::unique_ptr<shift::core::Context> context_;
   std::vector<shift::core::body::Base*> bodies_;
   Scene scene_;
@@ -221,6 +238,9 @@ private:
   /*! the first of deltas_ of each knot point, which lead to it from the
    * previous one */
   std::vector<size_t> knot_deltas_;
+  /*! the intensity of each light of the scene at each knot point,
+   * light_sources_.size() each */
+  std::vector<float> light_values_;
   double wall_start_ = 0.0;
   double real_time_factor_ = 0.0;
 
@@ -230,6 +250,9 @@ private:
   double shown_time_ = 0.0;
   Poses poses_;
   bool poses_changed_ = false;
+  /*! the light of the model of each of the scene's lights */
+  std::vector<const shift::core::light::Base*> light_sources_;
+  std::vector<float> shown_lights_; /*!< their intensities at the time shown */
   std::vector<ScmView> scm_views_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */

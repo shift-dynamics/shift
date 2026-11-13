@@ -81,6 +81,14 @@ void shift::core::force_module::Spline::DeclareParameters() {
                    "speed over which static friction falls to sliding "
                    "friction; optional, default 0.01",
                    false);
+  DeclareOutput("angle", &angle_, "twist of the spline");
+  DeclareOutput("torque", &torque_, "torque through the spline");
+  DeclareOutput("normal_force", &normal_force_, "normal force on the teeth");
+  DeclareOutput("friction_force", &friction_force_,
+                "friction force of the teeth along the axis");
+  DeclareOutput("stick", &stick_,
+                "share of the static friction in use, 1 at the limit of "
+                "holding");
 }
 
 void shift::core::force_module::Spline::Connect() {
@@ -261,18 +269,4 @@ void shift::core::force_module::Spline::UpdateOutputs(double t,
                                                       const double* y) {
   (void)t;
   Compute(y, nullptr);
-}
-
-std::vector<std::string>
-shift::core::force_module::Spline::get_output_names() const {
-  return {"angle", "torque", "normal_force", "friction", "stick"};
-}
-
-void shift::core::force_module::Spline::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(angle_);
-  values.push_back(torque_);
-  values.push_back(normal_force_);
-  values.push_back(friction_force_);
-  values.push_back(stick_);
 }

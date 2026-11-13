@@ -33,7 +33,7 @@ static std::vector<std::string> Fields(const std::string& shader,
   const std::string body =
     source.substr(start, end - start).substr(name.size() + 9);
   std::vector<std::string> fields;
-  const std::regex field("(\\w+)\\s+(\\w+)\\s*;");
+  const std::regex field("(\\w+)\\s+(\\w+(?:\\[\\d+\\])?)\\s*;");
   for(std::sregex_iterator it(body.begin(), body.end(), field), last;
       it != last; ++it) {
     fields.push_back((*it)[1].str() + " " + (*it)[2].str());
@@ -44,10 +44,38 @@ static std::vector<std::string> Fields(const std::string& shader,
 TEST(ShaderLayouts, InstancesMatchTheRayTracer) {
   const auto fields = Fields("raytrace.comp", "Instance");
   ASSERT_FALSE(fields.empty());
-  /* mat4 x 3 (48 floats), vec4 x 5 and ivec4 x 1 (24): 288 bytes, the size
-  of RtInstance */
-  EXPECT_EQ(fields.size(), 9u);
+  /* mat4 x 3 (48 floats), vec4 x 6, ivec4 x 2 and vec4[2] (40): 352 bytes,
+  the size of RtInstance */
+  EXPECT_EQ(fields.size(), 12u);
   for(const char* shader : {"svgf_temporal.comp", "svgf_taa.comp"}) {
     EXPECT_EQ(Fields(shader, "Instance"), fields) << shader;
   }
+}
+
+/* the material of a mesh (MaterialUniforms in viewport.cc) is declared by
+both stages of the mesh pipeline */
+TEST(ShaderLayouts, MaterialsMatchInBothStages) {
+  auto block = [](const std::string& shader) {
+    std::ifstream in(std::string(SHIFT_ROOT_DIR) + "/shift/gui/shaders/" +
+                     shader);
+    std::stringstream text;
+    text << in.rdbuf();
+    const std::string source =
+      std::regex_replace(text.str(), std::regex("//[^\n]*"), "");
+    const size_t start = source.find("uniform Material {");
+    EXPECT_NE(start, std::string::npos) << shader;
+    const std::string body =
+      source.substr(start, source.find("}", start) - start);
+    std::vector<std::string> fields;
+    const std::regex field("(\\w+)\\s+(\\w+(?:\\[\\d+\\])?)\\s*;");
+    for(std::sregex_iterator it(body.begin(), body.end(), field), last;
+        it != last; ++it) {
+      fields.push_back((*it)[1].str() + " " + (*it)[2].str());
+    }
+    return fields;
+  };
+  const auto fields = block("mesh.frag");
+  /* vec4 x 4, ivec4 x 2 and vec4[2]: 128 bytes, MaterialUniforms */
+  EXPECT_EQ(fields.size(), 7u);
+  EXPECT_EQ(block("mesh.vert"), fields);
 }

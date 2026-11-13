@@ -30,6 +30,7 @@ Vehicles and machines
 
 * `Vehicle chassis and tires <vehicle>`_
 * `Ford F-150 Raptor R pickup truck <raptor>`_
+* `Volkswagen Polo R WRC rally car <polo_r_wrc>`_
 * `Wulf Revo rally car <wulf_revo>`_
 * `M1A2 Abrams tank <m1a2>`_
 * `Hydraulic excavator <excavator>`_

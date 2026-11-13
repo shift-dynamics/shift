@@ -180,7 +180,8 @@ temperature found elsewhere.
 Outputs, logged as ``<assembly>__<name>__<output>``: ``eccentricity_ratio``,
 ``min_film_thickness``, ``peak_pressure``, ``friction_torque`` (on the journal),
 ``side_flow``, ``radial_force`` and ``tangential_force`` (along and across the line
-of centers), ``load``, ``viscosity`` and ``temperature_rise``.
+of centers), ``load``, ``effective_viscosity`` (that of the oil at its temperature) and
+``temperature_rise``.
 
 .. shift-parameters:: shift/core/force_module/journal_bearing.cc
    :exclude: name, type, active
