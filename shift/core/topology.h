@@ -172,7 +172,13 @@ struct DHVA {
         number of non rigid joints + 1 for the fixed inertial reference frame */
   ksl_screw_t* aq =
     nullptr; /*!< an array of body accelerations equal to the
-        number of non rigid joints + 1 for the fixed inertial reference frame */
+        number of non rigid joints + 1 for the fixed inertial reference frame:
+        the terms of each spatial acceleration that are quadratic in the
+        velocities. Every joint forms aq_child = aq_parent + v_parent x H dq,
+        the cross product with the parent velocity; it equals the product
+        with the child velocity, v_child = v_parent + H dq, since
+        (H dq) x (H dq) = 0. The inverted floating joint, whose columns are
+        fixed in neither body, differentiates them term by term. */
 #else
   std::vector<double> dc;
   std::vector<ksl_SE3_t> d;

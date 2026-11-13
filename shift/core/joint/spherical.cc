@@ -93,7 +93,7 @@ void shift::core::joint::spherical_dhva(const shift::core::Context& context,
   ksl_product_drv(&d_child->R, v_primitive, &v_relative.ang);
   ksl_cross_vv(&d_child->t, &v_relative.ang, &v_relative.lin);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
@@ -176,7 +176,7 @@ void shift::core::joint::sphericalinv_dhva(const shift::core::Context& context,
   ksl_product_drvinv(&d_child->R, v_primitive, &v_relative.ang);
   ksl_cross_vv(&d_child->t, &v_relative.ang, &v_relative.lin);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 
