@@ -75,7 +75,8 @@ TEST(ShaderLayouts, MaterialsMatchInBothStages) {
     return fields;
   };
   const auto fields = block("mesh.frag");
-  /* vec4 x 4, ivec4 x 2 and vec4[2]: 128 bytes, MaterialUniforms */
-  EXPECT_EQ(fields.size(), 7u);
+  /* vec4 x 4, ivec4 x 2, vec4[2] and vec4[4]: 192 bytes, MaterialUniforms */
+  EXPECT_EQ(fields.size(), 8u);
   EXPECT_EQ(block("mesh.vert"), fields);
+  EXPECT_EQ(block("particle.vert"), fields);
 }

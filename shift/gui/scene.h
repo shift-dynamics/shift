@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QMatrix4x4>
 #include <QVector3D>
+#include <QVector4D>
 
 #include <cstdint>
 #include <map>
@@ -62,6 +63,11 @@ struct SceneMesh {
   /*! triplanar: textures drawn over the mesh's own in patches
    * (shift::core::terrain::SurfaceTexture), at most two */
   std::vector<SceneSurface> surfaces;
+  bool hex_tiling = false; /*!< triplanar, each plane hex-tiled (terrains) */
+  /*! of a terrain: rectangles x0, y0, x1, y1 of its frame (its uv) not
+   * drawn, where regions of it are drawn as surfaces of their own; the
+   * raster shader takes the first 4 (MaterialUniforms) */
+  std::vector<QVector4D> holes;
 
   QVector3D bounds_min;
   QVector3D bounds_max;
@@ -99,6 +105,18 @@ struct SceneTerrain {
    * draw the smooth surface (Viewport::ShapeRtTerrain) */
   int mesh_subdivisions = 1;
   QMatrix4x4 pose; /*!< terrain frame to world */
+};
+
+/*! \brief the particles of an SPH soil (shift::core::terrain::Sph), each
+ * drawn as an instance of a sphere mesh (SceneMesh, without instances of
+ * its own) at its centre, or as one surface over spheres of radius
+ * (Viewport::set_particle_surface), with the sphere's material; their
+ * centres change with the time shown (see
+ * Simulation::TakeParticleUpdates). Raster only: the ray tracer does not
+ * draw them. */
+struct SceneParticles {
+  int mesh_index = -1; /*!< the sphere, about the origin, in world units */
+  float radius = 0.f;
 };
 
 /*! \brief a light of the model (shift::core::light), attached to a frame
@@ -139,6 +157,7 @@ struct Scene {
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
   std::vector<SceneTerrain> terrains;
+  std::vector<SceneParticles> particles;
   /*! CAD geometry, tessellated from its exact surfaces where the device
    * can; not drawn otherwise, nor ray traced */
   std::vector<SceneCad> cads;
@@ -203,6 +222,12 @@ struct TerrainUpdate {
   int width = 0;
   int height = 0;
   std::vector<float> z; /*!< width * height, x fastest */
+};
+
+/*! \brief the particles of an SPH soil (SceneParticles) at the time shown */
+struct ParticleUpdate {
+  int particles = 0;         /*!< in Scene::particles */
+  std::vector<float> centers; /*!< x, y, z in the world, then 0, each */
 };
 
 /*! \brief world space bounding box of the scene meshes in the given poses */

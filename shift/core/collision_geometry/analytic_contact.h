@@ -9,6 +9,7 @@ namespace collision_geometry {
 
 class Base;
 class ConvexHull;
+class Cylinder;
 class Ellipsoid;
 class Plane;
 class Sphere;
@@ -202,6 +203,70 @@ must be handled otherwise
 */
 bool EllipsoidEllipsoidContact(const Ellipsoid& a, const Ellipsoid& b,
                                AnalyticContact& contact);
+
+/*!
+@brief a cylinder (first) and a sphere, exact
+
+A sphere is its center grown by its radius, so the contact follows from the
+point of the cylinder closest to the center: on its side, on an end, or on a
+rim, in closed form. Inside, it is the nearer of the side and the end.
+
+@return false if the cylinder has no radius or length
+*/
+bool CylinderSphereContact(const Cylinder& cylinder, const Sphere& sphere,
+                           AnalyticContact& contact);
+
+/*!
+@brief a convex hull (first) and a cylinder, the local minimum of the
+penetration depth nearest a normal, exact
+
+The translation of the cylinder along a unit direction \f$\underline{n}\f$
+that separates the shapes is
+
+\f[
+d(\underline{n}) = \max_{\underline{v}} \underline{n} \cdot
+  (\underline{v} - \underline{c}) + h \, |g| + r \sqrt{1 - g^2}, \quad
+g = \underline{n} \cdot \underline{a},
+\f]
+
+with \f$\underline{v}\f$ the hull's vertices, \f$\underline{c}\f$ the
+cylinder's center, \f$\underline{a}\f$ its unit axis, \f$h\f$ its half length
+and \f$r\f$ its radius: the support function of the cylinder is closed form.
+\f$d\f$ is least at a face of the Minkowski difference of the shapes, one of
+
+- a face of the hull (a polygon) and the cylinder's point deepest against
+  its normal (on a rim; the nearest point of an end, or of a side line, to
+  the polygon where that end or line is parallel to it): n is the face's
+  normal, and the point projects into the face
+- an end of the cylinder and the hull's vertex, or edge, extreme along its
+  normal: n is the end's inward normal, and the vertex or a point of the
+  edge projects into the end's disc
+- the side of the cylinder and an edge of the hull: n is normal to both the
+  axis and the edge, in the edge's normal cone, and the closest points of
+  the axis and the edge are on both
+- the side and a vertex of the hull: n is from the vertex across the axis,
+  in the vertex's normal cone, and the vertex is level with the side
+- a rim and an edge of the hull: the least d over the edge's normal cone, a
+  function of one angle (the distance of a circle and a line, a root of a
+  quartic) from the root of its derivative by bisection to rounding, where
+  the rim's point deepest against n projects onto the edge
+
+A rim and a vertex, and a rim and a face, make no face of the Minkowski
+difference. The candidates are made of the hull's vertices within a margin
+of the extreme along start, the margin growing until one passes, and of the
+passing ones the least d is kept, or, if nearest, the one whose normal is
+nearest start, as for ConvexHullEllipsoidContact. With start fixed the result
+depends on the poses only, and is exact where that of EPA is only as good as
+its tolerance. The near vertices are found by a search over the hull's edges
+from the support vertex (hint, updated). point_first is on the hull and
+point_second on the cylinder.
+
+@return false if no candidate passes, the hull has no polygons or the
+cylinder no radius or length, so the pair must be handled otherwise (EPA)
+*/
+bool CylinderHullContact(const ConvexHull& hull, const Cylinder& cylinder,
+                         const ksl_vec3_t& start, bool nearest, int& hint,
+                         AnalyticContact& contact);
 
 /*!
 @brief a plane (half space) and any shape, exact

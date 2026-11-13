@@ -45,6 +45,10 @@ struct shift::core::gpu::Device::Impl {
   uint32_t family = 0;
   VkQueue queue = VK_NULL_HANDLE;
   VkCommandPool pool = VK_NULL_HANDLE;
+  /* the fence of every submission, reset after each: creating and
+  destroying one per submission costs about 0.2 ms each on NVIDIA's driver,
+  more than a substep of a small soil */
+  VkFence fence = VK_NULL_HANDLE;
   PFN_vkCmdPushDescriptorSetKHR push_descriptor_set = nullptr;
   std::string name;
 
@@ -148,10 +152,6 @@ struct shift::core::gpu::Device::Impl {
   }
 
   void Submit(VkCommandBuffer commands) const {
-    VkFenceCreateInfo fence_info{};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    VkFence fence;
-    Check(vkCreateFence(device, &fence_info, nullptr, &fence), "vkCreateFence");
     VkSubmitInfo submit{};
     submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit.commandBufferCount = 1;
@@ -159,8 +159,10 @@ struct shift::core::gpu::Device::Impl {
     VkResult result = vkQueueSubmit(queue, 1, &submit, fence);
     if(result == VK_SUCCESS) {
       result = vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+      if(result == VK_SUCCESS) {
+        result = vkResetFences(device, 1, &fence);
+      }
     }
-    vkDestroyFence(device, fence, nullptr);
     Check(result, "running the commands");
   }
 
@@ -168,6 +170,9 @@ struct shift::core::gpu::Device::Impl {
     if(device) {
       vkDeviceWaitIdle(device);
       DestroyStaging();
+      if(fence) {
+        vkDestroyFence(device, fence, nullptr);
+      }
       if(pool) {
         vkDestroyCommandPool(device, pool, nullptr);
       }
@@ -391,6 +396,9 @@ shift::core::gpu::Device::Device(const DeviceOptions& options)
     pool.queueFamilyIndex = d.family;
     Check(vkCreateCommandPool(d.device, &pool, nullptr, &d.pool),
           "vkCreateCommandPool");
+    VkFenceCreateInfo fence{};
+    fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    Check(vkCreateFence(d.device, &fence, nullptr, &d.fence), "vkCreateFence");
   } catch(...) {
     d.Destroy();
     throw;

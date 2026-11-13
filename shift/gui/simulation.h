@@ -4,6 +4,8 @@
 #include "shift/core/topology.h"
 #include "shift/gui/scene.h"
 
+#include <QFloat16>
+
 #include <json/json.h>
 
 #include <condition_variable>
@@ -26,7 +28,8 @@ class Base;
 }
 namespace terrain {
 class Scm;
-}
+class Sph;
+} // namespace terrain
 } // namespace core
 
 namespace gui {
@@ -49,7 +52,13 @@ Follows the conventions of the original OpenGL workspace:
   interpolates those of the knot point after the time shown, and the
   viewport uploads only the rectangle of the terrain that changed
   (TakeTerrainUpdates). Run and AdoptShownState restart the terrain from the
-  levels shown (Scm::SetLevels), Reset from the undisturbed surface.
+  levels shown (Scm::SetLevels), Reset from the undisturbed surface. Where
+  an SPH region overrides it, its surface is drawn at the region's floor.
+- The particles of an SPH soil (shift::core::terrain::Sph) are recorded at
+  each knot point, as half floats, and the knot point at or before the time
+  shown is drawn (TakeParticleUpdates). They cannot be restarted from the
+  time shown: Run continues the soil from where it was last computed, and
+  Reset refills it (Sph::Restart).
 - The workspace jogs joints by editing q in the context directly. That is
   only possible while no simulation is being computed; AdoptShownState
   first moves the context to the configuration shown and discards the
@@ -158,7 +167,30 @@ public:
    * the whole scene again */
   void TakeTerrainUpdates(std::vector<TerrainUpdate>& updates);
 
+  /*! \brief the particles of the SPH soils whose shown particles changed
+   * since the previous call, or all */
+  void TakeParticleUpdates(std::vector<ParticleUpdate>& updates,
+                           bool all = false);
+
 private:
+  /*! an SPH soil drawn as Scene::particles[particles] */
+  struct SphView {
+    shift::core::terrain::Sph* sph = nullptr;
+    int particles = 0;
+    /*! the particles' positions in their frame (Sph::get_particle_frame),
+     * x, y, z each: at the start, and at each knot point (worker thread,
+     * mutex_ held) */
+    std::vector<qfloat16> initial;
+    std::vector<std::vector<qfloat16>> knots;
+    long shown = -1;      /*!< the knot shown, -1 for initial (GUI thread) */
+    bool changed = true;  /*!< since TakeParticleUpdates */
+  };
+  /*! \brief the particles' positions of an SPH soil now */
+  static void Snapshot(const shift::core::terrain::Sph& sph,
+                       std::vector<qfloat16>& positions);
+  /*! \brief show knot (-1 for the start) of each SPH soil */
+  void ShowParticles(long knot);
+
   /*! a deformable terrain drawn as Scene::terrains[terrain]: its control
    * points are the nodes of the grid with a ring of the undisturbed surface
    * around them, (nx + 2) by (ny + 2) */
@@ -254,6 +286,7 @@ private:
   std::vector<const shift::core::light::Base*> light_sources_;
   std::vector<float> shown_lights_; /*!< their intensities at the time shown */
   std::vector<ScmView> scm_views_;
+  std::vector<SphView> sph_views_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */
   size_t partial_end_ = 0;

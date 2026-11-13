@@ -182,6 +182,8 @@ stress_models = [
   # the Polo R WRC without its body shell, for the viewer: the same
   # simulation as polo_r_wrc/polo_r_wrc.json
   'polo_r_wrc/polo_r_wrc_suspension.json',
+  # SPH soil on the GPU
+  'terramechanics/sph_blade.json',
   # the excavator driving on its tracks of STEP links over dry sand
   'excavator/excavator_drive.json',
 ]

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <math.h>
 #include <sstream>
+#include <string>
 
 const double shift::core::integrator::ODE113::twou_ = 1.42e-14;
 // std::numeric_limits<double>::epsilon() * 2.0;
@@ -96,6 +97,14 @@ void shift::core::integrator::ODE113::Reset() {
   std::fill(integral_error_.begin(), integral_error_.end(), 0.0);
 
   step_count_ = ceil(time_span_ / time_step_) + 1;
+
+  step_max_ = fmin(hmax_, context_->GetStepLimit());
+  if(!(step_max_ >= hmin_)) {
+    throw shift::core::Exception(
+      "ODE113: the longest step the terrain allows, " +
+      std::to_string(step_max_) + " s, is shorter than the shortest, " +
+      std::to_string(hmin_) + " s");
+  }
 
   yy_.resize(neqn_);
   std::fill(yy_.begin(), yy_.end(), 0.0);
@@ -297,7 +306,7 @@ void shift::core::integrator::ODE113::Integrate() {
     kold_ = 0;
     x_ = 0.0;
     memcpy(yy_.data(), y_.data(), neqn_ * sizeof(double));
-    h_ = hmax_;
+    h_ = step_max_;
     for(int i = 0; i < 13; i++) {
       psi_[i] = 0;
     }
@@ -305,7 +314,7 @@ void shift::core::integrator::ODE113::Integrate() {
 
   while(true) {
     /*  limit step size, set weight vector and take a step */
-    h_ = fmin(h_, hmax_);
+    h_ = fmin(h_, step_max_);
     h_ = fmin(h_, time_span_ - x_);
     for(size_t l = 0; l < neqn_; l++) {
       wt_[l] = releps * fabs(yy_[l]) + abseps;
@@ -547,7 +556,7 @@ void shift::core::integrator::ODE113::Step() {
     }
 
     h_ = fmax(h_, fouru_ * x_);
-    h_ = fmin(h_, hmax_);
+    h_ = fmin(h_, step_max_);
     hold_ = 0.0;
     k_ = 1;
     kold_ = 0;

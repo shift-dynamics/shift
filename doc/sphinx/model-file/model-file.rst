@@ -512,14 +512,25 @@ far higher cost than the SCM terrain's nodes, so an SPH soil is usually a
 region of an SCM terrain (see Regions below). The particles run on the GPU
 (``"device": "gpu"``, see :doc:`../installation`) or, for small soils, on
 the CPU (``"cpu"``). After each step the integrator accepts, the particles
-advance to that step's time. The surface that tires and other models see is
-the top of the particles. It is updated at each output time.
+advance to that step's time, in substeps no longer than their stable step
+(set by the spacing and the soil's stiffness). The surface that tires and
+other models see is the top of the particles. It is updated at each output
+time.
 
 The bodies of the soil contact force module (see :doc:`../force-modules/soil`)
 press on the particles directly. Each body's collision geometry is filled
 with markers, a spacing apart and half a spacing inside its surface. Over each
 accepted step they follow the body, and the force the particles put on them
-acts on the body over the next step.
+acts on the body over the next step. A body that starts inside the soil
+pushes its particles out of the way first: those particles are removed.
+
+That force is a step behind the body, which puts energy into a light body
+resting on the soil when the steps are long. So an SPH soil limits the
+integrator's longest step to ``substeps_per_step`` of its stable substeps
+(by default 1: the bodies and the particles advance together). The
+integrator keeps its own control of the step and order below that limit.
+A larger ``substeps_per_step`` runs faster, and suits heavy bodies or bodies
+driven along a set path, such as a blade on a prismatic joint.
 
 Its soil needs, besides the friction angle, cohesion and unit weight, the
 properties of the soil as a continuum: ``youngs_modulus`` and
@@ -551,7 +562,17 @@ that holds them, and must not overlap.
 An SPH region in an SCM terrain gives SPH soil where a tool digs, and the
 cheaper SCM nodes everywhere else. The region's soil adds the properties of
 a continuum to the SCM terrain's soil. Under a region, the soil contact force
-module leaves the SCM nodes alone.
+module leaves the SCM nodes alone, and the SCM surface is drawn at the
+region's floor.
+
+Soil a tool carries or throws out of an SPH region lands on the SCM terrain
+around it. Every ``landing_interval`` (by default 10 ms), each particle
+outside the region's ``x`` and ``y`` that has come down to the SCM surface
+is removed, and its volume (its mass over the soil's density) is added to the
+level of the nearest SCM node. With the SCM terrain's ``bulldozing`` enabled,
+the soil that lands settles at the angle of repose. A particle that lands off
+the SCM grid is lost: its volume is counted, with a warning, but goes
+nowhere.
 
 .. code-block:: json
 

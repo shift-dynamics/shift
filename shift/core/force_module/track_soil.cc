@@ -82,7 +82,9 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
 
 void shift::core::force_module::TrackSoil::Connect() {
   scm_ = nullptr;
-  for(auto terrain : context_->get_active_terrain()) {
+  /* among the terrains and their regions, e.g. sand in rigid ground */
+  for(auto terrain : shift::core::terrain::Base::WithRegions(
+        context_->get_active_terrain())) {
     if(auto scm = dynamic_cast<shift::core::terrain::Scm*>(terrain)) {
       scm_ = scm;
     }

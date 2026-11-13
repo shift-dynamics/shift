@@ -52,6 +52,32 @@ struct FrameUniforms {
   float floor_frame[16]; // column major: axes u, v, normal, origin
 };
 
+/*! the soil surface over SPH particles, see fluid_common.glsl */
+struct FluidUniforms {
+  float view_projection[16];
+  float inverse_view_projection[16];
+  float camera_position[4]; // w: 1 if clip space depth runs 0 to 1
+  float camera_forward[4];
+  float particles[4];     // radius, pixels per unit length at unit depth
+  float filter_params[4]; // blur radius, its range in depth beyond a slant,
+                          // its largest radius in pixels
+};
+
+/*! the surface over SPH particles: the blur's radius and its range in
+ * depth beyond that of a slant, in radii of the particles drawn; the
+ * strides of its levels in pixels, an even number of them so that the last
+ * writes fluid_depth_[0]: doubling to the largest, then fine again, which
+ * takes out what the sparse samples of the coarse levels leave between
+ * neighbouring pixels (the normals are found from them); and its largest
+ * radius (fluid_blur.frag) */
+static constexpr float kFluidBlurRadius = 4.0f;
+static constexpr float kFluidBlurRange = 2.0f;
+static constexpr int kFluidBlurStrides[] = {1, 2, 4, 8, 16, 32, 2, 1};
+static constexpr int kFluidBlurLevels =
+  int(sizeof(kFluidBlurStrides) / sizeof(kFluidBlurStrides[0]));
+static constexpr float kFluidBlurMaxPixels = 64.f;
+static_assert(kFluidBlurLevels % 2 == 0, "the last level writes [0]");
+
 /*! per terrain, see terrain_common.glsl */
 struct TerrainUniforms {
   float pose[16];
@@ -105,14 +131,17 @@ static_assert(sizeof(LightUniforms) == 32 + kMaxLights * 96);
 /*! per mesh, at a dynamic offset */
 struct MaterialUniforms {
   float albedo[4];   // w = normal map scale
-  float material[4]; // x = metallic, y = roughness, z = triplanar,
+  float material[4]; // x = metallic, y = roughness, z = triplanar (2: hex-tiled
+                     // too),
                      // w = 1 / texture scale
-  int32_t layers[4]; // base color, metallic roughness, normal; -1: none
+  int32_t layers[4]; // base color, metallic roughness, normal; -1: none;
+                     // w = holes used
   float variation[4]; // x = 1: vary the tiles of triplanar textures
   int32_t surface_layers[4]; // base color and normal of surfaces 0 and 1
   float surface[2][4]; // x = 1 / texture scale, y = normal scale, z = noise
                        // level, w = 1 / patch size
   float emission[4]; // rgb: factor of the base color added to the shading
+  float holes[4][4]; // of a terrain, in its uv: x0, y0, x1, y1 (SceneMesh)
 };
 
 /*! per instance vertex attributes: the body origin pose, column major */
@@ -277,7 +306,7 @@ struct RtInstance {
   float surface[2][4];
 };
 static_assert(sizeof(RtInstance) == 352);
-static_assert(sizeof(MaterialUniforms) == 128);
+static_assert(sizeof(MaterialUniforms) == 192);
 
 struct DenoiseUniforms {
   float previous_view_projection[16];
@@ -358,7 +387,7 @@ static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
                   int32_t* layers) {
   material[0] = mesh.metallic;
   material[1] = mesh.roughness;
-  material[2] = mesh.triplanar ? 1.f : 0.f;
+  material[2] = mesh.hex_tiling ? 2.f : mesh.triplanar ? 1.f : 0.f;
   material[3] = 1.f / mesh.texture_scale;
   layers[0] = mesh.base_color_layer;
   layers[1] = mesh.metallic_roughness_layer;
@@ -504,6 +533,11 @@ void shift::gui::Viewport::set_render_mode(RenderMode mode) {
 
 void shift::gui::Viewport::set_smooth_terrain(bool smooth) {
   smooth_terrain_ = smooth;
+  update();
+}
+
+void shift::gui::Viewport::set_particle_surface(bool surface) {
+  particle_surface_ = surface;
   update();
 }
 
@@ -922,6 +956,25 @@ void shift::gui::Viewport::ReleaseAll() {
   cad_ubo_.reset();
   terrain_pipeline_.reset();
   gpu_terrains_.clear();
+  fluid_pipeline_.reset();
+  fluid_sphere_pipeline_.reset();
+  fluid_bindings_.reset();
+  fluid_sphere_bindings_.reset();
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_pipeline_[k].reset();
+    fluid_blur_bindings_[k].reset();
+    fluid_blur_target_[k].reset();
+  }
+  fluid_blur_render_pass_.reset();
+  fluid_sphere_target_.reset();
+  fluid_sphere_render_pass_.reset();
+  fluid_depth_stencil_.reset();
+  fluid_depth_[0].reset();
+  fluid_depth_[1].reset();
+  fluid_level_ubo_.reset();
+  fluid_ubo_.reset();
+  particle_pipeline_.reset();
+  gpu_particles_.clear();
   ies_texture_.reset();
   lights_ubo_.reset();
   texture_sampler_.reset();
@@ -999,6 +1052,15 @@ void shift::gui::Viewport::CreateDeviceResources() {
                                     QRhiBuffer::UniformBuffer,
                                     sizeof(LightUniforms)));
   lights_ubo_->create();
+  fluid_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                   QRhiBuffer::UniformBuffer,
+                                   sizeof(FluidUniforms)));
+  fluid_ubo_->create();
+  fluid_level_stride_ = rhi_->ubufAligned(4 * sizeof(float));
+  fluid_level_ubo_.reset(rhi_->newBuffer(
+    QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer,
+    fluid_level_stride_ * quint32(kFluidBlurLevels)));
+  fluid_level_ubo_->create();
   // placeholder until a scene with IES lights is loaded
   ies_texture_.reset(rhi_->newTexture(QRhiTexture::R16F, QSize(1, 1)));
   ies_texture_->create();
@@ -1089,6 +1151,9 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   output_size_ = get_render_target()->pixelSize();
   rt_frame_ = 0;
   rt_history_valid_ = false;
+  CreateFluidTargets();
+  // bindings reference the textures; rebuild them along with the pipelines
+  pipeline_render_pass_ = nullptr;
   if(!ray_tracing_supported_) {
     return;
   }
@@ -1115,6 +1180,44 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   }
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
+}
+
+void shift::gui::Viewport::CreateFluidTargets() {
+  const QSize size(std::max(output_size_.width(), 1),
+                   std::max(output_size_.height(), 1));
+  for(int k = 0; k < 2; k++) {
+    fluid_depth_[k].reset(rhi_->newTexture(QRhiTexture::R32F, size, 1,
+                                           QRhiTexture::RenderTarget));
+    fluid_depth_[k]->create();
+  }
+  fluid_depth_stencil_.reset(
+    rhi_->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size));
+  fluid_depth_stencil_->create();
+
+  QRhiTextureRenderTargetDescription spheres{
+    QRhiColorAttachment(fluid_depth_[0].get())};
+  spheres.setDepthStencilBuffer(fluid_depth_stencil_.get());
+  fluid_sphere_target_.reset(rhi_->newTextureRenderTarget(spheres));
+  fluid_sphere_render_pass_.reset(
+    fluid_sphere_target_->newCompatibleRenderPassDescriptor());
+  fluid_sphere_target_->setRenderPassDescriptor(
+    fluid_sphere_render_pass_.get());
+  fluid_sphere_target_->create();
+
+  // [k] renders into fluid_depth_[k]; the targets are compatible
+  fluid_blur_render_pass_.reset();
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_target_[k].reset(rhi_->newTextureRenderTarget(
+      QRhiTextureRenderTargetDescription(
+        QRhiColorAttachment(fluid_depth_[k].get()))));
+    if(!fluid_blur_render_pass_) {
+      fluid_blur_render_pass_.reset(
+        fluid_blur_target_[k]->newCompatibleRenderPassDescriptor());
+    }
+    fluid_blur_target_[k]->setRenderPassDescriptor(
+      fluid_blur_render_pass_.get());
+    fluid_blur_target_[k]->create();
+  }
 }
 
 void shift::gui::Viewport::CreatePipelines() {
@@ -1181,6 +1284,99 @@ void shift::gui::Viewport::CreatePipelines() {
      QRhiVertexInputAttribute(1, 6, QRhiVertexInputAttribute::Float4, 48)});
   mesh_pipeline_->setVertexInputLayout(layout);
   mesh_pipeline_->create();
+
+  // particles: the meshes' vertices, and the centre of each instance
+  particle_pipeline_.reset(make_pipeline("particle.vert.qsb", "mesh.frag.qsb",
+                                         raster_bindings_.get(), true));
+  QRhiVertexInputLayout particle_layout;
+  particle_layout.setBindings(
+    {QRhiVertexInputBinding(sizeof(Vertex)),
+     QRhiVertexInputBinding(4 * sizeof(float),
+                            QRhiVertexInputBinding::PerInstance)});
+  particle_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float3,
+                              offsetof(Vertex, position)),
+     QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute::Float3,
+                              offsetof(Vertex, normal)),
+     QRhiVertexInputAttribute(0, 2, QRhiVertexInputAttribute::Float2,
+                              offsetof(Vertex, uv)),
+     QRhiVertexInputAttribute(1, 3, QRhiVertexInputAttribute::Float4, 0)});
+  particle_pipeline_->setVertexInputLayout(particle_layout);
+  particle_pipeline_->create();
+
+  // their surface: the spheres' depth, the blur (from [0] into [1] and
+  // back), and the shading of the surface in the target
+  fluid_sphere_bindings_.reset(rhi_->newShaderResourceBindings());
+  fluid_sphere_bindings_->setBindings(
+    {Binding::uniformBuffer(0, vertex_fragment, fluid_ubo_.get())});
+  fluid_sphere_bindings_->create();
+  fluid_sphere_pipeline_.reset(rhi_->newGraphicsPipeline());
+  fluid_sphere_pipeline_->setShaderStages(
+    {{QRhiShaderStage::Vertex, LoadShader("fluid_depth.vert.qsb")},
+     {QRhiShaderStage::Fragment, LoadShader("fluid_depth.frag.qsb")}});
+  fluid_sphere_pipeline_->setShaderResourceBindings(
+    fluid_sphere_bindings_.get());
+  fluid_sphere_pipeline_->setRenderPassDescriptor(
+    fluid_sphere_render_pass_.get());
+  fluid_sphere_pipeline_->setCullMode(QRhiGraphicsPipeline::None);
+  fluid_sphere_pipeline_->setDepthTest(true);
+  fluid_sphere_pipeline_->setDepthWrite(true);
+  fluid_sphere_pipeline_->setDepthOp(QRhiGraphicsPipeline::LessOrEqual);
+  QRhiVertexInputLayout center_layout;
+  center_layout.setBindings({QRhiVertexInputBinding(
+    4 * sizeof(float), QRhiVertexInputBinding::PerInstance)});
+  center_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float4, 0)});
+  fluid_sphere_pipeline_->setVertexInputLayout(center_layout);
+  fluid_sphere_pipeline_->create();
+
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_bindings_[k].reset(rhi_->newShaderResourceBindings());
+    fluid_blur_bindings_[k]->setBindings(
+      {Binding::sampledTexture(0, Binding::FragmentStage,
+                               fluid_depth_[k].get(), sampler_.get()),
+       Binding::uniformBuffer(1, Binding::FragmentStage, fluid_ubo_.get()),
+       Binding::uniformBufferWithDynamicOffset(
+         2, Binding::FragmentStage, fluid_level_ubo_.get(),
+         4 * sizeof(float))});
+    fluid_blur_bindings_[k]->create();
+    fluid_blur_pipeline_[k].reset(rhi_->newGraphicsPipeline());
+    fluid_blur_pipeline_[k]->setShaderStages(
+      {{QRhiShaderStage::Vertex, LoadShader("fullscreen.vert.qsb")},
+       {QRhiShaderStage::Fragment, LoadShader("fluid_blur.frag.qsb")}});
+    fluid_blur_pipeline_[k]->setShaderResourceBindings(
+      fluid_blur_bindings_[k].get());
+    fluid_blur_pipeline_[k]->setRenderPassDescriptor(
+      fluid_blur_render_pass_.get());
+    fluid_blur_pipeline_[k]->setCullMode(QRhiGraphicsPipeline::None);
+    fluid_blur_pipeline_[k]->create();
+  }
+
+  fluid_bindings_.reset(rhi_->newShaderResourceBindings());
+  fluid_bindings_->setBindings(
+    {Binding::uniformBuffer(0, vertex_fragment, frame_ubo_.get()),
+     Binding::uniformBufferWithDynamicOffset(
+       1, vertex_fragment, material_ubo_.get(), sizeof(MaterialUniforms)),
+     Binding::sampledTexture(2, Binding::FragmentStage,
+                             environment_specular_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(3, Binding::FragmentStage,
+                             environment_irradiance_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(4, Binding::FragmentStage,
+                             environment_brdf_.get(), linear_sampler_.get()),
+     Binding::sampledTexture(5, Binding::FragmentStage, texture_array_.get(),
+                             texture_sampler_.get()),
+     Binding::uniformBuffer(8, Binding::FragmentStage, lights_ubo_.get()),
+     Binding::sampledTexture(9, Binding::FragmentStage, ies_texture_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(10, Binding::FragmentStage,
+                             fluid_depth_[0].get(), sampler_.get()),
+     Binding::uniformBuffer(11, Binding::FragmentStage, fluid_ubo_.get())});
+  fluid_bindings_->create();
+  fluid_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "fluid.frag.qsb",
+                                      fluid_bindings_.get(), true));
+  fluid_pipeline_->create();
 
   sky_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "sky.frag.qsb",
                                     raster_bindings_.get(), false));
@@ -1647,6 +1843,30 @@ static bool RayHitsTriangle(const QVector3D& o, const QVector3D& d,
   return true;
 }
 
+void shift::gui::Viewport::UploadParticleUpdates(
+  QRhiResourceUpdateBatch* batch, bool all) {
+  simulation_->TakeParticleUpdates(particle_updates_, all);
+  for(const auto& update : particle_updates_) {
+    for(auto& gpu : gpu_particles_) {
+      if(gpu.particles_index != update.particles) {
+        continue;
+      }
+      const quint32 bytes = quint32(update.centers.size() * sizeof(float));
+      gpu.count = quint32(update.centers.size() / 4);
+      if(bytes == 0) {
+        continue;
+      }
+      if(!gpu.centers || gpu.centers->size() < bytes) {
+        gpu.centers.reset(rhi_->newBuffer(QRhiBuffer::Static,
+                                          QRhiBuffer::VertexBuffer, bytes));
+        gpu.centers->create();
+      }
+      batch->uploadStaticBuffer(gpu.centers.get(), 0, bytes,
+                                update.centers.data());
+    }
+  }
+}
+
 void shift::gui::Viewport::UploadTerrainUpdates(
   QRhiResourceUpdateBatch* batch) {
   simulation_->TakeTerrainUpdates(terrain_updates_);
@@ -1913,6 +2133,15 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     gpu.instance_count++;
   }
 
+  // the particles of the SPH soils, uploaded with the updates
+  gpu_particles_.clear();
+  gpu_particles_reset_ = true;
+  for(size_t p = 0; p < scene.particles.size(); p++) {
+    GpuParticles gpu;
+    gpu.particles_index = static_cast<int>(p);
+    gpu_particles_.push_back(std::move(gpu));
+  }
+
   // terrain control points, read exactly by the tessellation shaders
   gpu_terrains_.clear();
   if(tessellation_supported_) {
@@ -2131,6 +2360,11 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
   } else if(simulation_) {
     UploadTerrainUpdates(batch);
   }
+  if(simulation_) {
+    // all of them after the scene was uploaded again
+    UploadParticleUpdates(batch, gpu_particles_reset_);
+    gpu_particles_reset_ = false;
+  }
 
   if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_) {
     RenderRayTraced(cb, batch);
@@ -2190,10 +2424,15 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       MaterialUniforms material{};
       CopyVector(mesh.albedo, mesh.normal_scale, material.albedo);
       CopyMaterial(mesh, material.material, material.layers);
-      material.layers[3] = -1; // unused
       CopySurfaces(mesh, material.variation, material.surface_layers,
                    material.surface);
       CopyEmission(scene, mesh, poses_, material.emission);
+      const int holes = std::min<int>(int(mesh.holes.size()), 4);
+      material.layers[3] = holes;
+      for(int k = 0; k < holes; k++) {
+        CopyVector(mesh.holes[k].toVector3D(), mesh.holes[k].w(),
+                   material.holes[k]);
+      }
       batch->updateDynamicBuffer(material_ubo_.get(),
                                  quint32(i) * material_stride_,
                                  sizeof(material), &material);
@@ -2228,7 +2467,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       material.material[1] = cad.roughness;
       material.material[3] = 1.f;
       material.layers[0] = material.layers[1] = material.layers[2] = -1;
-      material.layers[3] = -1;
+      material.layers[3] = 0; // no holes
       CopySurfaces(SceneMesh(), material.variation, material.surface_layers,
                    material.surface);
       batch->updateDynamicBuffer(
@@ -2290,6 +2529,11 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   }
 
   batch = UploadFrameAxes(batch, view_projection, false);
+  // the surface over the particles: its depth before the render pass
+  const bool particle_surface =
+    have_poses && particle_surface_ && fluid_pipeline_ &&
+    RenderFluidDepth(cb, batch, view_projection, aspect);
+
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
   const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
   const QRhiCommandBuffer::DynamicOffset zero_offset(1, 0);
@@ -2320,6 +2564,41 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       cb->setVertexInput(0, 2, inputs, gpu.indices.get(), 0,
                          QRhiCommandBuffer::IndexUInt32);
       cb->drawIndexed(gpu.index_count, gpu.instance_count);
+    }
+  }
+
+  if(particle_surface) {
+    // with the material of the first particles' sphere
+    const Scene& scene = simulation_->get_scene();
+    const int mesh_index = scene.particles[0].mesh_index;
+    const QRhiCommandBuffer::DynamicOffset offset(
+      1, quint32(mesh_index) * material_stride_);
+    cb->setGraphicsPipeline(fluid_pipeline_.get());
+    cb->setViewport(viewport);
+    cb->setShaderResources(fluid_bindings_.get(), 1, &offset);
+    cb->draw(6);
+  } else if(have_poses && particle_pipeline_) {
+    const Scene& scene = simulation_->get_scene();
+    bool bound = false;
+    for(const auto& gpu : gpu_particles_) {
+      if(gpu.count == 0 || !gpu.centers) {
+        continue;
+      }
+      if(!bound) {
+        cb->setGraphicsPipeline(particle_pipeline_.get());
+        cb->setViewport(viewport);
+        bound = true;
+      }
+      const int mesh_index = scene.particles[gpu.particles_index].mesh_index;
+      const GpuMesh& mesh = gpu_meshes_[size_t(mesh_index)];
+      const QRhiCommandBuffer::DynamicOffset offset(
+        1, quint32(mesh_index) * material_stride_);
+      cb->setShaderResources(raster_bindings_.get(), 1, &offset);
+      const QRhiCommandBuffer::VertexInput inputs[2] = {
+        {mesh.vertices.get(), 0}, {gpu.centers.get(), 0}};
+      cb->setVertexInput(0, 2, inputs, mesh.indices.get(), 0,
+                         QRhiCommandBuffer::IndexUInt32);
+      cb->drawIndexed(mesh.index_count, gpu.count);
     }
   }
 
@@ -2367,6 +2646,76 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   }
   DrawFrameAxes(cb, viewport);
   cb->endPass();
+}
+
+bool shift::gui::Viewport::RenderFluidDepth(
+  QRhiCommandBuffer* cb, QRhiResourceUpdateBatch*& batch,
+  const QMatrix4x4& view_projection, float aspect) {
+  const Scene& scene = simulation_->get_scene();
+  float radius = 0.f;
+  bool any = false;
+  for(const auto& gpu : gpu_particles_) {
+    if(gpu.count > 0 && gpu.centers) {
+      any = true;
+      radius = std::max(radius, scene.particles[gpu.particles_index].radius);
+    }
+  }
+  if(!any || !fluid_depth_[0] ||
+     fluid_depth_[0]->pixelSize() != output_size_) {
+    return false;
+  }
+  const QSize size = output_size_;
+  const QMatrix4x4 projection = camera_.get_projection_matrix(aspect);
+  FluidUniforms u{};
+  CopyMatrix(view_projection, u.view_projection);
+  CopyMatrix(view_projection.inverted(), u.inverse_view_projection);
+  CopyVector(camera_.get_position(), rhi_->isClipDepthZeroToOne() ? 1.f : 0.f,
+             u.camera_position);
+  CopyVector(camera_.get_forward().normalized(), 0.f, u.camera_forward);
+  u.particles[0] = radius;
+  u.particles[1] = 0.5f * float(size.height()) * std::fabs(projection(1, 1));
+  u.filter_params[0] = kFluidBlurRadius * radius;
+  u.filter_params[1] = kFluidBlurRange * radius;
+  u.filter_params[2] = kFluidBlurMaxPixels;
+  batch->updateDynamicBuffer(fluid_ubo_.get(), 0, sizeof(u), &u);
+  for(int k = 0; k < kFluidBlurLevels; k++) {
+    const float level[4] = {float(kFluidBlurStrides[k]), 0.f, 0.f, 0.f};
+    batch->updateDynamicBuffer(fluid_level_ubo_.get(),
+                               quint32(k) * fluid_level_stride_,
+                               sizeof(level), level);
+  }
+
+  const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
+  cb->beginPass(fluid_sphere_target_.get(), QColor(0, 0, 0, 0), {1.0f, 0},
+                batch);
+  batch = nullptr; // submitted with the first pass
+  cb->setGraphicsPipeline(fluid_sphere_pipeline_.get());
+  cb->setViewport(viewport);
+  cb->setShaderResources(fluid_sphere_bindings_.get());
+  for(const auto& gpu : gpu_particles_) {
+    if(gpu.count == 0 || !gpu.centers) {
+      continue;
+    }
+    const QRhiCommandBuffer::VertexInput input(gpu.centers.get(), 0);
+    cb->setVertexInput(0, 1, &input);
+    cb->draw(6, gpu.count);
+  }
+  cb->endPass();
+
+  for(int level = 0; level < kFluidBlurLevels; level++) {
+    // from [0] into [1], and back
+    const int k = level % 2;
+    const QRhiCommandBuffer::DynamicOffset offset(
+      2, quint32(level) * fluid_level_stride_);
+    cb->beginPass(fluid_blur_target_[1 - k].get(), QColor(0, 0, 0, 0),
+                  {1.0f, 0});
+    cb->setGraphicsPipeline(fluid_blur_pipeline_[k].get());
+    cb->setViewport(viewport);
+    cb->setShaderResources(fluid_blur_bindings_[k].get(), 1, &offset);
+    cb->draw(6);
+    cb->endPass();
+  }
+  return true;
 }
 
 bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,

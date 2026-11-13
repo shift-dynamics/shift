@@ -124,5 +124,8 @@ void main() {
   }
   stress_out[2 * i] = vec4(o[0], o[1], o[2], o[3]);
   stress_out[2 * i + 1] = vec4(o[4], o[5], 0.0, 0.0);
-  density_out[i] = density[i] + dt * drho;
+  // no less than at rest: a particle drawn away from its neighbours is
+  // loose soil, not lighter soil, whose volume and acceleration (m / rho,
+  // sigma / rho^2) would grow as it thins and blow it apart
+  density_out[i] = max(density[i] + dt * drho, m0.x);
 }

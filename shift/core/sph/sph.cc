@@ -182,6 +182,38 @@ void shift::core::sph::CheckBodyMarkers(const State& state) {
   }
 }
 
+void shift::core::sph::State::RemoveParticles(
+  const std::vector<uint32_t>& ids) {
+  if(ids.empty()) {
+    return;
+  }
+  std::vector<uint32_t> sorted = ids;
+  std::sort(sorted.begin(), sorted.end());
+  size_t kept = 0, removed = 0;
+  for(size_t k = 0; k < size(); k++) {
+    if(std::binary_search(sorted.begin(), sorted.end(), id[k])) {
+      if(kind[k] & kMarker) {
+        throw shift::core::Exception("SPH: a marker cannot be removed");
+      }
+      removed++;
+      continue;
+    }
+    if(kept != k) {
+      position[kept] = position[k];
+      velocity[kept] = velocity[k];
+      density[kept] = density[k];
+      stress[kept] = stress[k];
+      id[kept] = id[k];
+      kind[kept] = kind[k];
+    }
+    kept++;
+  }
+  if(removed != sorted.size()) {
+    throw shift::core::Exception("SPH: a particle to remove is not there");
+  }
+  resize(kept);
+}
+
 void shift::core::sph::State::resize(size_t n) {
   position.resize(n);
   velocity.resize(n);

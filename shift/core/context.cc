@@ -24,6 +24,7 @@
 #include <omp.h>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <list>
 #include <queue>
 #include <sstream>
@@ -287,6 +288,14 @@ void shift::core::Context::WriteJSON(const std::string& filename) {
   } else {
     std::cerr << "no writer!" << std::endl;
   }
+}
+
+double shift::core::Context::GetStepLimit() const {
+  double limit = std::numeric_limits<double>::infinity();
+  for(const terrain::Base* terrain : active_terrain_) {
+    limit = std::min(limit, terrain->StepLimitAll());
+  }
+  return limit;
 }
 
 void shift::core::Context::Initialize() {

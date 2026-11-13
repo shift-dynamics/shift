@@ -18,6 +18,7 @@ kept per pair of geometries in a ContactPair.
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/cad.h"
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/epa.h"
 #include "shift/core/collision_geometry/manifold.h"
@@ -349,8 +350,8 @@ static void Assign(shift::core::collision_geometry::ContactPair& pair,
 /* the contact of a pair and its deepest point */
 static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair) {
   /* pairs with a closed form or one dimensional contact: a plane with
-  anything, a sphere with a sphere, a convex hull or an ellipsoid, and two
-  ellipsoids */
+  anything, a sphere with a sphere, a convex hull, an ellipsoid or a
+  cylinder, and two ellipsoids */
   shift::core::collision_geometry::AnalyticContact contact;
   if(auto plane = dynamic_cast<const shift::core::collision_geometry::Plane*>(pair.a)) {
     shift::core::collision_geometry::PlaneContact(*plane, *pair.b, contact);
@@ -395,6 +396,8 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
       handled = shift::core::collision_geometry::ConvexHullSphereContact(*hull, sphere, contact);
     } else if(auto ellipsoid = dynamic_cast<const shift::core::collision_geometry::Ellipsoid*>(other)) {
       handled = shift::core::collision_geometry::EllipsoidSphereContact(*ellipsoid, sphere, contact);
+    } else if(auto cylinder = dynamic_cast<const shift::core::collision_geometry::Cylinder*>(other)) {
+      handled = shift::core::collision_geometry::CylinderSphereContact(*cylinder, sphere, contact);
     }
     if(handled) {
       Assign(pair, contact, sphere_b != nullptr); // the shape is first
@@ -434,6 +437,36 @@ static bool TestDeepestPoint(shift::core::collision_geometry::ContactPair& pair)
        shift::core::collision_geometry::ConvexHullEllipsoidContact(hull, ellipsoid,
                                   hull_first ? pair.normal : Neg(pair.normal),
                                   false, contact)) {
+      Assign(pair, contact, hull_first);
+    }
+    return pair.collision;
+  }
+  /* a convex hull and a cylinder: GJK, then the minimum of the last
+  accepted step while it lasts, and for a new contact the exact minimum
+  nearest EPA's normal */
+  auto cylinder_a = dynamic_cast<const shift::core::collision_geometry::Cylinder*>(pair.a);
+  auto cylinder_b = dynamic_cast<const shift::core::collision_geometry::Cylinder*>(pair.b);
+  if((hull_a && cylinder_b) || (hull_b && cylinder_a)) {
+    const bool hull_first = hull_a != nullptr;
+    const shift::core::collision_geometry::ConvexHull& hull = hull_first ? *hull_a : *hull_b;
+    const shift::core::collision_geometry::Cylinder& cylinder = hull_first ? *cylinder_b : *cylinder_a;
+    int& hint = hull_first ? pair.hint_a : pair.hint_b;
+    if(!Gjk(pair)) {
+      return pair.collision;
+    }
+    const ksl_vec3_t& kept = pair.accepted_normal;
+    if(Dot(kept, kept) > 0.0 &&
+       shift::core::collision_geometry::CylinderHullContact(hull, cylinder,
+                                  hull_first ? kept : Neg(kept), true, hint,
+                                  contact)) {
+      Assign(pair, contact, hull_first);
+      return pair.collision;
+    }
+    ComputePenetration(pair);
+    if(pair.collision &&
+       shift::core::collision_geometry::CylinderHullContact(hull, cylinder,
+                                  hull_first ? pair.normal : Neg(pair.normal),
+                                  false, hint, contact)) {
       Assign(pair, contact, hull_first);
     }
     return pair.collision;

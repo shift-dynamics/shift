@@ -142,6 +142,9 @@ struct State {
                      const Material& properties, float spacing);
   /*! \brief the index of the particle or marker of id, or -1 */
   long Find(uint32_t id) const;
+  /*! \brief remove the particles of ids (in any order), keeping the order
+   * of the rest; throws if one is a marker or not there */
+  void RemoveParticles(const std::vector<uint32_t>& ids);
 };
 
 /*! \brief the pose and velocity of a body in the frame of the positions:
@@ -221,6 +224,11 @@ public:
   void set_time(double time) {
     time_ = time;
   }
+  /*! \brief remove the particles of ids (State::RemoveParticles), such as
+   * those that left the soil; the ids of the rest stay */
+  virtual void RemoveParticles(const std::vector<uint32_t>& ids) = 0;
+  /*! \brief the number of particles and markers */
+  virtual size_t size() const = 0;
   /*! \brief set the bodies' impulses to zero */
   virtual void ClearImpulses() = 0;
   /*! \brief each body's impulse since ClearImpulses: force (N s) and

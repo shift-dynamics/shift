@@ -3,6 +3,7 @@
 #include "shift/core/assembly.h"
 #include "shift/core/collision_geometry/base.h"
 #include "shift/core/collision_geometry/plane.h"
+#include "shift/core/force_module/track_soil.h"
 #include "shift/core/context.h"
 #include "shift/core/frame.h"
 #include "shift/core/substructure.h"
@@ -271,6 +272,14 @@ void shift::gui::Workspace::InitializeMenus() {
   connect(smooth_terrain, &QAction::toggled, viewport_,
           &Viewport::set_smooth_terrain);
   smooth_terrain_action_ = smooth_terrain;
+  QAction* particle_surface = view_menu->addAction("Soil &surface");
+  particle_surface->setCheckable(true);
+  particle_surface->setChecked(true);
+  particle_surface->setToolTip("draw SPH soil as one surface over its "
+                               "particles; unchecked, as the particles");
+  connect(particle_surface, &QAction::toggled, viewport_,
+          &Viewport::set_particle_surface);
+  particle_surface_action_ = particle_surface;
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
   frame->setShortcut(Qt::Key_F);
@@ -1229,6 +1238,9 @@ void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
   image_request_ = request;
   if(request.bilinear_terrain) {
     smooth_terrain_action_->setChecked(false);
+  }
+  if(request.particle_spheres) {
+    particle_surface_action_->setChecked(false);
   }
   if(request.hide_floor) {
     floor_action_->setChecked(false);
@@ -2883,6 +2895,17 @@ void shift::gui::Workspace::UpdateFloor() {
       // without a ground plane) only marks the ground: keep it below the
       // model; a plane with contact is where the model stands
       if(!plane->is_contact_enabled() && std::fabs(n.z) > 0.999) {
+        // the ground of the soil under the tracks, where there is one
+        for(const auto* module :
+            simulation_.get_context()->get_active_force_modules()) {
+          if(auto soil = dynamic_cast<
+               const shift::core::force_module::TrackSoil*>(module)) {
+            viewport_->set_floor(
+              QVector3D(0.f, 0.f, static_cast<float>(soil->get_ground())),
+              QVector3D(0.f, 0.f, -1.f));
+            return;
+          }
+        }
         viewport_->set_floor_below_model(static_cast<float>(p.z));
       } else {
         viewport_->set_floor(QVector3D(p.x, p.y, p.z),

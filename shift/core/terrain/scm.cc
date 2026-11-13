@@ -406,6 +406,26 @@ void shift::core::terrain::Scm::AcceptStep() {
   }
 }
 
+bool shift::core::terrain::Scm::Deposit(double x, double y, double volume) {
+  long i, j;
+  if(!NearestNode(x, y, i, j)) {
+    return false;
+  }
+  const long long key = Key(i, j);
+  /* z down: a raised node has a negative level */
+  Accepted(key).level -= volume / (spacing_ * spacing_);
+  MarkDirty(key);
+  if(bulldozing_.is_enabled()) {
+    uint8_t& flags = GetTile(i, j).flags[InTile(i, j)];
+    if(!(flags & kUnsettled)) {
+      flags |= kUnsettled;
+      unsettled_.push_back(key);
+    }
+  }
+  revision_++;
+  return true;
+}
+
 void shift::core::terrain::Scm::UpdateOutput() {
   output_changes_.clear();
   output_changes_.reserve(dirty_.size());

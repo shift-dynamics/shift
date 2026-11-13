@@ -114,6 +114,10 @@ public:
    * (see gpu::Device) */
   std::shared_ptr<gpu::Device> GetGpuDevice();
 
+  /*! \brief the longest step the integrators may take: the smallest
+   * terrain::Base::StepLimit of the active terrains and their regions,
+   * infinite if none limits it; read when an integrator starts */
+  double GetStepLimit() const;
   /*! \brief the active terrains, see terrain::Base::Query */
   const std::vector<terrain::Base*>& get_active_terrain() const {
     return active_terrain_;

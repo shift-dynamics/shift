@@ -74,6 +74,20 @@ bool shift::core::terrain::Base::Contains(double x, double y) const {
          y <= y_range_[1];
 }
 
+std::vector<shift::core::terrain::Base*>
+shift::core::terrain::Base::WithRegions(const std::vector<Base*>& terrains) {
+  std::vector<Base*> all;
+  std::vector<Base*> stack(terrains.rbegin(), terrains.rend());
+  while(!stack.empty()) {
+    Base* terrain = stack.back();
+    stack.pop_back();
+    all.push_back(terrain);
+    const auto& regions = terrain->get_regions();
+    stack.insert(stack.end(), regions.rbegin(), regions.rend());
+  }
+  return all;
+}
+
 shift::core::terrain::Base* shift::core::terrain::Base::RegionAt(
   double x, double y) const {
   for(Base* region : regions_) {
@@ -134,6 +148,14 @@ void shift::core::terrain::Base::AcceptStepAll() {
   for(Base* region : regions_) {
     region->AcceptStepAll();
   }
+}
+
+double shift::core::terrain::Base::StepLimitAll() const {
+  double limit = StepLimit();
+  for(const Base* region : regions_) {
+    limit = std::min(limit, region->StepLimitAll());
+  }
+  return limit;
 }
 
 void shift::core::terrain::Base::UpdateOutputAll() {

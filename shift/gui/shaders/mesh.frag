@@ -1,12 +1,29 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
+#ifdef FLUID
+// compiled as fluid.frag, over the whole view (fullscreen.vert): the soil
+// surface of SPH soils at the smoothed depth of their particles
+// (fluid_blur.frag), with the material of the particles; the surface's
+// point and normal take the place of the inputs of mesh.vert
+layout(location = 0) in vec2 screen_uv;
+layout(binding = 10) uniform sampler2D fluid_depth;
+#define FLUID_BINDING 11
+#include "fluid_common.glsl"
+vec3 world_position;
+vec3 world_normal;
+vec3 body_position;
+vec3 body_normal;
+vec2 uv;
+mat3 body_rotation;
+#else
 layout(location = 0) in vec3 world_position;
 layout(location = 1) in vec3 world_normal;
 layout(location = 2) in vec3 body_position;
 layout(location = 3) in vec3 body_normal;
 layout(location = 4) in vec2 uv;
 layout(location = 5) flat in mat3 body_rotation; // body to world
+#endif
 
 layout(location = 0) out vec4 out_color;
 
@@ -37,15 +54,18 @@ layout(std140, binding = 0) uniform Frame {
 
 layout(std140, binding = 1) uniform Material {
   vec4 albedo;        // w = normal map scale
-  vec4 material;      // x = metallic, y = roughness, z = triplanar,
+  vec4 material;      // x = metallic, y = roughness, z = triplanar (2:
+                      // hex-tiled too),
                       // w = 1 / texture scale
-  ivec4 layers;       // base color, metallic roughness, normal; -1: none
+  ivec4 layers;       // base color, metallic roughness, normal; -1: none;
+                      // w = holes used
   vec4 variation;     // x = 1: vary the tiles of triplanar textures
   ivec4 surface_layers; // base color and normal of surfaces 0 and 1
   vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
                       // level, w = 1 / patch size
   vec4 emission;      // rgb: factor of the base color emitted (a lamp's
                       // lens, lit)
+  vec4 holes[4];      // of a terrain, in its uv: x0, y0, x1, y1
 } mesh;
 
 // image based lighting of the sky, indexed by the z component of a direction
@@ -125,6 +145,11 @@ vec4 SampleTriplanar(int layer, vec3 p, vec3 w, vec3 dpx, vec3 dpy,
   return s;
 }
 
+vec4 HexLookup(int layer, vec2 st, vec2 dx, vec2 dy) {
+  return textureGrad(textures, vec3(st, float(layer)), dx, dy);
+}
+#include "hex_tiling.glsl"
+
 // triplanar normal mapping with the whiteout blend (B. Golus, "Normal
 // Mapping for a Triplanar Shader"); n is the body space surface normal
 vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale,
@@ -184,7 +209,66 @@ vec3 DirectLight(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic,
   return (diffuse * diffuse_light + specular * specular_light) * n_dot_l;
 }
 
+#ifdef FLUID
+// the surface's point at pixel p, with depth d; false where there is none
+bool FluidPoint(ivec2 p, vec2 size, out vec3 point) {
+  float d = texelFetch(fluid_depth, p, 0).r;
+  point = FluidPosition(vec2(p) + 0.5, size, d);
+  return d > 0.0;
+}
+
+// the difference to the nearer of the neighbours p - step and p + step
+// from the point x at p; false if neither is on the surface
+bool FluidDifference(ivec2 p, ivec2 step, vec2 size, vec3 x, out vec3 dx) {
+  vec3 a, b;
+  ivec2 last = ivec2(size) - 1;
+  bool has_a = FluidPoint(clamp(p - step, ivec2(0), last), size, a);
+  bool has_b = FluidPoint(clamp(p + step, ivec2(0), last), size, b);
+  if(has_a && (!has_b || distance(x, a) < distance(x, b))) {
+    dx = x - a;
+  } else {
+    dx = b - x;
+  }
+  return has_a || has_b;
+}
+#endif
+
 void main() {
+#ifdef FLUID
+  {
+    vec2 size = vec2(textureSize(fluid_depth, 0));
+    ivec2 p = ivec2(gl_FragCoord.xy);
+    vec3 x;
+    if(!FluidPoint(p, size, x)) {
+      discard;
+    }
+    vec3 dx, dy;
+    vec3 n = -fluid.camera_forward.xyz;
+    if(FluidDifference(p, ivec2(1, 0), size, x, dx) &&
+       FluidDifference(p, ivec2(0, 1), size, x, dy)) {
+      vec3 c = cross(dx, dy);
+      if(dot(c, c) > 0.0) {
+        n = normalize(c);
+      }
+    }
+    world_position = x;
+    world_normal = n;
+    body_position = x;
+    body_normal = n;
+    uv = vec2(0.0);
+    body_rotation = mat3(1.0);
+    gl_FragDepth = FluidFragDepth(x);
+  }
+#endif
+#ifndef FLUID
+  // a terrain's holes, where regions of it draw their own surfaces
+  for(int k = 0; k < mesh.layers.w; k++) {
+    vec4 h = mesh.holes[k];
+    if(all(greaterThanEqual(uv, h.xy)) && all(lessThanEqual(uv, h.zw))) {
+      discard;
+    }
+  }
+#endif
 #ifdef CAD
   // distance from the edges of the face, in pixels, where the patch
   // crosses them; a little outside still counts, so that adjacent faces
@@ -230,16 +314,22 @@ void main() {
   // derivatives of the body position, here where control flow is uniform
   vec3 dbx = dFdx(body_position);
   vec3 dby = dFdy(body_position);
+  // terrains without texture variation: triplanar and hex-tiled, so that
+  // the texture shows no grid
+  bool hex = mesh.material.z > 1.5;
   vec3 p = body_position * mesh.material.w;
   vec3 dpx = dbx * mesh.material.w;
   vec3 dpy = dby * mesh.material.w;
   vec3 w = pow(abs(nb), vec3(4.0));
   w /= w.x + w.y + w.z;
+  HexPlanes hex_planes = HexPlanesSetup(p, w, dFdx(p), dFdy(p));
 
   float below_brightness = 0.5; // of the texture, for the surfaces' edges
   if(mesh.layers.x >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(mesh.layers.x, p, w, dpx, dpy, vary)
-                       : SampleLayer(mesh.layers.x, uv);
+    vec4 s = hex ? HexPlanesColor(hex_planes, mesh.layers.x)
+             : triplanar
+               ? SampleTriplanar(mesh.layers.x, p, w, dpx, dpy, vary)
+               : SampleLayer(mesh.layers.x, uv);
     below_brightness = dot(s.rgb, vec3(0.333));
     albedo *= SrgbToLinear(s.rgb);
   }
@@ -247,17 +337,22 @@ void main() {
     albedo *= MacroBrightness(body_position.xy);
   }
   if(mesh.layers.y >= 0) {
-    vec4 s = triplanar ? SampleTriplanar(mesh.layers.y, p, w, dpx, dpy, vary)
-                       : SampleLayer(mesh.layers.y, uv);
+    vec4 s = hex ? HexPlanesSample(hex_planes, mesh.layers.y)
+             : triplanar
+               ? SampleTriplanar(mesh.layers.y, p, w, dpx, dpy, vary)
+               : SampleLayer(mesh.layers.y, uv);
     roughness *= s.g;
     metallic *= s.b;
   }
   if(mesh.layers.z >= 0) {
     if(triplanar) {
       // the bumps of the front face; the back face has the opposite normal
-      n = side * normalize(body_rotation *
-                           TriplanarNormal(mesh.layers.z, p, side * nb, w,
-                                           mesh.albedo.w, dpx, dpy, vary));
+      n = side * normalize(
+                   body_rotation *
+                   (hex ? HexPlanesNormal(hex_planes, mesh.layers.z,
+                                          side * nb, mesh.albedo.w)
+                        : TriplanarNormal(mesh.layers.z, p, side * nb, w,
+                                          mesh.albedo.w, dpx, dpy, vary)));
     } else {
       vec3 t = SampleLayer(mesh.layers.z, uv).xyz * 2.0 - 1.0;
       t.xy *= mesh.albedo.w;
