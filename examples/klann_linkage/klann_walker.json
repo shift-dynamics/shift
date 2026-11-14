@@ -764,11 +764,111 @@
               ]
             },
             {
+              "name": "fl_corner_pin",
+              "T": [
+                1.29,
+                -0.55,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "bl_corner_pin",
+              "T": [
+                -1.29,
+                -0.55,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
               "name": "r_plate",
               "T": [
                 0.0,
                 0.49999999999999994,
                 0.0
+              ]
+            },
+            {
+              "name": "fr_corner_pin",
+              "T": [
+                1.29,
+                0.55,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "br_corner_pin",
+              "T": [
+                -1.29,
+                0.55,
+                1.076
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
               ]
             }
           ],
@@ -3763,13 +3863,73 @@
           "center_of_mass": [
             0.0,
             0.0,
-            0.556696753811813
+            0.656220649257688
           ],
           "inertia": {
-            "mass": 7.069900182380027,
-            "Ixx": 0.5430056165373164,
-            "Iyy": 3.068882012359877,
-            "Izz": 2.537659562793194,
+            "mass": 11.303642585773883,
+            "Ixx": 0.9337607806311073,
+            "Iyy": 8.4326359729779,
+            "Izz": 7.5177145966564165,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fl_corner_pin",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                0.4
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.006779166666666669,
+            "Iyy": 0.006779166666666669,
+            "Izz": 0.000225,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "bl_corner_pin",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                0.4
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.006779166666666669,
+            "Iyy": 0.006779166666666669,
+            "Izz": 0.000225,
             "Ixy": 0.0,
             "Iyz": 0.0,
             "Izx": 0.0
@@ -3789,13 +3949,73 @@
           "center_of_mass": [
             0.0,
             0.0,
-            0.556696753811813
+            0.656220649257688
           ],
           "inertia": {
-            "mass": 7.069900182380027,
-            "Ixx": 0.5430056165373164,
-            "Iyy": 3.068882012359877,
-            "Izz": 2.537659562793194,
+            "mass": 11.303642585773883,
+            "Ixx": 0.9337607806311073,
+            "Iyy": 8.4326359729779,
+            "Izz": 7.5177145966564165,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "fr_corner_pin",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                0.4
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.006779166666666669,
+            "Iyy": 0.006779166666666669,
+            "Izz": 0.000225,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "br_corner_pin",
+          "geometry": [
+            {
+              "type": "mesh",
+              "filename": [
+                "../force_modules/meshes/cylinder_z_aluminium.obj"
+              ],
+              "scale": [
+                0.03,
+                0.03,
+                0.4
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 0.5,
+            "Ixx": 0.006779166666666669,
+            "Iyy": 0.006779166666666669,
+            "Izz": 0.000225,
             "Ixy": 0.0,
             "Iyz": 0.0,
             "Izx": 0.0
@@ -5524,6 +5744,38 @@
           ]
         },
         {
+          "name": "fl_corner_pin_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fl_corner_pin"
+          ],
+          "child": [
+            [
+              "fl_corner_pin"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "bl_corner_pin_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "bl_corner_pin"
+          ],
+          "child": [
+            [
+              "bl_corner_pin"
+            ],
+            "origin"
+          ]
+        },
+        {
           "name": "r_plate_fixed",
           "type": "rigid",
           "parent": [
@@ -5535,6 +5787,38 @@
           "child": [
             [
               "r_plate"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "fr_corner_pin_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "fr_corner_pin"
+          ],
+          "child": [
+            [
+              "fr_corner_pin"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "br_corner_pin_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "br_corner_pin"
+          ],
+          "child": [
+            [
+              "br_corner_pin"
             ],
             "origin"
           ]

@@ -399,9 +399,13 @@ controllers.append({"type": "pid", "name": "c_shaft_drive",
                     "sensor": "c_shaft_speed", "joint": "c_shaft_bearing"})
 
 # two plates, one on each side, standing beside the outer faces of the inner
-# cranks: upside down trapezoids in the x-z plane of the chassis, as thick as
-# a link, with their lower corners on the axes of the two crank shafts and
-# their upper corners on those of the two top bars (the upper pivots)
+# cranks: trusses in the x-z plane of the chassis, as thick as a link. An
+# upside down trapezoid has its lower corners on the axes of the two crank
+# shafts and its upper corners on those of the two top bars (the upper
+# pivots); a triangle at each end reaches out from a shaft and a top bar to
+# the fixed pivot of the second rocker arms, which a pin carries through the
+# plate (between the second rocker arms of the inner and the outer leg; the
+# plate is between the layers of the two legs, so no link crosses it)
 PLATE_THICKNESS = 0.1
 PLATE_SHEET_MASS = 16.0      # kg per square meter of the plate
 PLATE_Y = LEG_Y[0] + 0.3 + PLATE_THICKNESS / 2    # the middle of the plate
@@ -409,6 +413,12 @@ lower_x = SHAFT_X["f"]
 upper_x = SHAFT_X["f"] + fx_of["f"] * 0.233
 lower_z = PIVOT_Z
 upper_z = PIVOT_Z - 0.616
+corner_x = SHAFT_X["f"] + fx_of["f"] * 0.59   # the second rocker pivots
+corner_z = PIVOT_Z + 0.176
+# the pin at a corner: from the inner face of the inner leg's second rocker
+# arm (LEG_Y[0] + 0.2 outward) to the outer face of the outer leg's
+CORNER_PIN_IN = LEG_Y[0] + 0.2
+CORNER_PIN_OUT = LEG_Y[1] + 0.1
 
 
 LINK_RADIUS = 0.05     # of the rounded ends of the links (half the width)
@@ -485,18 +495,57 @@ def triangulate(outline, holes):
                 points[m - 1], points[m], points[(m + 1) % n])))
             del points[k]
     triangles.append(tuple(points))
+    # the triangles cover the polygon less its holes, or a bridge went wrong
+    # (dropping a sliver above loses no more than a rounding error)
+    def signed_area(loop):
+        return sum(loop[k - 1][0] * loop[k][1] - loop[k][0] * loop[k - 1][1]
+                   for k in range(len(loop))) / 2
+    expected = signed_area(outline) + sum(signed_area(h) for h in holes)
+    covered = sum(abs(cross(*t)) / 2 for t in triangles)
+    if abs(covered - expected) > 1e-9 * max(1.0, abs(expected)):
+        raise RuntimeError("triangulation covers %g, not %g" %
+                           (covered, expected))
     return triangles
 
 
+def offset_corner(a, b, c, distance):
+    """the corner at b of the lines a-b and b-c, each moved by distance along
+    its outward normal (negative: inward), for a polygon counter-clockwise in
+    (x, z)"""
+    lines_ = []
+    for p, q in ((a, b), (b, c)):
+        dx, dz = q[0] - p[0], q[1] - p[1]
+        length = math.hypot(dx, dz)
+        n = (dz / length, -dx / length)      # outward
+        lines_.append(((p[0] + distance * n[0], p[1] + distance * n[1]),
+                       (dx, dz)))
+    (p0, d0), (p1, d1) = lines_
+    det = d0[0] * d1[1] - d0[1] * d1[0]
+    t = ((p1[0] - p0[0]) * d1[1] - (p1[1] - p0[1]) * d1[0]) / det
+    return (p0[0] + t * d0[0], p0[1] + t * d0[1])
+
+
 def plate_outline():
-    """the corners of the plate on the pivots, and the pivots themselves, in
-    (x, z) counter-clockwise as plotted with z up the page"""
-    pivots = [(-lower_x, lower_z), (-upper_x, upper_z),
-              (upper_x, upper_z), (lower_x, lower_z)]
+    """the outline of the plate around its pivots, and the pivots, in (x, z)
+    counter-clockwise as plotted with z up the page: the trapezoid with a
+    triangle at each end out to a second rocker pivot. The outline is the
+    polygon of the pivots grown by the radius of the links: rounded around
+    the convex corners, and sharp at the two concave ones, on the axes of the
+    shafts, where the triangles meet the trapezoid. sharp marks the points of
+    the sharp corners"""
+    pivots = [(-lower_x, lower_z), (-corner_x, corner_z), (-upper_x, upper_z),
+              (upper_x, upper_z), (corner_x, corner_z), (lower_x, lower_z)]
     outline = []
+    sharp = set()
     count = len(pivots)
     for k, (px, pz) in enumerate(pivots):
         a, b, c = pivots[k - 1], pivots[k], pivots[(k + 1) % count]
+        turn = ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]))
+        if turn < 0.0:
+            # concave: the edges, grown, meet in a sharp corner
+            sharp.add(len(outline))
+            outline.append(offset_corner(a, b, c, LINK_RADIUS))
+            continue
 
         def normal(p, q):
             dx, dz = q[0] - p[0], q[1] - p[1]
@@ -513,37 +562,39 @@ def plate_outline():
             t = t0 + (t1 - t0) * m / steps
             outline.append((px + LINK_RADIUS * math.cos(t),
                             pz + LINK_RADIUS * math.sin(t)))
-    return outline, pivots
+    return outline, sharp, pivots
 
 
 def write_plate(path):
-    """an OBJ of the plate: the trapezoid of the pivots grown by the radius
-    of the links (rounded corners), with a pin hole at each pivot, centered
-    in y"""
+    """an OBJ of the plate: the polygon of the pivots grown by the radius of
+    the links (rounded corners), with a pin hole at each pivot, centered in
+    y"""
     h = PLATE_THICKNESS / 2
-    outline, pivots = plate_outline()
-    # the middle is cut out, leaving a frame of the width of a link whose
-    # members run along the lines between the pivots: the edges of the
-    # trapezoid moved inward by half the width, with sharp corners
-    inner = []
-    for k in range(len(pivots)):
-        a, b, c = pivots[k - 1], pivots[k], pivots[(k + 1) % len(pivots)]
-        lines_ = []
-        for p, q in ((a, b), (b, c)):
-            dx, dz = q[0] - p[0], q[1] - p[1]
-            length = math.hypot(dx, dz)
-            n = (dz / length, -dx / length)      # outward
-            lines_.append(((p[0] - LINK_RADIUS * n[0],
-                            p[1] - LINK_RADIUS * n[1]), (dx, dz)))
-        (p0, d0), (p1, d1) = lines_
-        det = d0[0] * d1[1] - d0[1] * d1[0]
-        t = ((p1[0] - p0[0]) * d1[1] - (p1[1] - p0[1]) * d1[0]) / det
-        inner.append((p0[0] + t * d0[0], p0[1] + t * d0[1]))
-    holes = [inner[::-1]]                       # clockwise, a hole
-    for px, pz in pivots + [(x, lower_z) for x in (-IDLER_X["f"], 0.0, IDLER_X["f"])]:   # and the center shaft and the idler pins
+    outline, sharp, pivots = plate_outline()
+    # the middles of the trapezoid and of the two triangles are cut out,
+    # leaving a truss of members of the width of a link along the lines
+    # between the pivots: the edges of each moved inward by half the width,
+    # with sharp corners
+    shaft_l, corner_l, top_l, top_r, corner_r, shaft_r = pivots
+    cutouts = []
+    for polygon in ([shaft_l, top_l, top_r, shaft_r],
+                    [shaft_l, corner_l, top_l], [top_r, corner_r, shaft_r]):
+        count = len(polygon)
+        inner = [offset_corner(polygon[k - 1], polygon[k],
+                               polygon[(k + 1) % count], -LINK_RADIUS)
+                 for k in range(count)]
+        cutouts.append(inner[::-1])              # clockwise, a hole
+    # a pin hole at each pivot, and at the center shaft and the idler pins;
+    # the pin holes are joined to the outline before the cutouts (in the
+    # other order a bridge of triangulate crosses the outline)
+    holes = []
+    for px, pz in pivots + [(x, lower_z)
+                            for x in (-IDLER_X["f"], 0.0, IDLER_X["f"])]:
         holes.append([(px + PIN_RADIUS * math.cos(-2 * math.pi * m / 24),
                        pz + PIN_RADIUS * math.sin(-2 * math.pi * m / 24))
                       for m in range(24)])
+    pin_holes = len(holes)
+    holes += cutouts
     lines = ["# trapezoid plate of make_klann_walker.py",
              "mtllib trapezoid_plate.mtl", "o plate"]
     vertices, normals, faces = [], [], []
@@ -572,27 +623,35 @@ def write_plate(path):
     # material, which is to the right of the outline and the left of the holes
     for index, loop in enumerate([outline] + holes):
         count = len(loop)
-        ids = []
-        flat = index == 1               # the cutout has sharp corners
+        # the points at sharp corners: those of the cutouts, and the concave
+        # corners of the outline; the walls are smooth through the others
+        if index == 0:
+            corners = sharp
+        elif index > pin_holes:
+            corners = set(range(count))          # a cutout
+        else:
+            corners = set()                      # a pin hole
+        smooth, edge = [], []
         for k in range(count):
             a, b, c = loop[k - 1], loop[k], loop[(k + 1) % count]
             d0 = (b[0] - a[0], b[1] - a[1])
             d1 = (c[0] - b[0], c[1] - b[1])
             l0, l1 = math.hypot(*d0), math.hypot(*d1)
-            if flat:                    # the normal of the edge from b to c
-                nx, nz = d1[1] / l1, -d1[0] / l1
-            else:
-                nx = d0[1] / l0 + d1[1] / l1
-                nz = -d0[0] / l0 - d1[0] / l1
+            # the normal of the edge from b to c
+            edge.append(normal(d1[1] / l1, 0.0, -d1[0] / l1))
+            nx = d0[1] / l0 + d1[1] / l1
+            nz = -d0[0] / l0 - d1[0] / l1
             length = math.hypot(nx, nz)
-            ids.append(normal(nx / length, 0.0, nz / length))
+            smooth.append(normal(nx / length, 0.0, nz / length))
         for k in range(count):
             a, b = loop[k], loop[(k + 1) % count]
-            after = ids[k] if flat else ids[(k + 1) % count]
-            quad = [(vertex(a[0], -h, a[1]), ids[k]),
+            first = edge[k] if k in corners else smooth[k]
+            after = (edge[k] if (k + 1) % count in corners
+                     else smooth[(k + 1) % count])
+            quad = [(vertex(a[0], -h, a[1]), first),
                     (vertex(b[0], -h, b[1]), after),
                     (vertex(b[0], h, b[1]), after),
-                    (vertex(a[0], h, a[1]), ids[k])]
+                    (vertex(a[0], h, a[1]), first)]
             # (x, y, z) from -y to +y: the wall normal is to the right of
             # the direction of travel in (x, z)
             faces.append([quad[0], quad[3], quad[2]])
@@ -647,6 +706,35 @@ for side, sign in (("l", -1.0), ("r", 1.0)):
     joints.append({"name": f"{side}_plate_fixed", "type": "rigid",
                    "parent": [["chassis"], f"{side}_plate"],
                    "child": [[f"{side}_plate"], "origin"]})
+    # a pin through the corner of the plate at each second rocker pivot, for
+    # show, as the top bars: the second rocker arms turn on it (their
+    # revolute joints are to the chassis frames at the pivots), and it is
+    # fixed to the chassis
+    pin_length = CORNER_PIN_OUT - CORNER_PIN_IN
+    for shaft_id in SHAFT_X:
+        name = f"{shaft_id}{side}_corner_pin"
+        chassis_frames.append({
+            "name": name,
+            "T": [fx_of[shaft_id] * corner_x,
+                  sign * (CORNER_PIN_IN + CORNER_PIN_OUT) / 2, corner_z],
+            "R": TURN})
+        mass = 0.5
+        bodies.append({
+            "name": name,
+            "geometry": [{"type": "mesh",
+                          "filename":
+                          ["../force_modules/meshes/cylinder_z_aluminium.obj"],
+                          "scale": [0.03, 0.03, pin_length]}],
+            "center_of_mass": [0.0, 0.0, 0.0],
+            "inertia": {"mass": mass,
+                        "Ixx": mass * (3 * 0.03 ** 2 + pin_length ** 2) / 12,
+                        "Iyy": mass * (3 * 0.03 ** 2 + pin_length ** 2) / 12,
+                        "Izz": mass * 0.03 ** 2 / 2,
+                        "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0},
+        })
+        joints.append({"name": f"{name}_fixed", "type": "rigid",
+                       "parent": [["chassis"], name],
+                       "child": [[name], "origin"]})
 
 chassis = {
     "name": "chassis",
