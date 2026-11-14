@@ -2369,19 +2369,36 @@ void shift::core::Context::InitializeInertia() {
   }
 
   /* for bodies connected by rigid joints, merge inertias into parent body
-  inertia */
+  inertia. The joints are in level-increasing order (a parent before its
+  children), so walking them backwards merges each body, with all of the
+  rigid bodies already merged into it, before its parent is merged in turn;
+  and every merge adds to what the parent holds so far, so that a body with
+  several rigid children carries the mass of all of them */
   for(int i = (int)active_joints_.size() - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
     if(active_joints_[i]->get_q_count() == 0 && pcl_[i] > -1) {
-      auto child_body = active_articulated_bodies_[i];
-      auto parent_body = active_articulated_bodies_[pcl_[i]];
-      auto parent_frame = active_joints_[i]->get_system_parent_frame();
-      ksl_vec3_t t_ic_i = parent_body->get_center_of_mass_wrt_reference();
-      ksl_vec3_t t_jc_j = child_body->get_center_of_mass_wrt_reference();
-      ksl_inertia_t parent_inertia = parent_body->get_inertia_wrt_reference();
-      ksl_inertia_t child_inertia = child_body->get_inertia_wrt_reference();
+      assert(pcl_[i] < i);
+      ksl_inertia_t& parent_inertia = inertia_temp[pcl_[i]];
+      const ksl_inertia_t& child_inertia = inertia_temp[i];
+      if(!(child_inertia.m > 0.0)) {
+        continue; // nothing to add
+      }
+      /* the centers of mass of the inertias merged so far, from their first
+      moments (zero for a parent with no mass yet, which then takes the
+      child's) */
+      ksl_vec3_t t_ic_i = ksl_vec3(0.0, 0.0, 0.0);
+      if(parent_inertia.m > 0.0) {
+        ksl_product_av(1.0 / parent_inertia.m, &parent_inertia.mt, &t_ic_i);
+      }
+      ksl_vec3_t t_jc_j;
+      ksl_product_av(1.0 / child_inertia.m, &child_inertia.mt, &t_jc_j);
 
+      /* from the reference frame of the parent to that of the child: to the
+      joint's parent frame, across the joint, and back from the joint's child
+      frame to the child's reference frame */
+      auto parent_frame = active_joints_[i]->get_system_parent_frame();
+      auto child_frame = active_joints_[i]->get_system_child_frame();
       ksl_SE3_t D_ij;
       ksl_SE3_t temp = active_joints_[i]->get_transform();
       if(parent_frame->is_reference()) {
@@ -2389,11 +2406,13 @@ void shift::core::Context::InitializeInertia() {
       } else {
         ksl_product_dd(parent_frame->get_d_wrt_reference(), &temp, &D_ij);
       }
+      if(child_frame && !child_frame->is_reference()) {
+        ksl_SE3_copy(&D_ij, &temp);
+        ksl_product_ddinv(&temp, child_frame->get_d_wrt_reference(), &D_ij);
+      }
       // i = parent, j = child;
       ksl_inertia_merge(&parent_inertia, &t_ic_i, &child_inertia, &t_jc_j,
                         &D_ij);
-
-      inertia_temp[pcl_[i]] = parent_inertia;
     }
   }
 
@@ -2403,6 +2422,15 @@ void shift::core::Context::InitializeInertia() {
     int j = joint_lookup_[i];
     if(j != -1) {
       memcpy(&inertia_[j], &inertia_temp[i], sizeof(ksl_inertia_t));
+      /* a body without mass of its own has mass when rigid bodies with mass
+      are merged into it (SetupLookup marks only the bodies' own) */
+      if(inertia_[j].m > 0.0 && j < (int)has_mass_.size() && !has_mass_[j]) {
+        has_mass_[j] = true;
+        const int dq_index = dq_lookup_[i];
+        for(size_t k = 0; k < active_joints_[i]->get_dq_count(); k++) {
+          has_mass_dq_[dq_index + k] = true;
+        }
+      }
     }
   }
 }
