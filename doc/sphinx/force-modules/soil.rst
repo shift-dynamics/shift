@@ -277,7 +277,9 @@ its shoe.
     "geometry": ["shoe"]}
 
 Outputs: ``normal_force`` (the total), ``contact_nodes`` and ``sinkage`` (the
-deepest, from the undisturbed surface).
+deepest, from the undisturbed surface) on SCM terrains, and ``sph_force``,
+the force of SPH soils on the bodies, up (against the terrain's z axis),
+averaged over the last step.
 
 **SPH soil.** On an SPH terrain or region (see
 :doc:`../model-file/model-file`), the bodies listed in ``bodies`` are not
@@ -286,7 +288,8 @@ among the particles, and the particles push back on them. The soil's force
 over each accepted step, averaged over the step, is applied to the body
 during the next step. The force of a single step comes from a few SPH
 substeps and is noisy. The body's mass smooths it, and its mean carries the
-body's weight.
+body's weight. The terrain limits the integrator's step so that this lag
+stays short (``substeps_per_step``, see :doc:`../model-file/model-file`).
 
 **Bulldozing.** Without it, the soil a body presses down is compacted: the rut
 is left and nothing rises around it. With the terrain's ``bulldozing``
@@ -446,6 +449,18 @@ ray-traced view draws the rut too, on the same surface: up to four
 triangle pairs per cell along each side, fewer on a large grid.
 ``--no-smooth-terrain`` turns smoothing off for ``--image``.
 
+The viewer draws an SPH soil from its particles, recorded at each output
+time; playback shows those of the output time at or before the time shown.
+**View > Soil surface** draws one surface over the particles, as the soil
+looks. The depth of the particles seen, each a sphere, is smoothed across
+the view, over a few particle spacings, by a filter that keeps a near surface
+apart from one behind it, and the smoothed depth is shaded as a surface. A
+loose particle away from the rest stays a sphere. Unchecked, the particles
+are drawn as spheres. ``--particle-spheres`` draws them as spheres for
+``--image``. **Run** continues the soil from where it was last computed, not
+from the time shown, and **Reset** fills it again. The ray-traced view does
+not draw SPH soil.
+
 .. shift-parameters:: shift/core/force_module/track_soil.cc
    :exclude: name, type, active
 
@@ -466,6 +481,10 @@ Example and test
   :source:`test/terramechanics/test_scm_playback.cc` (the SCM terrain in the
   viewer and in HDF5 logs), :source:`test/terramechanics/test_sph.cc` (the
   SPH soil: the GPU matches the CPU bit for bit, a block carries its weight,
-  a column collapses as far as experiments show, and a heap settles at the
-  friction angle) and :source:`test/terramechanics/test_sph_terrain.cc`
-  (the SPH terrain, regions of terrains, and a plate settling on SPH soil).
+  a body just above the soil feels no pull, a column collapses as far as
+  experiments show, and a heap settles at the friction angle) and
+  :source:`test/terramechanics/test_sph_terrain.cc` (the SPH terrain, regions
+  of terrains, a plate settling on SPH soil, and a blade pushing soil out of
+  an SPH region onto the SCM terrain with its volume conserved). The example
+  :source:`examples/terramechanics/sph_blade.json` drives a blade through an
+  SPH pit in an SCM terrain.

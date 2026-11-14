@@ -89,6 +89,9 @@ private:
   unsigned int neqn_ = 0; /*!< number of equations */
   std::vector<int> reconfigurations_;
   double hmax_ = 0.01; /*!< maximum step size */
+  /*! the maximum step size used: hmax_, or the context's step limit if
+   * shorter (Context::GetStepLimit), from Reset */
+  double step_max_ = 0.01;
 
   static const double twou_;  /*!<
  The only machine dependent constants are based on the machine unit

@@ -27,6 +27,11 @@ void shift::core::sph::CpuSolver::GetState(State& state) {
   state = state_;
 }
 
+void shift::core::sph::CpuSolver::RemoveParticles(
+  const std::vector<uint32_t>& ids) {
+  state_.RemoveParticles(ids);
+}
+
 int shift::core::sph::CpuSolver::NeighborCells(const std::array<float, 4>& x,
                                                uint32_t hashes[27]) const {
   const std::array<int32_t, 3> c = Cell(x, cell_);
@@ -139,7 +144,8 @@ void shift::core::sph::CpuSolver::Markers() {
       continue;
     }
     const std::array<float, 4>& xi = s.position[i];
-    float weight = 0.0f, head = 0.0f;
+    float weight = 0.0f, head = 0.0f, apex = 0.0f;
+    bool cone = true;
     float sigma[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     const int cells = NeighborCells(xi, hashes);
     for(int c = 0; c < cells; c++) {
@@ -160,6 +166,12 @@ void shift::core::sph::CpuSolver::Markers() {
           sigma[k] += s.stress[j][k] * w;
         }
         head += s.density[j] * (g[0] * dx + g[1] * dy + g[2] * dz) * w;
+        const std::array<float, 8>& m = table_[s.kind[j]];
+        if(m[4] > 0.0f) {
+          apex += m[5] / m[4] / 3.0f * w;
+        } else {
+          cone = false;
+        }
       }
     }
     std::array<float, 8>& out = sorted_.stress[i];
@@ -172,6 +184,15 @@ void shift::core::sph::CpuSolver::Markers() {
       }
       for(int k = 0; k < 3; k++) {
         out[k] -= head / weight;
+      }
+      /* no more tension than the soil around it carries, the apex of its
+      cone: above the soil, the head would put the marker in tension and
+      pull the soil to it */
+      const float excess = (out[0] + out[1] + out[2]) / 3.0f - apex / weight;
+      if(cone && excess > 0.0f) {
+        for(int k = 0; k < 3; k++) {
+          out[k] -= excess;
+        }
       }
     }
   }
@@ -283,7 +304,10 @@ void shift::core::sph::CpuSolver::Rates(float dt) {
     for(int k = 0; k < 6; k++) {
       state_.stress[i][k] = out[k];
     }
-    state_.density[i] = s.density[i] + dt * drho;
+    /* no less than at rest: a particle drawn away from its neighbours is
+    loose soil, not lighter soil, whose volume and acceleration (m / rho,
+    sigma / rho^2) would grow as it thins and blow it apart */
+    state_.density[i] = std::max(s.density[i] + dt * drho, m[0]);
   }
 }
 

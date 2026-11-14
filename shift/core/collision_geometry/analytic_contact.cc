@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "shift/core/collision_geometry/convex_hull.h"
+#include "shift/core/collision_geometry/cylinder.h"
 #include "shift/core/collision_geometry/ellipsoid.h"
 #include "shift/core/collision_geometry/plane.h"
 #include "shift/core/collision_geometry/sphere.h"
@@ -1080,6 +1081,491 @@ bool shift::core::collision_geometry::ConvexHullPairContact(
             }
           }
         }
+      }
+    }
+  }
+  if(!best.found) {
+    return false;
+  }
+  contact.collision = best.depth > 0.0;
+  if(contact.collision) {
+    contact.depth = best.depth;
+    contact.normal = best.n;
+    contact.point_first = best.x;
+    contact.point_second = best.y;
+  }
+  return true;
+}
+
+bool shift::core::collision_geometry::CylinderSphereContact(
+  const Cylinder& cylinder, const Sphere& sphere, AnalyticContact& contact) {
+  const double r = cylinder.get_radius();
+  const double h = cylinder.get_half_length();
+  if(!(r > 0.0 && h > 0.0)) {
+    return false;
+  }
+  contact = AnalyticContact();
+  const ksl_SE3_t& d = cylinder.get_d_absolute();
+  const ksl_vec3_t c = ToLocal(d, sphere.get_center());
+  /* the unit direction across the axis toward the center, any on the axis */
+  const double radial = std::hypot(c.x, c.y);
+  const ksl_vec3_t u = radial > 0.0
+                         ? ksl_vec3_t{{c.x / radial, c.y / radial, 0.0}}
+                         : ksl_vec3_t{{1.0, 0.0, 0.0}};
+  const double end_sign = c.z >= 0.0 ? 1.0 : -1.0;
+  const double side = radial - r;          // > 0 outside the side
+  const double end = std::fabs(c.z) - h;   // > 0 beyond an end
+  ksl_vec3_t q, n;
+  double distance;
+  if(side > 0.0 && end > 0.0) {
+    /* beyond a rim */
+    q = {{r * u.x, r * u.y, end_sign * h}};
+    const ksl_vec3_t g = Sub(c, q);
+    distance = std::sqrt(Dot(g, g));
+    n = Scale(1.0 / distance, g);
+  } else if(end > 0.0 || (side <= 0.0 && end > side)) {
+    /* over an end, or inside and nearer the end than the side */
+    q = {{c.x, c.y, end_sign * h}};
+    n = {{0.0, 0.0, end_sign}};
+    distance = end;
+  } else {
+    q = {{r * u.x, r * u.y, c.z}};
+    n = u;
+    distance = side;
+  }
+  SetSphereContact(d, q, n, distance, sphere, contact);
+  return true;
+}
+
+/*! the polygon of a hull across its edge v1 v2 from polygon p, or -1 */
+static int AcrossEdge(const shift::core::collision_geometry::ConvexHullData& h,
+                      unsigned int p, unsigned int v1, unsigned int v2) {
+  for(unsigned int q : h.vertex_polygons[v1]) {
+    if(q == p) {
+      continue;
+    }
+    const auto& polygon = h.polygons[q];
+    const size_t m = polygon.size();
+    for(size_t k = 0; k < m; k++) {
+      const unsigned int i = polygon[k], j = polygon[(k + 1) % m];
+      if((i == v1 && j == v2) || (i == v2 && j == v1)) {
+        return static_cast<int>(q);
+      }
+    }
+  }
+  return -1;
+}
+
+/*! whether n is in the normal cone of an edge between faces of unit normals
+ * n1 and n2 (n a combination of them with weights >= 0) */
+static bool InCone(const ksl_vec3_t& n1, const ksl_vec3_t& n2,
+                   const ksl_vec3_t& n) {
+  const double k12 = Dot(n1, n2);
+  const double det = 1.0 - k12 * k12;
+  if(det <= kCoplanar) {
+    return false;
+  }
+  const double b1 = Dot(n1, n), b2 = Dot(n2, n);
+  return (b1 - k12 * b2) / det >= -1e-12 && (b2 - k12 * b1) / det >= -1e-12;
+}
+
+bool shift::core::collision_geometry::CylinderHullContact(
+  const ConvexHull& hull, const Cylinder& cylinder, const ksl_vec3_t& start,
+  bool nearest, int& hint, AnalyticContact& contact) {
+  const auto& data = hull.get_hull();
+  const double r = cylinder.get_radius();
+  const double h = cylinder.get_half_length();
+  const double start_length = std::sqrt(Dot(start, start));
+  if(!(r > 0.0 && h > 0.0) || !(start_length > 0.0) || data.polygons.empty() ||
+     data.polygon_normals.size() != data.polygons.size() ||
+     data.polygon_offsets.size() != data.polygons.size() ||
+     data.vertex_polygons.size() != data.vertices.size() ||
+     data.neighbors.size() != data.vertices.size()) {
+    return false;
+  }
+  contact = AnalyticContact();
+  LazyVertices w(hull);
+  const ksl_SE3_t& pose = hull.get_d_absolute();
+  const ksl_vec3_t& c = cylinder.get_d_absolute().t;
+  const ksl_vec3_t& a = cylinder.get_axis();
+  const double size =
+    std::max(hull.get_bounding_radius() + std::hypot(r, h), 1e-300);
+  const double tolerance = 1e-12 * size;
+  const double slack = 1e-9;
+  /* an end, or a side line, is parallel to a face where the rim's point
+  deepest against the face's normal is this close to it, in angle */
+  const double parallel = 1e-9;
+  const ksl_vec3_t n0 = Scale(1.0 / start_length, start);
+
+  /* the cylinder's extent against n from its center, h |g| + r sqrt(1 - g^2) */
+  auto reach = [&](const ksl_vec3_t& n) {
+    const double g = Dot(n, a);
+    return h * std::fabs(g) + r * std::sqrt(std::max(1.0 - g * g, 0.0));
+  };
+  /* the point of the cylinder deepest against n, on a rim (where n is
+  neither along nor across the axis) */
+  auto deepest = [&](const ksl_vec3_t& n) {
+    const double g = Dot(n, a);
+    ksl_vec3_t y = Sub(c, Scale(g >= 0.0 ? h : -h, a));
+    const ksl_vec3_t radial = Sub(n, Scale(g, a));
+    const double l = std::sqrt(Dot(radial, radial));
+    if(l > 0.0) {
+      y = Sub(y, Scale(r / l, radial));
+    }
+    return y;
+  };
+
+  struct Solution {
+    bool found = false;
+    double depth = HUGE_VAL;
+    double closeness = -HUGE_VAL;
+    ksl_vec3_t n, x, y;
+  };
+  Solution best;
+  auto keep = [&](const ksl_vec3_t& n, double depth, const ksl_vec3_t& x,
+                  const ksl_vec3_t& y) {
+    const double closeness = Dot(n, n0);
+    if(!best.found ||
+       (nearest ? closeness > best.closeness : depth < best.depth)) {
+      best.found = true;
+      best.depth = depth;
+      best.closeness = closeness;
+      best.n = n;
+      best.x = x;
+      best.y = y;
+    }
+  };
+
+  auto polygon_normal = [&](unsigned int p) {
+    return Rotate(pose, data.polygon_normals[p]);
+  };
+  /* the unit outward normal, in its plane, of edge k of polygon p of
+  normal np, and the edge's first vertex */
+  auto edge_out = [&](unsigned int p, size_t k, const ksl_vec3_t& np,
+                      ksl_vec3_t& from) {
+    const auto& polygon = data.polygons[p];
+    from = w(polygon[k]);
+    const ksl_vec3_t e = Sub(w(polygon[(k + 1) % polygon.size()]), from);
+    const ksl_vec3_t out = Cross(e, np); // counterclockwise about np
+    const double l = std::sqrt(Dot(out, out));
+    return l > 0.0 ? Scale(1.0 / l, out) : out;
+  };
+  /* whether x projects along np into polygon p */
+  auto in_polygon = [&](unsigned int p, const ksl_vec3_t& np,
+                        const ksl_vec3_t& x) {
+    for(size_t k = 0; k < data.polygons[p].size(); k++) {
+      ksl_vec3_t from;
+      const ksl_vec3_t out = edge_out(p, k, np, from);
+      if(Dot(out, Sub(x, from)) > tolerance) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  /* a face of the hull and the cylinder's point deepest against its normal */
+  auto face = [&](unsigned int p) {
+    const ksl_vec3_t np = polygon_normal(p);
+    const double offset = data.polygon_offsets[p] + Dot(np, pose.t);
+    const double depth = offset - Dot(np, c) + reach(np);
+    const double g = Dot(np, a);
+    const double across = std::sqrt(std::max(1.0 - g * g, 0.0));
+    const auto& polygon = data.polygons[p];
+    ksl_vec3_t y;
+    if(across <= parallel) {
+      /* an end on the face: the point of its disc nearest the polygon */
+      const ksl_vec3_t center = Sub(c, Scale(g >= 0.0 ? h : -h, a));
+      const ksl_vec3_t foot =
+        Sub(center, Scale(Dot(np, center) - offset, np)); // on the plane
+      ksl_vec3_t nearest_point = foot;
+      if(!in_polygon(p, np, foot)) {
+        double least = HUGE_VAL;
+        for(size_t k = 0; k < polygon.size(); k++) {
+          const ksl_vec3_t p1 = w(polygon[k]);
+          const ksl_vec3_t e = Sub(w(polygon[(k + 1) % polygon.size()]), p1);
+          const double t =
+            std::clamp(Dot(Sub(foot, p1), e) / Dot(e, e), 0.0, 1.0);
+          const ksl_vec3_t q = Add(p1, Scale(t, e));
+          const ksl_vec3_t gap = Sub(q, foot);
+          const double l2 = Dot(gap, gap);
+          if(l2 < least) {
+            least = l2;
+            nearest_point = q;
+          }
+        }
+        if(std::sqrt(least) > r + tolerance) {
+          return;
+        }
+      }
+      y = Add(center, Sub(nearest_point, foot));
+    } else if(std::fabs(g) <= parallel) {
+      /* a side line on the face: the middle of its part over the polygon */
+      const ksl_vec3_t radial = Scale(1.0 / across, Sub(np, Scale(g, a)));
+      const ksl_vec3_t line = Sub(c, Scale(r, radial));
+      double s1 = -h, s2 = h;
+      for(size_t k = 0; k < polygon.size(); k++) {
+        ksl_vec3_t from;
+        const ksl_vec3_t out = edge_out(p, k, np, from);
+        const double at_0 = Dot(out, Sub(line, from)) - tolerance;
+        const double slope = Dot(out, a);
+        if(slope > 0.0) {
+          s2 = std::min(s2, -at_0 / slope);
+        } else if(slope < 0.0) {
+          s1 = std::max(s1, -at_0 / slope);
+        } else if(at_0 > 0.0) {
+          return;
+        }
+      }
+      if(s1 > s2) {
+        return;
+      }
+      y = Add(line, Scale(0.5 * (s1 + s2), a));
+    } else {
+      y = deepest(np);
+      if(!in_polygon(p, np, y)) {
+        return;
+      }
+    }
+    keep(np, depth, Add(y, Scale(depth, np)), y);
+  };
+
+  /* an end of the cylinder, of outward normal sign * a, and the hull's
+  vertex or edge extreme against it */
+  std::vector<unsigned int> support;
+  std::vector<char> in_support;
+  auto end = [&](double sign) {
+    const ksl_vec3_t n = Scale(-sign, a);
+    int end_hint = hint;
+    NearVertices(w, n, tolerance, end_hint, support, in_support);
+    if(support.size() > 2) {
+      return; // a face on the end: the face's solution
+    }
+    const ksl_vec3_t center = Add(c, Scale(sign * h, a));
+    /* the radial offset of a point from the axis */
+    auto radial = [&](const ksl_vec3_t& p) {
+      const ksl_vec3_t q = Sub(p, center);
+      return Sub(q, Scale(Dot(q, a), a));
+    };
+    ksl_vec3_t x;
+    const ksl_vec3_t v1 = w(support[0]);
+    if(support.size() == 1) {
+      const ksl_vec3_t q = radial(v1);
+      if(Dot(q, q) > (r + tolerance) * (r + tolerance)) {
+        return;
+      }
+      x = v1;
+    } else {
+      /* an edge on the end: the middle of its part over the disc,
+      |q1 + t e|^2 <= r^2 */
+      const ksl_vec3_t q1 = radial(v1);
+      const ksl_vec3_t e = Sub(radial(w(support[1])), q1);
+      const double ee = Dot(e, e), qe = Dot(q1, e);
+      const double qq = Dot(q1, q1) - (r + tolerance) * (r + tolerance);
+      double t1 = 0.0, t2 = 1.0;
+      if(ee > 0.0) {
+        const double discriminant = qe * qe - ee * qq;
+        if(discriminant < 0.0) {
+          return;
+        }
+        const double root = std::sqrt(discriminant);
+        t1 = std::max(t1, (-qe - root) / ee);
+        t2 = std::min(t2, (-qe + root) / ee);
+      } else if(qq > 0.0) {
+        return;
+      }
+      if(t1 > t2) {
+        return;
+      }
+      x = Add(v1, Scale(0.5 * (t1 + t2), Sub(w(support[1]), v1)));
+    }
+    const double depth = Dot(n, Sub(x, c)) + h;
+    keep(n, depth, x, Sub(x, Scale(depth, n)));
+  };
+
+  /* the side of the cylinder and a vertex of the hull */
+  auto side_vertex = [&](unsigned int v) {
+    const ksl_vec3_t rel = Sub(w(v), c);
+    const double s = Dot(rel, a);
+    if(std::fabs(s) > h * (1.0 + slack)) {
+      return;
+    }
+    const ksl_vec3_t radial = Sub(rel, Scale(s, a));
+    const double rho = std::sqrt(Dot(radial, radial));
+    if(!(rho > tolerance)) {
+      return;
+    }
+    const ksl_vec3_t n = Scale(-1.0 / rho, radial);
+    for(unsigned int u : data.neighbors[v]) {
+      if(Dot(Sub(w(u), w(v)), n) > tolerance) {
+        return;
+      }
+    }
+    const double depth = r - rho;
+    keep(n, depth, w(v), Sub(w(v), Scale(depth, n)));
+  };
+
+  /* the side of the cylinder and edge v1 v2 between polygons of normals n1
+  and n2: n normal to the axis and the edge */
+  auto side_edge = [&](const ksl_vec3_t& p1, const ksl_vec3_t& p2,
+                       const ksl_vec3_t& n1, const ksl_vec3_t& n2) {
+    const ksl_vec3_t e = Sub(p2, p1);
+    ksl_vec3_t n = Cross(a, e);
+    const double l = std::sqrt(Dot(n, n));
+    if(!(l > 1e-9 * std::sqrt(Dot(e, e)))) {
+      /* along the axis: n from the edge's line to the axis, at the middle of
+      the part of the edge beside the side */
+      const ksl_vec3_t q = Sub(p1, c);
+      const ksl_vec3_t radial = Sub(q, Scale(Dot(q, a), a));
+      const double rho = std::sqrt(Dot(radial, radial));
+      if(!(rho > tolerance)) {
+        return;
+      }
+      n = Scale(-1.0 / rho, radial);
+      if(!InCone(n1, n2, n)) {
+        return;
+      }
+      const double s1 = Dot(q, a), s2 = Dot(Sub(p2, c), a);
+      const double low = std::max(std::min(s1, s2), -h);
+      const double high = std::min(std::max(s1, s2), h);
+      if(low > high || s1 == s2) {
+        return;
+      }
+      const ksl_vec3_t x =
+        Add(p1, Scale((0.5 * (low + high) - s1) / (s2 - s1), e));
+      const double depth = r - rho;
+      keep(n, depth, x, Sub(x, Scale(depth, n)));
+      return;
+    }
+    n = Scale(1.0 / l, n);
+    if(!InCone(n1, n2, n)) {
+      n = Scale(-1.0, n);
+      if(!InCone(n1, n2, n)) {
+        return;
+      }
+    }
+    /* x = p1 + t e on the edge, c + s a on the axis, x - (c + s a) along n */
+    const ksl_vec3_t q = Sub(p1, c);
+    const double ae = Dot(a, e), ee = Dot(e, e);
+    const double aq = Dot(a, q), eq = Dot(e, q);
+    const double det = ee - ae * ae;
+    if(!(det > 0.0)) {
+      return;
+    }
+    const double t = (ae * aq - eq) / det;
+    const double s_axis = aq + ae * t;
+    if(t < -slack || t > 1.0 + slack || std::fabs(s_axis) > h * (1.0 + slack)) {
+      return;
+    }
+    const ksl_vec3_t x = Add(p1, Scale(t, e));
+    const double depth = Dot(n, Sub(x, c)) + r;
+    keep(n, depth, x, Sub(x, Scale(depth, n)));
+  };
+
+  /* a rim of the cylinder and edge p1 p2 between polygons of normals n1 and
+  n2: the least d(n) = n . (p1 - c) + h |g| + r sqrt(1 - g^2) over the arc of
+  normals from n1 to n2, by the root of its derivative */
+  auto rim_edge = [&](const ksl_vec3_t& p1, const ksl_vec3_t& p2,
+                      const ksl_vec3_t& n1, const ksl_vec3_t& n2) {
+    const double k12 = Dot(n1, n2);
+    if(1.0 - k12 * k12 <= kCoplanar) {
+      return;
+    }
+    const ksl_vec3_t s = Scale(1.0 / std::sqrt(1.0 - k12 * k12),
+                               Sub(n2, Scale(k12, n1)));
+    const double arc = std::acos(std::max(-1.0, std::min(1.0, k12)));
+    const ksl_vec3_t q = Sub(p1, c);
+    auto at = [&](double t) {
+      return Add(Scale(std::cos(t), n1), Scale(std::sin(t), s));
+    };
+    /* the derivative, smooth where n is neither along nor across the axis
+    (those are the solutions of an end and of the side) */
+    auto slope = [&](double t) {
+      const ksl_vec3_t m = at(t);
+      const ksl_vec3_t dm = Add(Scale(-std::sin(t), n1), Scale(std::cos(t), s));
+      const double g = Dot(m, a), dg = Dot(dm, a);
+      const double across = std::sqrt(std::max(1.0 - g * g, 0.0));
+      return Dot(dm, q) + h * (g >= 0.0 ? dg : -dg) -
+             (across > 0.0 ? r * g * dg / across : 0.0);
+    };
+    const ksl_vec3_t e = Sub(p2, p1);
+    const int samples = 16;
+    double previous = slope(0.0);
+    for(int k = 1; k <= samples; k++) {
+      double low = arc * (k - 1) / samples, high = arc * k / samples;
+      const double current = slope(high);
+      const bool dip = previous < 0.0 && current > 0.0;
+      previous = current;
+      if(!dip) {
+        continue;
+      }
+      for(int i = 0; i < 200; i++) {
+        const double middle = 0.5 * (low + high);
+        if(middle <= low || middle >= high) {
+          break;
+        }
+        (slope(middle) < 0.0 ? low : high) = middle;
+      }
+      const ksl_vec3_t n = at(0.5 * (low + high));
+      const double g = Dot(n, a);
+      if(std::fabs(g) <= parallel ||
+         std::sqrt(std::max(1.0 - g * g, 0.0)) <= parallel) {
+        continue; // a crease of d: the side's or an end's solution
+      }
+      const ksl_vec3_t y = deepest(n);
+      const double along = Dot(Sub(y, p1), e) / Dot(e, e);
+      if(along < -slack || along > 1.0 + slack) {
+        continue;
+      }
+      const double depth = Dot(n, q) + reach(n);
+      keep(n, depth, Add(p1, Scale(along, e)), Sub(Add(p1, Scale(along, e)),
+                                                  Scale(depth, n)));
+    }
+  };
+
+  std::vector<unsigned int> near;
+  std::vector<char> is_near;
+  std::vector<char> seen(data.polygons.size(), 0);
+  for(double margin = 1e-4 * size; margin < 2.0 * size && !best.found;
+      margin *= 10.0) {
+    NearVertices(w, n0, margin, hint, near, is_near);
+    std::fill(seen.begin(), seen.end(), 0);
+    for(unsigned int v : near) {
+      side_vertex(v);
+      for(unsigned int p : data.vertex_polygons[v]) {
+        if(seen[p]) {
+          continue;
+        }
+        seen[p] = 1;
+        face(p);
+        /* its edges with a near vertex, each once */
+        const auto& polygon = data.polygons[p];
+        const ksl_vec3_t np = polygon_normal(p);
+        for(size_t k = 0; k < polygon.size(); k++) {
+          const unsigned int i = polygon[k];
+          const unsigned int j = polygon[(k + 1) % polygon.size()];
+          if(!is_near[i] && !is_near[j]) {
+            continue;
+          }
+          /* both polygons of the edge have its near vertex: the edge is
+          solved from the one of the lesser index */
+          const int other = AcrossEdge(data, p, i, j);
+          if(other < 0 || static_cast<unsigned int>(other) < p) {
+            continue;
+          }
+          const ksl_vec3_t nq = polygon_normal(static_cast<unsigned int>(other));
+          side_edge(w(i), w(j), np, nq);
+          rim_edge(w(i), w(j), np, nq);
+        }
+      }
+    }
+    /* an end whose extreme vertex of the hull is near */
+    for(double sign : {1.0, -1.0}) {
+      ksl_vec3_t local, global;
+      int end_hint = hint;
+      hull.Support(Scale(-sign, a), local, global, end_hint);
+      if(end_hint >= 0 && static_cast<size_t>(end_hint) < is_near.size() &&
+         is_near[end_hint]) {
+        end(sign);
       }
     }
   }

@@ -37,7 +37,7 @@ struct TriangleInfo {
 
 static void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
                const std::vector<TriangleInfo>& info, std::vector<int>& order,
-               int start, int end) {
+               int start, int end, int depth, int max_depth) {
   const int node_index = static_cast<int>(nodes.size());
   nodes.push_back({});
 
@@ -57,7 +57,9 @@ static void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
   };
 
   const int count = end - start;
-  if(count <= kMaxLeafSize) {
+  // at the deepest level a leaf takes all its triangles, so that the
+  // traversal stacks of raytrace.comp cannot overflow
+  if(count <= kMaxLeafSize || depth >= max_depth) {
     make_leaf();
     return;
   }
@@ -146,15 +148,15 @@ static void BuildNode(std::vector<shift::gui::BvhNode>& nodes,
   }
 
   nodes[node_index].triangle_count = -1;
-  BuildNode(nodes, info, order, start, mid);
+  BuildNode(nodes, info, order, start, mid, depth + 1, max_depth);
   nodes[node_index].right_or_first = static_cast<int>(nodes.size());
-  BuildNode(nodes, info, order, mid, end);
+  BuildNode(nodes, info, order, mid, end, depth + 1, max_depth);
 }
 
 
 std::vector<shift::gui::BvhNode>
 shift::gui::BuildBvh(std::vector<RtTriangle>& triangles,
-                     std::vector<int32_t>* tags) {
+                     std::vector<int32_t>* tags, int max_depth) {
   std::vector<BvhNode> nodes;
   if(triangles.empty()) {
     return nodes;
@@ -177,7 +179,8 @@ shift::gui::BuildBvh(std::vector<RtTriangle>& triangles,
   }
 
   nodes.reserve(2 * triangles.size() / kMaxLeafSize + 1);
-  BuildNode(nodes, info, order, 0, static_cast<int>(triangles.size()));
+  BuildNode(nodes, info, order, 0, static_cast<int>(triangles.size()), 0,
+            max_depth);
 
   std::vector<RtTriangle> sorted(triangles.size());
   for(size_t i = 0; i < order.size(); i++) {

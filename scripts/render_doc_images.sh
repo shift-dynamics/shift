@@ -48,6 +48,7 @@ abiflexx_d4_1300    abiflexx_d4_1300/abiflexx_d4_1300.json       0.5
 kuka_iiwa           kuka_lbr_iiwa_14_r820/kuka_iiwa.json         0    --view 40,20
 excavator_simple    excavator/excavator_simple.json              0
 excavator           excavator/excavator.json                     0    --view 120,20
+excavator_drive     excavator/excavator_drive.json               0    --view 210,20
 bushing             force_modules/bushing.json                   2    --view 35,15
 rubber_mount        force_modules/rubber_mount.json              0.2  --view 35,20
 beam                force_modules/beam.json                      0.5  --view 75,12

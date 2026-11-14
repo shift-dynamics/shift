@@ -122,6 +122,9 @@ void shift::core::terrain::Basic::Load() {
   }
   bicubic_ = interpolation_type_ == "bicubic";
   const bool sae = coordinate_type_ == "sae";
+  /* a region: the terrain that holds it, loaded first; its surface and
+  soils are the region's, which an Scm caches as it loads */
+  parent_basic_ = dynamic_cast<const Basic*>(get_parent_terrain());
   z_.clear();
   control_.clear();
   nx_ = ny_ = 0;
@@ -160,7 +163,18 @@ void shift::core::terrain::Basic::Load() {
   those of the terrain that holds it, changed by its own soil */
   soils_.clear();
   base_soil_ = -1;
-  if(parent_basic_) {
+  if(parent_basic_ && parent_basic_->soils_.empty()) {
+    /* a region of ground without soil, e.g. rigid ground: its own */
+    if(soil_map_.is_given()) {
+      throw shift::core::Exception(prefix + "a region takes the soil map of "
+                                            "the terrain that holds it");
+    }
+    if(soil_.is_given()) {
+      soils_.push_back(
+        soil_.Resolve("Terrain " + get_name(), requires_bekker()));
+      base_soil_ = 0;
+    }
+  } else if(parent_basic_) {
     if(soil_map_.is_given()) {
       throw shift::core::Exception(prefix + "a region takes the soil map of "
                                             "the terrain that holds it");
@@ -472,7 +486,8 @@ void shift::core::terrain::Basic::ToLocal(const ksl_vec3_t& point, double& x,
 }
 
 int shift::core::terrain::Basic::LocalSoilIndex(double x, double y) const {
-  if(parent_basic_) {
+  /* a region's soils are its parent's, unless the parent has none */
+  if(parent_basic_ && !parent_basic_->soils_.empty()) {
     return parent_basic_->LocalSoilIndex(x, y);
   }
   return soil_map_.is_given() ? soil_map_.Index(x, y) : base_soil_;

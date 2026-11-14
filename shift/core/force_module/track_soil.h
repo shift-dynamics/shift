@@ -128,6 +128,11 @@ public:
     return soil_properties_;
   }
 
+  /*! \brief the ground's z (z down, the soil below) */
+  double get_ground() const {
+    return ground_;
+  }
+
   /*! \brief the pressure at sinkage \f$z\f$ of a station whose plastic sinkage
    * is \f$z_p\f$ */
   double Pressure(double z, double z_p) const;

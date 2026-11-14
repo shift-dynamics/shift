@@ -101,6 +101,11 @@ public:
    * beside sharp ruts, rather than bilinearly between them as the physics
    * does, which shows the facets of the grid (default true) */
   void set_smooth_terrain(bool smooth);
+  /*! \brief draw the particles of SPH soils as one surface over them, as
+   * the soil looks, rather than as spheres (default true). The surface is
+   * found in screen space: the depths of the spheres seen, smoothed by a
+   * bilateral filter, are shaded as a surface. */
+  void set_particle_surface(bool surface);
   /*! \brief place the floor: a point on it and its normal, up (out of the
    * solid), in the inertial frame */
   void set_floor(const QVector3D& point, const QVector3D& normal);
@@ -270,6 +275,16 @@ private:
     int cad_index = 0; /*!< in Scene::cads */
   };
 
+  /*! the particles of an SPH soil (SceneParticles): their centres, one
+   * instance each */
+  struct GpuParticles {
+    std::unique_ptr<QRhiBuffer> centers;
+    uint32_t count = 0;
+    int particles_index = 0; /*!< in Scene::particles */
+  };
+  /*! \brief upload the particles that changed (Simulation::
+   * TakeParticleUpdates), or all of them; the buffers grow as needed */
+  void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -332,6 +347,7 @@ private:
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   bool smooth_terrain_ = true;
+  bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
   bool rt_terrain_smooth_ = true;
   bool scene_dirty_ = false;
@@ -410,6 +426,37 @@ private:
   std::vector<GpuTerrain> gpu_terrains_;
   std::vector<TerrainUpdate> terrain_updates_; /*!< reused each frame */
   std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
+  // the particles of SPH soils, instances of a sphere
+  std::vector<GpuParticles> gpu_particles_;
+  std::vector<ParticleUpdate> particle_updates_; /*!< reused each frame */
+  bool gpu_particles_reset_ = false; /*!< all to upload, see UploadScene */
+  std::unique_ptr<QRhiGraphicsPipeline> particle_pipeline_;
+  // their surface (set_particle_surface): the depth of the spheres in
+  // fluid_depth_[0], blurred level by level from one into the other, ending
+  // in [0], shaded in the render target by fluid_pipeline_
+  std::unique_ptr<QRhiBuffer> fluid_ubo_; /*!< FluidUniforms */
+  /*! the stride of each level of the blur, fluid_level_stride_ apart */
+  std::unique_ptr<QRhiBuffer> fluid_level_ubo_;
+  quint32 fluid_level_stride_ = 0;
+  std::unique_ptr<QRhiTexture> fluid_depth_[2]; /*!< R32F, 0: none */
+  std::unique_ptr<QRhiRenderBuffer> fluid_depth_stencil_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_sphere_target_; /*!< [0] */
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_sphere_render_pass_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_blur_target_[2];
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_blur_render_pass_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_sphere_bindings_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_blur_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_bindings_;
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_sphere_pipeline_;
+  /*! the blur from fluid_depth_[k] */
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_blur_pipeline_[2];
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_pipeline_;
+  /*! \brief the textures and targets of the surface, at output_size_ */
+  void CreateFluidTargets();
+  /*! \brief the passes of the surface before the render pass: the spheres'
+   * depth and its blur; returns false if there are no particles to draw */
+  bool RenderFluidDepth(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch*& batch,
+                        const QMatrix4x4& view_projection, float aspect);
 
   // CAD geometry, tessellated on the GPU from its exact surfaces
   std::vector<GpuCad> gpu_cads_;

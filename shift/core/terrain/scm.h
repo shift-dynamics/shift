@@ -328,6 +328,13 @@ public:
 
   /*! @name The nodes that have changed */
   /*! @{ */
+  /*! \brief add volume (m^3) of soil at x, y of the terrain frame to the
+   * nearest node, raising its surface by volume / spacing^2; with
+   * bulldozing, its slopes then erode. Only in an AcceptStep (of this
+   * terrain or of a region of it, after this one's), so that a rejected
+   * step never sees it. Returns false, adding nothing, if x, y is off the
+   * grid */
+  bool Deposit(double x, double y, double volume);
   /*! \brief the accepted state of node (i, j); null if it is undisturbed */
   const Node* FindNode(long i, long j) const;
   /*! \brief the trial state of node (i, j) for the current evaluation,

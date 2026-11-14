@@ -644,7 +644,10 @@ static void HullLineManifold(const shift::core::collision_geometry::ConvexHull& 
   }
   const ksl_SE3_t& pose = hull.get_d_absolute();
   /* the normal out of the hull: exact from the axis while it is outside the
-  hull, else EPA's */
+  hull, else the pair's. A cylinder touches on its side only where that is
+  its contact's normal: pressed by an end or a rim against the hull, beside
+  the axis, the normal from the axis is across it while the contact's is
+  not, and the deepest point (see CylinderHullContact) is the contact */
   ksl_vec3_t n = hull_is_a ? pair.normal
                            : ksl_vec3_t{{-pair.normal.x, -pair.normal.y,
                                          -pair.normal.z}};
@@ -655,6 +658,9 @@ static void HullLineManifold(const shift::core::collision_geometry::ConvexHull& 
       p1.at[k] = center.at[k] + half_length * axis.at[k];
     }
     if(SegmentNormal(hull, p0, p1, exact)) {
+      if(!capsule && ksl_dot_vv(&exact, &n) < 1.0 - 1e-6) {
+        return;
+      }
       n = exact;
     }
   }
