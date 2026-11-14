@@ -1274,8 +1274,8 @@ void shift::gui::Workspace::UpdateFloor() {
       if(!plane->is_contact_enabled() && std::fabs(n.z) > 0.999) {
         viewport_->set_floor_below_model(static_cast<float>(p.z));
       } else {
-        viewport_->set_floor(QVector3D(p.x, p.y, p.z),
-                             QVector3D(n.x, n.y, n.z));
+        viewport_->set_floor(ksl_vec3f(float(p.x), float(p.y), float(p.z)),
+                             ksl_vec3f(float(n.x), float(n.y), float(n.z)));
       }
       return;
     }
@@ -1318,10 +1318,12 @@ void shift::gui::Workspace::UpdateBodyPanel() {
   if(body_panel_.selected_body >= static_cast<int>(poses.bodies.size())) {
     return;
   }
-  const QMatrix4x4& m = poses.bodies[body_panel_.selected_body];
+  const ksl_SE3f_t& m = poses.bodies[body_panel_.selected_body];
   for(int row = 0; row < 3; row++) {
     for(int column = 0; column < 4; column++) {
-      body_panel_.m[4 * row + column]->setText(Number(m(row, column), 3));
+      // as_array is column major
+      body_panel_.m[4 * row + column]->setText(
+        Number(m.as_array[3 * column + row], 3));
     }
   }
 }

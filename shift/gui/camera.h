@@ -2,7 +2,10 @@
 #define SHIFT_GUI_CAMERA_H_
 
 #include <QMatrix4x4>
-#include <QVector3D>
+
+#include "ksl/SE3.h"
+#include "ksl/matrix.h"
+#include "ksl/vec3.h"
 
 namespace shift {
 namespace gui {
@@ -15,17 +18,26 @@ camera's up vector is -z. Azimuth is measured about the z axis from +x
 towards +y, elevation is the angle above the x-y plane (towards -z).
 
 A rigid motion can carry the whole turntable along, see set_follow. The
-getters and the view matrix are in world coordinates with the motion applied;
+getters and the view are in world coordinates with the motion applied;
 orbiting, panning and zooming then work in the moving frame.
+
+Vectors and rigid transforms are KSL's; only the perspective projection is a
+Qt matrix.
 */
 class Camera {
 public:
-  QVector3D get_position() const;
-  QVector3D get_forward() const;
-  QVector3D get_right() const;
-  QVector3D get_up() const;
+  Camera() {
+    ksl_SE3f_setIdentity(&follow_);
+  }
 
-  QMatrix4x4 get_view_matrix() const;
+  ksl_vec3f_t get_position() const;
+  ksl_vec3f_t get_forward() const;
+  ksl_vec3f_t get_right() const;
+  ksl_vec3f_t get_up() const;
+
+  /*! \brief the view, from world coordinates to the camera's: x to the
+   * right, y up and z backwards, as OpenGL's eye coordinates */
+  ksl_SE3f_t get_view_matrix() const;
   QMatrix4x4 get_projection_matrix(float aspect) const;
 
   float get_distance() const {
@@ -37,7 +49,7 @@ public:
   }
 
   /*! \brief the rigid motion that carries the turntable, see set_follow */
-  const QMatrix4x4& get_follow() const {
+  const ksl_SE3f_t& get_follow() const {
     return follow_;
   }
 
@@ -46,14 +58,14 @@ public:
    * to a body, this is the body's pose times the inverse of its pose when the
    * camera started following, so the camera keeps its place on the body,
    * rotation included. */
-  void set_follow(const QMatrix4x4& motion) {
+  void set_follow(const ksl_SE3f_t& motion) {
     follow_ = motion;
   }
 
   /*! \brief the frame on the ground under a body: at its x and y, at the
    * height ground_z, and turned by its heading, with no pitch or roll. A
    * camera that follows this frame sees the body bounce and tilt. */
-  static QMatrix4x4 GroundFrame(const QMatrix4x4& pose, float ground_z);
+  static ksl_SE3f_t GroundFrame(const ksl_SE3f_t& pose, float ground_z);
 
   /*! \brief stop following, leaving the camera where it is and looking the
    * same way. A turntable has no roll, so the view levels out. */
@@ -76,20 +88,22 @@ public:
    * turning: the point stays at the same place on the screen. The target
    * moves to the point's depth, so that the clipping planes follow the
    * distance to the point and later zooms and orbits are about it. */
-  void ZoomTowards(const QVector3D& point, float factor);
+  void ZoomTowards(const ksl_vec3f_t& point, float factor);
 
   /*! \brief place the target at the center of the box and set the distance
    * so the whole box is in view */
-  void Frame(const QVector3D& box_min, const QVector3D& box_max);
+  void Frame(const ksl_vec3f_t& box_min, const ksl_vec3f_t& box_max);
 
 private:
   /* the view direction and its axes, in the coordinates of the turntable */
-  QVector3D TurntableForward() const;
-  QVector3D TurntableRight() const;
-  QVector3D TurntableUp() const;
+  ksl_vec3f_t TurntableForward() const;
+  ksl_vec3f_t TurntableRight() const;
+  ksl_vec3f_t TurntableUp() const;
+  /* the camera's position in the coordinates of the turntable */
+  ksl_vec3f_t TurntablePosition() const;
 
-  QMatrix4x4 follow_; /*!< see set_follow; identity if not following */
-  QVector3D target_{0.f, 0.f, 0.f};
+  ksl_SE3f_t follow_; /*!< see set_follow; identity if not following */
+  ksl_vec3f_t target_ = ksl_vec3f(0.f, 0.f, 0.f);
   float distance_ = 5.f;
   float azimuth_ = 0.6f;
   float elevation_ = 0.35f;
@@ -98,6 +112,10 @@ private:
   float distance_max_ = 1e4f;
   float radius_ = 1.f; /*!< radius of the framed box, see Frame */
 };
+
+/*! \brief a rigid transform as a 4 by 4 matrix, to combine with a
+ * projection */
+QMatrix4x4 ToQMatrix4x4(const ksl_SE3f_t& d);
 
 } // namespace gui
 } // namespace shift

@@ -13,9 +13,12 @@
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
 
+#include "ksl/matrix.h"
+#include "ksl/quaternion.h"
+#include "ksl/SE3.h"
+#include "ksl/vec3.h"
+
 #include <H5Cpp.h>
-#include <QGenericMatrix>
-#include <QQuaternion>
 
 #include <algorithm>
 #include <array>
@@ -38,13 +41,19 @@ static double WallTime() {
     .count();
 }
 
-static QMatrix4x4 ToMatrix(const ksl_SE3_t& d) {
-  // ksl_SE3_t is column major: as_array[3 * column + row]
-  const double* a = d.as_array;
-  return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
-                    float(a[1]), float(a[4]), float(a[7]), float(a[10]),
-                    float(a[2]), float(a[5]), float(a[8]), float(a[11]), 0.f,
-                    0.f, 0.f, 1.f);
+/* a pose in single precision */
+static ksl_SE3f_t ToPose(const ksl_SE3_t& d) {
+  ksl_SE3f_t f;
+  for(int k = 0; k < 12; k++) {
+    f.as_array[k] = float(d.as_array[k]);
+  }
+  return f;
+}
+
+/* the box that holds no point yet, which points then grow */
+static void EmptyBox(ksl_vec3f_t& box_min, ksl_vec3f_t& box_max) {
+  box_min = ksl_vec3f(1e30f, 1e30f, 1e30f);
+  box_max = ksl_vec3f(-1e30f, -1e30f, -1e30f);
 }
 
 /*! area weighted vertex normals, for meshes imported without normals */
@@ -56,25 +65,33 @@ static void ComputeNormals(shift::gui::SceneMesh& mesh) {
     shift::gui::Vertex* v[3] = {&mesh.vertices[mesh.indices[i]],
                                 &mesh.vertices[mesh.indices[i + 1]],
                                 &mesh.vertices[mesh.indices[i + 2]]};
-    const QVector3D p0(v[0]->position[0], v[0]->position[1],
-                       v[0]->position[2]);
-    const QVector3D p1(v[1]->position[0], v[1]->position[1],
-                       v[1]->position[2]);
-    const QVector3D p2(v[2]->position[0], v[2]->position[1],
-                       v[2]->position[2]);
-    const QVector3D n = QVector3D::crossProduct(p1 - p0, p2 - p0);
+    ksl_vec3f_t p[3];
+    for(int k = 0; k < 3; k++) {
+      p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
+                       v[k]->position[2]);
+    }
+    ksl_vec3f_t e1, e2, n;
+    ksl_subtract_vvf(&p[1], &p[0], &e1);
+    ksl_subtract_vvf(&p[2], &p[0], &e2);
+    ksl_cross_vvf(&e1, &e2, &n);
     for(auto vertex : v) {
-      vertex->normal[0] += n.x();
-      vertex->normal[1] += n.y();
-      vertex->normal[2] += n.z();
+      for(int k = 0; k < 3; k++) {
+        vertex->normal[k] += n.at[k];
+      }
     }
   }
+  /* divided by the length, however small the triangles; a vertex of no
+  area keeps its zero normal */
   for(auto& vertex : mesh.vertices) {
-    QVector3D n(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
-    n.normalize();
-    vertex.normal[0] = n.x();
-    vertex.normal[1] = n.y();
-    vertex.normal[2] = n.z();
+    ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
+                              vertex.normal[2]);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(length > 0.f) {
+      ksl_vec3f_scale(&n, 1.f / length);
+    }
+    for(int k = 0; k < 3; k++) {
+      vertex.normal[k] = n.at[k];
+    }
   }
 }
 
@@ -88,14 +105,15 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   const bool has_normals = data.normals.size() == data.vertices.size();
   const bool has_uvs = data.texture_coordinates.size() == data.vertices.size();
   mesh.vertices.resize(vertex_count);
-  mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-  mesh.bounds_max = -mesh.bounds_min;
+  EmptyBox(mesh.bounds_min, mesh.bounds_max);
   for(size_t i = 0; i < vertex_count; i++) {
     for(int k = 0; k < 3; k++) {
       mesh.vertices[i].position[k] = data.vertices[3 * i + k];
       mesh.vertices[i].normal[k] = has_normals ? data.normals[3 * i + k] : 0.f;
-      mesh.bounds_min[k] = std::min(mesh.bounds_min[k], data.vertices[3 * i + k]);
-      mesh.bounds_max[k] = std::max(mesh.bounds_max[k], data.vertices[3 * i + k]);
+      mesh.bounds_min.at[k] =
+        std::min(mesh.bounds_min.at[k], data.vertices[3 * i + k]);
+      mesh.bounds_max.at[k] =
+        std::max(mesh.bounds_max.at[k], data.vertices[3 * i + k]);
     }
     /* assimp gives texture coordinates with v = 0 at the bottom of the image
     (OpenGL); the texture layers are uploaded with the top row of the image at
@@ -115,7 +133,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   if(data.material_index >= 0 &&
      data.material_index < static_cast<int>(materials.size())) {
     const auto& material = materials[data.material_index];
-    mesh.albedo = QVector3D(material.Kd[0], material.Kd[1], material.Kd[2]);
+    mesh.albedo = ksl_vec3f(material.Kd[0], material.Kd[1], material.Kd[2]);
     mesh.opacity = std::clamp(material.opacity, 0.f, 1.f);
     // use the metallic-roughness value if given, otherwise map the
     // Blinn-Phong exponent to an approximately equivalent GGX roughness
@@ -175,8 +193,8 @@ static void AddSphere(const std::array<float, 3>& c, float r, int segments,
     }
   }
   for(int k = 0; k < 3; k++) {
-    mesh.bounds_min[k] = std::min(mesh.bounds_min[k], c[k] - r);
-    mesh.bounds_max[k] = std::max(mesh.bounds_max[k], c[k] + r);
+    mesh.bounds_min.at[k] = std::min(mesh.bounds_min.at[k], c[k] - r);
+    mesh.bounds_max.at[k] = std::max(mesh.bounds_max.at[k], c[k] + r);
   }
 }
 
@@ -190,18 +208,30 @@ static void AddTriangles(
     const auto& a = vertices[t[0]];
     const auto& b = vertices[t[1]];
     const auto& c = vertices[t[2]];
-    const QVector3D n =
-      QVector3D::crossProduct(QVector3D(b[0] - a[0], b[1] - a[1], b[2] - a[2]),
-                              QVector3D(c[0] - a[0], c[1] - a[1], c[2] - a[2]))
-        .normalized();
+    /* the normal divided by its length, which for a grain a few millimeters
+    across is twice an area of the order of 1e-5 m^2 (QVector3D::normalized()
+    returned zero below 1e-5, and the face was drawn black); a triangle of no
+    area is left out */
+    const ksl_vec3f_t pa = ksl_vec3f(a[0], a[1], a[2]);
+    const ksl_vec3f_t pb = ksl_vec3f(b[0], b[1], b[2]);
+    const ksl_vec3f_t pc = ksl_vec3f(c[0], c[1], c[2]);
+    ksl_vec3f_t ab, ac, n;
+    ksl_subtract_vvf(&pb, &pa, &ab);
+    ksl_subtract_vvf(&pc, &pa, &ac);
+    ksl_cross_vvf(&ab, &ac, &n);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(!(length > 0.0f)) {
+      continue;
+    }
+    ksl_vec3f_scale(&n, 1.0f / length);
     for(int k = 0; k < 3; k++) {
       const auto& x = vertices[t[k]];
       shift::gui::Vertex v;
       for(int i = 0; i < 3; i++) {
         v.position[i] = x[i];
-        v.normal[i] = n[i];
-        mesh.bounds_min[i] = std::min(mesh.bounds_min[i], x[i]);
-        mesh.bounds_max[i] = std::max(mesh.bounds_max[i], x[i]);
+        v.normal[i] = n.at[i];
+        mesh.bounds_min.at[i] = std::min(mesh.bounds_min.at[i], x[i]);
+        mesh.bounds_max.at[i] = std::max(mesh.bounds_max.at[i], x[i]);
       }
       v.uv[0] = v.uv[1] = 0.0f;
       mesh.indices.push_back(static_cast<uint32_t>(mesh.vertices.size()));
@@ -217,15 +247,24 @@ static const float kGrainColors[][3] = {
   {0.36f, 0.42f, 0.28f}, {0.30f, 0.34f, 0.40f}, {0.70f, 0.50f, 0.20f}};
 
 /* the pose of a grain: its principal axes at its center of mass */
-static QMatrix4x4 GrainPose(const double position[3],
+static ksl_SE3f_t GrainPose(const double position[3],
                             const float orientation[4]) {
-  /* scalar last; QQuaternion takes the scalar first */
-  const QQuaternion q(orientation[3], orientation[0], orientation[1],
-                      orientation[2]);
-  QMatrix4x4 pose(q.toRotationMatrix());
-  pose(0, 3) = float(position[0]);
-  pose(1, 3) = float(position[1]);
-  pose(2, 3) = float(position[2]);
+  /* scalar last, as KSL's; in double precision, as KSL's single precision
+  ksl_quaternionf_toMat3x3f takes z y for z w in two entries */
+  ksl_quaternion_t q;
+  for(int k = 0; k < 4; k++) {
+    q.at[k] = orientation[k];
+  }
+  ksl_mat3x3_t r;
+  ksl_quaternion_toMat3x3(&q, &r);
+  ksl_SE3f_t pose;
+  for(int c = 0; c < 3; c++) {
+    for(int k = 0; k < 3; k++) {
+      pose.R.at[c][k] = float(r.at[c][k]);
+    }
+  }
+  pose.t = ksl_vec3f(float(position[0]), float(position[1]),
+                     float(position[2]));
   return pose;
 }
 
@@ -276,24 +315,21 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
     return -1;
   }
-  const auto& d = terrain.get_pose();
-  QMatrix4x4 pose;
-  for(int r = 0; r < 3; r++) {
-    pose(r, 0) = float(d.R.v0.at[r]);
-    pose(r, 1) = float(d.R.v1.at[r]);
-    pose(r, 2) = float(d.R.v2.at[r]);
-    pose(r, 3) = float(d.t.at[r]);
-  }
-  pose.translate(float(x0), float(y0), 0.f);
+  /* the terrain's pose, its origin moved to (x0, y0) in its frame */
+  ksl_SE3f_t pose = ToPose(terrain.get_pose());
+  const ksl_vec3f_t corner = ksl_vec3f(float(x0), float(y0), 0.f);
+  ksl_vec3f_t origin;
+  ksl_product_dvf(&pose, &corner, &origin);
+  pose.t = origin;
   t.pose = pose;
 
   /* the mesh, in world coordinates */
   shift::gui::SceneMesh mesh;
-  mesh.albedo = QVector3D(0.42f, 0.38f, 0.33f); // dry earth
+  mesh.albedo = ksl_vec3f(0.42f, 0.38f, 0.33f); // dry earth
   mesh.roughness = 0.95f;
   mesh.base_color_layer = textures.Load(terrain.get_texture_path());
   if(mesh.base_color_layer >= 0) {
-    mesh.albedo = QVector3D(1.f, 1.f, 1.f);
+    mesh.albedo = ksl_vec3f(1.f, 1.f, 1.f);
   }
   mesh.normal_layer = textures.Load(terrain.get_normal_map_path());
   mesh.normal_scale = float(terrain.get_normal_scale());
@@ -323,9 +359,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     mesh_x = s * (t.width - 1) + 1;
     mesh_y = s * (t.height - 1) + 1;
   }
-  const QMatrix3x3 rotation = pose.normalMatrix();
-  mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-  mesh.bounds_max = -mesh.bounds_min;
+  EmptyBox(mesh.bounds_min, mesh.bounds_max);
   for(int j = 0; j < mesh_y; j++) {
     const double y = y_extent * j / (mesh_y - 1);
     for(int i = 0; i < mesh_x; i++) {
@@ -334,16 +368,18 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
       const double z = terrain.LocalZ(x0 + x, y0 + y, z_x, z_y);
       /* outward, up: (z_x, z_y, -1) normalized */
       const double length = std::sqrt(z_x * z_x + z_y * z_y + 1.0);
-      const float n[3] = {float(z_x / length), float(z_y / length),
-                          float(-1.0 / length)};
-      const QVector3D world = pose.map(QVector3D(float(x), float(y), float(z)));
+      const ksl_vec3f_t n = ksl_vec3f(
+        float(z_x / length), float(z_y / length), float(-1.0 / length));
+      const ksl_vec3f_t local = ksl_vec3f(float(x), float(y), float(z));
+      ksl_vec3f_t world, normal;
+      ksl_product_dvf(&pose, &local, &world);
+      ksl_product_drvf(&pose.R, &n, &normal);
       shift::gui::Vertex v;
       for(int a = 0; a < 3; a++) {
-        v.position[a] = world[a];
-        v.normal[a] = rotation(a, 0) * n[0] + rotation(a, 1) * n[1] +
-                      rotation(a, 2) * n[2];
-        mesh.bounds_min[a] = std::min(mesh.bounds_min[a], world[a]);
-        mesh.bounds_max[a] = std::max(mesh.bounds_max[a], world[a]);
+        v.position[a] = world.at[a];
+        v.normal[a] = normal.at[a];
+        mesh.bounds_min.at[a] = std::min(mesh.bounds_min.at[a], world.at[a]);
+        mesh.bounds_max.at[a] = std::max(mesh.bounds_max.at[a], world.at[a]);
       }
       v.uv[0] = float(x0 + x);
       v.uv[1] = float(y0 + y);
@@ -393,9 +429,9 @@ static void AddLight(const shift::core::light::Base& light,
     return;
   }
   l.body_index = static_cast<int>(body - bodies.begin());
-  l.frame = ToMatrix(*light.get_frame()->get_d_wrt_origin());
+  l.frame = ToPose(*light.get_frame()->get_d_wrt_origin());
   auto color = [](const ksl_vec3_t& c, double factor) {
-    return QVector3D(float(c.x * factor), float(c.y * factor),
+    return ksl_vec3f(float(c.x * factor), float(c.y * factor),
                      float(c.z * factor));
   };
   l.ambient = color(light.get_Ka(), 1.0);
@@ -530,7 +566,7 @@ void shift::gui::Simulation::LoadModel(
         const auto& color = cad->get_color();
         if(color.size() == 3) {
           scene_cad.albedo =
-            QVector3D(float(color[0]), float(color[1]), float(color[2]));
+            ksl_vec3f(float(color[0]), float(color[1]), float(color[2]));
         }
         scene_cad.opacity = float(cad->get_opacity());
       }
@@ -854,10 +890,10 @@ void shift::gui::Simulation::UpdatePoses(
   poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
   for(size_t i = 0; i < bodies_.size(); i++) {
     if(bodies_[i] == context_->get_fixed_body()) {
-      poses_.bodies[i].setToIdentity();
+      ksl_SE3f_setIdentity(&poses_.bodies[i]);
     } else {
       poses_.bodies[i] =
-        ToMatrix(context_->get_body_origin_pose(bodies_[i], dhva));
+        ToPose(context_->get_body_origin_pose(bodies_[i], dhva));
     }
   }
   poses_changed_ = true;
@@ -1017,8 +1053,7 @@ void shift::gui::Simulation::AddDemView(shift::core::force_module::Dem& dem) {
   std::vector<int> meshes(templates.size());
   for(size_t t = 0; t < templates.size(); t++) {
     SceneMesh mesh;
-    mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-    mesh.bounds_max = -mesh.bounds_min;
+    EmptyBox(mesh.bounds_min, mesh.bounds_max);
     if(!templates[t].mesh_triangles.empty()) {
       AddTriangles(templates[t].mesh_vertices, templates[t].mesh_triangles,
                    mesh);
@@ -1028,7 +1063,7 @@ void shift::gui::Simulation::AddDemView(shift::core::force_module::Dem& dem) {
       }
     }
     const float* color = kGrainColors[t % std::size(kGrainColors)];
-    mesh.albedo = QVector3D(color[0], color[1], color[2]);
+    mesh.albedo = ksl_vec3f(color[0], color[1], color[2]);
     mesh.roughness = 0.8f;
     meshes[t] = static_cast<int>(scene_.meshes.size());
     scene_.meshes.push_back(std::move(mesh));

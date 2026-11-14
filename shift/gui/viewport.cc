@@ -200,15 +200,37 @@ static QByteArray ToHalf(const std::vector<float>& values) {
   return data;
 }
 
+/*! a matrix with a projection, column major */
 static void CopyMatrix(const QMatrix4x4& m, float* out) {
   std::memcpy(out, m.constData(), 16 * sizeof(float));
 }
 
-static void CopyVector(const QVector3D& v, float w, float* out) {
-  out[0] = v.x();
-  out[1] = v.y();
-  out[2] = v.z();
+/*! a rigid transform as a 4 by 4 matrix, column major */
+static void CopyMatrix(const ksl_SE3f_t& d, float* out) {
+  ksl_mat4x4f_t m;
+  ksl_SE3f_toMat4x4f(&d, &m);
+  std::memcpy(out, m.as_array, 16 * sizeof(float));
+}
+
+static void CopyVector(const ksl_vec3f_t& v, float w, float* out) {
+  out[0] = v.x;
+  out[1] = v.y;
+  out[2] = v.z;
   out[3] = w;
+}
+
+/*! k v */
+static ksl_vec3f_t Scaled(float k, const ksl_vec3f_t& v) {
+  ksl_vec3f_t kv;
+  ksl_product_avf(k, &v, &kv);
+  return kv;
+}
+
+/*! v divided by its length */
+static ksl_vec3f_t Normalized(const ksl_vec3f_t& v) {
+  ksl_vec3f_t n;
+  ksl_vec3f_normalized(&v, &n);
+  return n;
 }
 
 static void CopyArray(const float* in, float* out) {
@@ -231,20 +253,23 @@ static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
 }
 
 /*! world space box of a body space box under a pose */
-static void TransformBox(const QMatrix4x4& pose, const QVector3D& box_min,
-                  const QVector3D& box_max, float* out_min, float* out_max) {
+static void TransformBox(const ksl_SE3f_t& pose, const ksl_vec3f_t& box_min,
+                         const ksl_vec3f_t& box_max, float* out_min,
+                         float* out_max) {
   for(int k = 0; k < 3; k++) {
     out_min[k] = 1e30f;
     out_max[k] = -1e30f;
   }
   for(int corner = 0; corner < 8; corner++) {
-    const QVector3D p = pose.map(
-      QVector3D((corner & 1) ? box_max.x() : box_min.x(),
-                (corner & 2) ? box_max.y() : box_min.y(),
-                (corner & 4) ? box_max.z() : box_min.z()));
+    const ksl_vec3f_t local =
+      ksl_vec3f((corner & 1) ? box_max.x : box_min.x,
+                (corner & 2) ? box_max.y : box_min.y,
+                (corner & 4) ? box_max.z : box_min.z);
+    ksl_vec3f_t p;
+    ksl_product_dvf(&pose, &local, &p);
     for(int k = 0; k < 3; k++) {
-      out_min[k] = std::min(out_min[k], p[k]);
-      out_max[k] = std::max(out_max[k], p[k]);
+      out_min[k] = std::min(out_min[k], p.at[k]);
+      out_max[k] = std::max(out_max[k], p.at[k]);
     }
   }
   out_min[3] = out_max[3] = 0.f;
@@ -256,7 +281,7 @@ static int FillLights(const shift::gui::Scene& scene,
                       const shift::gui::Poses& poses, LightUniforms& out) {
   out = LightUniforms{};
   int count = 0;
-  QVector3D ambient;
+  ksl_vec3f_t ambient = ksl_vec3f(0.f, 0.f, 0.f);
   for(const auto& light : scene.lights) {
     if(count == kMaxLights) {
       break;
@@ -264,22 +289,23 @@ static int FillLights(const shift::gui::Scene& scene,
     if(light.body_index >= int(poses.bodies.size())) {
       continue;
     }
-    const QMatrix4x4 frame = poses.bodies[light.body_index] * light.frame;
+    ksl_SE3f_t frame;
+    ksl_product_ddf(&poses.bodies[light.body_index], &light.frame, &frame);
     LightData& d = out.lights[count++];
-    const QVector3D shine = -frame.column(2).toVector3D().normalized();
+    // the light shines along -z of its frame
+    const ksl_vec3f_t shine = Normalized(Scaled(-1.f, frame.R.v2));
     const float cos_outer = std::cos(light.cone_angle);
     const float cos_inner =
       std::max(std::cos(light.inner_cone_angle), cos_outer + 1e-4f);
-    CopyVector(frame.column(3).toVector3D(), float(light.type), d.position);
+    CopyVector(frame.t, float(light.type), d.position);
     CopyVector(shine, cos_outer, d.direction);
-    CopyVector(frame.column(0).toVector3D().normalized(), cos_inner,
-               d.axis_x);
+    CopyVector(Normalized(frame.R.v0), cos_inner, d.axis_x);
     // pi: a white matte surface facing the light shows its color Kd
-    CopyVector(float(M_PI) * light.diffuse, float(light.ies_profile),
+    CopyVector(Scaled(float(M_PI), light.diffuse), float(light.ies_profile),
                d.diffuse);
-    CopyVector(float(M_PI) * light.specular, 0.f, d.specular);
+    CopyVector(Scaled(float(M_PI), light.specular), 0.f, d.specular);
     CopyVector(light.attenuation, 0.f, d.attenuation);
-    ambient += light.ambient;
+    ksl_xpy_vvf(&light.ambient, &ambient);
   }
   out.count[0] = count;
   out.count[1] = int(scene.ies_profiles.size());
@@ -291,7 +317,7 @@ shift::gui::Viewport::Viewport(QWindow* parent)
   : QWindow(parent) {
   setSurfaceType(QSurface::VulkanSurface);
   setVulkanInstance(GetVulkanInstance());
-  sun_direction_ = QVector3D(0.45f, 0.3f, -0.84f).normalized();
+  sun_direction_ = Normalized(ksl_vec3f(0.45f, 0.3f, -0.84f));
 }
 
 shift::gui::Viewport::~Viewport() {
@@ -333,7 +359,7 @@ void shift::gui::Viewport::set_floor_enabled(bool enabled) {
 
 void shift::gui::Viewport::FrameScene() {
   if(simulation_ && !poses_.bodies.empty()) {
-    QVector3D box_min, box_max;
+    ksl_vec3f_t box_min, box_max;
     SceneBounds(simulation_->get_scene(), poses_, box_min, box_max);
     camera_.Frame(box_min, box_max);
     UpdateEnvironment();
@@ -342,9 +368,13 @@ void shift::gui::Viewport::FrameScene() {
   update();
 }
 
-void shift::gui::Viewport::FrameSphere(const QVector3D& center, float radius) {
-  const QVector3D reach(radius, radius, radius);
-  camera_.Frame(center - reach, center + reach);
+void shift::gui::Viewport::FrameSphere(const ksl_vec3f_t& center,
+                                       float radius) {
+  const ksl_vec3f_t reach = ksl_vec3f(radius, radius, radius);
+  ksl_vec3f_t box_min, box_max;
+  ksl_subtract_vvf(&center, &reach, &box_min);
+  ksl_add_vvf(&center, &reach, &box_max);
+  camera_.Frame(box_min, box_max);
   UpdateEnvironment();
   rt_frame_ = 0;
   update();
@@ -361,21 +391,23 @@ void shift::gui::Viewport::UpdatePoses() {
     LowerFloorBelowModel();
     if(follow_body_ >= 0 &&
        follow_body_ < static_cast<int>(poses_.bodies.size())) {
-      camera_.set_follow(FollowFrame(follow_body_, follow_mode_) *
-                         follow_offset_);
+      const ksl_SE3f_t frame = FollowFrame(follow_body_, follow_mode_);
+      ksl_SE3f_t follow;
+      ksl_product_ddf(&frame, &follow_offset_, &follow);
+      camera_.set_follow(follow);
     }
   }
 }
 
-QMatrix4x4 shift::gui::Viewport::FollowFrame(int body, FollowMode mode) const {
-  const QMatrix4x4& pose = poses_.bodies[body];
+ksl_SE3f_t shift::gui::Viewport::FollowFrame(int body, FollowMode mode) const {
+  const ksl_SE3f_t& pose = poses_.bodies[body];
   if(mode == FollowMode::kBody) {
     return pose;
   }
   // the height of the ground under the body; without a terrain the ground is
   // flat at z = 0, as it is for the tires
   float ground_z = 0.f;
-  const ksl_vec3_t point = {{pose(0, 3), pose(1, 3), pose(2, 3)}};
+  const ksl_vec3_t point = {{pose.t.x, pose.t.y, pose.t.z}};
   for(const auto* terrain : simulation_->get_context()->get_active_terrain()) {
     ksl_vec3_t surface, normal;
     // the worker may be changing a deformable terrain: the undisturbed
@@ -399,14 +431,15 @@ void shift::gui::Viewport::set_follow_body(int body, FollowMode mode) {
     // the camera does not move: changing bodies keeps the current view
     follow_body_ = body;
     follow_mode_ = mode;
-    follow_offset_ = FollowFrame(body, mode).inverted() * camera_.get_follow();
+    const ksl_SE3f_t frame = FollowFrame(body, mode);
+    ksl_product_dinvdf(&frame, &camera_.get_follow(), &follow_offset_);
   }
   rt_frame_ = 0;
   update();
 }
 
 void shift::gui::Viewport::set_floor_below_model(float z) {
-  PlaceFloor(QVector3D(0.f, 0.f, z), QVector3D(0.f, 0.f, -1.f));
+  PlaceFloor(ksl_vec3f(0.f, 0.f, z), ksl_vec3f(0.f, 0.f, -1.f));
   floor_below_model_ = true;
   LowerFloorBelowModel();
 }
@@ -415,50 +448,51 @@ void shift::gui::Viewport::LowerFloorBelowModel() {
   if(!floor_below_model_ || !simulation_ || poses_.bodies.empty()) {
     return;
   }
-  QVector3D box_min, box_max;
+  ksl_vec3f_t box_min, box_max, size;
   SceneBounds(simulation_->get_scene(), poses_, box_min, box_max);
   // +z is down: the lowest point has the largest z; leave a small gap so
   // the floor does not touch the model
-  const float gap = 0.01f * (box_max - box_min).length();
-  const float level = box_max.z() + gap;
-  if(level > floor_origin_.z()) {
-    PlaceFloor(QVector3D(0.5f * (box_min.x() + box_max.x()),
-                        0.5f * (box_min.y() + box_max.y()), level),
-               QVector3D(0.f, 0.f, -1.f));
+  ksl_subtract_vvf(&box_max, &box_min, &size);
+  const float gap = 0.01f * ksl_vec3f_l2norm(&size);
+  const float level = box_max.z + gap;
+  if(level > floor_origin_.z) {
+    PlaceFloor(ksl_vec3f(0.5f * (box_min.x + box_max.x),
+                         0.5f * (box_min.y + box_max.y), level),
+               ksl_vec3f(0.f, 0.f, -1.f));
   }
 }
 
-void shift::gui::Viewport::set_floor(const QVector3D& point,
-                                     const QVector3D& normal) {
+void shift::gui::Viewport::set_floor(const ksl_vec3f_t& point,
+                                     const ksl_vec3f_t& normal) {
   floor_below_model_ = false;
   PlaceFloor(point, normal);
 }
 
-void shift::gui::Viewport::PlaceFloor(const QVector3D& point,
-                                      const QVector3D& normal) {
+void shift::gui::Viewport::PlaceFloor(const ksl_vec3f_t& point,
+                                      const ksl_vec3f_t& normal) {
   floor_origin_ = point;
-  floor_normal_ = normal.normalized();
+  floor_normal_ = Normalized(normal);
   // in-plane axes: the x axis projected onto the plane, so a level floor
   // keeps its grid along x and y
-  QVector3D x(1.f, 0.f, 0.f);
-  if(std::fabs(QVector3D::dotProduct(x, floor_normal_)) > 0.9f) {
-    x = QVector3D(0.f, 1.f, 0.f);
+  ksl_vec3f_t x = ksl_vec3f(1.f, 0.f, 0.f);
+  if(std::fabs(ksl_dot_vvf(&x, &floor_normal_)) > 0.9f) {
+    x = ksl_vec3f(0.f, 1.f, 0.f);
   }
-  floor_u_ =
-    (x - QVector3D::dotProduct(x, floor_normal_) * floor_normal_).normalized();
-  floor_v_ = QVector3D::crossProduct(floor_normal_, floor_u_);
+  ksl_axpy_vvf(-ksl_dot_vvf(&x, &floor_normal_), &floor_normal_, &x);
+  floor_u_ = Normalized(x);
+  ksl_cross_vvf(&floor_normal_, &floor_u_, &floor_v_);
   rt_frame_ = 0;
   rt_history_valid_ = false;
   update();
 }
 
 void shift::gui::Viewport::CopyFloorFrame(float out[16]) const {
-  const QVector3D* columns[4] = {&floor_u_, &floor_v_, &floor_normal_,
-                                 &floor_origin_};
+  const ksl_vec3f_t* columns[4] = {&floor_u_, &floor_v_, &floor_normal_,
+                                   &floor_origin_};
   for(int c = 0; c < 4; c++) {
-    out[4 * c + 0] = columns[c]->x();
-    out[4 * c + 1] = columns[c]->y();
-    out[4 * c + 2] = columns[c]->z();
+    out[4 * c + 0] = columns[c]->x;
+    out[4 * c + 1] = columns[c]->y;
+    out[4 * c + 2] = columns[c]->z;
     out[4 * c + 3] = c == 3 ? 1.f : 0.f;
   }
 }
@@ -466,9 +500,10 @@ void shift::gui::Viewport::CopyFloorFrame(float out[16]) const {
 void shift::gui::Viewport::UpdateEnvironment() {
   // size the floor grid to the model in its current pose; the floor itself
   // is the floor plane of the fixed body (see set_floor)
-  QVector3D box_min, box_max;
+  ksl_vec3f_t box_min, box_max, extent;
   SceneBounds(simulation_->get_scene(), poses_, box_min, box_max);
-  const float size = std::max((box_max - box_min).length(), 1e-3f);
+  ksl_subtract_vvf(&box_max, &box_min, &extent);
+  const float size = std::max(ksl_vec3f_l2norm(&extent), 1e-3f);
   floor_spacing_ = std::pow(10.f, std::floor(std::log10(size / 4.f)));
   floor_extent_ = 100.f * size;
 }
@@ -1199,8 +1234,8 @@ void shift::gui::Viewport::CreateTextureArray(int layer_count, int size) {
 
 void shift::gui::Viewport::UploadEnvironment(QRhiResourceUpdateBatch* batch) {
   Sky sky;
-  sky.zenith = QVector3D(kSkyZenith[0], kSkyZenith[1], kSkyZenith[2]);
-  sky.horizon = QVector3D(kSkyHorizon[0], kSkyHorizon[1], kSkyHorizon[2]);
+  sky.zenith = ksl_vec3f(kSkyZenith[0], kSkyZenith[1], kSkyZenith[2]);
+  sky.horizon = ksl_vec3f(kSkyHorizon[0], kSkyHorizon[1], kSkyHorizon[2]);
   const EnvironmentTables tables = ComputeEnvironmentTables(sky);
   auto upload = [&](QRhiTexture* texture, const std::vector<float>& values) {
     batch->uploadTexture(texture,
@@ -1329,13 +1364,13 @@ static void BuildMeshBvhs(
 }
 
 /* distance along the ray o + t d to the box, if it is hit before t_max */
-static bool RayHitsBox(const QVector3D& o, const QVector3D& inverse_d,
+static bool RayHitsBox(const ksl_vec3f_t& o, const ksl_vec3f_t& inverse_d,
                        const float box_min[3], const float box_max[3],
                        float t_max) {
   float t_near = 0.f, t_far = t_max;
   for(int k = 0; k < 3; k++) {
-    float t0 = (box_min[k] - o[k]) * inverse_d[k];
-    float t1 = (box_max[k] - o[k]) * inverse_d[k];
+    float t0 = (box_min[k] - o.at[k]) * inverse_d.at[k];
+    float t1 = (box_max[k] - o.at[k]) * inverse_d.at[k];
     if(t0 > t1) {
       std::swap(t0, t1);
     }
@@ -1347,31 +1382,35 @@ static bool RayHitsBox(const QVector3D& o, const QVector3D& inverse_d,
 
 /* Moller-Trumbore: the distance t along the ray o + t d to the triangle, if
 it is hit at 0 < t < t_max */
-static bool RayHitsTriangle(const QVector3D& o, const QVector3D& d,
+static bool RayHitsTriangle(const ksl_vec3f_t& o, const ksl_vec3f_t& d,
                             const shift::gui::RtTriangle& triangle, float t_max,
                             float& t, float& b1_out, float& b2_out) {
-  const QVector3D v0(triangle.v0[0], triangle.v0[1], triangle.v0[2]);
-  const QVector3D e1 =
-    QVector3D(triangle.v1[0], triangle.v1[1], triangle.v1[2]) - v0;
-  const QVector3D e2 =
-    QVector3D(triangle.v2[0], triangle.v2[1], triangle.v2[2]) - v0;
-  const QVector3D p = QVector3D::crossProduct(d, e2);
-  const float det = QVector3D::dotProduct(e1, p);
+  const ksl_vec3f_t v0 =
+    ksl_vec3f(triangle.v0[0], triangle.v0[1], triangle.v0[2]);
+  const ksl_vec3f_t v1 =
+    ksl_vec3f(triangle.v1[0], triangle.v1[1], triangle.v1[2]);
+  const ksl_vec3f_t v2 =
+    ksl_vec3f(triangle.v2[0], triangle.v2[1], triangle.v2[2]);
+  ksl_vec3f_t e1, e2, p, s, q;
+  ksl_subtract_vvf(&v1, &v0, &e1);
+  ksl_subtract_vvf(&v2, &v0, &e2);
+  ksl_cross_vvf(&d, &e2, &p);
+  const float det = ksl_dot_vvf(&e1, &p);
   if(std::fabs(det) < 1e-12f) {
     return false;
   }
   const float inverse_det = 1.f / det;
-  const QVector3D s = o - v0;
-  const float b1 = QVector3D::dotProduct(s, p) * inverse_det;
+  ksl_subtract_vvf(&o, &v0, &s);
+  const float b1 = ksl_dot_vvf(&s, &p) * inverse_det;
   if(b1 < 0.f || b1 > 1.f) {
     return false;
   }
-  const QVector3D q = QVector3D::crossProduct(s, e1);
-  const float b2 = QVector3D::dotProduct(d, q) * inverse_det;
+  ksl_cross_vvf(&s, &e1, &q);
+  const float b2 = ksl_dot_vvf(&d, &q) * inverse_det;
   if(b2 < 0.f || b1 + b2 > 1.f) {
     return false;
   }
-  const float hit = QVector3D::dotProduct(e2, q) * inverse_det;
+  const float hit = ksl_dot_vvf(&e2, &q) * inverse_det;
   if(hit <= 0.f || hit >= t_max) {
     return false;
   }
@@ -1461,7 +1500,6 @@ void shift::gui::Viewport::ShapeRtTerrain(
     return;
   }
   const bool smooth = smooth_terrain_;
-  const QMatrix3x3 rotation = t.pose.normalMatrix();
   // control points beyond the map: those of its edge, as the shaders take
   // them (terrain_common.glsl, ControlZ without the B-spline)
   auto z = [&](int i, int j) {
@@ -1511,8 +1549,10 @@ void shift::gui::Viewport::ShapeRtTerrain(
                     float* normal) {
     float z_a, z_b;
     const float h = surface(i, j, a, b, z_a, z_b);
-    const QVector3D world = t.pose.map(QVector3D(
-      t.x_scale * (float(i) + a), t.y_scale * (float(j) + b), h));
+    const ksl_vec3f_t local = ksl_vec3f(t.x_scale * (float(i) + a),
+                                        t.y_scale * (float(j) + b), h);
+    ksl_vec3f_t world;
+    ksl_product_dvf(&t.pose, &local, &world);
     float z_x = z_a / t.x_scale, z_y = z_b / t.y_scale;
     if(!smooth) {
       // facets would show each cell: the normals of the central differences
@@ -1535,11 +1575,12 @@ void shift::gui::Viewport::ShapeRtTerrain(
             (y01 * (1.f - a) + y11 * a) * b;
     }
     const float length = std::sqrt(z_x * z_x + z_y * z_y + 1.f);
-    const float n[3] = {z_x / length, z_y / length, -1.f / length};
+    const ksl_vec3f_t n = ksl_vec3f(z_x / length, z_y / length, -1.f / length);
+    ksl_vec3f_t world_normal;
+    ksl_product_drvf(&t.pose.R, &n, &world_normal);
     for(int c = 0; c < 3; c++) {
-      position[c] = world[c];
-      normal[c] = rotation(c, 0) * n[0] + rotation(c, 1) * n[1] +
-                  rotation(c, 2) * n[2];
+      position[c] = world.at[c];
+      normal[c] = world_normal.at[c];
     }
   };
   const float step = 1.f / float(s);
@@ -1896,9 +1937,9 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
                                         QRhiResourceUpdateBatch* batch) {
   const QSize size = get_render_target()->pixelSize();
   const float aspect = float(size.width()) / float(std::max(size.height(), 1));
-  const QMatrix4x4 view_projection = rhi_->clipSpaceCorrMatrix() *
-                                     camera_.get_projection_matrix(aspect) *
-                                     camera_.get_view_matrix();
+  const QMatrix4x4 view_projection =
+    rhi_->clipSpaceCorrMatrix() * camera_.get_projection_matrix(aspect) *
+    ToQMatrix4x4(camera_.get_view_matrix());
 
   // the lights of the model replace the sun
   const bool sun = !UpdateLights(batch);
@@ -1961,9 +2002,13 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
         sizeof(material), &material);
       std::vector<InstanceAttributes> instances(cad.bodies.size());
       for(size_t i = 0; i < instances.size(); i++) {
-        QMatrix4x4 pose = poses_.bodies[cad.bodies[i]];
-        pose.scale(cad.scale);
-        CopyMatrix(pose, instances[i].model);
+        // the pose, its rotation scaled by the CAD's scale
+        CopyMatrix(poses_.bodies[cad.bodies[i]], instances[i].model);
+        for(int c = 0; c < 3; c++) {
+          for(int r = 0; r < 3; r++) {
+            instances[i].model[4 * c + r] *= cad.scale;
+          }
+        }
       }
       batch->updateDynamicBuffer(
         gpu.instances.get(), 0,
@@ -2097,25 +2142,29 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
   const int mesh_count = static_cast<int>(scene.meshes.size());
   for(int i = 0; i < instance_count; i++) {
     const SceneInstance& instance = rt_instance_list_[i];
-    const QMatrix4x4& pose = poses_.bodies[instance.body_index];
-    const QMatrix4x4& previous =
+    const ksl_SE3f_t& pose = poses_.bodies[instance.body_index];
+    const ksl_SE3f_t& previous =
       rt_previous_poses_.empty() ? pose : rt_previous_poses_[i];
-    moved = moved || previous != pose;
+    moved = moved || !std::equal(std::begin(previous.as_array),
+                                 std::end(previous.as_array),
+                                 std::begin(pose.as_array));
+    ksl_SE3f_t world_to_body;
+    ksl_SE3f_inverted(&pose, &world_to_body);
     CopyMatrix(pose, instances[i].body_to_world);
-    CopyMatrix(pose.inverted(), instances[i].world_to_body);
+    CopyMatrix(world_to_body, instances[i].world_to_body);
     CopyMatrix(previous, instances[i].previous_body_to_world);
     if(instance.mesh_index < mesh_count) {
       const SceneMesh& mesh = scene.meshes[instance.mesh_index];
-      QVector3D bounds_min = mesh.bounds_min, bounds_max = mesh.bounds_max;
+      ksl_vec3f_t bounds_min = mesh.bounds_min, bounds_max = mesh.bounds_max;
       for(const auto& terrain : rt_terrains_) {
         // a deformable terrain's box is that of its refitted BVH
         if(terrain.mesh == instance.mesh_index &&
            terrain.first_node < static_cast<int>(pick_nodes_.size())) {
           const BvhNode& root = pick_nodes_[terrain.first_node];
-          bounds_min = QVector3D(root.box_min[0], root.box_min[1],
-                                 root.box_min[2]);
-          bounds_max = QVector3D(root.box_max[0], root.box_max[1],
-                                 root.box_max[2]);
+          bounds_min =
+            ksl_vec3f(root.box_min[0], root.box_min[1], root.box_min[2]);
+          bounds_max =
+            ksl_vec3f(root.box_max[0], root.box_max[1], root.box_max[2]);
         }
       }
       TransformBox(pose, bounds_min, bounds_max, instances[i].box_min,
@@ -2166,10 +2215,10 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
                                            QRhiResourceUpdateBatch* batch) {
   const QSize size = get_render_target()->pixelSize();
   const float aspect = float(size.width()) / float(std::max(size.height(), 1));
-  const QMatrix4x4 view = camera_.get_view_matrix();
+  const ksl_SE3f_t view = camera_.get_view_matrix();
   const QMatrix4x4 projection =
     rhi_->clipSpaceCorrMatrix() * camera_.get_projection_matrix(aspect);
-  const QMatrix4x4 view_projection = projection * view;
+  const QMatrix4x4 view_projection = projection * ToQMatrix4x4(view);
 
   // restart the progressive mean whenever anything in view changes; the
   // denoiser's history survives through reprojection
@@ -2201,7 +2250,9 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
 
   if(rt_frame_ < kRtMaxFrames) {
     RtUniforms uniforms{};
-    CopyMatrix(view.inverted(), uniforms.inverse_view);
+    ksl_SE3f_t inverse_view;
+    ksl_SE3f_inverted(&view, &inverse_view);
+    CopyMatrix(inverse_view, uniforms.inverse_view);
     CopyMatrix(projection.inverted(), uniforms.inverse_projection);
     CopyVector(camera_.get_position(), 1.f, uniforms.camera_position);
     const bool sun = !UpdateLights(batch);
@@ -2328,7 +2379,7 @@ void shift::gui::Viewport::wheelEvent(QWheelEvent* event) {
   // zoom towards the surface under the cursor, so that it can be seen up
   // close without the camera passing through it; elsewhere (the sky, the
   // floor, terrain) towards the target
-  QVector3D point;
+  ksl_vec3f_t point;
   if(Pick(event->position(), point)) {
     camera_.ZoomTowards(point, factor);
   } else {
@@ -2496,7 +2547,7 @@ void shift::gui::Viewport::BuildPickBvh() {
   pick_built_ = true;
 }
 
-bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
+bool shift::gui::Viewport::Pick(const QPointF& pixel, ksl_vec3f_t& point) {
   if(!simulation_ || poses_.bodies.empty()) {
     return false;
   }
@@ -2506,16 +2557,23 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
   // the ray from the camera through the pixel
   const float w = float(std::max(width(), 1));
   const float h = float(std::max(height(), 1));
-  const QMatrix4x4 inverse_view_projection =
-    (camera_.get_projection_matrix(w / h) * camera_.get_view_matrix())
-      .inverted();
+  // the pixel on the near and far planes, in the camera's coordinates:
+  // undoing the projection, the only Qt matrix
+  const QMatrix4x4 inverse_projection =
+    camera_.get_projection_matrix(w / h).inverted();
   const float x = 2.f * float(pixel.x()) / w - 1.f;
   const float y = 1.f - 2.f * float(pixel.y()) / h;
-  const QVector3D near_point =
-    inverse_view_projection.map(QVector3D(x, y, -1.f));
-  const QVector3D far_point = inverse_view_projection.map(QVector3D(x, y, 1.f));
-  const QVector3D origin = camera_.get_position();
-  const QVector3D direction = (far_point - near_point).normalized();
+  const QVector3D near_eye = inverse_projection.map(QVector3D(x, y, -1.f));
+  const QVector3D far_eye = inverse_projection.map(QVector3D(x, y, 1.f));
+  const ksl_vec3f_t along_eye =
+    ksl_vec3f(far_eye.x() - near_eye.x(), far_eye.y() - near_eye.y(),
+              far_eye.z() - near_eye.z());
+  // then in world coordinates, from the camera's position
+  const ksl_SE3f_t view = camera_.get_view_matrix();
+  ksl_vec3f_t along;
+  ksl_product_drinvvf(&view.R, &along_eye, &along);
+  const ksl_vec3f_t origin = camera_.get_position();
+  const ksl_vec3f_t direction = Normalized(along);
 
   const Scene& scene = simulation_->get_scene();
   float t_best = std::numeric_limits<float>::max();
@@ -2526,11 +2584,11 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
       continue;
     }
     // the ray in body coordinates; poses are rigid, so t is unchanged
-    const QMatrix4x4 world_to_body =
-      poses_.bodies[instance.body_index].inverted();
-    const QVector3D o = world_to_body.map(origin);
-    const QVector3D d = world_to_body.mapVector(direction);
-    const QVector3D inverse_d(1.f / d.x(), 1.f / d.y(), 1.f / d.z());
+    const ksl_SE3f_t& pose = poses_.bodies[instance.body_index];
+    ksl_vec3f_t o, d;
+    ksl_product_dinvvf(&pose, &origin, &o);
+    ksl_product_drinvvf(&pose.R, &direction, &d);
+    const ksl_vec3f_t inverse_d = ksl_vec3f(1.f / d.x, 1.f / d.y, 1.f / d.z);
     stack.assign(1, pick_roots_[instance.mesh_index]);
     while(!stack.empty()) {
       const BvhNode& node = pick_nodes_[stack.back()];
@@ -2570,6 +2628,7 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, QVector3D& point) {
   if(t_best == std::numeric_limits<float>::max()) {
     return false;
   }
-  point = origin + direction * t_best;
+  point = origin;
+  ksl_axpy_vvf(t_best, &direction, &point);
   return true;
 }

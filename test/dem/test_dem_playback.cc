@@ -15,6 +15,7 @@ the grains shown. */
 
 #include <gtest/gtest.h>
 
+#include "shift/config.h"
 #include "shift/core/context.h"
 #include "shift/core/force_module/dem.h"
 #include "shift/gui/simulation.h"
@@ -107,7 +108,7 @@ protected:
     std::vector<float> centers;
     for(size_t k = size_t(scene.body_count); k < poses.bodies.size(); k++) {
       for(int a = 0; a < 3; a++) {
-        centers.push_back(poses.bodies[k](a, 3));
+        centers.push_back(poses.bodies[k].t.at[a]);
       }
     }
     return centers;
@@ -159,8 +160,8 @@ TEST_F(DemPlayback, Scene) {
       const auto& mesh = scene.meshes[size_t(instance.mesh_index)];
       /* the bead's bounds are its radius; the pair's half its length */
       const float half = initial.template_index[g] == 0 ? 0.005f : 0.007f;
-      EXPECT_NEAR(mesh.bounds_max.x(), half, 1e-6f);
-      EXPECT_NEAR(mesh.bounds_min.x(), -half, 1e-6f);
+      EXPECT_NEAR(mesh.bounds_max.x, half, 1e-6f);
+      EXPECT_NEAR(mesh.bounds_min.x, -half, 1e-6f);
       instances[size_t(instance.mesh_index)]++;
     }
   }
@@ -199,6 +200,35 @@ TEST_F(DemPlayback, ForwardAndBack) {
   EXPECT_EQ(Shown(), end);
 }
 
+/* the grains drawn at the end of the run, turned by then, have rotations:
+orthonormal, as KSL's single precision ksl_quaternionf_toMat3x3f does not
+give (it drew the beads as ellipsoids) */
+TEST_F(DemPlayback, GrainPosesAreRotations) {
+  RunToEnd();
+  simulation_.ShowTime(simulation_.get_computed_time());
+  shift::gui::Poses poses;
+  simulation_.TakePoses(poses);
+  const auto& scene = simulation_.get_scene();
+  ASSERT_EQ(poses.bodies.size(),
+            size_t(scene.body_count) + size_t(scene.grain_count));
+  float turned = 0.f;
+  for(size_t k = size_t(scene.body_count); k < poses.bodies.size(); k++) {
+    const ksl_mat3x3f_t& r = poses.bodies[k].R;
+    for(int a = 0; a < 3; a++) {
+      for(int b = 0; b < 3; b++) {
+        float dot = 0.f;
+        for(int i = 0; i < 3; i++) {
+          dot += r.at[a][i] * r.at[b][i];
+        }
+        EXPECT_NEAR(dot, a == b ? 1.f : 0.f, 1e-5f) << "grain " << k;
+      }
+      turned = std::max(turned, std::fabs(r.at[a][a] - 1.f));
+    }
+  }
+  /* the grains have turned, so the check is not of identities */
+  EXPECT_GT(turned, 1e-3f);
+}
+
 /* Reset starts the grains over as they were placed, and the run after it is
 the first one again; the grains' impulse on the plate starts from zero */
 TEST_F(DemPlayback, ResetRepeatsTheRun) {
@@ -227,4 +257,30 @@ TEST_F(DemPlayback, RunFromShownGrains) {
   EXPECT_EQ(Shown(), shown);
   simulation_.ShowTime(simulation_.get_computed_time());
   EXPECT_EQ(Shown(), Grains());
+}
+
+/* the faces of a hull a few millimeters across have unit normals: the
+convex hull of rock_00.obj (examples/dem/grain_shapes.json), whose smallest
+triangle has an area of 5e-6 m^2, under the 1e-5 below which
+QVector3D::normalized() gives zero and the face was drawn black */
+TEST(DemViewer, SmallHullFacesHaveNormals) {
+  shift::gui::Simulation simulation;
+  simulation.Load(std::string(SHIFT_EXAMPLES_DIR) + "/dem/grain_shapes.json");
+  const auto& scene = simulation.get_scene();
+  ASSERT_EQ(scene.grain_count, 3);
+  size_t vertices = 0;
+  for(const auto& instance : scene.instances) {
+    if(instance.body_index < scene.body_count) {
+      continue;
+    }
+    for(const auto& v : scene.meshes[size_t(instance.mesh_index)].vertices) {
+      EXPECT_NEAR(std::sqrt(v.normal[0] * v.normal[0] +
+                            v.normal[1] * v.normal[1] +
+                            v.normal[2] * v.normal[2]),
+                  1.0, 1e-5);
+      vertices++;
+    }
+  }
+  /* the hull's 28 triangles among the spheres' */
+  EXPECT_GE(vertices, 28u * 3u);
 }

@@ -2,19 +2,26 @@
 #define SHIFT_GUI_SCENE_H_
 
 #include <QImage>
-#include <QMatrix4x4>
-#include <QVector3D>
 
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
+#include "ksl/SE3.h"
+#include "ksl/vec3.h"
 #include "shift/gui/cad_scene.h"
 #include "shift/gui/mesh_data.h"
 
 namespace shift {
 namespace gui {
+
+/*! \brief the identity transform */
+inline ksl_SE3f_t Identity() {
+  ksl_SE3f_t d;
+  ksl_SE3f_setIdentity(&d);
+  return d;
+}
 
 struct Vertex {
   float position[3];
@@ -27,7 +34,7 @@ struct Vertex {
 struct SceneMesh {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
-  QVector3D albedo{0.6f, 0.6f, 0.6f};
+  ksl_vec3f_t albedo = ksl_vec3f(0.6f, 0.6f, 0.6f);
   float roughness = 0.6f;
   float metallic = 0.f;
   float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
@@ -41,8 +48,8 @@ struct SceneMesh {
   bool triplanar = false; /*!< project along the body axes instead of uv */
   float texture_scale = 1.f; /*!< triplanar tile size */
 
-  QVector3D bounds_min;
-  QVector3D bounds_max;
+  ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
 
   /*! the terrain (Scene::terrains) the mesh triangulates, -1 if none: it is
    * drawn tessellated from the terrain's maps where the device can, and as
@@ -70,7 +77,7 @@ struct SceneTerrain {
    * triangle pairs along each side of a cell, so that the ray tracer can
    * draw the smooth surface (Viewport::ShapeRtTerrain) */
   int mesh_subdivisions = 1;
-  QMatrix4x4 pose; /*!< terrain frame to world */
+  ksl_SE3f_t pose = Identity(); /*!< terrain frame to world */
 };
 
 /*! \brief a light of the model (shift::core::light), attached to a frame
@@ -80,11 +87,12 @@ struct SceneLight {
   enum Type { kPoint = 0, kSpot = 1, kDirectional = 2, kIes = 3 };
   Type type = kPoint;
   int body_index = 0;
-  QMatrix4x4 frame; /*!< light frame with respect to the body origin */
-  QVector3D ambient;  /*!< Ka */
-  QVector3D diffuse;  /*!< Kd times intensity */
-  QVector3D specular; /*!< Ks times intensity */
-  QVector3D attenuation{1.f, 0.f, 0.f}; /*!< c, l, q */
+  ksl_SE3f_t frame = Identity(); /*!< light frame with respect to the body
+                                    origin */
+  ksl_vec3f_t ambient = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Ka */
+  ksl_vec3f_t diffuse = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Kd times intensity */
+  ksl_vec3f_t specular = ksl_vec3f(0.f, 0.f, 0.f); /*!< Ks times intensity */
+  ksl_vec3f_t attenuation = ksl_vec3f(1.f, 0.f, 0.f); /*!< c, l, q */
   float cone_angle = 0.f;       /*!< spot: half angle (rad) */
   float inner_cone_angle = 0.f; /*!< spot: half angle of full light */
   int ies_profile = -1;         /*!< IES: index in Scene::ies_profiles */
@@ -162,7 +170,7 @@ private:
  * their principal axes at their centers of mass */
 struct Poses {
   double time = 0.0;
-  std::vector<QMatrix4x4> bodies;
+  std::vector<ksl_SE3f_t> bodies;
 };
 
 /*! \brief a rectangle of control points of a terrain (SceneTerrain) that
@@ -178,8 +186,8 @@ struct TerrainUpdate {
 };
 
 /*! \brief world space bounding box of the scene meshes in the given poses */
-void SceneBounds(const Scene& scene, const Poses& poses, QVector3D& box_min,
-                 QVector3D& box_max);
+void SceneBounds(const Scene& scene, const Poses& poses, ksl_vec3f_t& box_min,
+                 ksl_vec3f_t& box_max);
 
 } // namespace gui
 } // namespace shift

@@ -4,49 +4,50 @@
 
 #include <algorithm>
 
+#include "ksl/matrix.h"
+
+/* grow the box by the corners of a body's box transformed by its pose */
+static void Grow(const ksl_SE3f_t& pose, const ksl_vec3f_t& local_min,
+                 const ksl_vec3f_t& local_max, ksl_vec3f_t& box_min,
+                 ksl_vec3f_t& box_max) {
+  for(int corner = 0; corner < 8; corner++) {
+    const ksl_vec3f_t local =
+      ksl_vec3f((corner & 1) ? local_max.x : local_min.x,
+                (corner & 2) ? local_max.y : local_min.y,
+                (corner & 4) ? local_max.z : local_min.z);
+    ksl_vec3f_t world;
+    ksl_product_dvf(&pose, &local, &world);
+    for(int k = 0; k < 3; k++) {
+      box_min.at[k] = std::min(box_min.at[k], world.at[k]);
+      box_max.at[k] = std::max(box_max.at[k], world.at[k]);
+    }
+  }
+}
+
 void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
-                             QVector3D& box_min, QVector3D& box_max) {
-  box_min = QVector3D(1e30f, 1e30f, 1e30f);
-  box_max = -box_min;
+                             ksl_vec3f_t& box_min, ksl_vec3f_t& box_max) {
+  box_min = ksl_vec3f(1e30f, 1e30f, 1e30f);
+  box_max = ksl_vec3f(-1e30f, -1e30f, -1e30f);
   for(const auto& instance : scene.instances) {
     const SceneMesh& mesh = scene.meshes[instance.mesh_index];
     if(mesh.terrain >= 0) {
       continue; // frame the model, not the ground it stands on
     }
-    const QMatrix4x4& pose = poses.bodies.at(instance.body_index);
-    for(int corner = 0; corner < 8; corner++) {
-      const QVector3D local((corner & 1) ? mesh.bounds_max.x() : mesh.bounds_min.x(),
-                            (corner & 2) ? mesh.bounds_max.y() : mesh.bounds_min.y(),
-                            (corner & 4) ? mesh.bounds_max.z() : mesh.bounds_min.z());
-      const QVector3D world = pose.map(local);
-      for(int k = 0; k < 3; k++) {
-        box_min[k] = std::min(box_min[k], world[k]);
-        box_max[k] = std::max(box_max[k], world[k]);
-      }
-    }
+    Grow(poses.bodies.at(instance.body_index), mesh.bounds_min,
+         mesh.bounds_max, box_min, box_max);
   }
   for(const auto& cad : scene.cads) {
     if(cad.patches.empty()) {
       continue;
     }
     for(int body : cad.bodies) {
-      const QMatrix4x4& pose = poses.bodies.at(body);
-      for(int corner = 0; corner < 8; corner++) {
-        const QVector3D local(
-          (corner & 1) ? cad.bounds_max.x() : cad.bounds_min.x(),
-          (corner & 2) ? cad.bounds_max.y() : cad.bounds_min.y(),
-          (corner & 4) ? cad.bounds_max.z() : cad.bounds_min.z());
-        const QVector3D world = pose.map(local);
-        for(int k = 0; k < 3; k++) {
-          box_min[k] = std::min(box_min[k], world[k]);
-          box_max[k] = std::max(box_max[k], world[k]);
-        }
-      }
+      Grow(poses.bodies.at(body), cad.bounds_min, cad.bounds_max, box_min,
+           box_max);
     }
   }
-  if(box_min.x() > box_max.x()) {
-    box_min = QVector3D(-1.f, -1.f, -1.f);
-    box_max = QVector3D(1.f, 1.f, 1.f);
+  if(box_min.x > box_max.x) {
+    box_min = ksl_vec3f(-1.f, -1.f, -1.f);
+    box_max = ksl_vec3f(1.f, 1.f, 1.f);
   }
 }
 

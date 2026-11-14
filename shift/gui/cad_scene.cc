@@ -321,8 +321,10 @@ void CadPacker::Grow(const cad::Surface& s, const cad::Transform& t, double u,
                      double v) {
   const cad::Vec3 p = t.Apply(cad::SurfacePoint(model_, s, u, v));
   for(int k = 0; k < 3; ++k) {
-    out_.bounds_min[k] = std::min(out_.bounds_min[k], float(scale_ * p[k]));
-    out_.bounds_max[k] = std::max(out_.bounds_max[k], float(scale_ * p[k]));
+    out_.bounds_min.at[k] =
+      std::min(out_.bounds_min.at[k], float(scale_ * p[k]));
+    out_.bounds_max.at[k] =
+      std::max(out_.bounds_max.at[k], float(scale_ * p[k]));
   }
 }
 
@@ -573,8 +575,8 @@ SceneCad MakeSceneCad(const cad::Model& model,
   SceneCad out;
   out.scale = float(scale);
   out.first_triangles.push_back(0);
-  out.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-  out.bounds_max = -out.bounds_min;
+  out.bounds_min = ksl_vec3f(1e30f, 1e30f, 1e30f);
+  out.bounds_max = ksl_vec3f(-1e30f, -1e30f, -1e30f);
   // size of the bodies, from the box of their vertices
   cad::Vec3 lo{1e300, 1e300, 1e300}, hi{-1e300, -1e300, -1e300};
   for(const auto& placed : bodies) {
@@ -603,7 +605,7 @@ SceneCad MakeSceneCad(const cad::Model& model,
     packer.AddBody(placed);
   }
   if(out.patches.empty()) {
-    out.bounds_min = out.bounds_max = QVector3D();
+    out.bounds_min = out.bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
   }
   return out;
 }

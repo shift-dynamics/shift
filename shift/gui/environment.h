@@ -1,7 +1,7 @@
 #ifndef SHIFT_GUI_ENVIRONMENT_H_
 #define SHIFT_GUI_ENVIRONMENT_H_
 
-#include <QVector3D>
+#include "ksl/vec3.h"
 
 #include <vector>
 
@@ -13,13 +13,13 @@ namespace gui {
 altitude of a direction, i.e. on its z component (+z down)
 */
 struct Sky {
-  QVector3D zenith;
-  QVector3D horizon;
-  QVector3D ground = QVector3D(0.12f, 0.11f, 0.10f);
+  ksl_vec3f_t zenith = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t horizon = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t ground = ksl_vec3f(0.12f, 0.11f, 0.10f);
 
   /*! \brief radiance from direction d, without the sun; keep in sync with
    * Sky() in sky.frag and raytrace.comp */
-  QVector3D Radiance(const QVector3D& d) const;
+  ksl_vec3f_t Radiance(const ksl_vec3f_t& d) const;
 };
 
 /*!

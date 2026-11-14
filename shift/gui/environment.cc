@@ -20,35 +20,51 @@ static void Hammersley(int i, int n, float& u, float& v) {
 }
 
 /*! orthonormal basis (t, b, n) */
-static void Basis(const QVector3D& n, QVector3D& t, QVector3D& b) {
-  const QVector3D a =
-    std::fabs(n.x()) < 0.9f ? QVector3D(1, 0, 0) : QVector3D(0, 1, 0);
-  t = QVector3D::crossProduct(a, n).normalized();
-  b = QVector3D::crossProduct(n, t);
+static void Basis(const ksl_vec3f_t& n, ksl_vec3f_t& t, ksl_vec3f_t& b) {
+  const ksl_vec3f_t a = std::fabs(n.x) < 0.9f ? ksl_vec3f(1.f, 0.f, 0.f)
+                                              : ksl_vec3f(0.f, 1.f, 0.f);
+  ksl_cross_vvf(&a, &n, &t);
+  ksl_vec3f_normalize(&t);
+  ksl_cross_vvf(&n, &t, &b);
+}
+
+/*! the unit direction t x + b y + n z of the basis of n */
+static ksl_vec3f_t InBasis(const ksl_vec3f_t& n, float x, float y, float z) {
+  ksl_vec3f_t t, b;
+  Basis(n, t, b);
+  ksl_vec3f_t d;
+  ksl_product_avf(z, &n, &d);
+  ksl_axpy_vvf(x, &t, &d);
+  ksl_axpy_vvf(y, &b, &d);
+  ksl_vec3f_normalize(&d);
+  return d;
 }
 
 /*! GGX distributed half vector about n, alpha = roughness^2 */
-static QVector3D SampleGgx(float u, float v, float alpha, const QVector3D& n) {
+static ksl_vec3f_t SampleGgx(float u, float v, float alpha,
+                             const ksl_vec3f_t& n) {
   const float phi = 2.f * kPi * u;
   const float cos_theta =
     std::sqrt((1.f - v) / (1.f + (alpha * alpha - 1.f) * v));
   const float sin_theta = std::sqrt(std::max(1.f - cos_theta * cos_theta, 0.f));
-  QVector3D t, b;
-  Basis(n, t, b);
-  return (t * (sin_theta * std::cos(phi)) + b * (sin_theta * std::sin(phi)) +
-          n * cos_theta)
-    .normalized();
+  return InBasis(n, sin_theta * std::cos(phi), sin_theta * std::sin(phi),
+                 cos_theta);
 }
 
 /*! cosine distributed direction about n */
-static QVector3D SampleCosine(float u, float v, const QVector3D& n) {
+static ksl_vec3f_t SampleCosine(float u, float v, const ksl_vec3f_t& n) {
   const float phi = 2.f * kPi * u;
   const float r = std::sqrt(v);
-  QVector3D t, b;
-  Basis(n, t, b);
-  return (t * (r * std::cos(phi)) + b * (r * std::sin(phi)) +
-          n * std::sqrt(std::max(1.f - v, 0.f)))
-    .normalized();
+  return InBasis(n, r * std::cos(phi), r * std::sin(phi),
+                 std::sqrt(std::max(1.f - v, 0.f)));
+}
+
+/*! the direction 2 (a.h) h - a, a reflected about h */
+static ksl_vec3f_t Reflected(const ksl_vec3f_t& a, const ksl_vec3f_t& h) {
+  ksl_vec3f_t l;
+  ksl_product_avf(2.f * ksl_dot_vvf(&a, &h), &h, &l);
+  ksl_nxpy_vvf(&a, &l);
+  return l;
 }
 
 /*! Smith-Schlick visibility term with the image based lighting remapping
@@ -60,26 +76,33 @@ static float GeometrySmithIbl(float n_dot_v, float n_dot_l, float roughness) {
 }
 
 /*! a unit direction with z component z */
-static QVector3D DirectionWithZ(float z) {
-  return QVector3D(std::sqrt(std::max(1.f - z * z, 0.f)), 0.f, z);
+static ksl_vec3f_t DirectionWithZ(float z) {
+  return ksl_vec3f(std::sqrt(std::max(1.f - z * z, 0.f)), 0.f, z);
 }
 
-static void Store(std::vector<float>& table, const QVector3D& value, float w = 1.f) {
-  table.push_back(value.x());
-  table.push_back(value.y());
-  table.push_back(value.z());
+static void Store(std::vector<float>& table, const ksl_vec3f_t& value,
+                  float w = 1.f) {
+  table.push_back(value.x);
+  table.push_back(value.y);
+  table.push_back(value.z);
   table.push_back(w);
 }
 
+/*! a (1 - t) + b t */
+static ksl_vec3f_t Mix(const ksl_vec3f_t& a, const ksl_vec3f_t& b, float t) {
+  ksl_vec3f_t m;
+  ksl_product_avf(1.f - t, &a, &m);
+  ksl_axpy_vvf(t, &b, &m);
+  return m;
+}
 
-QVector3D shift::gui::Sky::Radiance(const QVector3D& d) const {
-  const float altitude = -d.z(); // +z is down
+
+ksl_vec3f_t shift::gui::Sky::Radiance(const ksl_vec3f_t& d) const {
+  const float altitude = -d.z; // +z is down
   if(altitude >= 0.f) {
-    const float t = std::sqrt(altitude);
-    return horizon * (1.f - t) + zenith * t;
+    return Mix(horizon, zenith, std::sqrt(altitude));
   }
-  const float t = std::clamp(-altitude * 4.f, 0.f, 1.f);
-  return horizon * (1.f - t) + ground * t;
+  return Mix(horizon, ground, std::clamp(-altitude * 4.f, 0.f, 1.f));
 }
 
 shift::gui::EnvironmentTables
@@ -95,56 +118,64 @@ shift::gui::ComputeEnvironmentTables(const Sky& sky) {
     const float roughness = (j + 0.5f) / roughness_count;
     const float alpha = roughness * roughness;
     for(int i = 0; i < z_count; i++) {
-      const QVector3D n = DirectionWithZ(-1.f + 2.f * (i + 0.5f) / z_count);
-      QVector3D sum;
+      const ksl_vec3f_t n = DirectionWithZ(-1.f + 2.f * (i + 0.5f) / z_count);
+      ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
       float weight = 0.f;
       for(int k = 0; k < kSampleCount; k++) {
         float u, v;
         Hammersley(k, kSampleCount, u, v);
-        const QVector3D h = SampleGgx(u, v, alpha, n);
-        const QVector3D l = 2.f * QVector3D::dotProduct(n, h) * h - n;
-        const float n_dot_l = QVector3D::dotProduct(n, l);
+        const ksl_vec3f_t l = Reflected(n, SampleGgx(u, v, alpha, n));
+        const float n_dot_l = ksl_dot_vvf(&n, &l);
         if(n_dot_l > 0.f) {
-          sum += sky.Radiance(l) * n_dot_l;
+          const ksl_vec3f_t radiance = sky.Radiance(l);
+          ksl_axpy_vvf(n_dot_l, &radiance, &sum);
           weight += n_dot_l;
         }
       }
-      Store(tables.specular, weight > 0.f ? sum / weight : sky.Radiance(n));
+      if(weight > 0.f) {
+        ksl_vec3f_scale(&sum, 1.f / weight);
+      } else {
+        sum = sky.Radiance(n);
+      }
+      Store(tables.specular, sum);
     }
   }
 
   // cosine weighted mean radiance, so that diffuse = albedo * irradiance
   tables.irradiance.reserve(4 * z_count);
   for(int i = 0; i < z_count; i++) {
-    const QVector3D n = DirectionWithZ(-1.f + 2.f * (i + 0.5f) / z_count);
-    QVector3D sum;
+    const ksl_vec3f_t n = DirectionWithZ(-1.f + 2.f * (i + 0.5f) / z_count);
+    ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
     for(int k = 0; k < kSampleCount; k++) {
       float u, v;
       Hammersley(k, kSampleCount, u, v);
-      sum += sky.Radiance(SampleCosine(u, v, n));
+      const ksl_vec3f_t radiance = sky.Radiance(SampleCosine(u, v, n));
+      ksl_xpy_vvf(&radiance, &sum);
     }
-    Store(tables.irradiance, sum / kSampleCount);
+    ksl_vec3f_scale(&sum, 1.f / kSampleCount);
+    Store(tables.irradiance, sum);
   }
 
   // scale and bias to F0 of the directional albedo of the specular lobe
   tables.brdf.reserve(4 * brdf_count * brdf_count);
-  const QVector3D n(0.f, 0.f, 1.f);
+  const ksl_vec3f_t n = ksl_vec3f(0.f, 0.f, 1.f);
   for(int j = 0; j < brdf_count; j++) {
     const float roughness = (j + 0.5f) / brdf_count;
     const float alpha = roughness * roughness;
     for(int i = 0; i < brdf_count; i++) {
       const float n_dot_v = (i + 0.5f) / brdf_count;
-      const QVector3D view(std::sqrt(1.f - n_dot_v * n_dot_v), 0.f, n_dot_v);
+      const ksl_vec3f_t view =
+        ksl_vec3f(std::sqrt(1.f - n_dot_v * n_dot_v), 0.f, n_dot_v);
       float scale = 0.f;
       float bias = 0.f;
       for(int k = 0; k < kSampleCount; k++) {
         float u, v;
         Hammersley(k, kSampleCount, u, v);
-        const QVector3D h = SampleGgx(u, v, alpha, n);
-        const float v_dot_h = QVector3D::dotProduct(view, h);
-        const QVector3D l = 2.f * v_dot_h * h - view;
-        const float n_dot_l = l.z();
-        const float n_dot_h = h.z();
+        const ksl_vec3f_t h = SampleGgx(u, v, alpha, n);
+        const float v_dot_h = ksl_dot_vvf(&view, &h);
+        const ksl_vec3f_t l = Reflected(view, h);
+        const float n_dot_l = l.z;
+        const float n_dot_h = h.z;
         if(n_dot_l > 0.f && v_dot_h > 0.f) {
           const float g = GeometrySmithIbl(n_dot_v, n_dot_l, roughness);
           const float g_visible = g * v_dot_h / (n_dot_h * n_dot_v);
@@ -154,7 +185,7 @@ shift::gui::ComputeEnvironmentTables(const Sky& sky) {
         }
       }
       Store(tables.brdf,
-            QVector3D(scale / kSampleCount, bias / kSampleCount, 0.f));
+            ksl_vec3f(scale / kSampleCount, bias / kSampleCount, 0.f));
     }
   }
   return tables;

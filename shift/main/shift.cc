@@ -48,7 +48,8 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
       return false;
     }
     request.set_frame = true;
-    request.frame_center = QVector3D(values[0], values[1], values[2]);
+    request.frame_center =
+      ksl_vec3f(float(values[0]), float(values[1]), float(values[2]));
     request.frame_radius = float(values[3]);
   }
   if(parser.isSet("view")) {
