@@ -1,0 +1,45 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 2: for each of a sphere's neighbors of lower index, the contact
+// of their pair (which the lower sphere wrote), or kNone, so that each
+// grain can sum the impulses of all its contacts itself
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer NeighborCount { uint neighbor_count[]; };
+layout(std430, binding = 1) readonly buffer Neighbor { uint neighbor[]; };
+layout(std430, binding = 2) readonly buffer SlotContact { uint slot_contact[]; };
+layout(std430, binding = 3) writeonly buffer OtherContact { uint other_contact[]; };
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres) {
+    return;
+  }
+  const uint base = s * max_neighbors;
+  for(uint j = 0u; j < neighbor_count[s]; j++) {
+    const uint t = neighbor[base + j];
+    uint c = kNone;
+    if(t < s) {
+      /* s in t's list, which is by index */
+      const uint other = t * max_neighbors;
+      uint lo = 0u, hi = neighbor_count[t];
+      while(lo < hi) {
+        const uint mid = (lo + hi) / 2u;
+        if(neighbor[other + mid] < s) {
+          lo = mid + 1u;
+        } else {
+          hi = mid;
+        }
+      }
+      if(lo < neighbor_count[t] && neighbor[other + lo] == s) {
+        c = slot_contact[other + lo];
+      }
+    }
+    other_contact[base + j] = c;
+  }
+}

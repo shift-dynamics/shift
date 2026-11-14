@@ -205,6 +205,12 @@ Geometry and terrain
        five track rollers and a carrier roller, on a float joint and held up
        only by the track on soft, damped ground, so the sprocket drives it
        along (a benchmark)
+   * - .. image:: ../images/examples/dem_grain_shapes.jpg
+          :width: 220px
+          :alt: dem_grain_shapes
+     - :source:`examples/dem/grain_shapes.json`
+     - :doc:`../force-modules/dem`: the three kinds of grain, a sphere, a
+       clump of spheres and a convex hull, settling on a floor
    * - .. image:: ../images/examples/cube.jpg
           :width: 220px
           :alt: cube

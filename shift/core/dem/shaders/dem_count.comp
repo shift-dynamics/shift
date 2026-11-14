@@ -1,0 +1,26 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 2 (in a search): the cell of each sphere, and the count of each
+// cell of the hash table
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer SphereAnchor { ivec4 sphere_anchor[]; };
+layout(std430, binding = 1) readonly buffer SphereOffset { vec4 sphere_offset[]; };
+layout(std430, binding = 2) writeonly buffer Hash { uint hashes[]; };
+layout(std430, binding = 3) buffer Counts { uint counts[]; };
+layout(std430, binding = 4) readonly buffer Flags { uint flags[]; };
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres || flags[0] == 0u) {
+    return;
+  }
+  const uint hash =
+    CellHash(Cell(sphere_anchor[s].xyz, sphere_offset[s].xyz));
+  hashes[s] = hash;
+  atomicAdd(counts[hash], 1u);
+}

@@ -3,9 +3,11 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/body/base.h"
+#include "shift/core/force_module/dem.h"
 #include "shift/core/geometry/cad.h"
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/integrator/base.h"
+#include "shift/core/log.h"
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
 #include "shift/core/terrain/basic.h"
@@ -13,13 +15,16 @@
 
 #include <H5Cpp.h>
 #include <QGenericMatrix>
+#include <QQuaternion>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <random>
 #include <sstream>
 #include <map>
@@ -132,6 +137,97 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   return mesh;
 }
 
+
+/* a sphere of center c and radius r in mesh, of segments around its z axis
+and rings from pole to pole, its triangles wound counterclockwise seen from
+outside */
+static void AddSphere(const std::array<float, 3>& c, float r, int segments,
+                      int rings, shift::gui::SceneMesh& mesh) {
+  const uint32_t first = static_cast<uint32_t>(mesh.vertices.size());
+  for(int j = 0; j <= rings; j++) {
+    const double polar = M_PI * j / rings;
+    for(int i = 0; i <= segments; i++) {
+      const double azimuth = 2.0 * M_PI * i / segments;
+      const float n[3] = {float(std::sin(polar) * std::cos(azimuth)),
+                          float(std::sin(polar) * std::sin(azimuth)),
+                          float(std::cos(polar))};
+      shift::gui::Vertex v;
+      for(int k = 0; k < 3; k++) {
+        v.position[k] = c[k] + r * n[k];
+        v.normal[k] = n[k];
+      }
+      v.uv[0] = float(i) / segments;
+      v.uv[1] = float(j) / rings;
+      mesh.vertices.push_back(v);
+    }
+  }
+  const uint32_t row = uint32_t(segments + 1);
+  for(uint32_t j = 0; j < uint32_t(rings); j++) {
+    for(uint32_t i = 0; i < uint32_t(segments); i++) {
+      const uint32_t a = first + j * row + i, b = a + 1, d = a + row,
+                     e = d + 1;
+      if(j > 0) {
+        mesh.indices.insert(mesh.indices.end(), {a, d, b});
+      }
+      if(j + 1 < uint32_t(rings)) {
+        mesh.indices.insert(mesh.indices.end(), {b, d, e});
+      }
+    }
+  }
+  for(int k = 0; k < 3; k++) {
+    mesh.bounds_min[k] = std::min(mesh.bounds_min[k], c[k] - r);
+    mesh.bounds_max[k] = std::max(mesh.bounds_max[k], c[k] + r);
+  }
+}
+
+/* triangles of vertices in mesh, flat shaded: each triangle its own three
+vertices, of its normal */
+static void AddTriangles(
+  const std::vector<std::array<float, 3>>& vertices,
+  const std::vector<std::array<uint32_t, 3>>& triangles,
+  shift::gui::SceneMesh& mesh) {
+  for(const auto& t : triangles) {
+    const auto& a = vertices[t[0]];
+    const auto& b = vertices[t[1]];
+    const auto& c = vertices[t[2]];
+    const QVector3D n =
+      QVector3D::crossProduct(QVector3D(b[0] - a[0], b[1] - a[1], b[2] - a[2]),
+                              QVector3D(c[0] - a[0], c[1] - a[1], c[2] - a[2]))
+        .normalized();
+    for(int k = 0; k < 3; k++) {
+      const auto& x = vertices[t[k]];
+      shift::gui::Vertex v;
+      for(int i = 0; i < 3; i++) {
+        v.position[i] = x[i];
+        v.normal[i] = n[i];
+        mesh.bounds_min[i] = std::min(mesh.bounds_min[i], x[i]);
+        mesh.bounds_max[i] = std::max(mesh.bounds_max[i], x[i]);
+      }
+      v.uv[0] = v.uv[1] = 0.0f;
+      mesh.indices.push_back(static_cast<uint32_t>(mesh.vertices.size()));
+      mesh.vertices.push_back(v);
+    }
+  }
+}
+
+/* the colors of the shapes of grains, in turn: sand, granite, clay, moss,
+slate, ochre */
+static const float kGrainColors[][3] = {
+  {0.62f, 0.52f, 0.38f}, {0.48f, 0.48f, 0.50f}, {0.55f, 0.33f, 0.24f},
+  {0.36f, 0.42f, 0.28f}, {0.30f, 0.34f, 0.40f}, {0.70f, 0.50f, 0.20f}};
+
+/* the pose of a grain: its principal axes at its center of mass */
+static QMatrix4x4 GrainPose(const double position[3],
+                            const float orientation[4]) {
+  /* scalar last; QQuaternion takes the scalar first */
+  const QQuaternion q(orientation[3], orientation[0], orientation[1],
+                      orientation[2]);
+  QMatrix4x4 pose(q.toRotationMatrix());
+  pose(0, 3) = float(position[0]);
+  pose(1, 3) = float(position[1]);
+  pose(2, 3) = float(position[2]);
+  return pose;
+}
 
 /* a terrain: its control points for the tessellation shaders, and a
 triangle mesh of the surface (terrain::Basic::LocalZ) in world coordinates,
@@ -336,6 +432,8 @@ shift::gui::Simulation::~Simulation() {
 void shift::gui::Simulation::Load(const std::string& filename) {
   JoinWorker();
   scm_views_.clear();
+  dem_views_.clear();
+  grain_records_ = 0;
   context_.reset();
   bodies_.clear();
   scene_ = Scene();
@@ -455,6 +553,14 @@ void shift::gui::Simulation::LoadModel(
     AddLight(*light, bodies_, scene_);
   }
   scene_.body_count = static_cast<int>(bodies_.size());
+  /* the grains, their poses after the bodies' */
+  dem_views_.clear();
+  grain_records_ = 0;
+  for(auto module : context_->get_active_force_modules()) {
+    if(auto dem = dynamic_cast<shift::core::force_module::Dem*>(module)) {
+      AddDemView(*dem);
+    }
+  }
 
   state_size_ = context_->get_state_count();
   StoreInitialState();
@@ -491,6 +597,8 @@ void shift::gui::Simulation::Run() {
     context_->UpdateDHVA();
     RestartTerrains(false);
   }
+  /* the grains shown, or, without results, those the DEM holds */
+  RestartGrains(false);
   ClearResults();
 
   std::lock_guard<std::mutex> lock(mutex_);
@@ -518,14 +626,40 @@ void shift::gui::Simulation::Work() {
 void shift::gui::Simulation::Observe(double time,
                                      const std::vector<double>& y) {
   // runs on the worker thread from Context::WriteStates at each output step
+  bool knot = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    knot = times_.empty() || time > times_.back();
+  }
+  /* the grains, read from the solver (from the GPU) without the lock; the
+  worker alone adds knot points */
+  std::vector<GrainRecord> grains;
+  if(knot && grain_records_ > 0) {
+    grains.resize(grain_records_);
+    for(const auto& view : dem_views_) {
+      view.dem->GetGrains(worker_grains_);
+      for(size_t g = 0; g < worker_grains_.size(); g++) {
+        GrainRecord& r = grains[view.record + g];
+        for(int k = 0; k < 3; k++) {
+          r.position[k] = worker_grains_.position[g][k];
+          r.velocity[k] = worker_grains_.velocity[g][k];
+          r.angular_velocity[k] = worker_grains_.angular_velocity[g][k];
+        }
+        for(int k = 0; k < 4; k++) {
+          r.orientation[k] = worker_grains_.orientation[g][k];
+        }
+      }
+    }
+  }
   std::lock_guard<std::mutex> lock(mutex_);
   if(stop_requested_) {
     throw StopRequested();
   }
-  if(times_.empty() || time > times_.back()) {
+  if(knot) {
     times_.push_back(time);
     states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
     knot_deltas_.push_back(deltas_.size());
+    grains_.insert(grains_.end(), grains.begin(), grains.end());
   }
   // the levels changed, with the knot point just recorded (or the last one,
   // at a repeated time)
@@ -564,6 +698,7 @@ void shift::gui::Simulation::Reset() {
   }
   Stop();
   RestartTerrains(true);
+  RestartGrains(true);
   ClearResults();
   std::memcpy(context_->get_q().data(), initial_state_.data(),
               state_size_ * sizeof(double));
@@ -581,6 +716,9 @@ void shift::gui::Simulation::ClearResults() {
   states_.clear();
   deltas_.clear();
   knot_deltas_.clear();
+  grains_.clear();
+  shown_i0_ = 1;
+  shown_i1_ = 0;
   base_delta_ = partial_begin_ = partial_end_ = 0;
   for(auto& view : scm_views_) {
     view.base = view.worker = view.shown;
@@ -685,6 +823,7 @@ void shift::gui::Simulation::ShowTime(double t) {
         ShowLevels(knot_end(i1), 0, 0, 0.0);
       }
     }
+    InterpolateGrains(i0, i1, p);
   }
   shown_time_ = t;
   // the worker owns the context DHVA while computing; evaluate the
@@ -698,12 +837,21 @@ void shift::gui::Simulation::ShowTime(double t) {
 void shift::gui::Simulation::ShowContextState() {
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
+  /* the grains the DEM holds: the worker is not running */
+  shift::core::dem::State state;
+  for(const auto& view : dem_views_) {
+    view.dem->GetGrains(state);
+    ShowGrains(view, state);
+  }
+  shown_i0_ = 1;
+  shown_i1_ = 0;
 }
 
 void shift::gui::Simulation::UpdatePoses(
   const shift::core::topology::DHVA& dhva) {
   poses_.time = shown_time_;
-  poses_.bodies.resize(bodies_.size());
+  // the grains' poses after the bodies' stay as they are
+  poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
   for(size_t i = 0; i < bodies_.size(); i++) {
     if(bodies_[i] == context_->get_fixed_body()) {
       poses_.bodies[i].setToIdentity();
@@ -844,6 +992,165 @@ void shift::gui::Simulation::TakeTerrainUpdates(
   }
 }
 
+// ------------------------------------------------------------ grains
+
+/*!
+The shapes of the grains become one mesh each, their spheres together in
+the grain's principal axes, or their mesh (Template::mesh_vertices, a
+hull's own triangles or a file's), flat shaded; the grains are instances of them, grouped by
+shape (Scene::instances are contiguous by mesh), and their poses follow the
+bodies' and the grains of the views before
+*/
+void shift::gui::Simulation::AddDemView(shift::core::force_module::Dem& dem) {
+  DemView view;
+  view.dem = &dem;
+  view.first = bodies_.size() + size_t(scene_.grain_count);
+  view.record = grain_records_;
+  const auto& templates = dem.get_templates();
+  const shift::core::dem::State& grains = dem.get_initial_grains();
+  /* finer spheres for fewer: 24 by 12 to 20000 spheres, 12 by 6 beyond */
+  size_t spheres = 0;
+  for(size_t g = 0; g < grains.size(); g++) {
+    spheres += templates[grains.template_index[g]].spheres.size();
+  }
+  const int segments = spheres <= 20000 ? 24 : 12;
+  std::vector<int> meshes(templates.size());
+  for(size_t t = 0; t < templates.size(); t++) {
+    SceneMesh mesh;
+    mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
+    mesh.bounds_max = -mesh.bounds_min;
+    if(!templates[t].mesh_triangles.empty()) {
+      AddTriangles(templates[t].mesh_vertices, templates[t].mesh_triangles,
+                   mesh);
+    } else {
+      for(const auto& sphere : templates[t].spheres) {
+        AddSphere(sphere.center, sphere.radius, segments, segments / 2, mesh);
+      }
+    }
+    const float* color = kGrainColors[t % std::size(kGrainColors)];
+    mesh.albedo = QVector3D(color[0], color[1], color[2]);
+    mesh.roughness = 0.8f;
+    meshes[t] = static_cast<int>(scene_.meshes.size());
+    scene_.meshes.push_back(std::move(mesh));
+  }
+  for(size_t t = 0; t < templates.size(); t++) {
+    for(size_t g = 0; g < grains.size(); g++) {
+      if(grains.template_index[g] == t) {
+        scene_.instances.push_back({meshes[t], static_cast<int>(view.first + g)});
+      }
+    }
+  }
+  scene_.grain_count += static_cast<int>(grains.size());
+  grain_records_ += grains.size();
+  dem_views_.push_back(view);
+}
+
+void shift::gui::Simulation::ShowGrains(
+  const DemView& view, const shift::core::dem::State& state) {
+  poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
+  for(size_t g = 0; g < state.size(); g++) {
+    poses_.bodies[view.first + g] =
+      GrainPose(state.position[g].data(), state.orientation[g].data());
+  }
+  poses_changed_ = true;
+}
+
+/* the state of the grain at fraction p from a to b: the positions and
+velocities linearly, the orientation normalized, along the shorter way */
+static void Interpolate(const double a_position[3], const float a_q[4],
+                        const double b_position[3], const float b_q[4],
+                        double p, double position[3], float q[4]) {
+  for(int k = 0; k < 3; k++) {
+    position[k] = a_position[k] + p * (b_position[k] - a_position[k]);
+  }
+  const float dot = a_q[0] * b_q[0] + a_q[1] * b_q[1] + a_q[2] * b_q[2] +
+                    a_q[3] * b_q[3];
+  const float sign = dot < 0.f ? -1.f : 1.f;
+  float length = 0.f;
+  for(int k = 0; k < 4; k++) {
+    q[k] = a_q[k] + float(p) * (sign * b_q[k] - a_q[k]);
+    length += q[k] * q[k];
+  }
+  length = std::sqrt(length);
+  for(int k = 0; k < 4; k++) {
+    q[k] = length > 0.f ? q[k] / length : a_q[k];
+  }
+}
+
+void shift::gui::Simulation::InterpolateGrains(size_t i0, size_t i1,
+                                               double p) {
+  if(grain_records_ == 0 || grains_.size() < (i1 + 1) * grain_records_) {
+    return; // none recorded (a log): as the model placed them
+  }
+  const GrainRecord* a = grains_.data() + i0 * grain_records_;
+  const GrainRecord* b = grains_.data() + i1 * grain_records_;
+  for(const auto& view : dem_views_) {
+    const size_t count = view.dem->get_initial_grains().size();
+    for(size_t g = 0; g < count; g++) {
+      const GrainRecord& r0 = a[view.record + g];
+      const GrainRecord& r1 = b[view.record + g];
+      double position[3];
+      float q[4];
+      Interpolate(r0.position, r0.orientation, r1.position, r1.orientation, p,
+                  position, q);
+      poses_.bodies[view.first + g] = GrainPose(position, q);
+    }
+  }
+  shown_i0_ = i0;
+  shown_i1_ = i1;
+  shown_p_ = p;
+}
+
+bool shift::gui::Simulation::ShownGrains(const DemView& view,
+                                         shift::core::dem::State& state) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if(shown_i0_ > shown_i1_ ||
+     grains_.size() < (shown_i1_ + 1) * grain_records_) {
+    return false;
+  }
+  state = view.dem->get_initial_grains();
+  const GrainRecord* a = grains_.data() + shown_i0_ * grain_records_;
+  const GrainRecord* b = grains_.data() + shown_i1_ * grain_records_;
+  const float p = float(shown_p_);
+  for(size_t g = 0; g < state.size(); g++) {
+    const GrainRecord& r0 = a[view.record + g];
+    const GrainRecord& r1 = b[view.record + g];
+    float q[4];
+    Interpolate(r0.position, r0.orientation, r1.position, r1.orientation,
+                shown_p_, state.position[g].data(), q);
+    for(int k = 0; k < 4; k++) {
+      state.orientation[g][k] = q[k];
+    }
+    for(int k = 0; k < 3; k++) {
+      state.velocity[g][k] =
+        r0.velocity[k] + p * (r1.velocity[k] - r0.velocity[k]);
+      state.angular_velocity[g][k] =
+        r0.angular_velocity[k] +
+        p * (r1.angular_velocity[k] - r0.angular_velocity[k]);
+    }
+  }
+  return true;
+}
+
+/*!
+Without grains recorded at the time shown (no run made yet, the context's
+own state after jogging, or a log), the grains the DEM holds start over:
+those it was set to, or where its last run left them
+*/
+void shift::gui::Simulation::RestartGrains(bool reset) {
+  // the worker is not running: Run, Reset and AdoptShownState joined it
+  shift::core::dem::State state;
+  for(const auto& view : dem_views_) {
+    if(reset) {
+      state = view.dem->get_initial_grains();
+    } else if(!ShownGrains(view, state)) {
+      view.dem->GetGrains(state);
+    }
+    view.dem->SetGrains(state);
+    ShowGrains(view, state);
+  }
+}
+
 // ------------------------------------------------------------ editing q
 
 bool shift::gui::Simulation::AdoptShownState() {
@@ -857,6 +1164,7 @@ bool shift::gui::Simulation::AdoptShownState() {
     std::memcpy(context_->get_q().data(), interpolated_.data(),
                 state_size_ * sizeof(double));
     RestartTerrains(false);
+    RestartGrains(false);
     ClearResults();
     context_->UpdateDHVA();
   }
@@ -1122,6 +1430,10 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
     }
   } catch(H5::Exception& e) {
     throw shift::core::Exception(error_prefix + e.getDetailMsg());
+  }
+  if(!dem_views_.empty()) {
+    SHIFT_WARNING("Log " + filename + ": a log holds no grains of the DEM; "
+                  "they are shown as the model placed them");
   }
   if(has_results()) {
     std::lock_guard<std::mutex> lock(mutex_);

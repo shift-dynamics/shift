@@ -1,0 +1,17 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 1) in;
+
+// DEM pass 6: count a search that ran, and clear the request for one
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) buffer Flags { uint flags[]; };
+
+void main() {
+  if(flags[0] != 0u) {
+    flags[3] = flags[3] + 1u;
+    flags[0] = 0u;
+  }
+}

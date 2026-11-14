@@ -106,6 +106,10 @@ struct Scene {
   /*! grouped by mesh: the instances of a mesh are contiguous */
   std::vector<SceneInstance> instances;
   int body_count = 0;
+  /*! the grains of the DEM (shift::core::force_module::Dem): their poses
+   * follow the bodies' in Poses::bodies, from body_count, and each is drawn
+   * as an instance of the mesh of its shape */
+  int grain_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
   std::vector<SceneTerrain> terrains;
@@ -154,7 +158,8 @@ private:
 };
 
 /*! \brief body origin poses with respect to the inertial frame at one
- * output time */
+ * output time, then those of the grains (Scene::grain_count): the poses of
+ * their principal axes at their centers of mass */
 struct Poses {
   double time = 0.0;
   std::vector<QMatrix4x4> bodies;

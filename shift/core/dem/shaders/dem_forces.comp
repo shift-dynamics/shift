@@ -1,0 +1,353 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 7: the force on each sphere and the moment on its grain about
+// the grain's center, from its neighbors in order, the walls and the
+// triangles of bodies; and the sphere's impulse on each body, about the
+// body's origin. A pair
+// is evaluated by both spheres with the same arithmetic, the lower index
+// first, so that the forces are exactly opposite and both copies of its
+// history stay equal
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer SphereAnchor { ivec4 sphere_anchor[]; };
+layout(std430, binding = 1) readonly buffer SphereOffset { vec4 sphere_offset[]; };
+layout(std430, binding = 2) readonly buffer SphereArm { vec4 sphere_arm[]; };
+layout(std430, binding = 3) readonly buffer SphereVelocity { vec4 sphere_velocity[]; };
+layout(std430, binding = 4) readonly buffer SphereOmega { vec4 sphere_omega[]; };
+layout(std430, binding = 5) readonly buffer NeighborCount { uint neighbor_count[]; };
+layout(std430, binding = 6) readonly buffer Neighbor { uint neighbor[]; };
+layout(std430, binding = 7) buffer History { vec4 history[]; };
+layout(std430, binding = 8) buffer WallHistory { vec4 wall_history[]; };
+layout(std430, binding = 9) readonly buffer WallAnchor { ivec4 wall_anchor[]; };
+layout(std430, binding = 10) readonly buffer WallOffset { vec4 wall_offset[]; };
+layout(std430, binding = 11) readonly buffer WallNormal { vec4 wall_normal[]; };
+layout(std430, binding = 12) readonly buffer Pairs { vec4 pairs[]; };
+layout(std430, binding = 13) writeonly buffer SphereForce { vec4 sphere_force[]; };
+layout(std430, binding = 14) writeonly buffer SphereTorque { vec4 sphere_torque[]; };
+layout(std430, binding = 15) readonly buffer TriangleAnchor { ivec4 triangle_anchor[]; };
+layout(std430, binding = 16) readonly buffer TriangleVertex { vec4 triangle_vertex[]; };
+layout(std430, binding = 17) readonly buffer TriangleCount { uint triangle_count[]; };
+layout(std430, binding = 18) readonly buffer TriangleList { uint triangle_list[]; };
+layout(std430, binding = 19) buffer TriangleHistory { vec4 triangle_history[]; };
+layout(std430, binding = 20) readonly buffer Poses { vec4 poses[]; };
+layout(std430, binding = 21) buffer Impulse { float impulse[]; };
+layout(std430, binding = 22) readonly buffer SphereInfo { uvec2 sphere_info[]; };
+layout(std430, binding = 23) readonly buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 24) readonly buffer TemplateHull { uvec4 template_hull[]; };
+layout(std430, binding = 25) readonly buffer HullVertex { vec4 hull_vertex[]; };
+layout(std430, binding = 26) readonly buffer HullPlane { vec4 hull_plane[]; };
+layout(std430, binding = 27) readonly buffer HullFace { uvec4 hull_face[]; };
+
+#include "dem_hull.glsl"
+
+uint Material(uint s) {
+  return floatBitsToUint(sphere_arm[s].w);
+}
+
+// the patches of a hull's contact with the triangles of bodies (see
+// HullTriangleForces in cpu_solver.cc)
+const uint kPatches = 8u;
+const float kSamePatch = 0.966;
+
+uint patch_body[kPatches], patch_slot[kPatches];
+vec4 patch_n[kPatches];  // the normal, the depth
+vec4 patch_sum[kPatches];  // of the points by weight, the weight
+float patch_second[kPatches];
+vec4 patch_history[kPatches];
+
+// the force and moment on hull sphere s of shape at a, x from the triangles
+// of bodies, as HullTriangleForces in cpu_solver.cc
+void HullTriangles(uint s, ivec4 a, vec4 x, Shape shape, inout vec3 force,
+                   inout vec3 torque) {
+  uint count = 0u;
+  const uint triangle_base = s * max_triangles;
+  const uint triangle_n = triangle_count[s];
+  for(uint k = 0u; k < triangle_n; k++) {
+    const uint t = triangle_list[triangle_base + k];
+    const ivec4 ta = triangle_anchor[t];
+    const uint b = uint(ta.w);
+    const vec3 p = Relative(a.xyz, x.xyz, ta.xyz, vec3(0.0));
+    const vec3 c0 = triangle_vertex[3u * t].xyz;
+    const vec3 c1 = triangle_vertex[3u * t + 1u].xyz;
+    const vec3 c2 = triangle_vertex[3u * t + 2u].xyz;
+    const vec3 q = ClosestPointOnTriangle(p, c0, c1, c2);
+    const vec4 history = triangle_history[triangle_base + k];
+    triangle_history[triangle_base + k] = vec4(0.0);
+    Shape triangle = shape;
+    triangle.triangle = true;
+    triangle.count = 3u;
+    triangle.corner = vec3[3](c0 - q, c1 - q, c2 - q);
+    vec3 n, point;
+    float d, spread, weight;
+    if(!(length(p - q) < x.w) ||
+       !Unit(cross(c1 - c0, c2 - c0), 0.0, triangle.normal) ||
+       !Collide(shape, triangle, p - q, x.w, n, d, point, spread, weight)) {
+      continue;
+    }
+    point = point - (p - q);
+    uint j = 0u;
+    float best = -2.0;
+    for(uint i = 0u; i < count; i++) {
+      const float alignment = dot(n, patch_n[i].xyz);
+      if(patch_body[i] == b && alignment > best) {
+        best = alignment;
+        j = i;
+      }
+    }
+    if(!(best > kSamePatch) && count < kPatches) {
+      j = count++;
+      patch_body[j] = b;
+      patch_slot[j] = triangle_base + k;
+      patch_n[j] = vec4(n, d);
+      patch_sum[j] = vec4(0.0);
+      patch_second[j] = 0.0;
+      patch_history[j] = history;
+    } else if(!(best > -2.0)) {
+      continue;
+    }
+    if(d > patch_n[j].w) {
+      patch_n[j] = vec4(n, d);
+    }
+    patch_sum[j] = patch_sum[j] + vec4(weight * point, weight);
+    patch_second[j] += weight * (spread + dot(point, point));
+    if(patch_history[j] == vec4(0.0)) {
+      patch_history[j] = history;
+    }
+  }
+  const vec4 va = sphere_velocity[s];
+  const vec3 wa = sphere_omega[s].xyz;
+  for(uint i = 0u; i < count; i++) {
+    const vec3 n = patch_n[i].xyz;
+    const float d = patch_n[i].w;
+    const vec3 point = patch_sum[i].xyz / patch_sum[i].w;
+    const float spread =
+      max(patch_second[i] / patch_sum[i].w - dot(point, point), 0.0);
+    const uint b = patch_body[i];
+    const uint t = triangle_list[patch_slot[i]];
+    const uint row = 7u * (substep * bodies + b);
+    const vec3 p = Relative(a.xyz, x.xyz, triangle_anchor[t].xyz, vec3(0.0));
+    const vec3 lb = (p + point) - poses[row + 1u].xyz;
+    const vec3 wb = poses[row + 6u].xyz;
+    const vec3 vb = poses[row + 5u].xyz + cross(wb, lb);
+    const vec3 la = sphere_arm[s].xyz + point;
+    const vec3 u = (va.xyz + cross(wa, la)) - vb;
+    const uint pair =
+      Material(s) * materials + floatBitsToUint(triangle_vertex[3u * t + 1u].w);
+    vec4 xi = patch_history[i];
+    vec3 f, rolling;
+    Law(n, d, shape.radius, va.w, u, wb - wa, pairs[2u * pair],
+        pairs[2u * pair + 1u], xi, f, rolling);
+    if(spread > 0.0) {
+      rolling = rolling + Rocking(n, d, shape.radius, va.w, wb - wa,
+                                  pairs[2u * pair], spread);
+    }
+    triangle_history[patch_slot[i]] = xi;
+    force = force + f;
+    torque = torque + (cross(la, f) + rolling);
+    const vec3 moment = cross(lb, -f) - rolling;
+    const float values[6] = {-f.x, -f.y, -f.z, moment.x, moment.y, moment.z};
+    for(uint c = 0u; c < 6u; c++) {
+      const uint slot = (c * bodies + b) * spheres + s;
+      impulse[slot] = impulse[slot] + dt * values[c];
+    }
+  }
+}
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres) {
+    return;
+  }
+  vec3 force = vec3(0.0), torque = vec3(0.0);
+  const uint base = s * max_neighbors;
+  const uint count = neighbor_count[s];
+  for(uint k = 0u; k < count; k++) {
+    const uint t = neighbor[base + k];
+    const bool first = s < t;
+    const uint lo = first ? s : t, hi = first ? t : s;
+    const ivec4 a = sphere_anchor[lo], b = sphere_anchor[hi];
+    const vec4 x = sphere_offset[lo], y = sphere_offset[hi];
+    const vec3 rel = Relative(a.xyz, x.xyz, b.xyz, y.xyz);
+    const float distance = length(rel);
+    float d = (x.w + y.w) - distance;
+    vec4 xi = history[base + k];
+    if(!(d > 0.0) || !(distance > 0.0)) {
+      history[base + k] = vec4(0.0);
+      continue;
+    }
+    vec3 n = rel / distance;
+    vec3 la, lb;
+    float ra_star = x.w, rb_star = y.w, spread = 0.0;
+    const Shape sa = ShapeOf(sphere_info[lo].y, x.w,
+                             grain_quaternion[sphere_info[lo].x]);
+    const Shape sb = ShapeOf(sphere_info[hi].y, y.w,
+                             grain_quaternion[sphere_info[hi].x]);
+    if(sa.count > 0u || sb.count > 0u) {
+      /* a hull: the overlap of the two shapes */
+      vec3 point;
+      float weight;
+      if(!Collide(sa, sb, rel, x.w + y.w, n, d, point, spread, weight)) {
+        history[base + k] = vec4(0.0);
+        continue;
+      }
+      la = sphere_arm[lo].xyz + (point - rel);
+      lb = sphere_arm[hi].xyz + point;
+      ra_star = sa.count > 0u ? sa.radius : x.w;
+      rb_star = sb.count > 0u ? sb.radius : y.w;
+    } else {
+      la = sphere_arm[lo].xyz - (x.w - 0.5 * d) * n;
+      lb = sphere_arm[hi].xyz + (y.w - 0.5 * d) * n;
+    }
+    const vec4 va = sphere_velocity[lo], vb = sphere_velocity[hi];
+    const vec3 wa = sphere_omega[lo].xyz, wb = sphere_omega[hi].xyz;
+    const vec3 ra = cross(wa, la), rb = cross(wb, lb);
+    const vec3 u = (va.xyz + ra) - (vb.xyz + rb);
+    const float r = ra_star * rb_star / (ra_star + rb_star);
+    const float m = va.w * vb.w / (va.w + vb.w);
+    const uint pair = Material(lo) * materials + Material(hi);
+    vec3 f, rolling;
+    Law(n, d, r, m, u, wb - wa, pairs[2u * pair], pairs[2u * pair + 1u], xi,
+        f, rolling);
+    if(spread > 0.0) {
+      rolling = rolling + Rocking(n, d, r, m, wb - wa, pairs[2u * pair], spread);
+    }
+    history[base + k] = xi;
+    if(first) {
+      force = force + f;
+      torque = torque + (cross(la, f) + rolling);
+    } else {
+      force = force - f;
+      torque = torque + (cross(lb, -f) - rolling);
+    }
+  }
+  /* the walls */
+  const ivec4 a = sphere_anchor[s];
+  const vec4 x = sphere_offset[s];
+  const Shape shape =
+    ShapeOf(sphere_info[s].y, x.w, grain_quaternion[sphere_info[s].x]);
+  for(uint w = 0u; w < walls; w++) {
+    const vec3 n = wall_normal[w].xyz;
+    const float height =
+      dot(n, Relative(a.xyz, x.xyz, wall_anchor[w].xyz, wall_offset[w].xyz));
+    float d = x.w - height;
+    const uint slot = s * kMaxWalls + w;
+    vec3 la = sphere_arm[s].xyz - (x.w - 0.5 * d) * n;
+    float radius = x.w, spread = 0.0;
+    if(shape.count > 0u && d > 0.0) {
+      /* a hull: its vertices beyond the wall */
+      vec3 sum = vec3(0.0);
+      float total = 0.0, deepest = 0.0;
+      for(uint i = shape.first; i < shape.first + shape.count; i++) {
+        const vec3 v = Rotate(shape.q, hull_vertex[i].xyz);
+        const float depth = -(height + dot(n, v));
+        if(depth > 0.0) {
+          sum = sum + depth * v;
+          total += depth;
+          deepest = max(deepest, depth);
+        }
+      }
+      d = deepest;
+      if(total > 0.0) {
+        const vec3 center = sum / total;
+        la = sphere_arm[s].xyz + center;
+        for(uint i = shape.first; i < shape.first + shape.count; i++) {
+          const vec3 v = Rotate(shape.q, hull_vertex[i].xyz);
+          const float depth = -(height + dot(n, v));
+          if(depth > 0.0) {
+            const vec3 arm = v - center;
+            const vec3 tangent = arm - dot(arm, n) * n;
+            spread += depth * dot(tangent, tangent);
+          }
+        }
+        spread = spread / total;
+      }
+      radius = shape.radius;
+    }
+    if(!(d > 0.0)) {
+      wall_history[slot] = vec4(0.0);
+      continue;
+    }
+    vec4 xi = wall_history[slot];
+    const vec4 va = sphere_velocity[s];
+    const vec3 wa = sphere_omega[s].xyz;
+    const vec3 ra = cross(wa, la);
+    const uint pair =
+      Material(s) * materials + floatBitsToUint(wall_normal[w].w);
+    vec3 f, rolling;
+    Law(n, d, radius, va.w, va.xyz + ra, -wa, pairs[2u * pair],
+        pairs[2u * pair + 1u], xi, f, rolling);
+    if(spread > 0.0) {
+      rolling = rolling + Rocking(n, d, radius, va.w, -wa, pairs[2u * pair],
+                                  spread);
+    }
+    wall_history[slot] = xi;
+    force = force + f;
+    torque = torque + (cross(la, f) + rolling);
+  }
+  /* the triangles of the bodies, which move as given: a point a sphere
+  touches on several triangles of a body (their edge or vertex) counts once */
+  if(triangles > 0u && shape.count > 0u) {
+    HullTriangles(s, a, x, shape, force, torque);
+    sphere_force[s] = vec4(force, 0.0);
+    sphere_torque[s] = vec4(torque, 0.0);
+    return;
+  }
+  vec3 touched[32];
+  uint touched_body[32];
+  uint touches = 0u;
+  const uint triangle_base = s * max_triangles;
+  const uint triangle_n = triangles > 0u ? triangle_count[s] : 0u;
+  for(uint k = 0u; k < triangle_n; k++) {
+    const uint t = triangle_list[triangle_base + k];
+    const ivec4 ta = triangle_anchor[t];
+    const uint b = uint(ta.w);
+    const vec3 p = Relative(a.xyz, x.xyz, ta.xyz, vec3(0.0));
+    const vec4 v0 = triangle_vertex[3u * t], v1 = triangle_vertex[3u * t + 1u];
+    const vec3 q =
+      ClosestPointOnTriangle(p, v0.xyz, v1.xyz, triangle_vertex[3u * t + 2u].xyz);
+    const vec3 gap = p - q;
+    const float distance = length(gap);
+    const float d = x.w - distance;
+    bool repeated = false;
+    for(uint j = 0u; j < touches; j++) {
+      repeated = repeated ||
+                 (touched_body[j] == b && length(touched[j] - q) < 1e-3 * x.w);
+    }
+    if(!(d > 0.0) || !(distance > 0.0) || repeated) {
+      triangle_history[triangle_base + k] = vec4(0.0);
+      continue;
+    }
+    touched[touches] = q;
+    touched_body[touches] = b;
+    touches++;
+    vec4 xi = triangle_history[triangle_base + k];
+    const vec3 n = gap / distance;
+    const uint row = 7u * (substep * bodies + b);
+    const vec3 lb = (q - 0.5 * d * n) - poses[row + 1u].xyz;
+    const vec3 vb = poses[row + 5u].xyz + cross(poses[row + 6u].xyz, lb);
+    const vec4 va = sphere_velocity[s];
+    const vec3 wa = sphere_omega[s].xyz;
+    const vec3 la = sphere_arm[s].xyz - (x.w - 0.5 * d) * n;
+    const vec3 u = (va.xyz + cross(wa, la)) - vb;
+    const uint pair = Material(s) * materials + floatBitsToUint(v1.w);
+    vec3 f, rolling;
+    Law(n, d, x.w, va.w, u, poses[row + 6u].xyz - wa, pairs[2u * pair],
+        pairs[2u * pair + 1u], xi, f, rolling);
+    triangle_history[triangle_base + k] = xi;
+    force = force + f;
+    torque = torque + (cross(la, f) + rolling);
+    /* on the body: the opposite, about its origin */
+    const vec3 moment = cross(lb, -f) - rolling;
+    const float values[6] = {-f.x, -f.y, -f.z, moment.x, moment.y, moment.z};
+    for(uint c = 0u; c < 6u; c++) {
+      const uint slot = (c * bodies + b) * spheres + s;
+      impulse[slot] = impulse[slot] + dt * values[c];
+    }
+  }
+  sphere_force[s] = vec4(force, 0.0);
+  sphere_torque[s] = vec4(torque, 0.0);
+}

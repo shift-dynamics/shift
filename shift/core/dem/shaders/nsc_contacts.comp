@@ -1,0 +1,215 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 1: each sphere's contacts within the margin, in the order of
+// CpuSolver::NscStep: its pairs with spheres of higher index, the walls, and
+// the triangles of bodies, each point of a body once. With mode 0 it counts
+// them; with mode 1 it writes them from contact_start[s] on, the contact
+// of each of its pairs' slots (kNone for none), and clears the histories of
+// the slots that are not contacts
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer SphereAnchor { ivec4 sphere_anchor[]; };
+layout(std430, binding = 1) readonly buffer SphereOffset { vec4 sphere_offset[]; };
+layout(std430, binding = 2) readonly buffer SphereArm { vec4 sphere_arm[]; };
+layout(std430, binding = 3) readonly buffer SphereVelocity { vec4 sphere_velocity[]; };
+layout(std430, binding = 4) readonly buffer SphereOmega { vec4 sphere_omega[]; };
+layout(std430, binding = 5) readonly buffer NeighborCount { uint neighbor_count[]; };
+layout(std430, binding = 6) readonly buffer Neighbor { uint neighbor[]; };
+layout(std430, binding = 7) buffer History { vec4 history[]; };
+layout(std430, binding = 8) buffer WallHistory { vec4 wall_history[]; };
+layout(std430, binding = 9) readonly buffer WallAnchor { ivec4 wall_anchor[]; };
+layout(std430, binding = 10) readonly buffer WallOffset { vec4 wall_offset[]; };
+layout(std430, binding = 11) readonly buffer WallNormal { vec4 wall_normal[]; };
+layout(std430, binding = 12) readonly buffer Pairs { vec4 pairs[]; };
+layout(std430, binding = 13) readonly buffer TriangleAnchor { ivec4 triangle_anchor[]; };
+layout(std430, binding = 14) readonly buffer TriangleVertex { vec4 triangle_vertex[]; };
+layout(std430, binding = 15) readonly buffer TriangleCount { uint triangle_count[]; };
+layout(std430, binding = 16) readonly buffer TriangleList { uint triangle_list[]; };
+layout(std430, binding = 17) buffer TriangleHistory { vec4 triangle_history[]; };
+layout(std430, binding = 18) readonly buffer Poses { vec4 poses[]; };
+layout(std430, binding = 19) readonly buffer BodyInfo { vec4 body_info[]; };
+layout(std430, binding = 20) buffer ContactCount { uint contact_count[]; };
+layout(std430, binding = 21) readonly buffer ContactStart { uint contact_start[]; };
+layout(std430, binding = 22) writeonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 23) writeonly buffer SlotContact { uint slot_contact[]; };
+layout(std430, binding = 24) buffer Flags { uint flags[]; };
+layout(std430, binding = 25) buffer GrainContacts { uint grain_contacts[]; };
+layout(std430, binding = 26) buffer BodyContacts { uint body_contacts[]; };
+
+uint Material(uint s) {
+  return floatBitsToUint(sphere_arm[s].w);
+}
+
+bool writing;
+uint next_contact;
+
+// the next contact; kNone, and an error, past the room for them
+uint Next() {
+  const uint c = next_contact++;
+  if(writing && c >= capacity) {
+    atomicOr(flags[1], kTooManyContacts);
+    return kNone;
+  }
+  return c;
+}
+
+void Write(uint c, vec3 n, float bias, float mu, float rolling, vec3 la,
+           uint a, vec3 lb, uint b, vec3 lc, uint body, vec3 vb, uint sphere,
+           vec3 wb, uint kept) {
+  /* the contacts of each grain and body, for mass splitting: integer
+  sums, the same in any order */
+  if(splitting != 0u) {
+    atomicAdd(grain_contacts[a], 1u);
+    if(b != kNone) {
+      atomicAdd(grain_contacts[b], 1u);
+    } else if(body != kNone) {
+      atomicAdd(body_contacts[body], 1u);
+    }
+  }
+  vec3 t1, t2;
+  Tangents(n, t1, t2);
+  const uint r = 9u * c;
+  contacts[r] = vec4(n, bias);
+  contacts[r + 1u] = vec4(t1, mu);
+  contacts[r + 2u] = vec4(t2, rolling);
+  contacts[r + 3u] = vec4(la, uintBitsToFloat(a));
+  contacts[r + 4u] = vec4(lb, uintBitsToFloat(b));
+  contacts[r + 5u] = vec4(lc, uintBitsToFloat(body));
+  contacts[r + 6u] = vec4(vb, uintBitsToFloat(sphere));
+  contacts[r + 7u] = vec4(wb, uintBitsToFloat(kept));
+  contacts[r + 8u] = vec4(0.0);
+}
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres) {
+    return;
+  }
+  writing = mode == 1u;
+  next_contact = writing ? contact_start[s] : 0u;
+  const ivec4 a = sphere_anchor[s];
+  const vec4 x = sphere_offset[s];
+  const uint ga = uint(a.w);
+  const vec3 va = sphere_velocity[s].xyz, wa = sphere_omega[s].xyz;
+  const vec3 zero = vec3(0.0);
+  /* the pairs, by the lower sphere */
+  const uint base = s * max_neighbors;
+  for(uint k = 0u; k < neighbor_count[s]; k++) {
+    const uint t = neighbor[base + k];
+    if(t < s) {
+      continue;
+    }
+    const ivec4 b = sphere_anchor[t];
+    const vec4 y = sphere_offset[t];
+    const vec3 rel = Relative(a.xyz, x.xyz, b.xyz, y.xyz);
+    const float distance = length(rel);
+    const float gap = distance - (x.w + y.w);
+    if(!(gap < margin) || !(distance > 0.0)) {
+      if(writing) {
+        history[base + k] = vec4(0.0);
+        slot_contact[base + k] = kNone;
+      }
+      continue;
+    }
+    const uint c = Next();
+    if(!writing) {
+      continue;
+    }
+    slot_contact[base + k] = c;
+    if(c == kNone) {
+      continue;
+    }
+    const vec3 n = rel / distance;
+    const vec3 la = sphere_arm[s].xyz - (x.w + 0.5 * gap) * n;
+    const vec3 lb = sphere_arm[t].xyz + (y.w + 0.5 * gap) * n;
+    const uint pair = Material(s) * materials + Material(t);
+    const vec4 p0 = pairs[2u * pair], p1 = pairs[2u * pair + 1u];
+    const vec3 u = (va + cross(wa, la)) -
+                   (sphere_velocity[t].xyz + cross(sphere_omega[t].xyz, lb));
+    Write(c, n, Bias(n, gap, u, p1.y), p0.w, p1.x * x.w * y.w / (x.w + y.w),
+          la, ga, lb, uint(b.w), zero, kNone, zero, s, zero,
+          Kept(kKeptPair, base + k));
+  }
+  /* the walls */
+  for(uint w = 0u; w < walls; w++) {
+    const vec3 n = wall_normal[w].xyz;
+    const float gap =
+      dot(n, Relative(a.xyz, x.xyz, wall_anchor[w].xyz, wall_offset[w].xyz)) -
+      x.w;
+    const uint slot = s * kMaxWalls + w;
+    if(!(gap < margin)) {
+      if(writing) {
+        wall_history[slot] = vec4(0.0);
+      }
+      continue;
+    }
+    const uint c = Next();
+    if(!writing || c == kNone) {
+      continue;
+    }
+    const vec3 la = sphere_arm[s].xyz - (x.w + 0.5 * gap) * n;
+    const uint pair =
+      Material(s) * materials + floatBitsToUint(wall_normal[w].w);
+    const vec4 p0 = pairs[2u * pair], p1 = pairs[2u * pair + 1u];
+    const vec3 u = va + cross(wa, la);
+    Write(c, n, Bias(n, gap, u, p1.y), p0.w, p1.x * x.w, la, ga, zero, kNone,
+          zero, kNone, zero, s, zero, Kept(kKeptWall, slot));
+  }
+  /* the triangles, each point of a body once */
+  vec3 touched[32];
+  uint touched_body[32];
+  uint touches = 0u;
+  const uint triangle_base = s * max_triangles;
+  const uint triangle_n = triangles > 0u ? triangle_count[s] : 0u;
+  for(uint k = 0u; k < triangle_n; k++) {
+    const uint t = triangle_list[triangle_base + k];
+    const ivec4 ta = triangle_anchor[t];
+    const uint b = uint(ta.w);
+    const vec3 p = Relative(a.xyz, x.xyz, ta.xyz, vec3(0.0));
+    const vec4 v1 = triangle_vertex[3u * t + 1u];
+    const vec3 closest = ClosestPointOnTriangle(
+      p, triangle_vertex[3u * t].xyz, v1.xyz, triangle_vertex[3u * t + 2u].xyz);
+    const vec3 offset = p - closest;
+    const float distance = length(offset);
+    const float gap = distance - x.w;
+    bool repeated = false;
+    for(uint j = 0u; j < touches; j++) {
+      repeated = repeated || (touched_body[j] == b &&
+                              length(touched[j] - closest) < 1e-3 * x.w);
+    }
+    if(!(gap < margin) || !(distance > 0.0) || repeated) {
+      if(writing) {
+        triangle_history[triangle_base + k] = vec4(0.0);
+      }
+      continue;
+    }
+    touched[touches] = closest;
+    touched_body[touches] = b;
+    touches++;
+    const uint c = Next();
+    if(!writing || c == kNone) {
+      continue;
+    }
+    const vec3 n = offset / distance;
+    const vec3 la = sphere_arm[s].xyz - (x.w + 0.5 * gap) * n;
+    const uint row = 7u * (substep * bodies + b);
+    const uint end = 7u * ((substep + 1u) * bodies + b);
+    const vec3 lb = (closest + 0.5 * gap * n) - poses[row + 1u].xyz;
+    const vec3 lc = lb - body_info[5u * (substep * bodies + b) + 4u].xyz;
+    const vec3 wb = poses[end + 6u].xyz;
+    const vec3 vb = poses[end + 5u].xyz + cross(wb, lb);
+    const uint pair = Material(s) * materials + floatBitsToUint(v1.w);
+    const vec4 p0 = pairs[2u * pair], p1 = pairs[2u * pair + 1u];
+    const vec3 u = (va + cross(wa, la)) - vb;
+    Write(c, n, Bias(n, gap, u, p1.y), p0.w, p1.x * x.w, la, ga, lb, kNone,
+          lc, b, vb, s, wb, Kept(kKeptTriangle, triangle_base + k));
+  }
+  if(!writing) {
+    contact_count[s] = next_contact;
+  }
+}

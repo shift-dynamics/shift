@@ -1,0 +1,40 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 7, the vectors of APGD, per contact. Mode 0: out = the
+// projection of in0 - step in1 (a step from y along the gradient there);
+// mode 1: out = in0; mode 2: out = in0 + beta (in0 - in1), or in0 if APGD
+// restarts (the momentum)
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 1) readonly buffer In0 { vec4 in0[]; };
+layout(std430, binding = 2) readonly buffer In1 { vec4 in1[]; };
+layout(std430, binding = 3) writeonly buffer Out { vec4 out_[]; };
+layout(std430, binding = 4) readonly buffer Control { NscControl control; };
+
+void main() {
+  const uint c = gl_GlobalInvocationID.x;
+  if(c >= control.count) {
+    return;
+  }
+  vec3 z = in0[2u * c].xyz, zr = in0[2u * c + 1u].xyz;
+  if(mode == 0u) {
+    const float step = control.step;
+    z = z - step * in1[2u * c].xyz;
+    zr = zr - step * in1[2u * c + 1u].xyz;
+    const uint r = 9u * c;
+    ProjectScaled(contacts[r + 1u].w, contacts[r].xyz, contacts[r + 2u].w,
+                  contacts[r + 8u], z, zr);
+  } else if(mode == 2u && control.restart == 0u) {
+    const float beta = control.beta;
+    z = z + beta * (z - in1[2u * c].xyz);
+    zr = zr + beta * (zr - in1[2u * c + 1u].xyz);
+  }
+  out_[2u * c] = vec4(z, 0.0);
+  out_[2u * c + 1u] = vec4(zr, 0.0);
+}

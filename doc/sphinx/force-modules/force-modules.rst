@@ -26,6 +26,9 @@ joint coordinates. Where a force changes abruptly (a span going slack, a
 relief valve opening, first touch in a contact), the change is made smooth
 over a small band. The variable step integrators then see no jumps, and the
 results do not depend on the step size.
+The exceptions are the SPH soil and the grains of ``dem``, models of their own
+that advance after each accepted step of the integrator, in substeps, and act
+on the bodies over the next step (see :doc:`dem`).
 
 **Outputs.** A force module may name output values, such as the pressures
 of a cylinder or the tensions of a belt. The loggers record them as
@@ -64,6 +67,7 @@ Keys of every force module:
    tire
    soil
    soil-tool
+   dem
    track
    bushing
    spring-damper
@@ -93,6 +97,8 @@ Keys of every force module:
      - a wheel on the ground or terrain: Fiala and PAC2002 tire models
    * - :doc:`soil_tool <soil-tool>`
      - the force of the soil on a blade cutting it, and the pile it pushes
+   * - :doc:`dem <dem>`
+     - grains as rigid spheres and clumps (the discrete element method), on the GPU, pushing on bodies
    * - :doc:`bushing <bushing>`
      - a compliant joint: 6×6 stiffness and damping between frames on bodies, as at the pivots of a control arm or a steering link
    * - :doc:`spring_damper <spring-damper>`

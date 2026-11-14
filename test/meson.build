@@ -61,6 +61,8 @@ test_sources = [
   'gpu/test_gpu.cc',
   'terramechanics/test_sph.cc',
   'terramechanics/test_sph_terrain.cc',
+  'dem/test_dem.cc',
+  'dem/test_dem_model.cc',
 ]
 # the compute shader of the GPU tests, as a C initializer of SPIR-V words
 if gpu_found
@@ -79,7 +81,8 @@ if not is_disabler(shift_gui_dep)
   test_sources += ['test_instance_bvh.cc', 'test_video_encoder.cc',
                    'test_embedded_texture.cc', 'test_camera.cc',
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
-                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc']
+                   'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
+                   'dem/test_dem_playback.cc']
   test_deps += [shift_gui_dep]
 endif
 
@@ -91,13 +94,36 @@ shift_test = executable(
 )
 
 # everything except the per-model cases, which are registered one by one below
-test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*:CadSpeed.*'],
+test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*'],
      timeout: 600)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc
 benchmark('cad_contact_speed', shift_test,
           args: ['--gtest_filter=CadSpeed.*'], timeout: 0)
+
+# the speed of the GPU DEM solver (test/dem/test_dem.cc)
+benchmark('dem_speed', shift_test,
+          args: ['--gtest_filter=DemSpeed.Gpu'], timeout: 0)
+
+# smooth against non-smooth contact on the CPU (test/dem/test_dem.cc)
+benchmark('dem_nsc', shift_test,
+          args: ['--gtest_filter=DemSpeed.NscAgainstSmc'], timeout: 0)
+
+# the non-smooth method on the GPU against the CPU (test/dem/test_dem.cc)
+benchmark('dem_nsc_gpu', shift_test,
+          args: ['--gtest_filter=DemSpeed.NscGpu'], timeout: 0)
+
+# a rock (the convex hull of a mesh) thrown into 186,000 grains, and a
+# million grains falling into place, on the GPU (test/dem/test_dem_model.cc)
+benchmark('dem_rock', shift_test,
+          args: ['--gtest_filter=DemSpeed.RockInGrains'], timeout: 0)
+benchmark('dem_million', shift_test,
+          args: ['--gtest_filter=DemSpeed.MillionGrains'], timeout: 0)
+# 100,000 convex hull rocks settling, and a block dropped on them, on the
+# GPU (test/dem/test_dem_model.cc)
+benchmark('dem_rocks', shift_test,
+          args: ['--gtest_filter=DemSpeed.BlockOnRocks'], timeout: 0)
 
 # the GPU tests on Mesa's software Vulkan driver, lavapipe, so that they run
 # without a GPU (on Arch Linux: the vulkan-swrast package)

@@ -41,6 +41,7 @@ Forces, contact and geometry
 * `Collision modeling <collision>`_
 * `CAD parts, cam and track <cad>`_
 * `Terrain modeling <terrain>`_
+* `Discrete element method <dem>`_
 
 Building models
 ---------------

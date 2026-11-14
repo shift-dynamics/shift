@@ -1,0 +1,57 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 2b (in a search): the cells each triangle's box is in, at most
+// 8, into its 8 slots (unused ones 0xffffffff), and the count of each cell of
+// the triangles' hash table; and where the triangle is now, from which
+// dem_triangles.comp measures how far it moves until the next search
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer TriangleAnchor { ivec4 triangle_anchor[]; };
+layout(std430, binding = 1) readonly buffer TriangleVertex { vec4 triangle_vertex[]; };
+layout(std430, binding = 2) writeonly buffer Hash { uint hashes[]; };
+layout(std430, binding = 3) buffer Counts { uint counts[]; };
+layout(std430, binding = 4) buffer Flags { uint flags[]; };
+layout(std430, binding = 5) writeonly buffer ReferenceAnchor { ivec4 reference_anchor[]; };
+layout(std430, binding = 6) writeonly buffer ReferenceVertex { vec4 reference_vertex[]; };
+
+void main() {
+  const uint t = gl_GlobalInvocationID.x;
+  if(t >= triangles || flags[0] == 0u) {
+    return;
+  }
+  const ivec3 a = triangle_anchor[t].xyz;
+  reference_anchor[t] = triangle_anchor[t];
+  for(uint k = 0u; k < 3u; k++) {
+    reference_vertex[3u * t + k] = triangle_vertex[3u * t + k];
+  }
+  ivec3 lo = Cell(a, triangle_vertex[3u * t].xyz), hi = lo;
+  for(uint k = 1u; k < 3u; k++) {
+    const ivec3 c = Cell(a, triangle_vertex[3u * t + k].xyz);
+    lo = min(lo, c);
+    hi = max(hi, c);
+  }
+  const ivec3 n = hi - lo + ivec3(1);
+  if(n.x * n.y * n.z > 8) {
+    atomicOr(flags[1], kLargeTriangle);
+  }
+  uint slot = 0u;
+  for(int z = lo.z; z <= hi.z; z++) {
+    for(int y = lo.y; y <= hi.y; y++) {
+      for(int x = lo.x; x <= hi.x; x++) {
+        if(slot < 8u) {
+          const uint hash = CellHashIn(ivec3(x, y, z), triangle_mask);
+          hashes[8u * t + slot] = hash;
+          atomicAdd(counts[hash], 1u);
+          slot++;
+        }
+      }
+    }
+  }
+  for(; slot < 8u; slot++) {
+    hashes[8u * t + slot] = 0xffffffffu;
+  }
+}

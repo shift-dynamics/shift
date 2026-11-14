@@ -1,0 +1,30 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 4 (in a search): the spheres of each cell by index (insertion
+// sort; a cell holds a few), so that the order is the same on every run
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Start { uint start[]; };
+layout(std430, binding = 1) buffer Order { uint order[]; };
+layout(std430, binding = 2) readonly buffer Flags { uint flags[]; };
+
+void main() {
+  const uint b = gl_GlobalInvocationID.x;
+  if(b > mask || flags[0] == 0u) {
+    return;
+  }
+  const uint first = start[b], end = start[b + 1];
+  for(uint k = first + 1; k < end; k++) {
+    const uint moving = order[k];
+    uint m = k;
+    while(m > first && order[m - 1] > moving) {
+      order[m] = order[m - 1];
+      m--;
+    }
+    order[m] = moving;
+  }
+}

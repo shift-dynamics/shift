@@ -1,0 +1,28 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 3 (in a search): each sphere, or each slot of a triangle (with
+// spheres the number of slots and mask the triangles'), into its cell's range
+// of the order (in any order within the cell; dem_cell_sort.comp sorts them)
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Hash { uint hashes[]; };
+layout(std430, binding = 1) readonly buffer Start { uint start[]; };
+layout(std430, binding = 2) buffer Cursor { uint cursor[]; };
+layout(std430, binding = 3) writeonly buffer Order { uint order[]; };
+layout(std430, binding = 4) readonly buffer Flags { uint flags[]; };
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres || flags[0] == 0u) {
+    return;
+  }
+  const uint hash = hashes[s];
+  if(hash > mask) {
+    return; // an unused slot of a triangle
+  }
+  order[start[hash] + atomicAdd(cursor[hash], 1u)] = s;
+}

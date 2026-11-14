@@ -1,0 +1,51 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 1: each sphere's center, arm, velocity and angular velocity from
+// its grain; a new search when it has moved half the margin since the last
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer GrainAnchor { ivec4 grain_anchor[]; };
+layout(std430, binding = 1) readonly buffer GrainOffset { vec4 grain_offset[]; };
+layout(std430, binding = 2) readonly buffer GrainVelocity { vec4 grain_velocity[]; };
+layout(std430, binding = 3) readonly buffer GrainOmega { vec4 grain_omega[]; };
+layout(std430, binding = 4) readonly buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 5) readonly buffer TemplateMass { vec4 template_mass[]; };
+layout(std430, binding = 6) readonly buffer TemplateSphere { vec4 template_sphere[]; };
+layout(std430, binding = 7) readonly buffer TemplateMaterial { uint template_material[]; };
+layout(std430, binding = 8) readonly buffer SphereInfo { uvec2 sphere_info[]; };
+layout(std430, binding = 9) writeonly buffer SphereAnchor { ivec4 sphere_anchor[]; };
+layout(std430, binding = 10) writeonly buffer SphereOffset { vec4 sphere_offset[]; };
+layout(std430, binding = 11) writeonly buffer SphereArm { vec4 sphere_arm[]; };
+layout(std430, binding = 12) writeonly buffer SphereVelocity { vec4 sphere_velocity[]; };
+layout(std430, binding = 13) writeonly buffer SphereOmega { vec4 sphere_omega[]; };
+layout(std430, binding = 14) readonly buffer ReferenceAnchor { ivec4 reference_anchor[]; };
+layout(std430, binding = 15) readonly buffer ReferenceOffset { vec4 reference_offset[]; };
+layout(std430, binding = 16) buffer Flags { uint flags[]; };
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres) {
+    return;
+  }
+  const uint g = sphere_info[s].x, k = sphere_info[s].y;
+  const ivec4 a = grain_anchor[g];
+  const vec4 q = grain_quaternion[g];
+  const vec4 local = template_sphere[k];
+  const vec3 arm = Rotate(q, local.xyz);
+  const vec3 x = grain_offset[g].xyz + arm;
+  sphere_anchor[s] = ivec4(a.xyz, int(g));
+  sphere_offset[s] = vec4(x, local.w);
+  sphere_arm[s] = vec4(arm, uintBitsToFloat(template_material[k]));
+  sphere_velocity[s] =
+    vec4(grain_velocity[g].xyz, template_mass[uint(a.w)].x);
+  sphere_omega[s] = vec4(Rotate(q, grain_omega[g].xyz), 0.0);
+  const vec3 moved = Relative(a.xyz, x, reference_anchor[s].xyz,
+                              reference_offset[s].xyz);
+  if(2.0 * length(moved) >= margin) {
+    atomicOr(flags[0], 1u);
+  }
+}

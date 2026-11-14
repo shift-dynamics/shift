@@ -63,4 +63,5 @@ cad_parts           cad/cad_parts.json                           0
 track_loop          cad/track_loop.json                          0    --view 30,25
 track_frame         cad/track_frame.json                         0    --view 30,25
 cube                scripting/cube.json                          0
+dem_grain_shapes    dem/grain_shapes.json                        0.2  --view 0,25 --frame 0,0,-0.004,0.009 --size 960x400
 LIST

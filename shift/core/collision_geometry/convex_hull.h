@@ -38,7 +38,8 @@ public:
     return registered_;
   }
 
-  /*! \brief hull vertices, faces and adjacency, in the body origin frame */
+  /*! \brief hull vertices, faces and adjacency, in the collision geometry
+   * reference frame (see get_d_wrt_body) */
   const ConvexHullData& get_hull() const {
     return *hull_;
   }

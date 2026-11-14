@@ -5,6 +5,7 @@ core_src += files(
   'belt.cc',
   'bushing.cc',
   'contact.cc',
+  'dem.cc',
   'gear_mesh.cc',
   'gear_teeth.cc',
   'hydraulic_cylinder.cc',

@@ -3832,6 +3832,10 @@ void shift::core::Context::AcceptStep(const std::vector<double>&) {
   for(auto terrain : active_terrain_) {
     terrain->AcceptStepAll();
   }
+  /* the models of force modules that advance with the accepted state */
+  for(auto force_module : active_force_modules_) {
+    force_module->AcceptStep();
+  }
 }
 
 void shift::core::Context::DetectContacts() {

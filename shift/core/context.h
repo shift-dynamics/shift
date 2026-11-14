@@ -608,7 +608,8 @@ public:
    * accepted state y (the state of the last evaluation of the equations of
    * motion of the step): history that the forces depend on changes here
    * only, e.g. the contact normals the penetration depths stay near and
-   * the deformation of the terrain (terrain::Base::AcceptStep) */
+   * the deformation of the terrain (terrain::Base::AcceptStep) and the
+   * models of force modules (force_module::Base::AcceptStep) */
   void AcceptStep(const std::vector<double>& y);
 
   /*! \brief pairs of collision geometry found in contact by the most recent

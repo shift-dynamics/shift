@@ -126,6 +126,12 @@ public:
    * \param dy [out] state time derivatives */
   virtual void Service(const double* y, double* dy) = 0;
 
+  /*! \brief called by Context::AcceptStep after each accepted integration
+   * step: a module with a model of its own that advances with the
+   * accepted state (see Dem) advances here, and only here, so that the
+   * evaluations of a step that is rejected leave it as it was */
+  virtual void AcceptStep() {}
+
 protected:
   std::string type_;
   virtual void DeclareParameters() override;

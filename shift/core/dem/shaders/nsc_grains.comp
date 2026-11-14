@@ -1,0 +1,41 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 11: each grain moves with its new velocity and angular velocity
+// (nsc_velocities.comp of the impulses found), as in dem_grains.comp
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) buffer GrainAnchor { ivec4 grain_anchor[]; };
+layout(std430, binding = 1) buffer GrainOffset { vec4 grain_offset[]; };
+layout(std430, binding = 2) writeonly buffer GrainVelocity { vec4 grain_velocity[]; };
+layout(std430, binding = 3) writeonly buffer GrainOmega { vec4 grain_omega[]; };
+layout(std430, binding = 4) buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 5) readonly buffer Velocity { vec4 velocity[]; };
+layout(std430, binding = 6) readonly buffer Omega { vec4 end_omega[]; };
+
+void main() {
+  const uint g = gl_GlobalInvocationID.x;
+  if(g >= grains) {
+    return;
+  }
+  ivec4 a = grain_anchor[g];
+  const vec3 v = velocity[g].xyz, w = end_omega[g].xyz;
+  vec3 x = grain_offset[g].xyz + dt * v;
+  const vec3 cells = floor(x / cell);
+  a.xyz = a.xyz + ivec3(cells);
+  x = x - cells * cell;
+  vec4 q = grain_quaternion[g];
+  const float speed = length(w);
+  const float half_angle = 0.5 * dt * speed;
+  const float scale = speed > 0.0 ? sin(half_angle) / speed : 0.5 * dt;
+  q = QuaternionProduct(q, vec4(scale * w, cos(half_angle)));
+  q = q / length(q);
+  grain_anchor[g] = a;
+  grain_offset[g] = vec4(x, 0.0);
+  grain_velocity[g] = vec4(v, 0.0);
+  grain_omega[g] = vec4(w, 0.0);
+  grain_quaternion[g] = q;
+}

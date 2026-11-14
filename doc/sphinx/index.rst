@@ -42,6 +42,7 @@ theory
    topology/topology
    dynamics/dynamics
    contact/contact
+   dem/dem
 
 developer reference
 -------------------
