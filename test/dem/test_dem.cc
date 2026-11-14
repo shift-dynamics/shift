@@ -1465,7 +1465,7 @@ static shift::core::dem::Template Cube(float side, uint32_t material = 0) {
 }
 
 /* the cube's hull has its 8 vertices and 6 planes, the mass and moments of
-a cube, and the radius of the sphere of its volume */
+a cube, the radius of the sphere of its volume, and its own axes */
 TEST(DemHull, CubeOfHull) {
   const float side = 0.01f;
   const shift::core::dem::Template t = Cube(side);
@@ -1482,6 +1482,14 @@ TEST(DemHull, CubeOfHull) {
   }
   EXPECT_NEAR(t.hull.radius, std::cbrt(3.0 / (4.0 * kPi)) * side, 1e-6 * side);
   EXPECT_NEAR(t.hull.BoundingRadius(), 0.5 * std::sqrt(3.0) * side, 1e-6 * side);
+  /* its moments are equal, so any axes are principal: they stay those of
+  its points, in every build, rather than turned by the rounding of the
+  products of inertia (which turned it 5 degrees in the release build) */
+  for(const auto& v : t.hull.vertices) {
+    for(int k = 0; k < 3; k++) {
+      EXPECT_NEAR(std::fabs(v[k]), 0.5f * side, 1e-6f * side);
+    }
+  }
 }
 
 /* a rock's hull: its center of mass at the origin, its inertia diagonal

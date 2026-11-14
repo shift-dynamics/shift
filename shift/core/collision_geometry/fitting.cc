@@ -278,7 +278,13 @@ void shift::core::collision_geometry::Jacobi(ksl_mat3x3_t& A, ksl_mat3x3_t& V) {
         }
       }
     }
-    if(a(p, q) == 0.0) {
+    /* done when it is negligible beside its diagonal elements (Golub and
+    Van Loan, "Matrix Computations", section 8.5): where eigenvalues are
+    equal, as the moments of a cube, an element of the order of the rounding
+    would otherwise turn the axes by an arbitrary angle, which the rounding of
+    each build (fused multiply-adds or not) chooses */
+    if(std::fabs(a(p, q)) <=
+       1e-12 * (std::fabs(a(p, p)) + std::fabs(a(q, q)))) {
       break;
     }
 

@@ -455,25 +455,38 @@ that of two spheres :eq:`eq:dem_normal`, with the radii
 :eq:`eq:dem_hull_radius` in :math:`r^*` (a sphere's own radius) and the
 arms from the centers of mass to :math:`\underline{p}`.
 
-One point carries the force of a whole patch, and the normal damping at
-that point cannot resist the grain rocking about it, which a patch of
-dampers would. The damping :math:`c_n` of the normal law is therefore spread
-over the patch, as dampers at its points in proportion to their weights:
-their sum along the normal is :math:`c_n u_n` as before, and the moment
-they add on :math:`a` is
+One point carries the force of a whole patch, and the dampers at that point
+cannot resist the grain rocking about it, nor spinning about the normal,
+which a patch of dampers would. The damping :math:`c_n` of the normal law
+:eq:`eq:dem_normal` and, with friction, :math:`c_t` of the tangential law
+:eq:`eq:dem_tangential` are therefore spread over the patch, as dampers at
+its points in proportion to their weights: their sums are :math:`c_n u_n`
+and :math:`c_t \underline{u}_t` as before, and the moment they add on
+:math:`a` is
 
 .. math::
     :label: eq:dem_hull_rocking
 
     \underline{m}_a = c_n\,\rho^2\left(\underline{\omega}_{ba} -
-      (\underline{\omega}_{ba}\cdot\underline{n})\underline{n}\right),
+      (\underline{\omega}_{ba}\cdot\underline{n})\underline{n}\right)
+      + c_t\,\rho^2\,(\underline{\omega}_{ba}\cdot\underline{n})\,
+      \underline{n},
     \qquad
     \underline{\omega}_{ba} = R^{fb}\underline{\omega}_{fb}^{b} -
       R^{fa}\underline{\omega}_{fa}^{a}
 
-with the opposite on :math:`b`, as for rolling resistance. Without it two
-cubes stacked on a floor rocked for the length of the test; with it they
-come to rest.
+with the opposite on :math:`b`, as for rolling resistance; the second term
+is absent without friction (:math:`\mu = 0`). The first term is the moment
+of the normal dampers, :math:`c_n` times the second moment of the patch
+about the point, for a rocking about a tangent axis; the second that of the
+tangential dampers, which a spin about the normal slides at
+:math:`|\underline{t}_k|\,\omega_n` across the arms
+:math:`\underline{t}_k`. Without the first two cubes stacked on a floor
+rocked for the length of the test. Without the second, nothing resisted a
+cube's spin on a face, which friction at a single point under its center
+cannot: the spin that rounding left after the cube landed, different with
+and without fused multiply-adds, turned it on the floor for as long as the
+test ran.
 
 A hull touches a wall with its vertices beyond it, each at depth
 :math:`\delta_i = o - \underline{n}_w\cdot\underline{r}_{fi}^{f} > 0`: the

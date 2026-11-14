@@ -425,23 +425,45 @@ f 3 6 4
 f 3 4 1
 )";
 
-/* the largest depth of a sphere of radius r at p in the wedge whose edge is
-at height z_edge: the least of the distances inside its five faces, less
-than -r where the sphere is clear of it */
+/* the distance from (x, z) to the segment from a to b */
+static double SegmentDistance(double x, double z, double ax, double az,
+                              double bx, double bz) {
+  const double ex = bx - ax, ez = bz - az;
+  const double s = std::clamp(((x - ax) * ex + (z - az) * ez) /
+                                (ex * ex + ez * ez),
+                              0.0, 1.0);
+  return std::hypot(x - ax - s * ex, z - az - s * ez);
+}
+
+/* the depth of a sphere of radius r at p in the wedge whose edge is at
+height z_edge: r less the distance from its center to the wedge, or r and
+the distance from its center to the nearest face when the center is inside,
+so that it is negative where the sphere is clear of it. The wedge is its
+cross section in x and z, a triangle, swept along y, so the distance squared
+outside it is the sum of the squares of the distances in the cross section
+and in y; a distance to the planes of the faces alone would make the depth
+of a bead under the edge too large by a third of its radius */
 static double WedgeDepth(const std::array<double, 3>& p, double z_edge,
                          double r) {
   const double x = p[0], y = p[1], z = p[2] - z_edge;
-  /* the slanted faces: outward normals (+-h, 0, w) / |.| through the edge */
-  const double n = std::hypot(kWedgeHeight, kWedgeHalf);
-  const double faces[5] = {(kWedgeHeight * x + kWedgeHalf * z) / n,
-                           (-kWedgeHeight * x + kWedgeHalf * z) / n,
-                           -kWedgeHeight - z, y - kWedgeHalf,
-                           -kWedgeHalf - y};
-  double depth = -faces[0];
-  for(double f : faces) {
-    depth = std::min(depth, -f);
+  /* the triangle: the edge at the origin, the top corners at (+-w, -h) */
+  const double w = kWedgeHalf, h = kWedgeHeight;
+  const double n = std::hypot(h, w);
+  /* the distances inside the faces: the slanted ones, the top, the ends */
+  const double inside_section =
+    std::min({-(h * x + w * z) / n, -(-h * x + w * z) / n, h + z});
+  const double inside_y = kWedgeHalf - std::abs(y);
+  if(inside_section >= 0.0 && inside_y >= 0.0) {
+    return r + std::min(inside_section, inside_y);
   }
-  return depth + r;
+  const double section =
+    inside_section >= 0.0
+      ? 0.0
+      : std::min({SegmentDistance(x, z, 0.0, 0.0, w, -h),
+                  SegmentDistance(x, z, 0.0, 0.0, -w, -h),
+                  SegmentDistance(x, z, -w, -h, w, -h)});
+  const double along = std::max(-inside_y, 0.0);
+  return r - std::hypot(section, along);
 }
 
 /* a wedge of 0.2 kg on a vertical slide, its collision geometry the convex
@@ -534,7 +556,12 @@ static void WedgeSplitsGrains(const std::string& extra) {
   /* clear of the wedge but for overlaps of a fraction of a millimeter */
   EXPECT_LT(deepest, 1e-3);
   EXPECT_NEAR(impulse, expected, 0.03 * expected);
-  EXPECT_LT(std::abs(velocity.lin.z), 0.1);
+  /* slower than half its speed on reaching the bed, after falling from
+  z_start to its top: the wedge does not come to rest, it sinks in steps as
+  the beads under its edge give way, and at the end it may be in one (at up
+  to 0.2 m/s, of 0.58 m/s); its momentum is in the impulse above */
+  const double reaching = std::sqrt(2.0 * 9.81 * (top - z_start));
+  EXPECT_LT(std::abs(velocity.lin.z), 0.5 * reaching);
 }
 
 TEST(DemModel, WedgeHullSplitsGrains) {
@@ -1070,9 +1097,11 @@ f 4 5 8
   dem->GetGrains(grains);
   for(size_t g = 0; g < grains.size(); g++) {
     const auto& q = grains.orientation[g];
-    std::printf("cube %zu: %.4g mm above the floor, turned by %.3g\n", g,
-                -1e3 * grains.position[g][2],
-                std::abs(q[0]) + std::abs(q[1]) + std::abs(q[2]));
+    std::printf("cube %zu: %.4g mm above the floor, turned by %.3g "
+                "(q %.3g %.3g %.3g)\n",
+                g, -1e3 * grains.position[g][2],
+                std::abs(q[0]) + std::abs(q[1]) + std::abs(q[2]), q[0], q[1],
+                q[2]);
     EXPECT_NEAR(-grains.position[g][2], 0.005, 5e-5);
     EXPECT_LT(std::abs(q[0]) + std::abs(q[1]) + std::abs(q[2]), 1e-3f);
   }

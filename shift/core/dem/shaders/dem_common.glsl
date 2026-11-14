@@ -147,11 +147,20 @@ float NormalDamping(vec4 p0, float r, float d, float m) {
 // the moment on the first of a contact over a patch of spread rho^2 (the
 // mean square distance of its points from the point of contact, weighted as
 // they are): the normal damping spread over the patch resists the first's
-// rocking on the second, w being the second's angular velocity less the
-// first's
+// rocking on the second, and with friction the tangential damping spread
+// over it resists its spinning about the normal, w being the second's
+// angular velocity less the first's
 vec3 Rocking(vec3 n, float d, float r, float m, vec3 w, vec4 p0,
              float spread) {
-  return (NormalDamping(p0, r, d, m) * spread) * (w - dot(w, n) * n);
+  float spin = dot(w, n);
+  vec3 moment = (NormalDamping(p0, r, d, m) * spread) * (w - spin * n);
+  if(p0.w > 0.0) {
+    // c_t of Law
+    float kt = 8.0 * p0.y * sqrt(r * d);
+    float ct = -2.0 * sqrt(5.0 / 6.0) * p0.z * sqrt(m * kt);
+    moment = moment + (ct * spread * spin) * n;
+  }
+  return moment;
 }
 
 // the contact law of a pair with overlap d > 0 along the unit normal n (on

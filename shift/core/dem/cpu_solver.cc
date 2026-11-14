@@ -104,11 +104,20 @@ static float NormalDamping(const std::array<float, 8>& p, float r, float d,
 /* the moment on the first of a contact over a patch of spread rho^2 (the
 mean square distance of its points from the point of contact, weighted as
 they are): the normal damping spread over the patch resists the first's
-rocking on the second, w being the second's angular velocity less the
-first's */
+rocking on the second, and with friction the tangential damping spread over
+it resists its spinning about the normal, w being the second's angular
+velocity less the first's */
 static Vec3 Rocking(Vec3 n, float d, float r, float m, Vec3 w,
                     const std::array<float, 8>& p, float spread) {
-  return (NormalDamping(p, r, d, m) * spread) * (w - Dot(w, n) * n);
+  const float spin = Dot(w, n);
+  Vec3 moment = (NormalDamping(p, r, d, m) * spread) * (w - spin * n);
+  if(p[3] > 0.0f) {
+    /* c_t of Law */
+    const float kt = 8.0f * p[1] * std::sqrt(r * d);
+    const float ct = -2.0f * std::sqrt(5.0f / 6.0f) * p[2] * std::sqrt(m * kt);
+    moment = moment + (ct * spread * spin) * n;
+  }
+  return moment;
 }
 
 static void Law(Vec3 n, float d, float r, float m, Vec3 u, Vec3 w,
