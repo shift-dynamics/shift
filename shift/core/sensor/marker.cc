@@ -70,11 +70,13 @@ void shift::core::sensor::Marker::Connect() {
     bodies_.push_back(body);
     frames_.push_back(found);
   }
-  values_.assign(kValuesPerFrame * frames_.size(), 0.0);
+  DeclareOutputs(OutputNames(), &values_,
+                 "a coordinate of the position, orientation or velocity of the "
+                 "frame (see the marker sensor)");
 }
 
 std::vector<std::string>
-shift::core::sensor::Marker::get_output_names() const {
+shift::core::sensor::Marker::OutputNames() const {
   static const char* const kNames[kValuesPerFrame] = {
     "_x",  "_y",  "_z",  "_qw", "_qx", "_qy", "_qz", "_roll",
     "_pitch", "_yaw", "_vx", "_vy", "_vz", "_wx", "_wy", "_wz"};
@@ -146,9 +148,4 @@ void shift::core::sensor::Marker::UpdateOutputs(double, const double*) {
       out[13 + i] = angular.at[i];
     }
   }
-}
-
-void shift::core::sensor::Marker::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), values_.begin(), values_.end());
 }

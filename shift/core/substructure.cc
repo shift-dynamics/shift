@@ -606,7 +606,10 @@ unsigned int shift::core::Substructure::RemoveConstraintViolations() {
 
   assert(context_);
   context_->UpdateDH();
-  double initial_error = EvaluateConstraints(context_->get_dhva());
+  /* the error includes trace(R) - 3 in each angular component, so that a loop
+  closed by a half-turn, where the skew-symmetric part of R vanishes, is not
+  accepted as assembled */
+  double initial_error = EvaluateConstraintsNewtonRaphson(context_->get_dhva());
 
   SHIFT_DEBUG("Initial constraint error for substructure " +
               std::to_string(index_) + ": " + std::to_string(initial_error));
@@ -620,7 +623,7 @@ unsigned int shift::core::Substructure::RemoveConstraintViolations() {
     NewtonRaphsonSolver();
     Updateq();
     context_->UpdateDH();
-    error = EvaluateConstraints(context_->get_dhva());
+    error = EvaluateConstraintsNewtonRaphson(context_->get_dhva());
 
     SHIFT_DEBUG("[" << step << "] error: " + std::to_string(error));
     ++step;
@@ -1073,7 +1076,11 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsRunTime(
 }
 
 /*!
-@brief vector copy B matrix into null space array
+@brief form the right null space matrix N = P_v^T [-B^{di}; I] of the
+substructure's Jacobian from the B matrix stored in J_
+
+J_ holds B^{di} = inverse(Ur) * UR (ksl_linalg_lu_setBMatrix_rmo), so the
+dependent rows of N are -B^{di} and J N = 0.
 */
 void shift::core::Substructure::CopyNullSpace() {
   memset(right_null_space_, 0, dq_count_ * dq_count_ * sizeof(double));
@@ -1084,10 +1091,11 @@ void shift::core::Substructure::CopyNullSpace() {
 #if SHIFT_WITH_BLAS_
     cblas_dcopy(col_dim, J_ + (i * dq_count_ + rank_), 1,
                 right_null_space_ + (pc_12_[i] * col_dim), 1);
+    cblas_dscal(col_dim, -1.0, right_null_space_ + (pc_12_[i] * col_dim), 1);
 #else
     for(int j = 0; j < col_dim; j++) {
       right_null_space_[pc_12_[i] * col_dim + j] =
-        J_[i * dq_count_ + rank_ + j];
+        -J_[i * dq_count_ + rank_ + j];
     }
 #endif
   }

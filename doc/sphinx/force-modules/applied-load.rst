@@ -39,4 +39,4 @@ right over it, with no effect at all. Keep the integrator's ``hmax`` (0.01 s by 
 .. shift-parameters:: shift/core/force_module/applied_load.cc
    :function: force_module::AppliedLoad::DeclareParameters
 
-Output: ``scale``.
+Output: ``load_scale``, the scale :math:`s(t)`.

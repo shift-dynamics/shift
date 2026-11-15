@@ -31,6 +31,15 @@ void shift::core::force_module::SoilContact::DeclareParameters() {
                    "names of the bodies' collision geometry that presses on "
                    "the soil; defaults to all of it",
                    false);
+  DeclareOutput("normal_force", &normal_force_,
+                "total pressure force of the soil");
+  DeclareOutput("contact_nodes", &contact_nodes_,
+                "number of nodes of the terrain in contact");
+  DeclareOutput("sinkage", &sinkage_,
+                "deepest sinkage, from the undisturbed surface");
+  DeclareOutput("sph_force", &sph_force_,
+                "load of the SPH soil on the bodies, along the up axis "
+                "(-z) of each soil's frame");
 }
 
 void shift::core::force_module::SoilContact::Load() {
@@ -76,22 +85,14 @@ void shift::core::force_module::SoilContact::Load() {
 void shift::core::force_module::SoilContact::Connect() {
   terrain_ = nullptr;
   sph_.clear();
-  /* the SPH soils, among the terrains and their regions */
-  std::vector<shift::core::terrain::Base*> stack;
-  for(auto terrain : context_->get_active_terrain()) {
+  /* the SCM soil and the SPH soils, among the terrains and their regions
+  (an SCM soil may be a region of rigid ground) */
+  for(auto terrain : shift::core::terrain::Base::WithRegions(
+        context_->get_active_terrain())) {
     if(auto scm = dynamic_cast<shift::core::terrain::Scm*>(terrain)) {
       terrain_ = scm;
-    }
-    stack.push_back(terrain);
-  }
-  while(!stack.empty()) {
-    shift::core::terrain::Base* terrain = stack.back();
-    stack.pop_back();
-    if(auto sph = dynamic_cast<shift::core::terrain::Sph*>(terrain)) {
+    } else if(auto sph = dynamic_cast<shift::core::terrain::Sph*>(terrain)) {
       sph_.push_back(sph);
-    }
-    for(auto region : terrain->get_regions()) {
-      stack.push_back(region);
     }
   }
   if(!terrain_ && sph_.empty()) {
@@ -408,14 +409,12 @@ void shift::core::force_module::SoilContact::Service(const double*, double*) {
 void shift::core::force_module::SoilContact::UpdateOutputs(double,
                                                            const double*) {
   Evaluate(false);
-}
-
-std::vector<std::string>
-shift::core::force_module::SoilContact::get_output_names() const {
-  return {"normal_force", "contact_nodes", "sinkage"};
-}
-
-void shift::core::force_module::SoilContact::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {normal_force_, contact_nodes_, sinkage_});
+  sph_force_ = 0.0;
+  for(shift::core::terrain::Sph* sph : sph_) {
+    const ksl_vec3_t& z = sph->get_pose().R.v2;
+    for(size_t k = 0; k < bodies_.size(); k++) {
+      const ksl_coscrew_t& load = sph->get_body_load(k);
+      sph_force_ -= z.x * load.lin.x + z.y * load.lin.y + z.z * load.lin.z;
+    }
+  }
 }

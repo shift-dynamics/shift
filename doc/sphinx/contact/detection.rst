@@ -245,7 +245,7 @@ Steps of the contact
 ^^^^^^^^^^^^^^^^^^^^
 
 Let :math:`i` and :math:`j` denote the coordinate systems of the two parts of
-a pair, and :math:`\Phi_{ij}^{ij} = \Phi_{0i}^{0i\,-1}\,\Phi_{0j}^{0j}` the
+a pair, and :math:`\Phi_{ij}^{ij} = \Phi_{fi}^{fi\,-1}\,\Phi_{fj}^{fj}` the
 displacement of :math:`j` relative to :math:`i`. The points of contact of the
 pair are found in the following steps, all in the coordinate system
 :math:`i`.
@@ -342,7 +342,7 @@ pair are found in the following steps, all in the coordinate system
    seam of a cylinder, are removed.
 
 #. The points and normals are transformed into the fixed reference frame by
-   :math:`\Phi_{0i}^{0i}`.
+   :math:`\Phi_{fi}^{fi}`.
 
 A point of positive depth less than :math:`\delta_{max}`, 2 % of the size of
 the part unless the collision geometry specifies another value in
@@ -444,22 +444,22 @@ of the two geometries of a pair are denoted :math:`i` and :math:`j`.
     * - Computation
       - Coordinate system
     * - Bounding spheres, sweep and prune, the tests of bounding spheres
-      - Fixed reference frame :math:`0`: the centers
-        :math:`\underline{c}_i = \underline{r}_{0i}^{0}`
+      - Fixed reference frame :math:`f`: the centers
+        :math:`\underline{c}_i = \underline{r}_{fi}^{f}`
     * - Support point of a shape, Eq. :eq:`eq:support_point`
-      - The direction :math:`\underline{m}^{0}` is transformed into the
-        geometry, :math:`\underline{m}^{i} = R^{0i\,T}\,\underline{m}^{0}`;
+      - The direction :math:`\underline{m}^{f}` is transformed into the
+        geometry, :math:`\underline{m}^{i} = R^{fi\,T}\,\underline{m}^{f}`;
         the support point is found from the vertices or dimensions stored in
         :math:`i`, and transformed back by Eq. :eq:`eq:shape_to_fixed`
     * - GJK and EPA simplices, the Minkowski difference, the manifold
-      - Fixed reference frame :math:`0`; the vertices of the simplex are also
+      - Fixed reference frame :math:`f`; the vertices of the simplex are also
         kept in the coordinates of each geometry, to restart GJK at the next
         evaluation
     * - Contact of STEP parts: box trees, Newton's method on the faces, lines
         of contact
       - The coordinate system :math:`i` of the first part. The second part is
         transformed into it by the relative displacement
-        :math:`\Phi_{ij}^{ij} = \Phi_{0i}^{0i\,-1}\,\Phi_{0j}^{0j}`, and the
+        :math:`\Phi_{ij}^{ij} = \Phi_{fi}^{fi\,-1}\,\Phi_{fj}^{fj}`, and the
         points and normals are transformed into the fixed reference frame
         when the pair is complete
     * - Contact of a STEP part and a plane
@@ -469,7 +469,7 @@ of the two geometries of a pair are denoted :math:`i` and :math:`j`.
       - The coordinate system of the terrain, into which each point is
         transformed before its elevation and slopes are evaluated
     * - Points and normals given to the force modules
-      - Fixed reference frame :math:`0`, and the points also in the coordinates
+      - Fixed reference frame :math:`f`, and the points also in the coordinates
         of each geometry, for the curvatures of the surfaces there
 
 Computing in the coordinate system of a geometry allows its vertices, face

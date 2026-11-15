@@ -258,7 +258,7 @@ void shift::core::joint::rx_dhva(const shift::core::Context& context, topology::
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
 
@@ -317,7 +317,7 @@ void shift::core::joint::rxinv_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
 
@@ -377,7 +377,7 @@ void shift::core::joint::ry_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
 
@@ -438,7 +438,7 @@ void shift::core::joint::ryinv_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
 
@@ -498,7 +498,7 @@ void shift::core::joint::rz_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
   SHIFT_TRACE_DHVA("rz_dhva", offsets);
@@ -557,7 +557,7 @@ void shift::core::joint::rzinv_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
 
@@ -647,7 +647,7 @@ void shift::core::joint::ra_dhva(const shift::core::Context& context, topology::
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
   SHIFT_TRACE_DHVA("ra_dhva", offsets);
@@ -680,7 +680,7 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
 
   ksl_product_as(*v_primitive, h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 
   SHIFT_TRACE_DHVA("rainv_dhva", offsets);

@@ -155,7 +155,7 @@ Parameters
 The module acts along the axis and about it only. The side load and tilt of a spline
 running at an angle are not modelled.
 
-The outputs are ``angle``, ``torque``, ``normal_force``, ``friction`` and ``stick``,
+The outputs are ``angle``, ``torque``, ``normal_force``, ``friction_force`` and ``stick``,
 the share of the static friction in use. The model
 ``examples/force_modules/slip_spline.json`` pushes a yoke along its spline while the
 torque rises: it slides until the teeth load up, and then the friction stops it.

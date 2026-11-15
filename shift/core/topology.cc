@@ -116,6 +116,53 @@ bool shift::core::topology::IsSubstructureMember(
   return false;
 }
 
+std::vector<shift::core::topology::Tree> shift::core::topology::DetectTrees(
+  const std::vector<int>& pcl_compressed,
+  const std::vector<unsigned int>& joint_dof_compressed,
+  const std::vector<int>& joint_lookup, const std::vector<int>& loop_bodies) {
+  std::vector<Tree> trees;
+  const int n = static_cast<int>(pcl_compressed.size());
+
+  /* the tree of each compressed body; parents precede children in
+  permutation order 1, so one pass assigns every body the tree of its parent */
+  std::vector<int> tree_of(n, -1);
+  std::vector<int> child_count(n, 0);
+  for(int j = 0; j < n; j++) {
+    const int parent = pcl_compressed[j];
+    if(parent < 0) {
+      tree_of[j] = static_cast<int>(trees.size());
+      trees.emplace_back();
+    } else {
+      tree_of[j] = tree_of[parent];
+      child_count[parent]++;
+    }
+    trees[tree_of[j]].bodies.push_back(j);
+    trees[tree_of[j]].dq_count += joint_dof_compressed[j];
+  }
+  for(size_t i = 0; i < joint_lookup.size(); i++) {
+    const int j = joint_lookup[i];
+    if(j > -1 && pcl_compressed[j] < 0) {
+      trees[tree_of[j]].root_joint = static_cast<int>(i);
+    }
+  }
+
+  for(auto& tree : trees) {
+    tree.kind = Tree::Kind::kSerialChain;
+    for(int j : tree.bodies) {
+      if(child_count[j] > 1) {
+        tree.kind = Tree::Kind::kBranched;
+        break;
+      }
+    }
+  }
+  for(int j : loop_bodies) {
+    if(j > -1) {
+      trees[tree_of[j]].kind = Tree::Kind::kClosedLoop;
+    }
+  }
+  return trees;
+}
+
 void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
                                             std::vector<int>& p_inv) {
   if(p.size() != p_inv.size()) {
@@ -124,6 +171,53 @@ void shift::core::topology::SetInversePermutation(const std::vector<int>& p,
   for(unsigned int i = 0; i < p.size(); i++) {
     p_inv[p[i]] = i;
   }
+}
+
+std::vector<int> shift::core::topology::FindFloatingRoots(
+  int body_count, const std::vector<std::array<int, 2>>& joint_bodies) {
+  /* adjacency of the bodies; the fixed body -1 is stored at body_count */
+  const int fixed = body_count;
+  std::vector<std::vector<int>> adjacent(body_count + 1);
+  for(const auto& ends : joint_bodies) {
+    const int a = ends[0] < 0 ? fixed : ends[0];
+    const int b = ends[1] < 0 ? fixed : ends[1];
+    assert(a <= body_count && b <= body_count);
+    adjacent[a].push_back(b);
+    adjacent[b].push_back(a);
+  }
+
+  /* label every body with the part it belongs to, by breadth-first search
+  from the fixed body first and then from each body not yet reached; return
+  from each search the body with the most joints */
+  std::vector<bool> reached(body_count + 1, false);
+  std::vector<int> queue;
+  auto search = [&](int start) {
+    reached[start] = true;
+    queue.assign(1, start);
+    int root = start;
+    for(size_t k = 0; k < queue.size(); k++) {
+      const int body = queue[k];
+      if(adjacent[body].size() > adjacent[root].size() ||
+         (adjacent[body].size() == adjacent[root].size() && body < root)) {
+        root = body;
+      }
+      for(const int next : adjacent[body]) {
+        if(!reached[next]) {
+          reached[next] = true;
+          queue.push_back(next);
+        }
+      }
+    }
+    return root;
+  };
+  search(fixed);
+  std::vector<int> roots;
+  for(int start = 0; start < body_count; start++) {
+    if(!reached[start]) {
+      roots.push_back(search(start));
+    }
+  }
+  return roots;
 }
 
 std::string shift::core::topology::GetJointType(dh_fptr f) {

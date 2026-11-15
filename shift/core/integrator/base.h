@@ -79,6 +79,16 @@ public:
     time_step_ = time_step;
   }
 
+  /*! \brief the omega_n of Baumgarte constraint stabilization for the next
+   * evaluations; 0 enforces the constraints at the acceleration level only
+   * (see Linearization) */
+  void set_baumgarte_omega_n(double omega_n) {
+    baumgarte_omega_n_ = omega_n;
+  }
+  double get_baumgarte_omega_n() const {
+    return baumgarte_omega_n_;
+  }
+
   void set_time_span(double time_span) {
     time_span_ = time_span;
   }

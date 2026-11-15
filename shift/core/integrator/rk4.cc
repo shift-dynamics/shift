@@ -60,6 +60,8 @@ void shift::core::integrator::RK4::Reset() {
 
   t_ = 0.0;
   h_ = step_size_ > 0.0 ? step_size_ : time_step_;
+  /* no longer than the terrain allows (Context::GetStepLimit) */
+  h_ = fmin(h_, context_->GetStepLimit());
 
   baumgarte_omega_n_ = omega_n_;
   baumgarte_omega_n_prev_ = omega_n_;

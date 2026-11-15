@@ -101,6 +101,7 @@ void shift::core::force_module::tire::Base::Load() {
     bekker_wong_.ResolveSoil("Tire " + get_name());
     model_ = &bekker_wong_;
   } else if(tire_type_ == "iowa") {
+    iowa_.ResolveSoil("Tire " + get_name());
     model_ = &iowa_;
   } else {
     throw shift::core::Exception("Tire " + get_name() + ": tire_type \"" +
@@ -110,6 +111,8 @@ void shift::core::force_module::tire::Base::Load() {
   equation_count_ = model_->get_state_count();
   q_0_.assign(equation_count_, 0.0);
   force_w_ = ksl_coscrew(0, 0, 0, 0, 0, 0);
+  DeclareOutputs(OutputNames(), &outputs_,
+                 "an output of the tire (see the tire models)");
 }
 
 void shift::core::force_module::tire::Base::Connect() {
@@ -462,7 +465,7 @@ void shift::core::force_module::tire::Base::Service(const double* y,
 }
 
 std::vector<std::string>
-shift::core::force_module::tire::Base::get_output_names() const {
+shift::core::force_module::tire::Base::OutputNames() const {
   if(tire_type_ == "iowa") {
     return {"deflection",         "slip",          "slip_angle",
             "normal_force",       "longitudinal_force", "lateral_force",
@@ -477,28 +480,29 @@ shift::core::force_module::tire::Base::get_output_names() const {
 
 void shift::core::force_module::tire::Base::UpdateOutputs(double,
                                                           const double*) {
-  outputs_.clear();
+  /* in place: the outputs point into outputs_, sized in Load */
+  const bool touching = contact_.in_contact;
   if(const auto* iowa = dynamic_cast<const Iowa*>(model_)) {
-    const bool touching = contact_.in_contact;
-    outputs_ = {touching ? contact_.depth : 0.0, iowa->get_slip(),
-                iowa->get_slip_angle(), touching ? -force_w_.lin.z : 0.0,
-                touching ? force_w_.lin.x : 0.0,
-                touching ? force_w_.lin.y : 0.0,
-                touching ? force_w_.ang.z : 0.0};
+    assert(outputs_.size() == 7);
+    outputs_[0] = touching ? contact_.depth : 0.0;
+    outputs_[1] = iowa->get_slip();
+    outputs_[2] = iowa->get_slip_angle();
+    outputs_[3] = touching ? -force_w_.lin.z : 0.0;
+    outputs_[4] = touching ? force_w_.lin.x : 0.0;
+    outputs_[5] = touching ? force_w_.lin.y : 0.0;
+    outputs_[6] = touching ? force_w_.ang.z : 0.0;
     return;
   }
   const auto* wheel = dynamic_cast<const BekkerWong*>(model_);
   if(wheel == nullptr) {
     return;
   }
-  const bool touching = contact_.in_contact;
-  outputs_ = {touching ? contact_.depth : 0.0, wheel->get_slip(),
-              touching ? force_w_.lin.x : 0.0,
-              touching ? -force_w_.lin.z : 0.0, wheel->get_shear_torque(),
-              wheel->get_camber(), touching ? force_w_.lin.y : 0.0};
-}
-
-void shift::core::force_module::tire::Base::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), outputs_.begin(), outputs_.end());
+  assert(outputs_.size() == 7);
+  outputs_[0] = touching ? contact_.depth : 0.0;
+  outputs_[1] = wheel->get_slip();
+  outputs_[2] = touching ? force_w_.lin.x : 0.0;
+  outputs_[3] = touching ? -force_w_.lin.z : 0.0;
+  outputs_[4] = wheel->get_shear_torque();
+  outputs_[5] = wheel->get_camber();
+  outputs_[6] = touching ? force_w_.lin.y : 0.0;
 }

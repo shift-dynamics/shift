@@ -63,8 +63,45 @@ public:
    * assembly, or within one of them, or in the assemblies nested in it */
   void CheckUniqueNames();
 
+  /*! \brief the component of this assembly named name: a body, joint, force
+   * module, sensor, controller, constraint or nested assembly; nullptr if
+   * there is none. Names are unique within each kind (CheckUniqueNames), but
+   * two kinds may share one: then name must give the kind by its key in the
+   * model file, as "force_modules/motor", and a bare name that matches
+   * components of two kinds throws. For a controller to find the component
+   * whose input it sets. */
+  parameter::List* FindComponent(const std::string& name);
+
+  /*! \brief the component named name: one of this assembly (FindComponent),
+   * else the one of that fully qualified name among assemblies (the model's)
+   * and the assemblies nested in them, as
+   * "<assembly>__<subassembly>__<name>", with its kind before it where two
+   * kinds share the name, as "controllers/car__brake_pedal"; nullptr if
+   * there is none. For a controller to find a component in another
+   * assembly. */
+  parameter::List* FindComponent(
+    const std::string& name, std::vector<std::unique_ptr<Assembly>>& assemblies);
+
+  /*! \brief the assembly of the fully qualified name qualified among
+   * assemblies and the assemblies nested in them, or nullptr */
+  static Assembly* FindQualifiedAssembly(
+    std::vector<std::unique_ptr<Assembly>>& assemblies,
+    const std::string& qualified);
+
 private:
   void DeclareParameters() override;
+
+  /*! \brief the object of objects named name, or nullptr */
+  template <class T>
+  static parameter::List* FindByName(std::vector<std::unique_ptr<T>>& objects,
+                                     const std::string& name) {
+    for(auto& object : objects) {
+      if(object->get_name() == name) {
+        return object.get();
+      }
+    }
+    return nullptr;
+  }
 
   shift::core::parameter::FactoryArray<body::Base> bodies_;
   shift::core::parameter::FactoryArray<controller::Base> controllers_;

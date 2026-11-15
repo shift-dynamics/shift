@@ -7,8 +7,13 @@ layout(local_size_x = 8, local_size_y = 8) in;
 // Catmull-Rom filter, is clamped to the color range of the current 3x3
 // neighborhood (variance clipping in YCoCg) and blended with the current
 // color. This removes the residual flicker of the denoiser and resolves the
-// sub-pixel jitter of the primary rays at edges; the clamp rejects stale
-// history.
+// sub-pixel jitter of the primary rays at edges. History is taken only from
+// the pixels of the previous frame that saw the same surface (the same
+// instance, normal and plane, as in svgf_temporal.comp): where a body
+// uncovers what was behind it, its old color is not reprojected onto the
+// newly seen ground, which the clamp alone does not catch where the ground's
+// texture is as varied as gravel, and which left a fading trail behind
+// moving bodies.
 //
 // Once the view stops changing, the history maps one to one onto the image
 // and cannot be stale, so the clamp is dropped and the blend becomes a
@@ -26,6 +31,9 @@ struct Instance { // keep in sync with raytrace.comp
   ivec4 offsets;
   mat4 previous_body_to_world;
   vec4 optical; // unused here, but part of the stride of the array
+  vec4 variation; // the same
+  ivec4 surface_layers;
+  vec4 surface[2];
 };
 
 layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
@@ -47,6 +55,9 @@ layout(rgba16f, binding = 4) uniform readonly image2D previous_color;
 layout(rgba16f, binding = 5) uniform writeonly image2D history_color;
 layout(rgba8, binding = 6) uniform writeonly image2D out_image;
 layout(rgba32f, binding = 7) uniform readonly image2D accumulation;
+layout(rgba32f, binding = 8) uniform readonly image2D previous_position;
+layout(rgba16f, binding = 9) uniform readonly image2D normal;
+layout(rgba16f, binding = 10) uniform readonly image2D previous_normal;
 
 // while the view changes, an exponential history of ~10 frames; the
 // cumulative mean of a static view starts from it
@@ -69,8 +80,31 @@ bool Project(mat4 m, vec4 p, ivec2 size, out vec2 window) {
   return clip.w > 1e-6;
 }
 
-// Catmull-Rom resampling of the previous color at window coordinate c
-vec3 SampleHistory(vec2 c, ivec2 size) {
+// whether the previous frame's pixel tap saw the surface of instance id at
+// previous_world, with normal previous_n there
+bool SameSurface(ivec2 tap, int id, vec3 previous_world, vec3 previous_n,
+                 float tolerance) {
+  vec4 p = imageLoad(previous_position, tap);
+  if(int(round(p.w)) != id) {
+    return false;
+  }
+  if(id == -1) {
+    return true; // the sky
+  }
+  return dot(previous_n, imageLoad(previous_normal, tap).xyz) >= 0.9 &&
+         abs(dot(previous_n, p.xyz - previous_world)) <= tolerance;
+}
+
+// The previous color at window coordinate c, resampled with a Catmull-Rom
+// filter, and whether any previous pixel within 1.5 pixels of c saw the
+// surface of instance id (SameSurface). None did where a moving body uncovered
+// what was behind it: the history there is the body's, and must not be
+// reprojected onto the ground it uncovered. Where some did, at the edges of a
+// surface, the history is resampled from all of the pixels, as primary rays
+// are jittered within their pixels and the anti-aliased color of an edge is
+// the mean over the surfaces that its samples see.
+vec3 SampleHistory(vec2 c, ivec2 size, int id, vec3 previous_world,
+                   vec3 previous_n, float tolerance, out bool seen) {
   vec2 q = c - 0.5;
   ivec2 base = ivec2(floor(q));
   vec2 f = q - vec2(base);
@@ -80,12 +114,20 @@ vec3 SampleHistory(vec2 c, ivec2 size) {
                      f * f * (-0.5 + 0.5 * f));
   vec3 sum = vec3(0.0);
   float weight_sum = 0.0;
+  seen = false;
   for(int j = 0; j < 4; j++) {
     for(int i = 0; i < 4; i++) {
-      ivec2 tap = clamp(base + ivec2(i - 1, j - 1), ivec2(0), size - 1);
-      float weight = w[i].x * w[j].y;
-      sum += weight * imageLoad(previous_color, tap).rgb;
-      weight_sum += weight;
+      ivec2 tap = base + ivec2(i - 1, j - 1);
+      bool inside = all(greaterThanEqual(tap, ivec2(0))) &&
+                    all(lessThan(tap, size));
+      tap = clamp(tap, ivec2(0), size - 1);
+      vec3 color = imageLoad(previous_color, tap).rgb;
+      sum += w[i].x * w[j].y * color;
+      weight_sum += w[i].x * w[j].y;
+      vec2 d = abs(vec2(tap) + 0.5 - c);
+      if(!seen && inside && max(d.x, d.y) < 1.5) {
+        seen = SameSurface(tap, id, previous_world, previous_n, tolerance);
+      }
     }
   }
   return sum / weight_sum;
@@ -118,28 +160,48 @@ void main() {
                    Project(u.previous_view_projection, previous_point, size,
                            previous_window);
     vec2 c = vec2(pixel) + 0.5 + (previous_window - window);
-    if(visible && all(greaterThanEqual(c, vec2(0.0))) &&
-       all(lessThan(c, vec2(size)))) {
-      vec3 m1 = vec3(0.0);
-      vec3 m2 = vec3(0.0);
-      vec3 lo = vec3(1e9);
-      vec3 hi = vec3(-1e9);
-      for(int dy = -1; dy <= 1; dy++) {
-        for(int dx = -1; dx <= 1; dx++) {
-          ivec2 tap = clamp(pixel + ivec2(dx, dy), ivec2(0), size - 1);
-          vec3 y = ToYCoCg(imageLoad(current_color, tap).rgb);
-          m1 += y;
-          m2 += y * y;
-          lo = min(lo, y);
-          hi = max(hi, y);
-        }
+    // the normal of the surface in the previous frame, and how far from
+    // its plane a pixel of it may be found (the hit moves along the surface
+    // by up to a pixel's footprint)
+    vec3 previous_n = vec3(0.0);
+    float tolerance = 0.0;
+    if(id >= 0) {
+      vec4 gn = imageLoad(normal, pixel);
+      mat4 to_previous =
+        instances[id].previous_body_to_world * instances[id].world_to_body;
+      previous_n = normalize(mat3(to_previous) * gn.xyz);
+      tolerance = 0.01 * gn.w + 4.0 * u.params.x * gn.w;
+    }
+    vec3 m1 = vec3(0.0);
+    vec3 m2 = vec3(0.0);
+    vec3 lo = vec3(1e9);
+    vec3 hi = vec3(-1e9);
+    for(int dy = -1; dy <= 1; dy++) {
+      for(int dx = -1; dx <= 1; dx++) {
+        ivec2 tap = clamp(pixel + ivec2(dx, dy), ivec2(0), size - 1);
+        vec3 y = ToYCoCg(imageLoad(current_color, tap).rgb);
+        m1 += y;
+        m2 += y * y;
+        lo = min(lo, y);
+        hi = max(hi, y);
       }
-      m1 /= 9.0;
-      m2 /= 9.0;
+    }
+    m1 /= 9.0;
+    m2 /= 9.0;
+    bool seen = false;
+    vec3 history = vec3(0.0);
+    if(visible) {
+      history = SampleHistory(c, size, id, previous_point.xyz, previous_n,
+                              tolerance, seen);
+    }
+    if(!seen) {
+      // newly uncovered: no history; the mean of the neighborhood, as the
+      // single denoised frame is noisy
+      result = FromYCoCg(m1);
+    } else {
       vec3 sigma = sqrt(max(m2 - m1 * m1, vec3(0.0)));
       lo = max(lo, m1 - kClipGamma * sigma);
       hi = min(hi, m1 + kClipGamma * sigma);
-      vec3 history = SampleHistory(c, size);
       if(frames < 1.5) {
         history = FromYCoCg(clamp(ToYCoCg(history), lo, hi));
       }

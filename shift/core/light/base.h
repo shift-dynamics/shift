@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "shift/core/base.h"
 #include "shift/core/parameter/list.h"
@@ -34,9 +35,15 @@ Colors, as RGB from 0 to 1:
 - Ks: color of the specular highlights.
 - Ka: ambient color, added to the light from the sky on every surface.
 
-intensity multiplies Kd and Ks. Point, spot and IES lights fall off with
+intensity multiplies Kd and Ks. It is an input (parameter::List::
+DeclareInput): a controller can set it while the model runs, and the viewer
+shows the lamp as bright as it was at the time shown. Point, spot and IES lights fall off with
 the distance \f$d\f$ to the light as \f$1 / (c + l d + q d^2)\f$, with
 attenuation \f$[c, l, q]\f$; the default \f$[1, 0, 0]\f$ does not fall off.
+
+glow names geometries of the parent body that glow with the light, such as
+the lens of a lamp: the viewer adds their own color times Kd and intensity to
+their shading, so that they light up when the light is switched on.
 
 The viewer draws the lights of a model in place of its default sun.
 */
@@ -88,6 +95,11 @@ public:
   double get_intensity() const {
     return intensity_;
   }
+  /*! \brief names of the geometries of the parent body that glow with the
+   * light */
+  const std::vector<std::string>& get_glow() const {
+    return glow_;
+  }
   /*! \brief \f$[c, l, q]\f$: the light falls off as
    * \f$1 / (c + l d + q d^2)\f$ */
   const ksl_vec3_t& get_attenuation() const {
@@ -103,6 +115,7 @@ protected:
   ksl_vec3_t Ks_ = ksl_vec3(1.0, 1.0, 1.0);
   double intensity_ = 1.0;
   ksl_vec3_t attenuation_ = ksl_vec3(1.0, 0.0, 0.0);
+  std::vector<std::string> glow_;
 
   const body::Base* parent_body_ = nullptr;
   const Frame* frame_ = nullptr;

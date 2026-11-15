@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <limits>
 #include <string>
 
 #include "ksl/types.h"
@@ -92,7 +93,17 @@ public:
   void ConnectAll();
   void AcceptStepAll();
   void UpdateOutputAll();
+  /*! \brief the smallest StepLimit of the terrain and its regions */
+  double StepLimitAll() const;
   /*! @} */
+
+  /*! \brief the longest integration step the terrain allows, after Load;
+   * infinite by default. A terrain coupled explicitly to the bodies (Sph)
+   * limits it, so that its force on them is not too far behind them (see
+   * Context::GetStepLimit) */
+  virtual double StepLimit() const {
+    return std::numeric_limits<double>::infinity();
+  }
 
   /*! \brief the terrain that holds this one in its regions; null for a
    * terrain of the fixed body */
@@ -105,9 +116,22 @@ public:
     return regions_;
   }
 
+  /*! \brief the terrains, each followed by its regions and theirs, e.g.
+   * to find a deformable terrain (Scm) that is a region of a rigid one */
+  static std::vector<Base*> WithRegions(const std::vector<Base*>& terrains);
+
   /*! \brief whether the terrain has an extent, x and y */
   bool has_extent() const {
     return x_range_.size() == 2 && y_range_.size() == 2;
+  }
+
+  /*! \brief the extent, [first, last] of x and of y in the terrain frame;
+   * empty without one */
+  const std::vector<double>& get_x_range() const {
+    return x_range_;
+  }
+  const std::vector<double>& get_y_range() const {
+    return y_range_;
   }
 
   /*! \brief whether x, y of the terrain frame are inside the extent x, y;

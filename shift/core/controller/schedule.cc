@@ -48,6 +48,7 @@ void shift::core::controller::Schedule::DeclareParameters() {
                    "run time",
                    true)
     .set_row_dim(-1);
+  DeclareOutput("value", &value_, "the value of the schedule at the time");
 }
 
 static std::vector<std::string> SplitPath(const std::string& path) {
@@ -65,7 +66,7 @@ shift::core::controller::Schedule::Resolve(const std::string& path) const {
   using shift::core::parameter::List;
   using shift::core::parameter::Value;
   const std::string prefix =
-    "Schedule '" + get_name() + "': target '" + path + "': ";
+    label_ + " '" + get_name() + "': target '" + path + "': ";
   const std::vector<std::string> parts = SplitPath(path);
   if(parts.empty() || path.empty()) {
     throw shift::core::Exception(prefix + "the path is empty");
@@ -105,6 +106,14 @@ shift::core::controller::Schedule::Resolve(const std::string& path) const {
       prefix + "the parameter cannot be changed while the model runs (its "
                "component computes values from it, or has not declared that "
                "it reads it at every step)");
+  }
+  /* an input is set by one component at most: this schedule, from now on */
+  if(value->is_input()) {
+    try {
+      value->ConnectDriver(FullyQualifiedName(get_name()));
+    } catch(const shift::core::Exception& e) {
+      throw shift::core::Exception(prefix + e.what());
+    }
   }
 
   /* what is left of the path is the index of an entry */
@@ -175,7 +184,12 @@ shift::core::controller::Schedule::Resolve(const std::string& path) const {
 }
 
 void shift::core::controller::Schedule::Connect() {
-  const std::string prefix = "Schedule '" + get_name() + "': ";
+  ConnectCurve();
+  value_ = Evaluate(0.0);
+}
+
+void shift::core::controller::Schedule::ConnectCurve() {
+  const std::string prefix = label_ + " '" + get_name() + "': ";
   if(parent_assembly_ptr_ == nullptr) {
     throw shift::core::Exception("No parent assembly set for controller " +
                                  get_name());
@@ -235,7 +249,12 @@ void shift::core::controller::Schedule::Connect() {
   for(const auto& path : target_paths_) {
     targets_.push_back(Resolve(path));
   }
-  value_ = Evaluate(0.0);
+}
+
+void shift::core::controller::Schedule::SetTargets() {
+  for(const auto& target : targets_) {
+    *target.Pointer() = value_;
+  }
 }
 
 double shift::core::controller::Schedule::Evaluate(double t) const {
@@ -270,10 +289,14 @@ double shift::core::controller::Schedule::Evaluate(double t) const {
   return v_.back();
 }
 
+void shift::core::controller::Schedule::UpdateOutputs(double t,
+                                                      const double*) {
+  value_ = Evaluate(t);
+  SetTargets();
+}
+
 void shift::core::controller::Schedule::Service(const double*, double*) {
   assert(context_);
   value_ = Evaluate(context_->get_force_time());
-  for(const auto& target : targets_) {
-    *target.Pointer() = value_;
-  }
+  SetTargets();
 }

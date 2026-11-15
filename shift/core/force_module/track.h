@@ -95,12 +95,12 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
+  /*! \brief the names of the outputs, in the order of outputs_ */
+  std::vector<std::string> OutputNames() const;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the outputs of the current poses and contact forces, in the
-   * order of get_output_names */
+   * order of OutputNames */
   std::vector<double> Measure();
 
 protected:

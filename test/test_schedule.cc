@@ -234,7 +234,9 @@ TEST(Schedule, TheModuleReadsTheValueInTheSameEvaluation) {
     SCOPED_TRACE(t);
     context.SetForces(t, y, dy);
     std::vector<double> outputs;
-    module->AppendOutputs(outputs);
+    for(const auto& key : module->get_output_keys()) {
+      outputs.push_back(module->GetOutput(key));
+    }
     const double ground = std::max(std::min(-0.3 * t, 0.0), -0.3);
     // the sinkage of the shoe: the point -0.1 m below the origin plane
     EXPECT_NEAR(outputs[0], std::max(-0.1 - ground, 0.0), 1e-12);

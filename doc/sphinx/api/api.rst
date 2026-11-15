@@ -47,6 +47,8 @@ Model structure
 
 .. doxygenstruct:: shift::core::topology::DVA
 
+.. doxygenstruct:: shift::core::topology::Tree
+
 Bodies
 ------
 
@@ -93,6 +95,14 @@ Solvers and integrators
 
 .. doxygenclass:: shift::core::solver::RNCA
    :members: FactorAndSolve
+
+.. doxygenclass:: shift::core::solver::ArticulatedBody
+
+.. doxygenclass:: shift::core::solver::ABA
+
+.. doxygenclass:: shift::core::solver::DCA
+
+.. doxygenclass:: shift::core::solver::Auto
 
 .. doxygenclass:: shift::core::integrator::Base
 

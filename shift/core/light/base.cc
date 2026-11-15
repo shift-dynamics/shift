@@ -7,6 +7,7 @@
 
 #include "shift/core/body/base.h"
 #include "shift/core/frame.h"
+#include "shift/core/geometry/base.h"
 #include "shift/core/log.h"
 
 bool shift::core::light::Modules::is_initialized() {
@@ -52,10 +53,18 @@ void shift::core::light::Base::DeclareParameters() {
                "Indicates light's specular color component in RGB format "
                "using values from 0 to 1.",
                false);
-  DeclareParameter("intensity", &intensity_,
+  DeclareInput("intensity", &intensity_,
                "Factor of the diffuse and specular colors (optional, "
-               "default 1).",
-               false);
+               "default 1). An input: a controller, such as a map from a "
+               "brake pedal, can change it while the model runs, to switch "
+               "a lamp on and off.");
+  DeclareParameter("glow", &glow_,
+               "names of geometries of the parent body that glow with the "
+               "light, as the lens of a lamp: the viewer adds to their "
+               "shading their own color times Kd and intensity, so that "
+               "they light up as the light is switched on (optional)",
+               false)
+    .set_row_dim(-1);
   DeclareParameter("attenuation", &attenuation_,
                "[c, l, q]: point, spot and IES lights fall off with the "
                "distance d to the light as 1 / (c + l d + q d^2). Use "
@@ -92,6 +101,16 @@ void shift::core::light::Base::Connect() {
     SHIFT_WARNING(prefix + "frame " + parent_[1] + " not found on body " +
                   parent_[0] + "; the light is not drawn");
     return;
+  }
+  for(const auto& name : glow_) {
+    bool found = false;
+    for(const auto& geometry : body->get_geometry()) {
+      found = found || geometry->get_name() == name;
+    }
+    if(!found) {
+      SHIFT_WARNING(prefix + "glow: no geometry named " + name +
+                    " on body " + parent_[0]);
+    }
   }
   parent_body_ = body;
 }

@@ -1,0 +1,73 @@
+{
+  // A spindle driven by an electric motor on a 48 V supply, its current
+  // limited to 20 A by the drive. A proportional controller on the
+  // spindle's speed sets the motor's current input, and a schedule steps
+  // the speed target from 0 to 310 rad/s at 0.2 s and down to 150 rad/s at
+  // 2 s. On the way up the drive holds the current limit; the spindle then
+  // settles 2 rad/s below the target, where the error times the gain gives
+  // the current for the bearings' drag. On the way down the motor brakes the
+  // spindle at the current limit, returning power to the supply. The
+  // spindle turns about the fixed z axis.
+  "model_parameters": {
+    "version": "0.2.0",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    // z points down: gravity acts along +z, along the spindle's axis
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 3.0, "time_step": 0.005,
+                     "relative_error": 1e-6, "absolute_error": 1e-8}],
+    // the states, and the outputs of the motor (all of them), the speed
+    // controller and the schedule
+    "loggers": [{"type": "csv", "csv_logfile": "electric_motor.csv",
+                 "timestamp_logfile": false,
+                 "force_modules": [{"name": "motor"}],
+                 "controllers": [{"name": "speed_control",
+                                  "outputs": ["error", "effort"]},
+                                 {"name": "speed_profile"}]}]
+  },
+  "assemblies": [
+    {
+      "name": "spindle_drive",
+      "bodies": [
+        // the spindle with the motor's rotor and a chuck
+        {"name": "spindle",
+         "geometry": [{"type": "mesh", "filename": ["meshes/cylinder_z_aluminium.obj"],
+                       "scale": [0.06, 0.06, 0.08], "texture_mapping": "triplanar",
+                       "texture_scale": 0.05}],
+         "center_of_mass": [0, 0, 0],
+         "inertia": {"mass": 4, "Ixx": 0.01, "Iyy": 0.01, "Izz": 0.008,
+                     "Ixy": 0, "Iyz": 0, "Izx": 0}}
+      ],
+      "joints": [
+        // the bearings' viscous drag, N m s/rad
+        {"name": "spindle_bearing", "type": "revolute", "axis": [0, 0, 1],
+         "parent": [["fixed"], "origin"], "child": [["spindle"], "origin"],
+         "damping_coefficients": [0, 0.002]}
+      ],
+      "sensors": [
+        {"type": "joint", "name": "spindle_speed", "joint": "spindle_bearing",
+         "quantity": "velocity"}
+      ],
+      "controllers": [
+        {"type": "schedule", "name": "speed_profile", "interpolation": "step",
+         "transition_time": 0.05, "points": [0, 0, 0.2, 310, 2, 150],
+         "targets": ["controllers/speed_control/target"]},
+        // amperes per rad/s of error. No integral term: the PID controller
+        // has no anti-windup, and its integral would grow while the drive
+        // holds the current limit, overshooting the target
+        {"type": "pid", "name": "speed_control", "kp": 2,
+         "sensor": "spindle_speed", "component": "motor",
+         "input": "current"}
+      ],
+      "force_modules": [
+        // a brushless motor under field-oriented control: torque constant
+        // N m/A (= V s/rad), phase resistance ohm
+        {"type": "electric_motor", "name": "motor",
+         "joint": "spindle_bearing", "torque_constant": 0.15,
+         "resistance": 0.1, "supply_voltage": 48, "current_limit": 20}
+      ]
+    }
+  ]
+}

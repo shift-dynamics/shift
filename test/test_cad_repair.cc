@@ -513,3 +513,23 @@ TEST_F(CadRepair, TrackSprocketAndLink) {
     }
   }
 }
+
+TEST_F(CadRepair, HardContactPartsTrimEveryFace) {
+  // the parts written by scripts/make_hard_contact_step.py: a face left
+  // untrimmed is left out of contact
+  for(const std::string name :
+      {"ball", "seat", "socket", "bowl", "eggcrate", "sheet", "slab",
+       "spline_hole", "shell", "bolt", "nut", "groove", "drum", "brake_shoe",
+       "eggcrate_cover"}) {
+    SCOPED_TRACE(name);
+    Model m = Read(name + ".step");
+    RepairReport r = shift::core::cad::Repair(m);
+    EXPECT_EQ(r.faces_trimmed, r.faces);
+    EXPECT_EQ(r.edges_failed, 0);
+    EXPECT_EQ(r.pcurves_failed, 0);
+    for(const std::string& w : m.warnings) {
+      ADD_FAILURE() << w;
+    }
+    ExpectValidTrims(m);
+  }
+}

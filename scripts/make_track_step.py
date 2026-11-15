@@ -438,8 +438,10 @@ def color(step, item, rgb):
     return step.add("STYLED_ITEM('color',(#%d),#%d)" % (c, item))
 
 
-def write(path, product, comment, solids):
-    """solids: (name, builder(step) -> MANIFOLD_SOLID_BREP, rgb)"""
+def write(path, product, comment, solids,
+          script='scripts/make_track_step.py'):
+    """solids: (name, builder(step) -> MANIFOLD_SOLID_BREP, rgb); script is
+    the generator named in the file's header"""
     step = Step()
     items, styles = [], []
     for name, build, rgb in solids:
@@ -453,7 +455,7 @@ def write(path, product, comment, solids):
         '/* %s */' % comment,
         "FILE_DESCRIPTION(('%s'),'2;1');" % product,
         "FILE_NAME('%s','2026-11-04T00:00:00',('shift'),(''),"
-        "'scripts/make_track_step.py','','');" % os.path.basename(path),
+        "'%s','','');" % (os.path.basename(path), script),
         "FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));",
         'ENDSEC;',
         'DATA;',

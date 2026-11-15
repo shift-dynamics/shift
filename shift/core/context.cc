@@ -24,6 +24,7 @@
 #include <omp.h>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <list>
 #include <queue>
 #include <sstream>
@@ -110,6 +111,23 @@ void shift::core::Context::LoadJSON(const std::string filename) {
   } else {
     file >> root_;
   }
+  ReadModel(filename);
+}
+
+void shift::core::Context::LoadJSON(const Json::Value& model,
+                                    const std::string& filename) {
+  filename_ = filename;
+  files_read_.clear();
+  file_names_.clear();
+  if(!model.isObject()) {
+    throw shift::core::Exception("The model of '" + filename +
+                                 "' must be an object at its top level");
+  }
+  root_ = model;
+  ReadModel(filename);
+}
+
+void shift::core::Context::ReadModel(const std::string& filename) {
   ReadJSON(root_);
   AddDefaultFloor();
   set_parent(this);
@@ -127,6 +145,7 @@ void shift::core::Context::PostLoad(const std::string) {
   /* process topology */
   ActivateObjects(true);
   Connect();
+  AddFloatingJoints();
   LevelOrderSort();
   ProcessVirtualBodies();
   ProcessPCL();
@@ -143,6 +162,7 @@ void shift::core::Context::PostLoad(const std::string) {
   UpdateDHVA();
 
   SetupLookup();
+  DetectTrees();
   jacobian_.Initialize();
   InitializeMobility();
   InitializeInertia();
@@ -160,7 +180,10 @@ void shift::core::Context::PostLoad(const std::string) {
 }
 
 void shift::core::Context::ActivateLoggers() {
+  /* every component has declared its outputs by now, in its Load or
+  Connect */
   for(auto& logger : active_loggers_) {
+    logger->ConnectOutputs();
     logger->Initialize();
   }
 }
@@ -265,6 +288,14 @@ void shift::core::Context::WriteJSON(const std::string& filename) {
   } else {
     std::cerr << "no writer!" << std::endl;
   }
+}
+
+double shift::core::Context::GetStepLimit() const {
+  double limit = std::numeric_limits<double>::infinity();
+  for(const terrain::Base* terrain : active_terrain_) {
+    limit = std::min(limit, terrain->StepLimitAll());
+  }
+  return limit;
 }
 
 void shift::core::Context::Initialize() {
@@ -947,6 +978,42 @@ void shift::core::Context::LoadData() {
     collision_geometry->Load();
   }
   LoadExactShapes();
+}
+
+void shift::core::Context::AddFloatingJoints() {
+  /* index the articulated bodies; joints to other bodies (a free body, which
+  may have no joints, see SetupFreeBodies) are left to the checks there */
+  std::unordered_map<const shift::core::body::Base*, int> index;
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    index[active_articulated_bodies_[i]] = static_cast<int>(i);
+  }
+  index[get_fixed_body()] = -1;
+  std::vector<std::array<int, 2>> joint_bodies;
+  for(auto& joint : active_joints_) {
+    const auto parent = index.find(joint->get_parent_body());
+    const auto child = index.find(joint->get_child_body());
+    if(parent != index.end() && child != index.end()) {
+      joint_bodies.push_back({parent->second, child->second});
+    }
+  }
+
+  const std::vector<int> roots = shift::core::topology::FindFloatingRoots(
+    static_cast<int>(active_articulated_bodies_.size()), joint_bodies);
+  for(const int root : roots) {
+    auto* body = active_articulated_bodies_[root];
+    auto joint =
+      shift::core::Factory<shift::core::joint::Base>::get()->Create("float");
+    joint->set_name("_float_joint[" + std::to_string(joints_.size()) + "]");
+    joint->set_type("float");
+    joint->set_context(this);
+    joint->Attach(get_fixed_body(), get_fixed_body()->get_origin(), body,
+                  body->get_origin());
+    SHIFT_INFO("No joints connect body '" + body->get_name() +
+               "' to the fixed body; added floating joint '" +
+               joint->get_name() + "' from the origin of fixed to its origin");
+    active_joints_.push_back(joint.get());
+    joints_.push_back(std::move(joint));
+  }
 }
 
 void shift::core::Context::LevelOrderSort() {
@@ -2302,19 +2369,36 @@ void shift::core::Context::InitializeInertia() {
   }
 
   /* for bodies connected by rigid joints, merge inertias into parent body
-  inertia */
+  inertia. The joints are in level-increasing order (a parent before its
+  children), so walking them backwards merges each body, with all of the
+  rigid bodies already merged into it, before its parent is merged in turn;
+  and every merge adds to what the parent holds so far, so that a body with
+  several rigid children carries the mass of all of them */
   for(int i = (int)active_joints_.size() - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
     if(active_joints_[i]->get_q_count() == 0 && pcl_[i] > -1) {
-      auto child_body = active_articulated_bodies_[i];
-      auto parent_body = active_articulated_bodies_[pcl_[i]];
-      auto parent_frame = active_joints_[i]->get_system_parent_frame();
-      ksl_vec3_t t_ic_i = parent_body->get_center_of_mass_wrt_reference();
-      ksl_vec3_t t_jc_j = child_body->get_center_of_mass_wrt_reference();
-      ksl_inertia_t parent_inertia = parent_body->get_inertia_wrt_reference();
-      ksl_inertia_t child_inertia = child_body->get_inertia_wrt_reference();
+      assert(pcl_[i] < i);
+      ksl_inertia_t& parent_inertia = inertia_temp[pcl_[i]];
+      const ksl_inertia_t& child_inertia = inertia_temp[i];
+      if(!(child_inertia.m > 0.0)) {
+        continue; // nothing to add
+      }
+      /* the centers of mass of the inertias merged so far, from their first
+      moments (zero for a parent with no mass yet, which then takes the
+      child's) */
+      ksl_vec3_t t_ic_i = ksl_vec3(0.0, 0.0, 0.0);
+      if(parent_inertia.m > 0.0) {
+        ksl_product_av(1.0 / parent_inertia.m, &parent_inertia.mt, &t_ic_i);
+      }
+      ksl_vec3_t t_jc_j;
+      ksl_product_av(1.0 / child_inertia.m, &child_inertia.mt, &t_jc_j);
 
+      /* from the reference frame of the parent to that of the child: to the
+      joint's parent frame, across the joint, and back from the joint's child
+      frame to the child's reference frame */
+      auto parent_frame = active_joints_[i]->get_system_parent_frame();
+      auto child_frame = active_joints_[i]->get_system_child_frame();
       ksl_SE3_t D_ij;
       ksl_SE3_t temp = active_joints_[i]->get_transform();
       if(parent_frame->is_reference()) {
@@ -2322,11 +2406,13 @@ void shift::core::Context::InitializeInertia() {
       } else {
         ksl_product_dd(parent_frame->get_d_wrt_reference(), &temp, &D_ij);
       }
+      if(child_frame && !child_frame->is_reference()) {
+        ksl_SE3_copy(&D_ij, &temp);
+        ksl_product_ddinv(&temp, child_frame->get_d_wrt_reference(), &D_ij);
+      }
       // i = parent, j = child;
       ksl_inertia_merge(&parent_inertia, &t_ic_i, &child_inertia, &t_jc_j,
                         &D_ij);
-
-      inertia_temp[pcl_[i]] = parent_inertia;
     }
   }
 
@@ -2336,6 +2422,15 @@ void shift::core::Context::InitializeInertia() {
     int j = joint_lookup_[i];
     if(j != -1) {
       memcpy(&inertia_[j], &inertia_temp[i], sizeof(ksl_inertia_t));
+      /* a body without mass of its own has mass when rigid bodies with mass
+      are merged into it (SetupLookup marks only the bodies' own) */
+      if(inertia_[j].m > 0.0 && j < (int)has_mass_.size() && !has_mass_[j]) {
+        has_mass_[j] = true;
+        const int dq_index = dq_lookup_[i];
+        for(size_t k = 0; k < active_joints_[i]->get_dq_count(); k++) {
+          has_mass_dq_[dq_index + k] = true;
+        }
+      }
     }
   }
 }
@@ -2410,7 +2505,12 @@ void shift::core::Context::SetupLookup() {
 
   pcldq_.resize(dq_count_);
   for(size_t i = 0; i < active_joints_.size(); i++) {
+    /* the parent variable is the last one of the nearest joint above that is
+    not rigid; a rigid joint has no variables */
     int parent_index = pcl_[i];
+    while(parent_index != -1 && joint_dof_[parent_index] == 0) {
+      parent_index = pcl_[parent_index];
+    }
     int variable_index = dq_lookup_[i];
     if(variable_index != -1) {
       if(parent_index != -1) {
@@ -2498,13 +2598,45 @@ void shift::core::Context::SetupLookup() {
   }
 }
 
+int shift::core::Context::CompressedIndex(int i) const {
+  while(i > -1 && joint_lookup_[i] < 0) {
+    i = pcl_[i];
+  }
+  return i < 0 ? -1 : joint_lookup_[i];
+}
+
+void shift::core::Context::DetectTrees() {
+  /* a chord constraint joins the virtual body at the end of its cut joint to
+  the body the joint attached to; the loop it closes runs through the trees
+  of both (one tree, or two trees and the fixed body) */
+  std::vector<int> loop_bodies;
+  for(auto chord : chord_constraints_) {
+    for(auto body : {chord->get_parent_body(), chord->get_child_body()}) {
+      if(body != nullptr && body != get_fixed_body()) {
+        loop_bodies.push_back(CompressedIndex(body->get_index()));
+      }
+    }
+  }
+  trees_ = topology::DetectTrees(pcl_compressed_, joint_dof_compressed_,
+                                 joint_lookup_, loop_bodies);
+
+  for(auto& tree : trees_) {
+    std::stringstream ss;
+    ss << "Tree with root joint '" << active_joints_[tree.root_joint]->get_name()
+       << "': " << topology::Tree::KindName(tree.kind) << ", "
+       << tree.bodies.size() << " bodies, " << tree.dq_count
+       << " degrees of freedom";
+    SHIFT_DEBUG(ss.str());
+  }
+}
+
 /*!
 @brief Initialize quantities necessary to compute mobility numbers
 
 This function evaluates the variable mobility numbers in
 permuted order. It first forms an n by n-r matrix from the
-submatrix J[0:r-1][r:n-1] stacked above an (n-r) by (n-r)
-identity matrix. Then it calls GramSchmidt() to
+negated submatrix -J[0:r-1][r:n-1] (that is, -B^{di}) stacked above an
+(n-r) by (n-r) identity matrix. Then it calls GramSchmidt() to
 orthonormalize the columns and return them in the same
 matrix. Finally it returns the square of row norms of
 this matrix as mobility numbers in the mn[] array.
@@ -3489,8 +3621,16 @@ void shift::core::Context::get_current_time(double& time, double& delta_time) {
 
 void shift::core::Context::WriteStates(const double time,
                                        const std::vector<double>& y) {
-  /* the force modules' outputs (pressures, forces) of this state, then the
-  sensors', which may report the forces */
+  /* the outputs of this state: the sensors' signals, then the controllers',
+  which read them and set the inputs they drive, then the force modules'
+  (pressures, forces), then the sensors' other outputs, which may report the
+  forces */
+  for(auto& sensor : active_sensors_) {
+    sensor->Update(y.data());
+  }
+  for(auto& controller : active_controllers_) {
+    controller->UpdateOutputs(time, y.data());
+  }
   for(auto& force_module : active_force_modules_) {
     force_module->UpdateOutputs(time, y.data());
   }

@@ -833,13 +833,13 @@ A flat B-spline face on the twelve bumps: two B-spline faces touching in twelve 
 
 ### `CadHard.BallInATightSocketTouchesWhereItIsPushed`
 
-A spherical socket 10.01 mm in radius around the ball, the surfaces curved alike: moved 2 µm beyond the 10 µm clearance, in directions over the socket's lower half down to its pole, there is one point, 2 µm deep, its normal back towards the center.
+A spherical socket 10.01 mm in radius around the ball, the surfaces curved alike: moved 2 µm beyond the 10 µm clearance, in directions over the socket's lower half down to its pole, the contact wraps round the ball, an area over the cap where the ball is deeper than the socket, 2 µm deep at its middle. Its normals point back towards the center, its area is that of the cap to 1%, and its resultant lies along the move until the cap runs onto the socket's rim.
 
 ![BallInATightSocketTouchesWhereItIsPushed](images/CadHard.BallInATightSocketTouchesWhereItIsPushed.jpg)
 
 ### `CadHard.BallPushedRoundATightSocketHasASmoothForce`
 
-The ball moved round the socket 2 µm beyond the clearance, across its pole and the seams of its halves: the force changes by less than 0.1% from one pose to the next.
+The ball moved round the socket 2 µm beyond the clearance, across its pole and the seams of its halves: while the wrapped contact is clear of the rim, the force changes by less than 0.1% from one pose to the next, and it changes smoothly as the contact runs onto the rim.
 
 ![BallPushedRoundATightSocketHasASmoothForce](images/CadHard.BallPushedRoundATightSocketHasASmoothForce.jpg)
 
@@ -911,7 +911,7 @@ Dropped on the crown at 3 m/s from 1 mm above it, the ball bounces off without p
 
 ### `CadHard.NutRestsOnTheThreadAllRound`
 
-A nut 2 µm down onto a bolt with a square thread of 4 mm lead: its flank lies on the bolt's along three turns of a helix. The flanks are of the same shape, so they touch over an area: points over the flanks all round the axis, so that the bolt holds the nut up without tipping it.
+A nut of 14 mm radius 2 µm down onto a bolt with a square thread of 4 mm lead over six turns on a shank of 8 mm radius: its flank lies on the bolt's along three turns of a helix. The flanks are of the same shape, so they touch over an area: points over the flanks all round the axis, so that the bolt holds the nut up without tipping it.
 
 ![NutRestsOnTheThreadAllRound](images/CadHard.NutRestsOnTheThreadAllRound.jpg)
 
@@ -986,9 +986,15 @@ Bushings at the middle of their seats have 1 mm of clearance all around: no cont
 
 ### `CadContact.BushingInSeatIsALine`
 
-A bushing in a seat: a line between parallel cylinders, one inside the other.
+A bushing in a seat 1 mm larger, 20 µm past the clearance: nearly conformal, but the overlap wraps only 11 degrees round the seat, and the contact is a line between the parallel cylinders.
 
 ![BushingInSeatIsALine](images/CadContact.BushingInSeatIsALine.jpg)
+
+### `CadContact.BushingDeepInSeatWrapsRoundIt`
+
+The bushing 0.3 mm past the clearance: the overlap wraps 38.9 degrees either side, to where the bushing crosses the seat, and the contact is an area over that arc of the seat, its area that of the arc to 0.5%.
+
+![BushingDeepInSeatWrapsRoundIt](images/CadContact.BushingDeepInSeatWrapsRoundIt.jpg)
 
 ### `CadContact.LineOverASeamHasNoPointsAtItsEnds`
 

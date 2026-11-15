@@ -59,14 +59,14 @@ public:
   void Connect() override;
   void Update(const double*) override {}
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
 protected:
   void DeclareParameters() override;
 
 private:
+  /*! \brief the names of the outputs, in the order of their values */
+  std::vector<std::string> OutputNames() const;
   std::vector<std::string> body_names_;
   std::vector<body::Base*> bodies_;
   /* fx, fy, fz, mx, my, mz of each body, of the last UpdateOutputs */

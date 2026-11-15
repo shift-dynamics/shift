@@ -9,36 +9,45 @@ Dynamics
 Spatial Equations of Motion for a Rigid Body
 ---------------------------------------------
 
-In the present notation, the *spatial* equations of motion for a rigid body expressed in the fixed reference frame can be found from the time derivative of spatial momentum.
+In the present notation, the *spatial* equations of motion for a rigid body :math:`b` expressed in the fixed inertial reference frame :math:`f` can be found from the time derivative of spatial momentum. Frame :math:`c` is fixed in body :math:`b`, with its origin at the center of mass and its axes along the principal axes of inertia.
 
 .. math::
   :label: newton_1
 
-  \underline{\mathbf{g}}^*_f = \frac{d}{dt}\underline{\mathbf{p}}^*_f = \frac{d}{dt}\left( M_{ff}\underline{\mathbf{v}}_f\right)
+  \underline{\mathbf{g}}_{b,f}^{*f} = \frac{d}{dt}\underline{\mathbf{p}}_{b,f}^{*f} = \frac{d}{dt}\left( M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f}\right)
 
 
-where :math:`\underline{\mathbf{g}}^*` is a wrench acting on a body, such as from gravity or externally applied forces and torques, and :math:`\underline{\mathbf{p}}` represents spatial momentum. Using the chain rule, the right hand side is expanded as:
+where :math:`\underline{\mathbf{g}}_{b,f}^{*f}` is the wrench acting on body :math:`b`, such as from gravity or externally applied forces and torques, taken at the origin of :math:`f` and in :math:`f` coordinates, :math:`\underline{\mathbf{p}}_{b,f}^{*f}` is the spatial momentum of body :math:`b`, and :math:`\underline{\mathbf{v}}_{fc,f}^{f}` is the velocity screw of frame :math:`c` relative to :math:`f`, taken at the origin of :math:`f` and in :math:`f` coordinates. Using the chain rule, the right hand side is expanded as:
 
 .. math::
   :label: spatial_1
 
-  \underline{\mathbf{g}}^*_f = \dot{M}_{ff}\underline{\mathbf{v}}_f + M_{ff}\underline{\dot{\mathbf{v}}}_f
+  \underline{\mathbf{g}}_{b,f}^{*f} = \dot{M}_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f} + M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
 
 
-Noting that :math:`M_{cc}` in the centroidal reference frame is constant, :math:`\dot{M}_{ff}` can be found using the chain rule as:
+The spatial inertia at the origin of :math:`f` is found from the inertia :math:`M_{b,cc}^{cc}` at the center of mass:
+
+.. math::
+  :label: eq:M_ff
+
+  M_{b,ff}^{ff} = [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}
+
+
+Noting that :math:`M_{b,cc}^{cc}` in the centroidal reference frame is constant, :math:`\dot{M}_{b,ff}^{ff}` can be found using the chain rule as:
 
 .. math::
   :label: eq:M_der
 
-  \dot{M}_{ff} = \dot{[Ad]}^*_{fc}M_{cc}[Ad]_{cf} + {[Ad]}^*_{fc}M_{cc}\dot{[Ad]}_{cf}
+  \dot{M}_{b,ff}^{ff} = \dot{[Ad]}^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} + [Ad]^{*fc}_{fc}M_{b,cc}^{cc}\dot{[Ad]}_{cf}^{cf}
 
+
+where :math:`\dot{[Ad]}^{*fc}_{fc} = [ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}` and :math:`\dot{[Ad]}_{cf}^{cf} = -[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}`, with :math:`[ad]_{fc,f}^{f}` and :math:`[ad]^{*f}_{fc,f}` formed from :math:`\underline{\mathbf{v}}_{fc,f}^{f}`:
 
 .. math::
   :label: eq:M_der2
 
-  \dot{M}_{ff} = [ad]^*_{fc}[Ad]^*_{fc}M_{cc}[Ad]_{cf} +
-  {[Ad]}^*_{fc}M_{cc}[ad]_{cf}[Ad]_{cf}
-
+  \dot{M}_{b,ff}^{ff} = [ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} -
+  [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}
 
 
 yielding:
@@ -46,8 +55,8 @@ yielding:
 .. math::
   :label: eq:spatial2
 
-  \underline{\mathbf{g}}^*_f = \left([ad]^*_{fc}[Ad]^*_{fc}M_{cc}[Ad]_{cf} -
-  {[Ad]}^*_{fc}M_{cc}[Ad]_{cf}[ad]_{cf}\right)\underline{\mathbf{v}}_f + [Ad]^*_{fc}M_{cc}[Ad]_{cf}\underline{\dot{\mathbf{v}}}_f
+  \underline{\mathbf{g}}_{b,f}^{*f} = \left([ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} -
+  [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}\right)\underline{\mathbf{v}}_{fc,f}^{f} + [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
 
 
 Which is further simplified as:
@@ -56,93 +65,98 @@ Which is further simplified as:
   :label: eq:spatial3
 
   \require{cancel}
-  \underline{\mathbf{g}}^*_f = [ad]^*_{fc}M_{ff}\underline{\mathbf{v}}_f - \cancel{M_{ff}[ad]_{cf}\underline{\mathbf{v}}_f} + M_{ff}\underline{\dot{\mathbf{v}}}_f
+  \underline{\mathbf{g}}_{b,f}^{*f} = [ad]^{*f}_{fc,f}M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f} - \cancel{M_{b,ff}^{ff}[ad]_{fc,f}^{f}\underline{\mathbf{v}}_{fc,f}^{f}} + M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
 
 
-The term :math:`M_{ff}[ad]_{cf}\underline{\mathbf{v}}_f` cancels because the matrix product :math:`\begin{bmatrix}\tilde{\omega} & \tilde{v}\\ & \tilde{\omega}\end{bmatrix} \begin{Bmatrix}\underline{v}\\ \underline{\omega} \end{Bmatrix}` is zero.
+The term :math:`M_{b,ff}^{ff}[ad]_{fc,f}^{f}\underline{\mathbf{v}}_{fc,f}^{f}` cancels because the matrix product :math:`\begin{bmatrix}\tilde{\omega}_{fc}^{f} & \tilde{v}_{fc,f}^{f}\\ 0 & \tilde{\omega}_{fc}^{f}\end{bmatrix} \begin{Bmatrix}\underline{v}_{fc,f}^{f}\\ \underline{\omega}_{fc}^{f} \end{Bmatrix}` is zero.
 
 The final form of the spatial equations of motion may be written as:
 
 .. math::
   :label: eq:spatial_final
 
-  M_{ff}\underline{\dot{\mathbf{v}}}_f = [ad]_{cf}^*M_{ff}\underline{\mathbf{v}}_f + \underline{\mathbf{g}}_f^*
+  M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f} = \underline{\mathbf{g}}_{b,f}^{*f} - [ad]^{*f}_{fc,f}M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f}
 
 
 Comparison to Newton-Euler Equations
 ************************************
 
-Expanding the spatial equations of motion and translating to the body center of mass frame yields:
+The equations take the same form in the coordinates of frame :math:`c`, at its origin. With the velocity screw :math:`\underline{\mathbf{v}}_{fc,c}^{c}` of :math:`c` relative to :math:`f`, taken at the center of mass and in :math:`c` coordinates, and the inertia :math:`M_{b,cc}^{cc}`, they expand as:
 
 .. math::
   :label: eq:spatial_expand
 
   \begin{Bmatrix}
-    \underline{f}_c \\
-    \underline{\tau}_c
+    \underline{f}_{b}^{c} \\
+    \underline{\tau}_{b,c}^{c}
   \end{Bmatrix}=
   \begin{bmatrix}
-    mI & 0\\ 0 & \bar{I}_{cc}
+    mI & 0\\ 0 & \bar{I}_{b,cc}^{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{\dot{v}}_{fc}^{f}\\
-    \dot{\underline{\omega}}_{fc}^{f}
+    \underline{\dot{v}}_{fc,c}^{c}\\
+    \dot{\underline{\omega}}_{fc}^{c}
   \end{Bmatrix} +
   \begin{bmatrix}
-    \tilde{\omega}_{fc}^{f} & 0 \\
-    \tilde{v}_{fc}^{f} & \tilde{\omega}_{fc}^{f}
+    \tilde{\omega}_{fc}^{c} & 0 \\
+    \tilde{v}_{fc,c}^{c} & \tilde{\omega}_{fc}^{c}
   \end{bmatrix}
   \begin{bmatrix}
     mI & 0\\
-    0 & \bar{I}_{cc}
+    0 & \bar{I}_{b,cc}^{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{v}_{fc}^{f}\\
-    \underline{\omega}_{fc}^{f}
+    \underline{v}_{fc,c}^{c}\\
+    \underline{\omega}_{fc}^{c}
   \end{Bmatrix}
 
+
+where :math:`\underline{f}_{b}^{c}` is the force on body :math:`b` and :math:`\underline{\tau}_{b,c}^{c}` the torque on it about its center of mass. Since :math:`\tilde{v}_{fc,c}^{c}\,m\underline{v}_{fc,c}^{c} = 0`, this is:
 
 .. math::
   :label: eq:spatial_expand2
 
   \begin{Bmatrix}
-    \underline{f}_c \\
-    \underline{\tau}_c
+    \underline{f}_{b}^{c} \\
+    \underline{\tau}_{b,c}^{c}
   \end{Bmatrix}=
   \begin{bmatrix}
-    mI & 0\\ 0 & \bar{I}_{cc}
+    mI & 0\\ 0 & \bar{I}_{b,cc}^{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-    \underline{\dot{v}}_{fc}^{f} + \tilde{v}_{fc}^{f}\underline{\omega}_{fc}^{f} \\
-    \dot{\underline{\omega}}_{fc}^{f}
+    \underline{\dot{v}}_{fc,c}^{c} \\
+    \dot{\underline{\omega}}_{fc}^{c}
   \end{Bmatrix} +
   \begin{Bmatrix}
-    m\tilde{\omega}_{fc}^{f}\underline{v}_{fc}^{f}\\
-    \tilde{\omega}_{fc}^{f}\bar{I}_{cc}\underline{\omega}_{fc}^{f}
+    m\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}\\
+    \tilde{\omega}_{fc}^{c}\bar{I}_{b,cc}^{cc}\underline{\omega}_{fc}^{c}
   \end{Bmatrix}
 
 
-Which yields the Newton-Euler equations of motion:
+The Newton-Euler equations of motion are written with the classical acceleration of the center of mass, :math:`\underline{a}_{fc,c}^{c} = \underline{\dot{v}}_{fc,c}^{c} + \tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}`:
 
 .. math::
   :label: eq:newton_euler
 
   \begin{Bmatrix}
-    \underline{f}_c \\
-    \underline{\tau}_c
+    \underline{f}_{b}^{c} \\
+    \underline{\tau}_{b,c}^{c}
   \end{Bmatrix}=
   \begin{bmatrix}
   mI & 0\\
-  0 & \bar{I}_{cc}
+  0 & \bar{I}_{b,cc}^{cc}
   \end{bmatrix}
   \begin{Bmatrix}
-  \dot{\underline{v}}\\
-  \dot{\underline{\omega}}
+  \underline{a}_{fc,c}^{c}\\
+  \dot{\underline{\omega}}_{fc}^{c}
   \end{Bmatrix}+
   \begin{Bmatrix}
   0\\
-  \tilde{\omega}_{fc}^{f}\bar{I}_{cc}\underline{\omega}_{fc}^{f}
+  \tilde{\omega}_{fc}^{c}\bar{I}_{b,cc}^{cc}\underline{\omega}_{fc}^{c}
   \end{Bmatrix}
+
+
+so the two agree. The translational component of the spatial acceleration, :math:`\underline{\dot{v}}_{fc,c}^{c}`, differs from the classical acceleration by :math:`\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}`. Care must be taken when interpreting spatial accelerations: they are equal only when :math:`\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}` is zero, for example when the body does not rotate.
 
 
 Dynamic Equations for a Multi-rigid Body System
@@ -183,7 +197,7 @@ where :math:`\underline{\ddot{q}}` and :math:`\underline{\dot{q}}` represent bod
 .. math::
     :label: eq:newton_euler2
 
-    \underline{\mathbf{g}}^* = M\underline{\dot{\mathbf{v}}}
+    \underline{\mathbf{g}}^* = M\dot{\underline{\mathbf{v}}}
 
 
 For an unconstrained multibody system, :math:`\underline{f}^*` and :math:`\underline{\ddot{q}}` are replaced by a column matrix of body wrenches and velocities, and :math:`M` by a block matrix of 6x6 body inertia matrices along the diagonal. An important tool in formulating the equations of motion is the incidence matrix, :math:`\Gamma`, a representation of an *oriented mechanical graph* or *oriented assembly* of a mechanism :cite:`uicker2013`, with columns corresponding joints and rows corresponding to bodies. An entry of row b and column h of :math:`\Gamma` is defined as:
@@ -211,7 +225,7 @@ Taking the derivative of Eq. :eq:`eq:mapping` yields:
 .. math::
     :label: eq:mapping_der
 
-    C\underline{\dot{\mathbf{v}}}_{abs} = H\ddot{\underline{q}} + \dot{H}\dot{\underline{q}} = H\ddot{\underline{q}} + \underline{\gamma}
+    C\dot{\underline{\mathbf{v}}}_{abs} = H\ddot{\underline{q}} + \dot{H}\dot{\underline{q}} = H\ddot{\underline{q}} + \underline{\gamma}
 
 
 where :math:`\underline{\gamma}=\dot{H}\dot{\underline{q}}`. Eq. :eq:`eq:mapping_der` can be expressed in factored matrix form as:
@@ -219,7 +233,7 @@ where :math:`\underline{\gamma}=\dot{H}\dot{\underline{q}}`. Eq. :eq:`eq:mapping
 .. math::
     :label: eq:mapping_der_matrix
 
-    \begin{bmatrix}C & -H\end{bmatrix}\begin{Bmatrix} \underline{\dot{\mathbf{v}}}_{abs} \\ \underline{\ddot{q}}\end{Bmatrix} = \underline{\gamma}
+    \begin{bmatrix}C & -H\end{bmatrix}\begin{Bmatrix} \dot{\underline{\mathbf{v}}}_{abs} \\ \underline{\ddot{q}}\end{Bmatrix} = \underline{\gamma}
 
 
 Additionally the equation:
@@ -238,7 +252,7 @@ Equation :eq:`eq:mapping_der_matrix` and :eq:`eq:map_force_to_joint_space` can b
     :label: eq:augmented_newton_euler
 
     \begin{bmatrix}M & 0 & C^T\\ 0 & 0 & -H^T\\ C & -H & 0\end{bmatrix}
-    \begin{Bmatrix}\underline{\dot{\mathbf{v}}}_{abs}\\ \underline{\ddot{q}}\\ \underline{\mathbf{k}}^* \end{Bmatrix} =
+    \begin{Bmatrix}\dot{\underline{\mathbf{v}}}_{abs}\\ \underline{\ddot{q}}\\ \underline{\mathbf{k}}^* \end{Bmatrix} =
     \begin{Bmatrix}\underline{\mathbf{g}}^* \\ \underline{f} \\ \underline{\gamma}\end{Bmatrix}
 
 
@@ -1174,7 +1188,7 @@ Permutation Order 1, :math:`PO(1)`, is the order of variables determined by kine
     :math:`\underline{\ddot{q}}`      *ddq*              second time derivative of generalized coordinates
     :math:`\underline{\dot{q}}`       *dq*               first time derivative of generalized coordinates
     PC                                *PC*               parent child list
-    :math:`\underline{\lambda}_p`     *lambda_p*         lagrange multipliers associated with primary constraint equations
+    :math:`\underline{\lambda}^p`     *lambda_p*         lagrange multipliers associated with primary constraint equations
     :math:`\underline{f}`             *f*                working forces applied in the joints
     =============================     ===============    ===========
 

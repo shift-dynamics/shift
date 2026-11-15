@@ -95,19 +95,10 @@ void shift::core::logger::CSV::WriteHeader() {
       file_ << "chord_constraint_" << std::to_string(i) << "_velocity_error_rz" << delimiter_;
     }
 
-    /* the outputs of the force modules, such as cylinder pressures, and of
-    the sensors, such as the poses of frames */
-    for(auto& module : context_->get_active_force_modules()) {
-      for(const auto& output : module->get_output_names()) {
-        file_ << module->FullyQualifiedName(module->get_name()) << "__" << output
-              << delimiter_;
-      }
-    }
-    for(auto& sensor : context_->get_active_sensors()) {
-      for(const auto& output : sensor->get_output_names()) {
-        file_ << sensor->FullyQualifiedName(sensor->get_name()) << "__" << output
-              << delimiter_;
-      }
+    /* the outputs the logger is connected to (ConnectOutputs), such as
+    cylinder pressures or the poses of frames */
+    for(const auto& channel : channels_) {
+      file_ << channel.Column() << delimiter_;
     }
   }
 
@@ -140,18 +131,9 @@ void shift::core::logger::CSV::WriteStates(const double t,
     file_ << de << delimiter_;
   }
 
-  /* the force modules' outputs of y, see Context::WriteStates */
-  if(log_all_channels_) {
-    outputs_.clear();
-    for(auto& module : context_->get_active_force_modules()) {
-      module->AppendOutputs(outputs_);
-    }
-    for(auto& sensor : context_->get_active_sensors()) {
-      sensor->AppendOutputs(outputs_);
-    }
-    for(double value : outputs_) {
-      file_ << value << delimiter_;
-    }
+  /* the outputs of y, see Context::WriteStates */
+  for(const auto& channel : channels_) {
+    file_ << *channel.value << delimiter_;
   }
 
   file_ << "\n";

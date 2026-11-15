@@ -205,8 +205,45 @@ down to it (the friction ellipse). The rolling resistance is the force
 point of action by the trail ``aligning_coefficient``, which gives the aligning moment,
 and the component of the load across a cambered wheel acts behind it likewise.
 
-It has no relaxation lengths, camber thrust or soft soil (see Bekker-Wong above). Outputs:
-``deflection``, ``slip``, ``slip_angle``, ``normal_force``, ``longitudinal_force``,
+*Transient slip.* With a ``relaxation_length`` :math:`l > 0`, the tire is the second
+variant of the NADS tire. The slip ratio becomes a state :math:`\kappa'` that lags the
+slip of the tread,
+
+.. math::
+
+   l\,\dot\kappa' = -v_p - (|v_x| + v_\epsilon)\,\kappa'
+
+It settles to :math:`-v_p/(|v_x| + v_\epsilon)` and is held within :math:`|\kappa'| \le 1`;
+out of contact it relaxes to zero. The longitudinal force then takes the friction first,
+:math:`|f_x| \le f_m`, and the lateral force gets what is left,
+:math:`|f_y| \le \sqrt{f_m^2 - f_x^2}`. At low speed the tread deflects like a bristle
+instead of the slip becoming stiff, so a braked wheel holds the car on a slope (it creeps
+at :math:`v_\epsilon\kappa'`). The original solves this equation together with the spin
+of the wheel, in closed form over each fixed step, and keeps flags for a locked or
+stopped wheel from one step to the next. In Shift the spin is the wheel's joint, the
+integrator solves both, a brake's friction on the joint locks the wheel, and the bristle
+stops it. Typical relaxation lengths are 0.1 to 0.5 m.
+
+*Soft soil.* With a ``soil`` (see :doc:`soil`), the wheel is rigid and the deflection
+:math:`\delta` is its sinkage :math:`z`. Bekker's pressure-sinkage law under a rigid wheel
+of diameter :math:`d = 2r` and ``width`` :math:`b` gives the load and the compaction
+resistance (Bekker, 1969; Wong, *Theory of Ground Vehicles*):
+
+.. math::
+
+   f_n = \max\Bigl(\tfrac{3 - n}{3}\,b\,\bigl(\tfrac{k_c}{b} + k_\phi\bigr)
+         \sqrt{d}\,z^{n + 1/2} + c\,v_z,\; 0\Bigr), \qquad
+   r_c = b\,\bigl(\tfrac{k_c}{b} + k_\phi\bigr)\,\frac{z^{n + 1}}{n + 1}
+
+:math:`r_c` takes the place of the rolling resistance, :math:`-r_c v_x/(v_\epsilon + |v_x|)`.
+The original's soft soil branch called a soil force routine that is not in its source,
+so this is a reconstruction from that call, which takes these inputs and returns the
+load and the motion resistance. The rut is the terrain's (an SCM terrain), not the tire's.
+For the shear of the soil, slip sinkage and bulldozing, use Bekker-Wong (above).
+
+It has no lateral relaxation length (neither had the original) and no camber thrust.
+Outputs: ``deflection`` (the sinkage on soft soil), ``slip`` (:math:`\kappa'` with a
+relaxation length), ``slip_angle``, ``normal_force``, ``longitudinal_force``,
 ``lateral_force`` and ``aligning_moment``.
 
 .. code:: javascript
@@ -214,7 +251,11 @@ It has no relaxation lengths, camber thrust or soft soil (see Bekker-Wong above)
    {"type": "tire", "name": "left_front", "tire_type": "iowa",
     "wheel_body": "left_front_wheel",
     "iowa": {"friction_coefficient": 0.8, "aligning_coefficient": 0.03,
-             "segments": 20}}
+             "relaxation_length": 0.3, "segments": 20}}
+
+   {"type": "tire", "name": "left_front", "tire_type": "iowa",
+    "wheel_body": "left_front_wheel",
+    "iowa": {"width": 0.235, "soil": {"name": "sandy_loam"}}}
 
 Its parameters, in ``"iowa"``:
 
@@ -265,9 +306,13 @@ Examples
   wheel on a test rig.
 * :source:`examples/vehicle/vehicle_control.json`: a passenger car with
   Fiala tires, driven by PID speed control; ``vehicle_control_5mps.json``,
-  ``vehicle_control_15mps.json`` and ``vehicle_control_magic.json`` (PAC2002
-  tires) vary it, and :source:`examples/vehicle/vehicle_terrain.json` drives
-  it over a rally stage elevation map.
+  ``vehicle_control_15mps.json``, ``vehicle_control_magic.json`` (PAC2002
+  tires) and :source:`examples/vehicle/vehicle_control_iowa.json` (Iowa tires
+  with a relaxation length) vary it, and
+  :source:`examples/vehicle/vehicle_terrain.json` drives it over a rally stage
+  elevation map, as does
+  :source:`examples/vehicle/vehicle_terrain_iowa.json` on Iowa tires, whose
+  slices follow the stage's bumps under the contact patch.
 * :tree:`examples/vehicle/fiala`: steady state slip sweeps of the Fiala
   tire, with scripts to run and plot them.
 * :source:`examples/terramechanics/wheel_test_bed.json`: a single-wheel test

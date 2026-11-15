@@ -74,6 +74,12 @@ void shift::core::force_module::ThrustCollar::DeclareParameters() {
                    "speed of rotation below which the friction of the surfaces "
                    "falls to zero with the speed; optional, default 0.1",
                    false);
+  DeclareOutput("gap", &gap_, "gap between the faces");
+  DeclareOutput("film_force", &film_force_, "force of the oil film");
+  DeclareOutput("contact_force", &contact_force_,
+                "force of the faces in contact");
+  DeclareOutput("friction_torque", &friction_torque_,
+                "friction torque about the axis");
 }
 
 void shift::core::force_module::ThrustCollar::Connect() {
@@ -274,17 +280,4 @@ void shift::core::force_module::ThrustCollar::UpdateOutputs(double t,
   (void)t;
   (void)y;
   Compute();
-}
-
-std::vector<std::string>
-shift::core::force_module::ThrustCollar::get_output_names() const {
-  return {"gap", "film_force", "contact_force", "friction_torque"};
-}
-
-void shift::core::force_module::ThrustCollar::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(gap_);
-  values.push_back(film_force_);
-  values.push_back(contact_force_);
-  values.push_back(friction_torque_);
 }

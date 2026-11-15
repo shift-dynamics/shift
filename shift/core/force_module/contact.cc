@@ -505,7 +505,28 @@ void shift::core::force_module::Contact::Load() {
     shared_owner_.assign(shared_.size(), {nullptr, nullptr});
     shared_touched_.assign(shared_.size(), 0);
     equation_count_ = static_cast<unsigned int>(q_0_.size());
-    stick_ratios_.assign(bristles_.size(), 0.0);
+  }
+
+  /* the outputs: the volume worn off each geometry that wears, how near each
+  pair with bristles is to the limit of holding, and, of the shared sets, the
+  nearest and the number of pairs that hold one */
+  worn_.assign(wear_names_.size(), 0.0);
+  stick_ratios_.assign(bristles_.size() + (shared_.empty() ? 0 : 2), 0.0);
+  for(size_t k = 0; k < wear_names_.size(); k++) {
+    DeclareOutput("wear_" + wear_names_[k], &worn_[k],
+                  "volume worn off the geometry " + wear_names_[k]);
+  }
+  for(size_t i = 0; i < bristles_.size(); i++) {
+    DeclareOutput("stick_" + bristles_[i].name, &stick_ratios_[i],
+                  "largest share of the static friction in use of the pair " +
+                    bristles_[i].name + ", 1 at the limit of holding");
+  }
+  if(!shared_.empty()) {
+    DeclareOutput("stick_all", &stick_ratios_[bristles_.size()],
+                  "largest share of the static friction in use of the pairs "
+                  "of stick_slip_all");
+    DeclareOutput("stick_pairs", &stick_ratios_[bristles_.size() + 1],
+                  "number of pairs that hold a set of stick_slip_all");
   }
 
   for(const auto& pair : disabled_pairs_) {
@@ -614,28 +635,13 @@ double shift::core::force_module::Contact::PointLaw(
   return 1.5 * stiffness * std::sqrt(depth); // linearized
 }
 
-std::vector<std::string>
-shift::core::force_module::Contact::get_output_names() const {
-  std::vector<std::string> names;
-  for(const auto& name : wear_names_) {
-    names.push_back("wear_" + name);
-  }
-  for(const auto& bristles : bristles_) {
-    names.push_back("stick_" + bristles.name);
-  }
-  if(!shared_.empty()) {
-    names.push_back("stick_all");
-    names.push_back("stick_pairs");
-  }
-  return names;
-}
-
 void shift::core::force_module::Contact::UpdateOutputs(double,
                                                        const double* y) {
-  worn_.assign(y + state_offset_, y + state_offset_ + wear_names_.size());
+  /* in place: the outputs point into worn_ and stick_ratios_ */
+  std::copy(y + state_offset_, y + state_offset_ + worn_.size(), worn_.begin());
   /* how near each pair is to the limit of holding: the largest bristle
   deflection, |z| sigma_0 / mu_s */
-  stick_ratios_.assign(bristles_.size(), 0.0);
+  std::fill(stick_ratios_.begin(), stick_ratios_.end(), 0.0);
   for(size_t i = 0; i < bristles_.size(); i++) {
     const Bristles& b = bristles_[i];
     for(int k = 0; k < b.points; k++) {
@@ -658,8 +664,9 @@ void shift::core::force_module::Contact::UpdateOutputs(double,
                              b.sigma_0 / b.mu_static);
       }
     }
-    stick_ratios_.push_back(largest);
-    stick_ratios_.push_back(static_cast<double>(get_shared_pairs()));
+    stick_ratios_[bristles_.size()] = largest;
+    stick_ratios_[bristles_.size() + 1] =
+      static_cast<double>(get_shared_pairs());
   }
 }
 
@@ -716,13 +723,6 @@ void shift::core::force_module::Contact::ReleaseShared(const double* y) {
       shared_owner_[i] = {nullptr, nullptr};
     }
   }
-}
-
-void shift::core::force_module::Contact::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), worn_.begin(), worn_.end());
-  values.resize(values.size() + wear_names_.size() - worn_.size(), 0.0);
-  values.insert(values.end(), stick_ratios_.begin(), stick_ratios_.end());
 }
 
 void shift::core::force_module::Contact::Service(const double* y,

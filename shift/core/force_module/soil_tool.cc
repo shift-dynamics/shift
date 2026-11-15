@@ -55,6 +55,13 @@ void shift::core::force_module::SoilTool::DeclareParameters() {
                    "time for the soil beyond a full pile to spill, and for "
                    "the pile to be left behind; defaults to 1",
                    false);
+  DeclareOutput("depth", &depth_, "depth of the tip of the tool in the soil");
+  DeclareOutput("rake", &rake_, "rake angle of the face");
+  DeclareOutput("failure_angle", &failure_angle_, "angle of the failure plane");
+  DeclareOutput("pile", &pile_,
+                "height of the soil piled in front of the face");
+  DeclareOutput("draft", &draft_, "force of the soil against front");
+  DeclareOutput("lift", &lift_, "force of the soil up");
 }
 
 void shift::core::force_module::SoilTool::Connect() {}
@@ -214,15 +221,4 @@ void shift::core::force_module::SoilTool::Service(const double* y, double* dy) {
 void shift::core::force_module::SoilTool::UpdateOutputs(double,
                                                         const double* y) {
   Evaluate(y, nullptr, false);
-}
-
-std::vector<std::string>
-shift::core::force_module::SoilTool::get_output_names() const {
-  return {"depth", "rake", "failure_angle", "pile", "draft", "lift"};
-}
-
-void shift::core::force_module::SoilTool::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(),
-                {depth_, rake_, failure_angle_, pile_, draft_, lift_});
 }

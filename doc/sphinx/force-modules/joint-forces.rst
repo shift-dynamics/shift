@@ -55,7 +55,7 @@ the bristles ring, with little to settle them.
 .. shift-parameters:: shift/core/force_module/joint_force.cc
    :function: force_module::JointFriction::DeclareParameters
 
-Outputs: ``friction``, the force on the joint, and with bristles ``stick``, the
+Outputs: ``friction_force``, the force on the joint, and with bristles ``stick``, the
 share of the static friction in use.
 
 Joint map

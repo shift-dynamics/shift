@@ -2,6 +2,8 @@
 
 #include "shift/config.h"
 #include "shift/core/context.h"
+#include "shift/core/integrator/base.h"
+#include "shift/core/linearization.h"
 #include "shift/core/exception.h"
 #include "shift/core/log.h"
 
@@ -78,7 +80,17 @@ int main(int argc, char* argv[]) {
      {"validate",
       {"-V", "--validate"},
       "validate input file only, do not run simulation (default: false)",
-      0}}};
+      0},
+     {"linearize",
+      {"-l", "--linearize"},
+      "simulate to this time (s), linearize the model there and print its\n"
+      "                        "
+      "fastest modes, with the coordinates that take part in them",
+      1},
+     {"modes",
+      {"-m", "--modes"},
+      "with --linearize: the number of modes to print (default: 10)",
+      1}}};
 
   argagg::parser_results args;
   try {
@@ -203,6 +215,33 @@ int main(int argc, char* argv[]) {
     }
     if(args["validate"]) {
       context.Print();
+    } else if(args["linearize"]) {
+      const double time = args["linearize"].as<double>();
+      const int count = args["modes"].as<int>(10);
+      if(context.get_active_integrators().empty()) {
+        throw shift::core::Exception("--linearize: the model has no "
+                                     "integrator");
+      }
+      context.get_active_integrators()[0]->set_time_span(time);
+      double state_time = 0.0;
+      std::vector<double> state;
+      context.set_state_observer(
+        [&](const double t, const std::vector<double>& y) {
+          state_time = t;
+          state = y;
+        });
+      context.Simulate();
+      if(state.empty()) {
+        throw shift::core::Exception("--linearize: the simulation recorded "
+                                     "no state");
+      }
+      shift::core::Linearization linearization(context);
+      linearization.Compute(state_time, state);
+      const auto modes = linearization.Modes();
+      std::cout << "\nlinearized at t = " << state_time << " s: "
+                << linearization.get_size() << " states, "
+                << modes.size() << " modes; the fastest:\n"
+                << linearization.Report(modes, count) << std::flush;
     } else {
       context.Simulate();
     }

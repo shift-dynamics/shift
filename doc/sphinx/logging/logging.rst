@@ -25,6 +25,35 @@ Keys of every logger:
 
 .. shift-parameters:: shift/core/logger/base.cc
 
+Choosing the outputs
+--------------------
+
+Besides the states, which every logger records, the force modules, sensors
+and controllers publish *outputs*: the pressures of a hydraulic cylinder,
+the torque of an electric motor, the signal of a sensor, the error of a PID
+controller (each component's page lists its outputs). Without
+``force_modules``, ``sensors`` or ``controllers``, a logger records all of
+them. With any of the three, it records only the outputs of the components
+it names, in their order, force modules first:
+
+.. code:: javascript
+
+   "loggers": [
+     {"type": "csv", "csv_logfile": "spindle.csv",
+      "force_modules": [{"name": "motor", "outputs": ["torque", "speed"]},
+                        {"name": "left_drive__motor"}],
+      "sensors": [{"name": "spindle_speed"}],
+      "controllers": [{"name": "speed_control", "outputs": ["effort"]}]}
+   ]
+
+An entry without ``outputs`` records all of the component's outputs. A
+component is named as a joint names a body: by its name, or, where the name
+alone is not unique (the same name in two assemblies), by its fully
+qualified name, ``<assembly>__<name>``. A model whose logger names a
+component that does not exist, a name that is not unique, or an output the
+component does not have, does not load, and the message says why.
+``"force_modules": []`` records no outputs.
+
 CSV
 ---
 
@@ -43,9 +72,11 @@ columns. Its columns are:
 * ``rms_constraint_error``, the root mean square error of the loop closure
   equations, and ``gravitational_potential_energy``, ``kinetic_energy`` and
   ``total_energy``;
-* the outputs of the force modules, ``<assembly>__<module>__<output>``, such as
+* the outputs it records (see `Choosing the outputs`_), each as
+  ``<assembly>__<component>__<output>``, such as
   ``excavator__boom_cylinder_1__head_pressure`` or
-  ``accessory_drive__belt__span_0_tension``.
+  ``accessory_drive__belt__span_0_tension``: by default those of the force
+  modules, then of the sensors, then of the controllers.
 
 .. shift-parameters:: shift/core/logger/csv.cc
 
@@ -66,7 +97,11 @@ HDF5
    * - ``/state_meta_data/generalized_variables``
      - each joint's offsets into them
    * - ``/force_modules/<assembly>__<module>/<output>``
-     - each output of each force module, one value per row
+     - each output of a force module that the logger records (see
+       `Choosing the outputs`_), one value per row
+   * - ``/sensors/<assembly>__<sensor>/<output>``,
+       ``/controllers/<assembly>__<controller>/<output>``
+     - the same, of the sensors and controllers
    * - ``/terrain/<name>``
      - for each deformable terrain (``"type": "scm"``), the nodes whose level
        changed at each output step (see below)
@@ -140,8 +175,10 @@ example:
        t = f["/time"][:]
        force = f["/force_modules/excavator__boom_cylinder_1/force"][:]
 
-Force module outputs
---------------------
+Outputs
+-------
+
+Some of the outputs; each component's page lists its own.
 
 .. list-table::
    :header-rows: 1
@@ -156,3 +193,12 @@ Force module outputs
    * - :doc:`../force-modules/hydraulic-cylinder`
      - ``head_pressure``, ``rod_pressure``, ``force``, ``extension``,
        ``opening``, ``head_flow``, ``rod_flow``
+   * - :doc:`../force-modules/electric-motor`
+     - ``winding_current``, ``terminal_voltage``, ``back_voltage``,
+       ``torque``, ``speed``, ``electrical_power``, ``mechanical_power``
+   * - :doc:`joint and frame sensors <../sensors/sensors>`
+     - ``value``; of a position, ``rate``
+   * - :doc:`PID controller <../controllers/controllers>`
+     - ``error``, ``effort``
+   * - :ref:`schedule <schedule>`
+     - ``value``

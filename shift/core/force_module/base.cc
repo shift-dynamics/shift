@@ -4,6 +4,7 @@
 #include "shift/core/force_module/belt.h"
 #include "shift/core/force_module/bushing.h"
 #include "shift/core/force_module/contact.h"
+#include "shift/core/force_module/electric_motor.h"
 #include "shift/core/force_module/hydraulic_cylinder.h"
 #include "shift/core/force_module/rubber_mount.h"
 #include "shift/core/force_module/tire/base.h"
@@ -39,6 +40,9 @@ bool shift::core::force_module::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::force_module::Bushing::is_registered()) {
+    return false;
+  }
+  if(!shift::core::force_module::ElectricMotor::is_registered()) {
     return false;
   }
   if(!shift::core::force_module::HydraulicCylinder::is_registered()) {

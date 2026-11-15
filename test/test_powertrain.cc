@@ -123,7 +123,7 @@ static Powertrain* Find(shift::core::Context& context) {
 
 /* an output of the module by name, at the last evaluation */
 static double Output(Powertrain* drive, const std::string& name) {
-  const auto names = drive->get_output_names();
+  const auto names = drive->get_output_keys();
   const auto& values = drive->get_output_values();
   for(size_t i = 0; i < names.size(); i++) {
     if(names[i] == name) {

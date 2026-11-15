@@ -17,49 +17,57 @@ applied to it (e.g. contact forces) and gravity, by the spatial equations of
 motion in the fixed frame,
 
 \f[
-M_{ff} \dot{\mathbf{\underline{v}}}
-  = [ad]_{cf}^* M_{ff} \mathbf{\underline{v}} + \mathbf{\underline{f}}^*,
+M_{b,ff}^{ff} \dot{\mathbf{\underline{v}}}_{fb,f}^{f}
+  = \mathbf{\underline{f}}_{b,f}^{*f}
+  - [ad]_{fb,f}^{*f} M_{b,ff}^{ff} \mathbf{\underline{v}}_{fb,f}^{f},
 \f]
 
-with \f$\mathbf{\underline{v}}\f$ the spatial velocity of the body and
-\f$\dot{\mathbf{\underline{v}}}\f$ its spatial acceleration, both referred
-to the fixed origin and in fixed coordinates ([linear, angular], as
-ksl_screw_t), \f$\mathbf{\underline{f}}^*\f$ the load on the body referred
-to the fixed origin ([force, moment], as ksl_coscrew_t) and \f$M_{ff}\f$ the
-spatial inertia about the fixed origin (ksl_inertia_transformed of the
-centroidal inertia). The linear part \f$\underline{v}\f$ of
-\f$\mathbf{\underline{v}}\f$ is the velocity of the material point of the
-body at the fixed origin: a point \f$\underline{p}\f$ of the body moves with
-\f$\underline{v} + \underline{\omega} \times \underline{p}\f$, with
-\f$\underline{\omega}\f$ the angular part.
+with \f$\mathbf{\underline{v}}_{fb,f}^{f}\f$ the spatial velocity of body
+\f$b\f$ relative to the fixed frame \f$f\f$ and
+\f$\dot{\mathbf{\underline{v}}}_{fb,f}^{f}\f$ its spatial acceleration, both
+at the origin of \f$f\f$ and in \f$f\f$ coordinates ([linear, angular], as
+ksl_screw_t), \f$\mathbf{\underline{f}}_{b,f}^{*f}\f$ the load on the body at
+the origin of \f$f\f$ ([force, moment], as ksl_coscrew_t),
+\f$[ad]_{fb,f}^{*f}\f$ the coscrew cross product operator formed from
+\f$\mathbf{\underline{v}}_{fb,f}^{f}\f$, and \f$M_{b,ff}^{ff}\f$ the spatial
+inertia at the origin of \f$f\f$ (ksl_inertia_transformed of the centroidal
+inertia). The linear part \f$\underline{v}_{fb,f}^{f}\f$ of
+\f$\mathbf{\underline{v}}_{fb,f}^{f}\f$ is the velocity of the material point
+of the body at the fixed origin: a point \f$\underline{p}^{f}\f$ of the body
+moves with \f$\underline{v}_{fb,f}^{f} + \tilde{\omega}_{fb}^{f}
+\underline{p}^{f}\f$, with \f$\underline{\omega}_{fb}^{f}\f$ the angular
+part.
 
-\f$M_{ff}\f$ is never factored. It is the centroidal inertia shifted from the
-center of mass \f$\underline{c}\f$ to the fixed origin, and the centroidal
-inertia is block diagonal, \f$m I\f$ (\f$I\f$ the identity) and the
-\f$3 \times 3\f$ moment of inertia \f$\bar{I}_{cc}\f$, so
-\f$\dot{\mathbf{\underline{v}}} = M_{ff}^{-1} \mathbf{\underline{f}}^*\f$ is
-(Featherstone, 2008, 2.13), with the force \f$\underline{f}\f$ and moment
-\f$\underline{n}\f$ of the load, and \f$\underline{a}\f$ and
-\f$\underline{\alpha}\f$ the linear and angular parts of the acceleration:
+\f$M_{b,ff}^{ff}\f$ is never factored. It is the centroidal inertia shifted
+from the center of mass \f$c\f$, at \f$\underline{r}_{fc}^{f}\f$, to the fixed
+origin, and the centroidal inertia is block diagonal, \f$m I\f$ (\f$I\f$ the
+identity) and the \f$3 \times 3\f$ moment of inertia \f$\bar{I}_{b,cc}^{ff}\f$,
+so \f$\dot{\mathbf{\underline{v}}}_{fb,f}^{f} = (M_{b,ff}^{ff})^{-1}
+\mathbf{\underline{f}}^{*f}_{b,f}\f$ is
+(Featherstone, 2008, 2.13), with the force \f$\underline{f}_{b}^{f}\f$ and moment
+\f$\underline{n}_{b,f}^{f}\f$ of the load, and \f$\underline{a}_{fb,f}^{f}\f$ and
+\f$\underline{\alpha}_{fb}^{f}\f$ the linear and angular parts of the acceleration:
 
 \f[
 \begin{aligned}
-\text{shift the load to } \underline{c}: &\quad
-  \underline{f}_c = \underline{f}, \quad
-  \underline{n}_c = \underline{n} - \underline{c} \times \underline{f} \\
+\text{shift the load to } c: &\quad
+  \underline{n}_{b,c}^{f} = \underline{n}_{b,f}^{f}
+  - \tilde{r}_{fc}^{f} \underline{f}_{b}^{f} \\
 \text{centroidal inverse}: &\quad
-  \underline{a}_c = \underline{f}_c / m, \quad
-  \underline{\alpha} = \bar{I}_{cc}^{-1} \underline{n}_c \\
+  \underline{a}_{fb,c}^{f} = \underline{f}_{b}^{f} / m, \quad
+  \underline{\alpha}_{fb}^{f} = (\bar{I}_{b,cc}^{ff})^{-1}
+  \underline{n}_{b,c}^{f} \\
 \text{shift the motion to the origin}: &\quad
-  \underline{a} = \underline{a}_c - \underline{\alpha} \times \underline{c}
+  \underline{a}_{fb,f}^{f} = \underline{a}_{fb,c}^{f}
+  + \tilde{r}_{fc}^{f} \underline{\alpha}_{fb}^{f}
 \end{aligned}
 \f]
 
-with \f$\bar{I}_{cc}^{-1} = R (\bar{I}_{cc}^b)^{-1} R^T\f$ from the inverse of
-the body frame centroidal inertia \f$\bar{I}_{cc}^b\f$, inverted once. Gravity
-\f$\underline{g}\f$ adds
-\f$\begin{Bmatrix}\underline{g}\\\underline{0}\end{Bmatrix}\f$ to
-\f$\dot{\mathbf{\underline{v}}}\f$.
+with \f$(\bar{I}_{b,cc}^{ff})^{-1} = R^{fb} (\bar{I}_{b,cc}^{bb})^{-1}
+R^{fbT}\f$ from the inverse of the body frame centroidal inertia
+\f$\bar{I}_{b,cc}^{bb}\f$, inverted once. Gravity \f$\underline{g}^{f}\f$ adds
+\f$\begin{Bmatrix}\underline{g}^{f}\\\underline{0}\end{Bmatrix}\f$ to
+\f$\dot{\mathbf{\underline{v}}}_{fb,f}^{f}\f$.
 
 This is where a free body differs from a body connected by joints. A connected
 body has no equations of its own: the influence coefficients express its motion

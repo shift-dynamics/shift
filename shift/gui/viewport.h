@@ -26,6 +26,7 @@ class QRhiSampler;
 class QRhiShaderResourceBindings;
 class QRhiTexture;
 class QRhiTextureRenderTarget;
+class QRhiViewport;
 
 namespace shift {
 namespace gui {
@@ -84,8 +85,10 @@ public:
   explicit Viewport(QWindow* parent = nullptr);
   ~Viewport() override;
 
-  /*! \brief show the scene of a newly loaded simulation */
-  void set_simulation(Simulation* simulation);
+  /*! \brief show the scene of a newly loaded simulation; frame_scene
+   * places the camera to see all of it, else the camera stays (as for the
+   * same model loaded again) */
+  void set_simulation(Simulation* simulation, bool frame_scene = true);
 
   void set_render_mode(RenderMode mode);
   RenderMode get_render_mode() const {
@@ -98,6 +101,11 @@ public:
    * beside sharp ruts, rather than bilinearly between them as the physics
    * does, which shows the facets of the grid (default true) */
   void set_smooth_terrain(bool smooth);
+  /*! \brief draw the particles of SPH soils as one surface over them, as
+   * the soil looks, rather than as spheres (default true). The surface is
+   * found in screen space: the depths of the spheres seen, smoothed by a
+   * bilateral filter, are shaded as a surface. */
+  void set_particle_surface(bool surface);
   /*! \brief place the floor: a point on it and its normal, up (out of the
    * solid), in the inertial frame */
   void set_floor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
@@ -136,6 +144,58 @@ public:
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
     poses = poses_;
+  }
+
+  /*! \brief a coordinate frame drawn as arrows along its axes, x red, y
+   * green and z blue (set_frame_axes) */
+  struct FrameAxes {
+    int body_index = 0;  /*!< into the poses */
+    ksl_SE3f_t frame = Identity(); /*!< frame with respect to the body
+                                      origin */
+  };
+  /*! \brief the coordinate frames to draw, none by default. They are drawn
+   * over the model, so that frames inside a body show, in both render
+   * modes. */
+  void set_frame_axes(std::vector<FrameAxes> axes);
+  const std::vector<FrameAxes>& get_frame_axes() const {
+    return frame_axes_;
+  }
+  /*! \brief the length of the arrows of the frames (m), see set_frame_axes;
+   * the line of a joint axis is twice as long, from -scale to scale along
+   * the axis (its thickness is set_joint_thickness) */
+  void set_frame_axes_scale(float scale);
+  /*! \brief the axis of a joint, drawn as an arrow through it that points
+   * in the positive sense of the joint */
+  struct JointAxis {
+    int body_index = 0; /*!< into the poses */
+    /*! the line with respect to the body origin: through its origin along
+     * its z axis, the arrow pointing to +z */
+    ksl_SE3f_t line = Identity();
+  };
+  /*! \brief the joint axes to draw, none by default; drawn over the model
+   * as the frames */
+  void set_joint_axes(std::vector<JointAxis> axes);
+  const std::vector<JointAxis>& get_joint_axes() const {
+    return joint_axes_;
+  }
+  /*! \brief the color of the joint axes (sRGB as shown) */
+  void set_joint_color(const ksl_vec3f_t& color);
+  const ksl_vec3f_t& get_joint_color() const {
+    return joint_color_;
+  }
+  /*! \brief the diameter of the lines of the joint axes (m) */
+  void set_joint_thickness(float thickness);
+  float get_joint_thickness() const {
+    return joint_thickness_;
+  }
+  /*! \brief whether the meshes of each body, by index into the poses, are
+   * hidden; bodies past its end are shown */
+  void set_hidden_bodies(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_bodies() const {
+    return hidden_bodies_;
+  }
+  float get_frame_axes_scale() const {
+    return frame_axes_scale_;
   }
 
   /*! \brief frames rendered since the previous call */
@@ -216,6 +276,16 @@ private:
     int cad_index = 0; /*!< in Scene::cads */
   };
 
+  /*! the particles of an SPH soil (SceneParticles): their centres, one
+   * instance each */
+  struct GpuParticles {
+    std::unique_ptr<QRhiBuffer> centers;
+    uint32_t count = 0;
+    int particles_index = 0; /*!< in Scene::particles */
+  };
+  /*! \brief upload the particles that changed (Simulation::
+   * TakeParticleUpdates), or all of them; the buffers grow as needed */
+  void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -256,6 +326,14 @@ private:
   void ShapeRtTerrain(const RtDeformableTerrain& terrain, int i0, int j0,
                       int i1, int j1, std::vector<RtTriangle>& triangles,
                       std::vector<BvhNode>& nodes, int& lo, int& hi) const;
+  /*! \brief upload the arrows of the frames (set_frame_axes) in the poses
+   * shown and the camera of view_projection; returns the batch to begin the
+   * render pass with (batch, or a new one if it is null) */
+  QRhiResourceUpdateBatch* UploadFrameAxes(QRhiResourceUpdateBatch* batch,
+                                           const QMatrix4x4& view_projection,
+                                           bool frame_uniforms);
+  /*! \brief draw the arrows uploaded by UploadFrameAxes, in a render pass */
+  void DrawFrameAxes(QRhiCommandBuffer* cb, const QRhiViewport& viewport);
   /*! \brief compute pipeline of a shader, laid out as bindings */
   QRhiComputePipeline* NewComputePipeline(const char* shader,
                                           QRhiShaderResourceBindings* bindings);
@@ -270,6 +348,7 @@ private:
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   bool smooth_terrain_ = true;
+  bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
   bool rt_terrain_smooth_ = true;
   bool scene_dirty_ = false;
@@ -320,11 +399,65 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> sky_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> floor_pipeline_;
 
+  // coordinate frames drawn as arrows (set_frame_axes)
+  std::vector<FrameAxes> frame_axes_;
+  float frame_axes_scale_ = 0.25f;
+  std::vector<JointAxis> joint_axes_;
+  ksl_vec3f_t joint_color_ = ksl_vec3f(0.63f, 0.25f, 0.88f);
+  float joint_thickness_ = 0.0075f;
+  uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
+  uint32_t axes_frame_instance_count_ = 0;
+  std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
+  /*! \brief whether the meshes of body are drawn */
+  bool is_body_shown(int body) const {
+    return body >= static_cast<int>(hidden_bodies_.size()) ||
+           !hidden_bodies_[body];
+  }
+  std::unique_ptr<QRhiBuffer> axes_vertices_;
+  std::unique_ptr<QRhiBuffer> axes_indices_;
+  uint32_t axes_index_count_ = 0;
+  bool axes_mesh_uploaded_ = false;
+  /*! per frame drawn, then per joint axis: AxesInstance */
+  std::unique_ptr<QRhiBuffer> axes_instances_;
+  uint32_t axes_instance_count_ = 0;
+  std::unique_ptr<QRhiGraphicsPipeline> axes_pipeline_;
+
   // terrains, tessellated on the GPU from their control points
   bool tessellation_supported_ = false;
   std::vector<GpuTerrain> gpu_terrains_;
   std::vector<TerrainUpdate> terrain_updates_; /*!< reused each frame */
   std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
+  // the particles of SPH soils, instances of a sphere
+  std::vector<GpuParticles> gpu_particles_;
+  std::vector<ParticleUpdate> particle_updates_; /*!< reused each frame */
+  bool gpu_particles_reset_ = false; /*!< all to upload, see UploadScene */
+  std::unique_ptr<QRhiGraphicsPipeline> particle_pipeline_;
+  // their surface (set_particle_surface): the depth of the spheres in
+  // fluid_depth_[0], blurred level by level from one into the other, ending
+  // in [0], shaded in the render target by fluid_pipeline_
+  std::unique_ptr<QRhiBuffer> fluid_ubo_; /*!< FluidUniforms */
+  /*! the stride of each level of the blur, fluid_level_stride_ apart */
+  std::unique_ptr<QRhiBuffer> fluid_level_ubo_;
+  quint32 fluid_level_stride_ = 0;
+  std::unique_ptr<QRhiTexture> fluid_depth_[2]; /*!< R32F, 0: none */
+  std::unique_ptr<QRhiRenderBuffer> fluid_depth_stencil_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_sphere_target_; /*!< [0] */
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_sphere_render_pass_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_blur_target_[2];
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_blur_render_pass_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_sphere_bindings_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_blur_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_bindings_;
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_sphere_pipeline_;
+  /*! the blur from fluid_depth_[k] */
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_blur_pipeline_[2];
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_pipeline_;
+  /*! \brief the textures and targets of the surface, at output_size_ */
+  void CreateFluidTargets();
+  /*! \brief the passes of the surface before the render pass: the spheres'
+   * depth and its blur; returns false if there are no particles to draw */
+  bool RenderFluidDepth(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch*& batch,
+                        const QMatrix4x4& view_projection, float aspect);
 
   // CAD geometry, tessellated on the GPU from its exact surfaces
   std::vector<GpuCad> gpu_cads_;
@@ -431,6 +564,8 @@ private:
   int rt_parity_ = 0;
   QMatrix4x4 rt_last_view_projection_;
   bool rt_instances_dirty_ = true;
+  /*! the intensities of the lights at the last ray traced frame */
+  std::vector<float> rt_light_values_;
   /*! false after anything that invalidates the SVGF history (new scene,
    * resize, floor toggled, switching to ray tracing) */
   bool rt_history_valid_ = false;

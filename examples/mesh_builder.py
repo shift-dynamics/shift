@@ -1,6 +1,7 @@
 """Helpers of the example generators that write meshes: triangles with
 materials written as an OBJ with its MTL, extruded polygons, cylinders,
-spheres and spur gears with involute teeth. Used by
+spheres, spur gears with involute teeth, and license plates (an image and a
+textured quad). Used by
 joints/make_screw_and_gear.py and klann_linkage/make_klann_walker.py."""
 
 import math
@@ -208,3 +209,126 @@ def gear_outline(teeth, module, tooth_at_zero, pressure_angle=math.radians(20.0)
         outline += [polar(root_r, start + (end - start) * k / 4)
                     for k in range(1, 4)]
     return outline
+
+
+# strokes of the capital letters of a license plate, in a box one high
+# (y down) and LETTER_WIDTH[letter] wide: polylines of points, or arcs as
+# ("arc", centre x, centre y, radius x, radius y, from, to) in degrees,
+# counterclockwise from +x with y up
+PLATE_LETTERS = {
+    "S": [("arc", 0.3, 0.255, 0.28, 0.235, 25.0, 270.0),
+          ("arc", 0.3, 0.745, 0.3, 0.255, 90.0, -155.0)],
+    "H": [[(0.0, 0.0), (0.0, 1.0)], [(0.6, 0.0), (0.6, 1.0)],
+          [(0.0, 0.5), (0.6, 0.5)]],
+    "I": [[(0.0, 0.0), (0.0, 1.0)]],
+    "F": [[(0.0, 1.0), (0.0, 0.0), (0.56, 0.0)], [(0.0, 0.48), (0.44, 0.48)]],
+    "T": [[(0.0, 0.0), (0.6, 0.0)], [(0.3, 0.0), (0.3, 1.0)]]}
+LETTER_WIDTH = {"S": 0.6, "H": 0.6, "I": 0.0, "F": 0.56, "T": 0.6}
+
+
+def plate_text(draw, text, left, top, height, color, stroke):
+    """draws text (letters of PLATE_LETTERS) with PIL's ImageDraw: its
+    strokes (stroke wide, in pixels) inside the box from left, top, height
+    pixels high; returns the width drawn"""
+    inset = stroke / 2.0
+    scale = height - stroke
+    x = left
+    for letter in text:
+        for s in PLATE_LETTERS[letter]:
+            if s[0] == "arc":
+                _, cx, cy, rx, ry, a0, a1 = s
+                n = 40
+                points = [(cx + rx * math.cos(math.radians(a0 + (a1 - a0) * k
+                                                           / n)),
+                           cy - ry * math.sin(math.radians(a0 + (a1 - a0) * k
+                                                           / n)))
+                          for k in range(n + 1)]
+            else:
+                points = s
+            draw.line([(x + inset + scale * px, top + inset + scale * py)
+                       for px, py in points], fill=color, width=int(stroke),
+                      joint="curve")
+            for px, py in (points[0], points[-1]):  # round ends
+                cx, cy = x + inset + scale * px, top + inset + scale * py
+                draw.ellipse([cx - stroke / 2, cy - stroke / 2,
+                              cx + stroke / 2, cy + stroke / 2], fill=color)
+        x += scale * LETTER_WIDTH[letter] + stroke + 0.28 * scale
+    return x - 0.28 * scale - left
+
+
+def license_plate(size, text, band=None, background=(240, 240, 236),
+                  ink=(20, 20, 24), border=(30, 30, 34), supersample=4):
+    """an image (PIL) of a license plate of size (width, height) pixels: text
+    centred in black on white, a thin border, and on the left a band of the
+    given color (as on European plates) if band"""
+    from PIL import Image, ImageDraw
+    w, h = size[0] * supersample, size[1] * supersample
+    image = Image.new("RGB", (w, h), border)
+    draw = ImageDraw.Draw(image)
+    edge = 0.035 * h
+    draw.rounded_rectangle([edge, edge, w - edge, h - edge], radius=0.08 * h,
+                           fill=background)
+    left = edge
+    if band:
+        draw.rounded_rectangle([edge, edge, edge + 0.11 * w, h - edge],
+                               radius=0.08 * h, fill=band)
+        draw.rectangle([edge + 0.06 * w, edge, edge + 0.11 * w, h - edge],
+                       fill=band)
+        left = edge + 0.11 * w
+    height = 0.62 * h
+    stroke = 0.13 * height
+    probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    width = plate_text(probe, text, 0, 0, height, ink, stroke)
+    room = 0.86 * (w - edge - left)
+    if width > room:  # smaller, to fit across
+        height *= room / width
+        stroke = 0.13 * height
+        width = plate_text(probe, text, 0, 0, height, ink, stroke)
+    plate_text(draw, text, left + 0.5 * (w - edge - left - width),
+               0.5 * (h - height), height, ink, stroke)
+    return image.resize(size, Image.LANCZOS)
+
+
+def textured_quad(directory, name, corners, image_filename):
+    """writes name.obj and name.mtl: one quad, with corners bottom left,
+    bottom right, top right and top left of the image image_filename (its
+    front faces the viewer that sees the image upright)"""
+    with open(os.path.join(directory, name + ".mtl"), "w") as f:
+        f.write(f"newmtl plate\nKd 1 1 1\nPm 0.0\nPr 0.45\n"
+                f"map_Kd {image_filename}\n")
+    a, b, c = corners[0], corners[1], corners[2]
+    u = [b[i] - a[i] for i in range(3)]
+    w = [c[i] - a[i] for i in range(3)]
+    n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2],
+         u[0] * w[1] - u[1] * w[0]]
+    length = math.sqrt(sum(x * x for x in n))
+    with open(os.path.join(directory, name + ".obj"), "w") as f:
+        f.write(f"mtllib {name}.mtl\no {name}\n")
+        for p in corners:
+            f.write("v %.6f %.6f %.6f\n" % tuple(p))
+        for t in ((0, 0), (1, 0), (1, 1), (0, 1)):
+            f.write("vt %d %d\n" % t)
+        f.write("vn %.6f %.6f %.6f\n" % tuple(x / length for x in n))
+        f.write("usemtl plate\nf 1/1/1 2/2/1 3/3/1\nf 1/1/1 3/3/1 4/4/1\n")
+
+
+def textured_mesh(directory, name, positions, uvs, normals, faces,
+                  image_filename, roughness=0.45):
+    """writes name.obj and name.mtl: triangles faces (index triples) of
+    positions, with texture coordinates uvs (u from the left, v from the
+    bottom of the image image_filename) and normals, one per position"""
+    with open(os.path.join(directory, name + ".mtl"), "w") as f:
+        f.write(f"newmtl {name}\nKd 1 1 1\nPm 0.0\nPr {roughness}\n"
+                f"map_Kd {image_filename}\n")
+    with open(os.path.join(directory, name + ".obj"), "w") as f:
+        f.write(f"mtllib {name}.mtl\no {name}\n")
+        for p in positions:
+            f.write("v %.6f %.6f %.6f\n" % tuple(p))
+        for t in uvs:
+            f.write("vt %.6f %.6f\n" % tuple(t))
+        for n in normals:
+            f.write("vn %.6f %.6f %.6f\n" % tuple(n))
+        f.write(f"usemtl {name}\n")
+        for face in faces:
+            f.write("f " + " ".join("%d/%d/%d" % (i + 1, i + 1, i + 1)
+                                    for i in face) + "\n")

@@ -74,6 +74,7 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
   }
   request.hide_floor = parser.isSet("no-floor");
   request.bilinear_terrain = parser.isSet("no-smooth-terrain");
+  request.particle_spheres = parser.isSet("particle-spheres");
   request.follow_body = parser.value("follow");
   request.follow_ground = parser.isSet("follow-ground");
   if(request.follow_ground && request.follow_body.isEmpty()) {
@@ -110,6 +111,9 @@ int main(int argc, char* argv[]) {
     {"no-smooth-terrain",
      "with --image: draw deformable terrain bilinearly between its nodes, as "
      "the soil models see it"},
+    {"particle-spheres",
+     "with --image: draw SPH soil as its particles, not as a surface over "
+     "them"},
     {"follow",
      "with --image: set the view at the start, and follow this body to --time",
      "body"},

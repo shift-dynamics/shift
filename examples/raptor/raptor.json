@@ -461,6 +461,12 @@
               "filename": [
                 "chassis.glb"
               ]
+            },
+            {
+              "type": "mesh",
+              "filename": [
+                "license_plate.obj"
+              ]
             }
           ],
           "frames": [

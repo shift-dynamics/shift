@@ -1,0 +1,5 @@
+newmtl plate
+Kd 1 1 1
+Pm 0.0
+Pr 0.45
+map_Kd license_plate.png

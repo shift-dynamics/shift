@@ -72,6 +72,27 @@ static ksl_vec3_t Inertial(double x, double y, double z) {
   return {{0.5 + x, -0.25 + y, 0.1 + z}};
 }
 
+/* a float TIFF of width by height samples, x fastest */
+static void WriteTiff(const std::string& path, int width, int height,
+                      const std::vector<float>& values) {
+  TIFF* tiff = TIFFOpen(path.c_str(), "w");
+  ASSERT_NE(tiff, nullptr);
+  TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
+  TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1);
+  TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 32);
+  TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+  TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+  TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+  TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, 1);
+  for(int r = 0; r < height; r++) {
+    std::vector<float> row(values.begin() + size_t(r) * width,
+                           values.begin() + size_t(r + 1) * width);
+    TIFFWriteScanline(tiff, row.data(), r, 0);
+  }
+  TIFFClose(tiff);
+}
+
 /* a float TIFF of width by height samples, all value */
 static void WriteLevelTiff(const std::string& path, int width, int height,
                            float value) {
@@ -408,4 +429,84 @@ TEST(SphTerrain, PlateSettlesOnTheSoil) {
   EXPECT_LT(std::abs(velocity.lin.z), 0.05);
   /* on the surface, within half a spacing */
   EXPECT_NEAR(bottom, 0.0, 0.01);
+}
+
+/* a blade pushes the soil of an SPH region of an SCM terrain, whose walls
+are no higher than its surface, over its end: the soil spills onto the SCM
+terrain and lands there. The volume of the particles that left the soil is
+the volume added to the SCM nodes (their levels over the area of a node),
+and none is lost on the grid */
+TEST(SphTerrain, SpilledSoilLandsOnTheScm) {
+  const std::string path = testing::TempDir() + "/sph_spill.json";
+  {
+    /* the terrain frame at the origin; the pit x 0 to 0.2, y 0 to 0.1; the
+    blade, 2 by 8 by 6 cm, 3 cm into the soil, inside the pit's width, from x = 0.03 at 0.8 m/s
+    along x, heavy, so that the soil hardly slows it; it stops short of the
+    end of the pit, so that it presses no SCM nodes itself */
+    std::ofstream file(path);
+    file << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, 9.81],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.2,
+                     "time_step": 0.01}]
+  },
+  "frames": [{"name": "terrain", "T": [0, 0, 0]}],
+  "terrain": [)" << Scm(R"({"type": "sph", "name": "pit", "x": [0, 0.2],
+                      "y": [0, 0.1], "depth": 0.06, "spacing": 0.02,
+                      "wall_height": 0, "landing_interval": 0.005,
+                      "device": "cpu",
+                      "soil": {"youngs_modulus": 2e6, "poisson_ratio": 0.3,
+                               "unit_weight": 15700}})")
+         << R"(],
+  "assemblies": [{"name": "a",
+    "force_modules": [{"type": "soil_contact", "name": "soil",
+                       "bodies": ["blade"]}],
+    "bodies": [{"name": "blade", "center_of_mass": [0.03, 0.05, 0],
+                "collision_geometry": [{"name": "blade", "type": "box",
+                  "half_extents": [0.01, 0.04, 0.03], "contact": false,
+                  "pose": {"T": [0.03, 0.05, 0]}}],
+                "inertia": {"mass": 1000, "Ixx": 1, "Iyy": 1, "Izz": 1,
+                            "Ixy": 0, "Iyz": 0, "Izx": 0}}],
+    "joints": [{"name": "slide", "type": "prismatic",
+                "parent": [["fixed"], "origin"],
+                "child": [["blade"], "origin"], "axis": [1, 0, 0],
+                "initial_velocity": 0.8}]
+  }]
+})";
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  auto* scm =
+    dynamic_cast<shift::core::terrain::Scm*>(context.get_active_terrain()[0]);
+  ASSERT_NE(scm, nullptr);
+  auto* sph = dynamic_cast<shift::core::terrain::Sph*>(scm->get_regions()[0]);
+  ASSERT_NE(sph, nullptr);
+  const size_t start = sph->get_particle_count();
+  context.Simulate();
+  const size_t end = sph->get_particle_count();
+  const double s = 0.02;
+  const size_t left_count = start - end - sph->get_displaced_count();
+  const double left = double(left_count) * s * s * s;
+  std::vector<float> levels;
+  scm->GetLevels(levels);
+  double deposited = 0.0;
+  for(size_t k = 0; k < levels.size(); k++) {
+    deposited -= double(levels[k]) * scm->get_spacing() * scm->get_spacing();
+  }
+  std::printf("%zu of %zu particles left the soil (%zu displaced by the "
+              "blade): %.4g m^3; landed %.4g, lost %.4g, on the nodes %.4g "
+              "m^3\n",
+              left_count, start, sph->get_displaced_count(), left, sph->get_landed_volume(),
+              sph->get_lost_volume(), deposited);
+  EXPECT_GT(sph->get_displaced_count(), 0u);
+  EXPECT_GE(left_count, 3u);
+  EXPECT_NEAR(sph->get_landed_volume() + sph->get_lost_volume(), left,
+              1e-6 * left);
+  EXPECT_EQ(sph->get_lost_volume(), 0.0);
+  EXPECT_NEAR(deposited, sph->get_landed_volume(), 1e-6 * left);
 }

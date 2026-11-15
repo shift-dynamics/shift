@@ -114,6 +114,10 @@ public:
    * (see gpu::Device) */
   std::shared_ptr<gpu::Device> GetGpuDevice();
 
+  /*! \brief the longest step the integrators may take: the smallest
+   * terrain::Base::StepLimit of the active terrains and their regions,
+   * infinite if none limits it; read when an integrator starts */
+  double GetStepLimit() const;
   /*! \brief the active terrains, see terrain::Base::Query */
   const std::vector<terrain::Base*>& get_active_terrain() const {
     return active_terrain_;
@@ -172,6 +176,11 @@ public:
     return active_sensors_;
   }
 
+  const std::vector<shift::core::controller::Base*>&
+  get_active_controllers() const {
+    return active_controllers_;
+  }
+
   const std::vector<int>& get_pcl() const {
     return pcl_;
   }
@@ -180,11 +189,20 @@ public:
     return pcl_compressed_;
   }
 
+  /*! \brief the trees of the kinematic forest, see topology::Tree, in the
+   * order of their root bodies in get_pcl_compressed() */
+  const std::vector<topology::Tree>& get_trees() const {
+    return trees_;
+  }
+
   const std::vector<shift::core::body::Base*>&
   get_active_articulated_bodies() const {
     return active_articulated_bodies_;
   }
 
+  const std::vector<solver::Base*>& get_active_solvers() const {
+    return active_solvers_;
+  }
   const std::vector<integrator::Base*>& get_active_integrators() const {
     return active_integrators_;
   }
@@ -454,6 +472,10 @@ public:
   void ActivateObject(logger::Base*, bool);
 
   void LoadJSON(const std::string);
+  /*! \brief load a model given as JSON, as if read from filename: the
+   * files it names are found relative to filename (e.g. a model edited in
+   * the viewer, see get_model_json) */
+  void LoadJSON(const Json::Value& model, const std::string& filename);
   void WriteJSON();
   void WriteJSON(std::ostream&);
   void WriteJSON(const std::string&);
@@ -692,6 +714,10 @@ public:
                     std::shared_ptr<const geometry::MeshAsset> asset);
 
 private:
+  /*! \brief read the objects of root_, the model of filename, and set
+   * them up */
+  void ReadModel(const std::string& filename);
+
   /*! \brief collect the fitted collision geometry for contact detection */
   void SetupContactDetection();
 
@@ -803,6 +829,10 @@ private:
   void LoadData();
   void LoadExactShapes();
 
+  /*! \brief add a floating joint from the fixed body to each part of the
+   * model that no path of joints joins to the fixed body */
+  void AddFloatingJoints();
+
   /*! \brief sort active bodies and joints by level increasing order in
    * spanning tree
    */
@@ -846,6 +876,16 @@ private:
   void InitializeInertia();
 
   void SetupLookup();
+
+  /*! \brief split the compressed spanning tree into the trees of the
+   * kinematic forest and classify each one, see topology::Tree */
+  void DetectTrees();
+
+  /*! \brief the compressed index of the body at active joint index i: i if
+   * its joint is not rigid, else that of the nearest body above it that is
+   * not attached by a rigid joint; -1 for the fixed body or a body welded to
+   * it */
+  int CompressedIndex(int i) const;
 
   /*! \brief set mapping between positions of generalized coordinates in
   q to dq
@@ -892,7 +932,6 @@ private:
                         friction        or damping */
   // std::vector<ksl_coscrew_t> g_; /*!< spatial body and inertial
   //                                 forces, length equal to dq count */
-  std::vector<ksl_coscrew_t> k_;
   /*! external spatial forces on each body group, length
    * non_rigid_joint_count, see AddBodyLoad */
   std::vector<ksl_coscrew_t> body_loads_;
@@ -988,6 +1027,7 @@ private:
   unsigned int non_rigid_joint_count_ = 0;
   std::vector<int> pcl_;            /*!< parent child list */
   std::vector<int> pcl_compressed_; /*!< compressed parent child list */
+  std::vector<topology::Tree> trees_; /*!< trees of the kinematic forest */
   std::vector<std::vector<int>> loop_members_;
   std::vector<std::vector<int>> positive_loop_members_;
   std::vector<std::vector<int>> negative_loop_members_;

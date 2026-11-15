@@ -40,18 +40,35 @@ rcc = find_program(qt_tool_candidates['rcc'] + ['rcc6', 'rcc'])
 
 # GLSL -> Qt shader bundles, packed into a resource
 shader_bundles = []
-foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
+foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
+                  'fluid_depth.vert', 'fluid_depth.frag', 'fluid_blur.frag',
+                  'fullscreen.vert', 'sky.frag',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
-                  'svgf_composite.comp', 'svgf_taa.comp']
+                  'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
+                  'axes.frag']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
-    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl'),
+    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
+                        'shaders/surfaces.glsl',
+                        'shaders/fluid_common.glsl',
+                        'shaders/hex_tiling.glsl'),
   )
 endforeach
+
+# the soil surface over SPH particles: fluid.frag is mesh.frag shading it
+shader_bundles += custom_target(
+  'fluid_frag_qsb',
+  input: 'shaders/mesh.frag',
+  output: 'fluid.frag.qsb',
+  command: [qsb, '--glsl', '310 es,430', '-DFLUID', '-o', '@OUTPUT@',
+            '@INPUT@'],
+  depend_files: files('shaders/lights.glsl', 'shaders/fluid_common.glsl',
+                      'shaders/hex_tiling.glsl'),
+)
 
 # terrain tessellation (Vulkan only, so SPIR-V only: GLSL ES 3.1 has no
 # tessellation stages)
@@ -82,7 +99,9 @@ shader_bundles += custom_target(
   input: 'shaders/mesh.frag',
   output: 'cad.frag.qsb',
   command: [qsb, '-DCAD', '-o', '@OUTPUT@', '@INPUT@'],
-  depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl'),
+  depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl',
+                      'shaders/surfaces.glsl',
+                      'shaders/hex_tiling.glsl'),
 )
 
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them
@@ -125,6 +144,7 @@ shift_gui_lib = static_library(
   'environment.cc',
   'playback_slider.cc',
   'scene.cc',
+  'settings.cc',
   'simulation.cc',
   'video_encoder.cc',
   'video_trimmer.cc',

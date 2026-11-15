@@ -7,6 +7,7 @@ test_sources = [
   'main.cc',
   'test_bitfield.cc',
   'test_examples.cc',
+  'test_frame_orientation.cc',
   'test_excavator.cc',
   'test_specified_coordinates.cc',
   'contact/contact_record.cc',
@@ -27,6 +28,9 @@ test_sources = [
   'test_joint_axis.cc',
   'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',
+  'test_floating_joint.cc',
+  'test_half_turn_loop.cc',
+  'test_tree_solvers.cc',
   'test_light.cc',
   'test_beam.cc',
   'test_belt.cc',
@@ -47,6 +51,11 @@ test_sources = [
   'contact/test_terrain_contact.cc',
   'terramechanics/test_terramechanics.cc',
   'test_schedule.cc',
+  'test_map.cc',
+  'test_linearization.cc',
+  'test_component_io.cc',
+  'test_electric_motor.cc',
+  'test_logger_outputs.cc',
   'test_lead_screw.cc',
   'test_yaml.cc',
   'test_gear_mesh.cc',
@@ -82,7 +91,9 @@ if not is_disabler(shift_gui_dep)
                    'test_embedded_texture.cc', 'test_camera.cc',
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
-                   'dem/test_dem_playback.cc']
+                   'dem/test_dem_playback.cc',
+                   'test_workspace_tree.cc', 'test_surface_noise.cc',
+                   'test_light_glow.cc']
   test_deps += [shift_gui_dep]
 endif
 
@@ -94,8 +105,9 @@ shift_test = executable(
 )
 
 # everything except the per-model cases, which are registered one by one below
-test('shift-test', shift_test, args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*'],
-     timeout: 600)
+test('shift-test', shift_test,
+     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*'],
+     timeout: 3600)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc
@@ -124,6 +136,11 @@ benchmark('dem_million', shift_test,
 # GPU (test/dem/test_dem_model.cc)
 benchmark('dem_rocks', shift_test,
           args: ['--gtest_filter=DemSpeed.BlockOnRocks'], timeout: 0)
+
+# the time of one evaluation of the equations of motion of trees without
+# closed loops by the rnca, aba and dca solvers (test/test_tree_solvers.cc)
+benchmark('solver_speed', shift_test,
+          args: ['--gtest_filter=SolverSpeed.*'], timeout: 0)
 
 # the GPU tests on Mesa's software Vulkan driver, lavapipe, so that they run
 # without a GPU (on Arch Linux: the vulkan-swrast package)
@@ -185,6 +202,16 @@ stress_models = [
   'cad/nut_on_bolt.json',
   'terramechanics/track_frame_scm.json',
   'terramechanics/track_frame_scm_fine.json',
+  # the M1A2 tank: two tracks of 78 links each
+  'm1a2/m1a2.json',
+  'm1a2/m1a2_step.json',
+  # the Polo R WRC without its body shell, for the viewer: the same
+  # simulation as polo_r_wrc/polo_r_wrc.json
+  'polo_r_wrc/polo_r_wrc_suspension.json',
+  # SPH soil on the GPU
+  'terramechanics/sph_blade.json',
+  # the excavator driving on its tracks of STEP links over dry sand
+  'excavator/excavator_drive.json',
 ]
 
 foreach model_path : example_models

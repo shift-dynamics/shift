@@ -36,12 +36,18 @@ struct Instance {
   vec4 box_min;       // world space bounds
   vec4 box_max;
   vec4 albedo;        // w = normal map scale
-  vec4 material;      // x = metallic, y = roughness, z = triplanar,
+  vec4 material;      // x = metallic, y = roughness, z = triplanar (2:
+                      // hex-tiled too),
                       // w = 1 / texture scale
   ivec4 offsets;      // x = root node, y = base color, z = metallic
                       // roughness, w = normal texture layer; -1: none
   mat4 previous_body_to_world; // pose in the previous frame (reprojection)
-  vec4 optical;       // x = opacity
+  vec4 optical;       // x = opacity, yzw = glow: factor of the albedo
+                      // emitted (a lamp's lens, lit)
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures
+  ivec4 surface_layers; // base color and normal of surfaces 0 and 1
+  vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
+                      // level, w = 1 / patch size
 };
 
 // illumination of this frame's sample, radiance / albedo (sky: radiance)
@@ -102,6 +108,7 @@ layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
 #define LIGHTS_BINDING 12
 #define IES_BINDING 13
 #include "lights.glsl"
+#include "surfaces.glsl"
 
 // CAD faces (cad_triangulate.comp): per triangle, -1 for a mesh's, else
 // face * 2 + 1 if a hit must be inside the face's trims, face * 2 otherwise;
@@ -211,15 +218,18 @@ vec3 FloorAlbedo(vec2 p, float spacing) {
 // ---------------------------------------------------------------------------
 // intersection
 
-bool BoxHit(vec3 origin, vec3 inverse_direction, vec3 box_min, vec3 box_max,
-            float t_max) {
+// the distance along a ray to where it enters a box, 0 from inside, or
+// kInfinity if it misses the box before t_max
+float BoxDistance(vec3 origin, vec3 inverse_direction, vec3 box_min,
+                  vec3 box_max, float t_max) {
   vec3 t0 = (box_min - origin) * inverse_direction;
   vec3 t1 = (box_max - origin) * inverse_direction;
   vec3 near = min(t0, t1);
   vec3 far = max(t0, t1);
   float t_near = max(max(near.x, near.y), near.z);
   float t_far = min(min(far.x, far.y), far.z);
-  return t_far >= max(t_near, 0.0) && t_near < t_max;
+  return t_far >= max(t_near, 0.0) && t_near < t_max ? max(t_near, 0.0)
+                                                      : kInfinity;
 }
 
 bool TriangleHit(vec3 origin, vec3 direction, vec3 v0, vec3 v1, vec3 v2,
@@ -259,7 +269,9 @@ float light_passed;
 
 // closest hit when any_hit is false, otherwise stops at the first hit that is
 // opaque, or that leaves too little light, and dims light_passed by the
-// transparent ones before it
+// transparent ones before it. Both levels of BVH are traversed nearest box
+// first, and a box farther than the closest hit so far is skipped, so a
+// closest hit mostly tests the triangles around it.
 bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
            out Hit hit) {
   hit.t = t_max;
@@ -268,25 +280,58 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
   hit.bary = vec2(0.0);
 
   vec3 inverse_world_direction = 1.0 / direction;
-  int stack[64];
-  int instance_stack[64];
+  // nodes and the distances to their boxes; nearer child first, a stack
+  // holds at most one deferred node per level, so 32 covers kBvhMaxDepth of
+  // gui/bvh.h (31), and the instances' median split BVH up to 2^31 instances
+  int stack[32];
+  float distance[32];
+  int instance_stack[32];
+  float instance_distance[32];
   int isp = 0;
   if(u.control.x > 0) {
-    instance_stack[isp++] = 0;
+    BvhNode root = instance_nodes[0];
+    float d_root = BoxDistance(origin, inverse_world_direction, root.box_min,
+                               root.box_max, hit.t);
+    if(d_root < kInfinity) {
+      instance_stack[0] = 0;
+      instance_distance[isp++] = d_root;
+    }
   }
 
   while(isp > 0) {
-    int instance_node_index = instance_stack[--isp];
-    BvhNode instance_node = instance_nodes[instance_node_index];
-    // a leaf's box is the box of its instance
-    if(!BoxHit(origin, inverse_world_direction, instance_node.box_min,
-               instance_node.box_max, hit.t)) {
+    --isp;
+    if(instance_distance[isp] >= hit.t) {
       continue;
     }
+    int instance_node_index = instance_stack[isp];
+    BvhNode instance_node = instance_nodes[instance_node_index];
+    // a leaf's box, tested as it was pushed, is the box of its instance
     if(instance_node.triangle_count < 0) {
-      if(isp < 62) {
-        instance_stack[isp++] = instance_node.right_or_first;
-        instance_stack[isp++] = instance_node_index + 1;
+      // the children, the farther pushed first so that the nearer is
+      // visited first, and only those the ray enters before the closest hit
+      int near = instance_node_index + 1;
+      int far = instance_node.right_or_first;
+      BvhNode near_node = instance_nodes[near];
+      BvhNode far_node = instance_nodes[far];
+      float d_near = BoxDistance(origin, inverse_world_direction,
+                                 near_node.box_min, near_node.box_max, hit.t);
+      float d_far = BoxDistance(origin, inverse_world_direction,
+                                far_node.box_min, far_node.box_max, hit.t);
+      if(d_far < d_near) {
+        int k = near;
+        near = far;
+        far = k;
+        float d_swap = d_near;
+        d_near = d_far;
+        d_far = d_swap;
+      }
+      if(d_far < kInfinity && isp < 32) {
+        instance_stack[isp] = far;
+        instance_distance[isp++] = d_far;
+      }
+      if(d_near < kInfinity && isp < 32) {
+        instance_stack[isp] = near;
+        instance_distance[isp++] = d_near;
       }
       continue;
     }
@@ -297,13 +342,22 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
     vec3 inverse_d = 1.0 / d;
 
     int sp = 0;
-    stack[sp++] = instances[i].offsets.x;
+    {
+      BvhNode root = nodes[instances[i].offsets.x];
+      float d_root =
+        BoxDistance(o, inverse_d, root.box_min, root.box_max, hit.t);
+      if(d_root < kInfinity) {
+        stack[0] = instances[i].offsets.x;
+        distance[sp++] = d_root;
+      }
+    }
     while(sp > 0) {
-      int index = stack[--sp];
-      BvhNode node = nodes[index];
-      if(!BoxHit(o, inverse_d, node.box_min, node.box_max, hit.t)) {
+      --sp;
+      if(distance[sp] >= hit.t) {
         continue;
       }
+      int index = stack[sp];
+      BvhNode node = nodes[index];
       if(node.triangle_count >= 0) {
         for(int j = 0; j < node.triangle_count; j++) {
           int k = node.right_or_first + j;
@@ -333,9 +387,32 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
             }
           }
         }
-      } else if(sp < 62) {
-        stack[sp++] = node.right_or_first;
-        stack[sp++] = index + 1;
+      } else {
+        // as for the instances' BVH: nearer child first
+        int near = index + 1;
+        int far = node.right_or_first;
+        BvhNode near_node = nodes[near];
+        BvhNode far_node = nodes[far];
+        float d_near = BoxDistance(o, inverse_d, near_node.box_min,
+                                   near_node.box_max, hit.t);
+        float d_far = BoxDistance(o, inverse_d, far_node.box_min,
+                                  far_node.box_max, hit.t);
+        if(d_far < d_near) {
+          int k = near;
+          near = far;
+          far = k;
+          float d_swap = d_near;
+          d_near = d_far;
+          d_far = d_swap;
+        }
+        if(d_far < kInfinity && sp < 32) {
+          stack[sp] = far;
+          distance[sp++] = d_far;
+        }
+        if(d_near < kInfinity && sp < 32) {
+          stack[sp] = near;
+          distance[sp++] = d_near;
+        }
       }
     }
   }
@@ -390,6 +467,7 @@ struct Surface {
   vec3 albedo;
   float metallic;
   float roughness;
+  vec3 emission; // radiance emitted, as by the lens of a lamp that is on
 };
 
 // ---------------------------------------------------------------------------
@@ -405,28 +483,72 @@ vec4 SampleLayer(int layer, vec2 p, float lod) {
   return textureLod(textures, vec3(p, float(layer)), lod);
 }
 
-vec4 SampleTriplanar(int layer, vec3 p, vec3 w, float lod) {
-  return SampleLayer(layer, p.zy, lod) * w.x +
-         SampleLayer(layer, p.xz, lod) * w.y +
-         SampleLayer(layer, p.xy, lod) * w.z;
+// the level of detail of the hex-tiled lookups (hex_tiling.glsl), which
+// have no gradients here
+float hex_lod = 0.0;
+vec4 HexLookup(int layer, vec2 st, vec2 dx, vec2 dy) {
+  return textureLod(textures, vec3(st, float(layer)), hex_lod);
+}
+#include "hex_tiling.glsl"
+
+// one plane of a triplanar projection, q in texture tiles, its tiles
+// shifted at random if vary
+vec4 SamplePlane(int layer, vec2 q, float lod, bool vary) {
+  if(!vary) {
+    return SampleLayer(layer, q, lod);
+  }
+  TileShift t = TileVariation(q, true);
+  return BlendTiles(SampleLayer(layer, q + t.a, lod),
+                    SampleLayer(layer, q + t.b, lod), t.f);
 }
 
-vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale, float lod) {
-  vec3 tx = SampleLayer(layer, p.zy, lod).xyz * 2.0 - 1.0;
-  vec3 ty = SampleLayer(layer, p.xz, lod).xyz * 2.0 - 1.0;
-  vec3 tz = SampleLayer(layer, p.xy, lod).xyz * 2.0 - 1.0;
-  tx.xy *= scale;
-  ty.xy *= scale;
-  tz.xy *= scale;
-  tx = vec3(tx.xy + n.zy, abs(tx.z) * n.x);
-  ty = vec3(ty.xy + n.xz, abs(ty.z) * n.y);
-  tz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
-  return normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
+// the weights of the three planes, without those too small to see
+vec3 PlaneWeights(vec3 w) {
+  w *= step(vec3(0.02), w);
+  return w / max(w.x + w.y + w.z, 1e-6);
+}
+
+vec4 SampleTriplanar(int layer, vec3 p, vec3 w, float lod, bool vary) {
+  w = PlaneWeights(w);
+  vec4 s = vec4(0.0);
+  if(w.x > 0.0) {
+    s += SamplePlane(layer, p.zy, lod, vary) * w.x;
+  }
+  if(w.y > 0.0) {
+    s += SamplePlane(layer, p.xz, lod, vary) * w.y;
+  }
+  if(w.z > 0.0) {
+    s += SamplePlane(layer, p.xy, lod, vary) * w.z;
+  }
+  return s;
+}
+
+vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale, float lod,
+                     bool vary) {
+  w = PlaneWeights(w);
+  vec3 sum = vec3(0.0);
+  if(w.x > 0.0) {
+    vec3 tx = SamplePlane(layer, p.zy, lod, vary).xyz * 2.0 - 1.0;
+    tx.xy *= scale;
+    sum += vec3(tx.xy + n.zy, abs(tx.z) * n.x).zyx * w.x;
+  }
+  if(w.y > 0.0) {
+    vec3 ty = SamplePlane(layer, p.xz, lod, vary).xyz * 2.0 - 1.0;
+    ty.xy *= scale;
+    sum += vec3(ty.xy + n.xz, abs(ty.z) * n.y).xzy * w.y;
+  }
+  if(w.z > 0.0) {
+    vec3 tz = SamplePlane(layer, p.xy, lod, vary).xyz * 2.0 - 1.0;
+    tz.xy *= scale;
+    sum += vec3(tz.xy + n.xy, abs(tz.z) * n.z) * w.z;
+  }
+  return normalize(sum);
 }
 
 Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   Surface s;
   s.position = origin + direction * hit.t;
+  s.emission = vec3(0.0);
   if(hit.instance == -2) {
         s.normal = u.floor_frame[2].xyz;
     vec3 on_floor = s.position - u.floor_frame[3].xyz;
@@ -468,6 +590,7 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
            instance.material.w;
   vec3 w = pow(abs(nb), vec3(4.0));
   w /= w.x + w.y + w.z;
+  vec3 geometric = nb; // before normal mapping, for the surfaces
 
   // level of detail: texels covered by the ray footprint at the hit
   float texels_per_length =
@@ -475,6 +598,10 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
               : u.texture_params.y *
                   sqrt(abs(uv_det) / max(length(face), 1e-20));
   float lod = log2(max(hit.t * u.texture_params.x * texels_per_length, 1.0));
+  // terrains: hex-tiled, as in mesh.frag
+  bool hex = instance.material.z > 1.5;
+  hex_lod = lod;
+  HexPlanes hex_planes = HexPlanesSetup(p, w, vec3(0.0), vec3(0.0));
 
   s.albedo = instance.albedo.rgb;
   int cad_face = triangle_faces[hit.triangle];
@@ -486,21 +613,34 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   }
   s.metallic = instance.material.x;
   s.roughness = instance.material.y;
+  bool vary = instance.variation.x > 0.5;
+  vec3 body_position = (instance.world_to_body * vec4(s.position, 1.0)).xyz;
+  float below_brightness = 0.5; // of the texture, for the surfaces' edges
   if(instance.offsets.y >= 0) {
-    vec4 t = triplanar ? SampleTriplanar(instance.offsets.y, p, w, lod)
-                       : SampleLayer(instance.offsets.y, uv, lod);
+    vec4 t = hex ? HexPlanesColor(hex_planes, instance.offsets.y)
+             : triplanar
+               ? SampleTriplanar(instance.offsets.y, p, w, lod, vary)
+               : SampleLayer(instance.offsets.y, uv, lod);
+    below_brightness = dot(t.rgb, vec3(0.333));
     s.albedo *= SrgbToLinear(t.rgb);
   }
+  if(triplanar && vary) {
+    s.albedo *= MacroBrightness(body_position.xy);
+  }
   if(instance.offsets.z >= 0) {
-    vec4 t = triplanar ? SampleTriplanar(instance.offsets.z, p, w, lod)
-                       : SampleLayer(instance.offsets.z, uv, lod);
+    vec4 t = hex ? HexPlanesSample(hex_planes, instance.offsets.z)
+             : triplanar
+               ? SampleTriplanar(instance.offsets.z, p, w, lod, vary)
+               : SampleLayer(instance.offsets.z, uv, lod);
     s.roughness *= t.g;
     s.metallic *= t.b;
   }
   if(instance.offsets.w >= 0) {
     if(triplanar) {
-      nb = side * TriplanarNormal(instance.offsets.w, p, side * nb, w,
-                                  instance.albedo.w, lod);
+      nb = side * (hex ? HexPlanesNormal(hex_planes, instance.offsets.w,
+                                         side * nb, instance.albedo.w)
+                       : TriplanarNormal(instance.offsets.w, p, side * nb, w,
+                                         instance.albedo.w, lod, vary));
     } else if(abs(uv_det) > 1e-20) {
       // tangent frame of the triangle from its texture coordinates
       vec3 tangent = (e1 * d2.y - e2 * d1.y) / uv_det;
@@ -515,9 +655,43 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
                                  front) * t);
     }
   }
+  // the surfaces drawn over the texture in patches (as in mesh.frag)
+  for(int i = 0; i < 2 && triplanar; i++) {
+    int color_layer =
+      i == 0 ? instance.surface_layers.x : instance.surface_layers.z;
+    int normal_layer =
+      i == 0 ? instance.surface_layers.y : instance.surface_layers.w;
+    vec4 surface = instance.surface[i];
+    if(color_layer < 0) {
+      continue;
+    }
+    float m = SurfaceMask(body_position.xy, i, surface.w, surface.z,
+                          below_brightness);
+    if(m <= 0.0) {
+      continue;
+    }
+    vec3 q = body_position * surface.x;
+    // its own level of detail, for its own tile size
+    float surface_lod =
+      max(lod + log2(surface.x / max(instance.material.w, 1e-20)), 0.0);
+    vec4 t = SampleTriplanar(color_layer, q, w, surface_lod, vary);
+    vec3 color = SrgbToLinear(t.rgb);
+    if(vary) {
+      color *= MacroBrightness(body_position.xy);
+    }
+    s.albedo = mix(s.albedo, color, m);
+    below_brightness = mix(below_brightness, dot(t.rgb, vec3(0.333)), m);
+    vec3 surface_normal = geometric;
+    if(normal_layer >= 0) {
+      surface_normal = side * TriplanarNormal(normal_layer, q, side * geometric,
+                                              w, surface.y, surface_lod, vary);
+    }
+    nb = normalize(mix(nb, surface_normal, m));
+  }
   s.normal = normalize(rotation * nb);
   s.roughness = clamp(s.roughness, 0.05, 1.0);
   s.metallic = clamp(s.metallic, 0.0, 1.0);
+  s.emission = instance.optical.yzw * s.albedo;
   return s;
 }
 
@@ -659,7 +833,8 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
     float n_dot_l = max(dot(b.normal, u.sun_direction.xyz), 0.0);
     incoming = b.albedo * (u.sun_color.rgb * u.sun_direction.w * n_dot_l / PI +
                            0.3 * u.sky_zenith.rgb +
-                           ModelLightsDiffuse(b.position, b.normal));
+                           ModelLightsDiffuse(b.position, b.normal)) +
+               b.emission;
   } else {
     incoming = Sky(bounce_direction, false);
   }
@@ -725,7 +900,8 @@ void main() {
     vec3 surface_color = Shade(s, direction, hit.t, surface_direct);
     float weight = through * Opacity(hit);
     color += weight * surface_color;
-    direct += weight * surface_direct;
+    // a glowing surface's own light is exact, as the sun's: not denoised
+    direct += weight * (surface_direct + s.emission);
     // demodulation keeps texture detail out of the denoiser's blur; a floor
     // on the albedo avoids amplifying noise on black surfaces
     albedo += weight * max(s.albedo, vec3(0.02));

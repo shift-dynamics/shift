@@ -12,6 +12,7 @@
 #include "shift/core/light/spot.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
+#include "shift/core/terrain/sph.h"
 
 #include "ksl/matrix.h"
 #include "ksl/quaternion.h"
@@ -297,7 +298,11 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     t.z.reserve(size_t(t.width) * size_t(t.height));
     for(long j = -1; j <= ny; j++) {
       for(long i = -1; i <= nx; i++) {
-        t.z.push_back(float(scm->UndisturbedZ(i, j)));
+        /* under an SPH region, its floor: its particles are the surface */
+        const auto* sph = dynamic_cast<const shift::core::terrain::Sph*>(
+          scm->RegionAt(scm->NodeX(i), scm->NodeY(j)));
+        t.z.push_back(float(sph ? sph->FloorZ(scm->NodeX(i), scm->NodeY(j))
+                                : scm->UndisturbedZ(i, j)));
       }
     }
     t.x_scale = t.y_scale = float(scm->get_spacing());
@@ -335,6 +340,35 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   mesh.normal_scale = float(terrain.get_normal_scale());
   mesh.triplanar = true; // along the world axes: the mesh is on the fixed body
   mesh.texture_scale = float(terrain.get_texture_scale());
+  mesh.texture_variation = terrain.get_texture_variation();
+  // no grid of repeated tiles over its extent: hex-tiled, unless its tiles
+  // are varied instead
+  mesh.hex_tiling = !mesh.texture_variation;
+  for(const auto* surface : terrain.get_surfaces()) {
+    shift::gui::SceneSurface s;
+    s.base_color_layer = textures.Load(surface->get_texture_path());
+    if(s.base_color_layer < 0) {
+      continue; // not found: drawn without it
+    }
+    s.normal_layer = textures.Load(surface->get_normal_map_path());
+    s.normal_scale = float(surface->get_normal_scale());
+    s.texture_scale = float(surface->get_texture_scale());
+    s.patch_size = float(surface->get_patch_size());
+    s.level = shift::gui::SurfaceNoiseLevel(
+      static_cast<int>(mesh.surfaces.size()), surface->get_coverage());
+    mesh.surfaces.push_back(s);
+  }
+  /* the regions drawn as surfaces of their own are holes in this one */
+  for(const auto* region : terrain.get_regions()) {
+    if(dynamic_cast<const shift::core::terrain::Basic*>(region) &&
+       !dynamic_cast<const shift::core::terrain::Sph*>(region) &&
+       region->has_extent()) {
+      const auto& x = region->get_x_range();
+      const auto& y = region->get_y_range();
+      mesh.holes.push_back(
+        {float(x[0]), float(y[0]), float(x[1]), float(y[1])});
+    }
+  }
   /* twice the resolution of the control points, and at least
   kMinimumMeshSamples a side so that the curvature of a small map is drawn
   smoothly, at most kMaximumMeshSamples a side */
@@ -386,11 +420,28 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
       mesh.vertices.push_back(v);
     }
   }
+  /* without the triangles inside a hole (the raster shader drops the
+  pixels of the rest inside it) */
+  auto in_hole = [&mesh](const shift::gui::Vertex& v) {
+    for(const std::array<float, 4>& h : mesh.holes) {
+      if(v.uv[0] >= h[0] && v.uv[0] <= h[2] && v.uv[1] >= h[1] &&
+         v.uv[1] <= h[3]) {
+        return true;
+      }
+    }
+    return false;
+  };
   const uint32_t nx = uint32_t(mesh_x);
   for(uint32_t j = 0; j + 1 < uint32_t(mesh_y); j++) {
     for(uint32_t i = 0; i + 1 < nx; i++) {
       const uint32_t a = j * nx + i, b = a + 1, c = a + nx, e = c + 1;
-      mesh.indices.insert(mesh.indices.end(), {a, b, e, a, e, c});
+      const auto& v = mesh.vertices;
+      if(!(in_hole(v[a]) && in_hole(v[b]) && in_hole(v[e]))) {
+        mesh.indices.insert(mesh.indices.end(), {a, b, e});
+      }
+      if(!(in_hole(v[a]) && in_hole(v[e]) && in_hole(v[c]))) {
+        mesh.indices.insert(mesh.indices.end(), {a, e, c});
+      }
     }
   }
   t.mesh_index = static_cast<int>(scene.meshes.size());
@@ -401,10 +452,77 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   return static_cast<int>(scene.terrains.size()) - 1;
 }
 
+/* the particles of an SPH soil: a sphere of the particles' volume, s^3,
+of the color of earth, darker than the terrain's so that the grains show */
+static int AddParticles(const shift::core::terrain::Sph& sph,
+                        shift::gui::Scene& scene) {
+  shift::gui::SceneParticles particles;
+  particles.radius =
+    float(sph.get_settings().spacing * std::cbrt(3.0 / (4.0 * M_PI)));
+  shift::gui::SceneMesh mesh;
+  mesh.albedo = ksl_vec3f(0.36f, 0.31f, 0.25f);
+  mesh.roughness = 0.95f;
+  /* an icosphere, subdivided twice: 320 triangles */
+  const float g = (1.f + std::sqrt(5.f)) / 2.f;
+  std::vector<ksl_vec3f_t> points = {
+    ksl_vec3f(-1, g, 0),  ksl_vec3f(1, g, 0),   ksl_vec3f(-1, -g, 0),
+    ksl_vec3f(1, -g, 0),  ksl_vec3f(0, -1, g),  ksl_vec3f(0, 1, g),
+    ksl_vec3f(0, -1, -g), ksl_vec3f(0, 1, -g),  ksl_vec3f(g, 0, -1),
+    ksl_vec3f(g, 0, 1),   ksl_vec3f(-g, 0, -1), ksl_vec3f(-g, 0, 1)};
+  std::vector<uint32_t> faces = {
+    0, 11, 5, 0, 5,  1,  0, 1, 7, 0, 7,  10, 0, 10, 11, 1, 5, 9, 5, 11,
+    4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3,  9,  4, 3,  4,  2, 3, 2, 6, 3,
+    6, 8,  3,  8, 9,  4, 9, 5, 2, 4, 11, 6,  2, 10, 8,  6, 7, 9, 8, 1};
+  for(ksl_vec3f_t& p : points) {
+    ksl_vec3f_normalize(&p);
+  }
+  for(int level = 0; level < 2; level++) {
+    std::map<std::pair<uint32_t, uint32_t>, uint32_t> middles;
+    auto middle = [&](uint32_t a, uint32_t b) {
+      const auto key = std::minmax(a, b);
+      auto [it, inserted] = middles.try_emplace(key, 0);
+      if(inserted) {
+        it->second = uint32_t(points.size());
+        ksl_vec3f_t m;
+        ksl_add_vvf(&points[a], &points[b], &m);
+        ksl_vec3f_normalize(&m);
+        points.push_back(m);
+      }
+      return it->second;
+    };
+    std::vector<uint32_t> finer;
+    for(size_t f = 0; f < faces.size(); f += 3) {
+      const uint32_t a = faces[f], b = faces[f + 1], c = faces[f + 2];
+      const uint32_t ab = middle(a, b), bc = middle(b, c), ca = middle(c, a);
+      finer.insert(finer.end(),
+                   {a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca});
+    }
+    faces.swap(finer);
+  }
+  for(const ksl_vec3f_t& p : points) {
+    shift::gui::Vertex v;
+    for(int k = 0; k < 3; k++) {
+      v.position[k] = particles.radius * p.at[k];
+      v.normal[k] = p.at[k];
+    }
+    v.uv[0] = v.uv[1] = 0.f;
+    mesh.vertices.push_back(v);
+  }
+  mesh.indices = faces;
+  const float r = particles.radius;
+  mesh.bounds_min = ksl_vec3f(-r, -r, -r);
+  mesh.bounds_max = ksl_vec3f(r, r, r);
+  particles.mesh_index = static_cast<int>(scene.meshes.size());
+  scene.meshes.push_back(std::move(mesh));
+  scene.particles.push_back(particles);
+  return static_cast<int>(scene.particles.size()) - 1;
+}
+
 /* a light of the model, if its frame is on one of the bodies drawn */
 static void AddLight(const shift::core::light::Base& light,
                      const std::vector<shift::core::body::Base*>& bodies,
-                     shift::gui::Scene& scene) {
+                     shift::gui::Scene& scene,
+                     std::vector<const shift::core::light::Base*>& sources) {
   using shift::gui::Scene;
   using shift::gui::SceneLight;
   if(!light.get_frame()) {
@@ -435,8 +553,9 @@ static void AddLight(const shift::core::light::Base& light,
                      float(c.z * factor));
   };
   l.ambient = color(light.get_Ka(), 1.0);
-  l.diffuse = color(light.get_Kd(), light.get_intensity());
-  l.specular = color(light.get_Ks(), light.get_intensity());
+  l.diffuse = color(light.get_Kd(), 1.0);
+  l.specular = color(light.get_Ks(), 1.0);
+  l.intensity = float(light.get_intensity());
   l.attenuation = color(light.get_attenuation(), 1.0);
   if(auto spot = dynamic_cast<const shift::core::light::Spot*>(&light)) {
     l.cone_angle = float(spot->get_cone_angle());
@@ -457,6 +576,7 @@ static void AddLight(const shift::core::light::Base& light,
     scene.ies_profiles.push_back(std::move(profile));
   }
   scene.lights.push_back(l);
+  sources.push_back(&light);
 }
 
 shift::gui::Simulation::~Simulation() {
@@ -472,6 +592,7 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   grain_records_ = 0;
   context_.reset();
   bodies_.clear();
+  light_sources_.clear();
   scene_ = Scene();
   ClearResults();
   RemoveLogDirectory();
@@ -487,11 +608,35 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   }
 }
 
+void shift::gui::Simulation::Reload(const Json::Value& model) {
+  if(model_path_.empty()) {
+    throw shift::core::Exception("no model has been loaded");
+  }
+  // a copy: LoadModel sets it
+  const std::string path = model_path_;
+  JoinWorker();
+  scm_views_.clear();
+  context_.reset();
+  bodies_.clear();
+  light_sources_.clear();
+  scene_ = Scene();
+  ClearResults();
+  // a log's files stay where they were taken out to
+  LoadModel(path, file_map_, &model);
+}
+
 void shift::gui::Simulation::LoadModel(
-  const std::string& path, std::map<std::string, std::string> file_map) {
+  const std::string& path, std::map<std::string, std::string> file_map,
+  const Json::Value* model) {
+  model_path_ = path;
+  file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
-  context->LoadJSON(path);
+  if(model) {
+    context->LoadJSON(*model, path);
+  } else {
+    context->LoadJSON(path);
+  }
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by
@@ -513,6 +658,8 @@ void shift::gui::Simulation::LoadModel(
   std::map<const shift::core::geometry::MeshAsset*, std::vector<int>>
     asset_meshes;
   std::vector<std::vector<int>> mesh_bodies;
+  std::map<const shift::core::geometry::Base*, std::vector<int>>
+    geometry_meshes; // for the lights that geometries glow with
   for(size_t i = 0; i < bodies_.size(); i++) {
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
@@ -535,6 +682,7 @@ void shift::gui::Simulation::LoadModel(
       for(int mesh_index : it->second) {
         mesh_bodies[mesh_index].push_back(static_cast<int>(i));
       }
+      geometry_meshes[geometry.get()] = it->second;
     }
   }
   for(size_t m = 0; m < mesh_bodies.size(); m++) {
@@ -575,18 +723,48 @@ void shift::gui::Simulation::LoadModel(
   }
   /* terrains, on the fixed body (body 0) */
   scm_views_.clear();
-  for(auto terrain : context_->get_active_terrain()) {
-    if(auto basic = dynamic_cast<shift::core::terrain::Basic*>(terrain)) {
-      const int index = AddTerrain(*basic, textures, scene_);
-      auto scm = dynamic_cast<shift::core::terrain::Scm*>(basic);
-      if(scm && index >= 0) {
-        AddScmView(*scm, index);
-      }
+  sph_views_.clear();
+  /* the terrains and their regions: a region drawn as a surface of its
+  own (e.g. SCM sand in rigid ground) is a hole in the terrain that holds
+  it; an SPH soil is drawn by its particles alone */
+  for(auto terrain : shift::core::terrain::Base::WithRegions(
+        context_->get_active_terrain())) {
+    if(auto sph = dynamic_cast<shift::core::terrain::Sph*>(terrain)) {
+      SphView view;
+      view.sph = sph;
+      view.particles = AddParticles(*sph, scene_);
+      Snapshot(*sph, view.initial);
+      sph_views_.push_back(std::move(view));
+      continue;
+    }
+    auto basic = dynamic_cast<shift::core::terrain::Basic*>(terrain);
+    if(!basic) {
+      continue;
+    }
+    const int index = AddTerrain(*basic, textures, scene_);
+    auto scm = dynamic_cast<shift::core::terrain::Scm*>(basic);
+    if(scm && index >= 0) {
+      AddScmView(*scm, index);
     }
   }
   /* lights, on the bodies of their frames */
   for(auto light : context_->get_active_lights()) {
-    AddLight(*light, bodies_, scene_);
+    AddLight(*light, bodies_, scene_, light_sources_);
+  }
+  /* the meshes that glow with the lights */
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    for(const auto& name : light_sources_[k]->get_glow()) {
+      shift::core::body::Base* body = bodies_[scene_.lights[k].body_index];
+      for(auto& geometry : body->get_geometry()) {
+        auto meshes = geometry_meshes.find(geometry.get());
+        if(geometry->get_name() != name || meshes == geometry_meshes.end()) {
+          continue;
+        }
+        for(int m : meshes->second) {
+          scene_.meshes[m].glow_light = static_cast<int>(k);
+        }
+      }
+    }
   }
   scene_.body_count = static_cast<int>(bodies_.size());
   /* the grains, their poses after the bodies' */
@@ -596,6 +774,10 @@ void shift::gui::Simulation::LoadModel(
     if(auto dem = dynamic_cast<shift::core::force_module::Dem*>(module)) {
       AddDemView(*dem);
     }
+  }
+  shown_lights_.assign(light_sources_.size(), 0.f);
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    shown_lights_[k] = scene_.lights[k].intensity;
   }
 
   state_size_ = context_->get_state_count();
@@ -696,6 +878,17 @@ void shift::gui::Simulation::Observe(double time,
     states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
     knot_deltas_.push_back(deltas_.size());
     grains_.insert(grains_.end(), grains.begin(), grains.end());
+    // the lights as the controllers set them for this state
+    for(const auto* light : light_sources_) {
+      light_values_.push_back(float(light->get_intensity()));
+    }
+  }
+  // the particles, at the knot point just recorded (or the last one)
+  for(SphView& view : sph_views_) {
+    if(view.knots.size() < times_.size()) {
+      view.knots.emplace_back();
+    }
+    Snapshot(*view.sph, view.knots.back());
   }
   // the levels changed, with the knot point just recorded (or the last one,
   // at a repeated time)
@@ -735,6 +928,10 @@ void shift::gui::Simulation::Reset() {
   Stop();
   RestartTerrains(true);
   RestartGrains(true);
+  for(SphView& view : sph_views_) {
+    view.sph->Restart();
+    Snapshot(*view.sph, view.initial);
+  }
   ClearResults();
   std::memcpy(context_->get_q().data(), initial_state_.data(),
               state_size_ * sizeof(double));
@@ -750,6 +947,7 @@ void shift::gui::Simulation::ClearResults() {
   std::lock_guard<std::mutex> lock(mutex_);
   times_.clear();
   states_.clear();
+  light_values_.clear();
   deltas_.clear();
   knot_deltas_.clear();
   grains_.clear();
@@ -758,6 +956,11 @@ void shift::gui::Simulation::ClearResults() {
   base_delta_ = partial_begin_ = partial_end_ = 0;
   for(auto& view : scm_views_) {
     view.base = view.worker = view.shown;
+  }
+  for(auto& view : sph_views_) {
+    view.knots.clear();
+    view.shown = -1;
+    view.changed = true;
   }
   real_time_factor_ = 0.0;
   shown_time_ = 0.0;
@@ -847,6 +1050,16 @@ void shift::gui::Simulation::ShowTime(double t) {
     for(size_t i = 0; i < state_size_; i++) {
       interpolated_[i] = y0[i] + p * (y1[i] - y0[i]);
     }
+    const size_t n = light_sources_.size();
+    if(light_values_.size() >= (i1 + 1) * n) {
+      for(size_t k = 0; k < n; k++) {
+        const float a = light_values_[i0 * n + k];
+        const float b = light_values_[i1 * n + k];
+        shown_lights_[k] = a + float(p) * (b - a);
+      }
+    }
+    // the particles: those of the knot at or before t
+    ShowParticles(long(p >= 1.0 ? i1 : i0));
     // the levels: those of knot i0 and the fraction p of the deltas to i1
     if(!scm_views_.empty()) {
       const auto knot_end = [&](size_t k) {
@@ -871,6 +1084,9 @@ void shift::gui::Simulation::ShowTime(double t) {
 }
 
 void shift::gui::Simulation::ShowContextState() {
+  for(size_t k = 0; k < light_sources_.size(); k++) {
+    shown_lights_[k] = float(light_sources_[k]->get_intensity());
+  }
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
   /* the grains the DEM holds: the worker is not running */
@@ -886,6 +1102,7 @@ void shift::gui::Simulation::ShowContextState() {
 void shift::gui::Simulation::UpdatePoses(
   const shift::core::topology::DHVA& dhva) {
   poses_.time = shown_time_;
+  poses_.lights = shown_lights_;
   // the grains' poses after the bodies' stay as they are
   poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
   for(size_t i = 0; i < bodies_.size(); i++) {
@@ -909,6 +1126,62 @@ bool shift::gui::Simulation::TakePoses(Poses& poses) {
 }
 
 // ------------------------------------------------- deformable terrains
+
+void shift::gui::Simulation::Snapshot(const shift::core::terrain::Sph& sph,
+                                      std::vector<qfloat16>& positions) {
+  const shift::core::sph::State& state = sph.get_state();
+  positions.clear();
+  positions.reserve(3 * sph.get_particle_count());
+  for(size_t k = 0; k < state.size(); k++) {
+    if(state.kind[k] & shift::core::sph::State::kMarker) {
+      continue;
+    }
+    for(int c = 0; c < 3; c++) {
+      positions.push_back(qfloat16(state.position[k][c]));
+    }
+  }
+}
+
+void shift::gui::Simulation::ShowParticles(long knot) {
+  // GUI thread, mutex_ held
+  for(SphView& view : sph_views_) {
+    const long shown = knot < long(view.knots.size()) ? knot : -1;
+    if(shown != view.shown) {
+      view.shown = shown;
+      view.changed = true;
+    }
+  }
+}
+
+void shift::gui::Simulation::TakeParticleUpdates(
+  std::vector<ParticleUpdate>& updates, bool all) {
+  updates.clear();
+  std::lock_guard<std::mutex> lock(mutex_);
+  for(SphView& view : sph_views_) {
+    if(!view.changed && !all) {
+      continue;
+    }
+    view.changed = false;
+    const std::vector<qfloat16>& positions =
+      view.shown >= 0 ? view.knots[size_t(view.shown)] : view.initial;
+    const ksl_SE3f_t frame = ToPose(view.sph->get_particle_frame());
+    ParticleUpdate update;
+    update.particles = view.particles;
+    update.centers.resize(positions.size() / 3 * 4);
+    for(size_t k = 0; 3 * k < positions.size(); k++) {
+      const ksl_vec3f_t local =
+        ksl_vec3f(float(positions[3 * k]), float(positions[3 * k + 1]),
+                  float(positions[3 * k + 2]));
+      ksl_vec3f_t world;
+      ksl_product_dvf(&frame, &local, &world);
+      for(int c = 0; c < 3; c++) {
+        update.centers[4 * k + c] = world.at[c];
+      }
+      update.centers[4 * k + 3] = 0.f;
+    }
+    updates.push_back(std::move(update));
+  }
+}
 
 void shift::gui::Simulation::AddScmView(shift::core::terrain::Scm& scm,
                                         int index) {
@@ -1442,6 +1715,10 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
       states_.insert(states_.end(), states.begin() + r * state_size_,
                      states.begin() + (r + 1) * state_size_);
       knot_deltas_.push_back(deltas_.size());
+      // a log holds no lights: they stay as the model starts them
+      for(size_t k = 0; k < light_sources_.size(); k++) {
+        light_values_.push_back(scene_.lights[k].intensity);
+      }
       for(size_t v = 0; v < scm_views_.size(); v++) {
         ScmView& view = scm_views_[v];
         const TerrainRows& t = terrain_rows[v];

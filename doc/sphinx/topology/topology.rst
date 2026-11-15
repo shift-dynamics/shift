@@ -304,6 +304,35 @@ While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` pro
     "R", 0, 0, 0, 8, 10, 7, 0, 13, 9, 0, 11, 12, 0, 14, 0, 0, 0, 0, 0, 0, 0
 
 
+.. _kinematic_forest:
+
+Trees of the Kinematic Forest
+*****************************
+
+Removing the fixed body from the spanning tree leaves a *forest*: one tree for
+each joint that attaches a body to the fixed body. After bodies attached by
+rigid joints are merged into their parents, the compressed parent--child list
+(*pcl_compressed* in the program, with the value :math:`-1` for the fixed body)
+assigns each body to the tree of its parent in a single pass in level order.
+Each tree is then classified (``topology::DetectTrees``):
+
+* a *serial chain*, if every body of the tree has at most one child body;
+* a *branched tree*, if some body has two or more child bodies;
+* a *closed loop*, if a chord constraint joins one of its bodies, either to
+  another body of the same tree or to a body of another tree or the fixed
+  body. Both trees joined by a chord are closed loops.
+
+Unless a chord constraint couples them, the trees are dynamically independent:
+forces that act between trees, such as contact, are evaluated before the
+equations of motion are solved. The classification determines which algorithms
+can solve the equations of motion of a tree: serial chains and branched trees
+by the articulated-body or divide-and-conquer algorithms (see
+:ref:`articulated_body_algorithms`), which need no constraint Jacobian, and closed
+loops by the run-time optimized natural constraint algorithm with the
+constraint Jacobian. The ``"auto"`` solver applies the algorithm that suits
+each tree of a model. Free bodies
+(``"type": "free_body"``) are not part of the spanning tree and are solved separately.
+
 Kinematic Substructuring
 ------------------------
 

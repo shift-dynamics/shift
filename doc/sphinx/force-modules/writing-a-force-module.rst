@@ -18,6 +18,7 @@ Force module lifecycle
     Called from the constructor: declares each JSON key, the member it is
     read into, its description and whether it is required. These
     declarations also generate the parameter tables of this documentation.
+    It also declares the module's inputs and outputs (see below).
 
 ``Connect()``
     Called once the model is loaded: look up the bodies, frames and joints
@@ -38,13 +39,68 @@ Force module lifecycle
     ``dy[state_offset_ + k]``. ``state_offset_`` is set before the first
     call (:cpp:func:`shift::core::Context::InitializeAuxiliaryStates`).
 
-``get_output_names()``, ``UpdateOutputs(t, y)``, ``AppendOutputs(values)``
-    Optional: values for the loggers. ``UpdateOutputs`` evaluates the
-    module at ``y`` without applying forces, before each logged row.
+``UpdateOutputs(t, y)``
+    Optional: evaluates the module's outputs (below) at ``y`` without
+    applying forces, before each logged row, so that the loggers record the
+    outputs of the logged state.
 
 ``holds()``, ``get_held_joint()``, ``set_hold_force()``, ``Hold()``
     Optional: for a module that drives a joint and can start holding it
     still (see :doc:`hydraulic-cylinder`).
+
+Inputs and outputs
+------------------
+
+A number that a module reads at every evaluation, and that a controller
+sets as the model runs, is an *input*; a number that the module computes,
+for other components to read, is an *output*. Both are declared in
+``DeclareParameters()``, next to the parameters:
+
+.. code:: cpp
+
+   DeclareInput("current", &current_, "winding current, set by a controller");
+   DeclareOutput("speed", &speed_, "rotor speed relative to the stator");
+
+An input may be given in the model file, which sets its value until a
+controller does; without it, the input starts at the member's initial value.
+It can be changed while the model runs, so a :ref:`schedule <schedule>` can
+set it too. An output is not a key of the model file, and giving it there is
+an error; nor can it share a key with a parameter. The parameter tables of
+this documentation list both, marked "Input." and "Output.".
+
+Outputs are what the loggers record: each logger connects to every output,
+or to those of the components it names (see :ref:`logging`), once the model is
+loaded, and reads them at each logged row, in the order they are declared.
+A module whose outputs depend on the model, one per pulley of a belt say,
+declares them at the end of ``Load()``, once it knows them, pointing into
+storage that is not resized after:
+
+.. code:: cpp
+
+   // in Load(), after tension_.assign(pulley_count, 0.0)
+   for(size_t k = 0; k < tension_.size(); k++) {
+     DeclareOutput("span_" + std::to_string(k) + "_tension", &tension_[k],
+                   "tension of the span");
+   }
+
+A controller finds the component by name when it connects, claims the input
+(only one component may set an input), and sets it at each evaluation:
+
+.. code:: cpp
+
+   // in Connect()
+   motor_ = parent_assembly_ptr_->FindComponent(motor_name_);
+   motor_->ConnectInput("current", FullyQualifiedName(get_name()));
+   // in Service(y, dy)
+   motor_->SetInput("current", effort);
+
+:cpp:func:`shift::core::Assembly::FindComponent` takes a bare name, or the
+kind and name (``"force_modules/motor"``) where two kinds of component share
+a name. ``GetOutput("speed")`` reads an output. The controllers are evaluated
+before the force modules, so a module reads the input set in the same
+evaluation. The ``pid`` controller sets an input with ``"component"`` and
+``"input"`` (see :ref:`controllers`); the ``command`` of a hydraulic
+cylinder is an input. Tests: :source:`test/test_component_io.cc`.
 
 Applying forces
 ---------------

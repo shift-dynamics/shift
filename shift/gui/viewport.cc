@@ -52,6 +52,32 @@ struct FrameUniforms {
   float floor_frame[16]; // column major: axes u, v, normal, origin
 };
 
+/*! the soil surface over SPH particles, see fluid_common.glsl */
+struct FluidUniforms {
+  float view_projection[16];
+  float inverse_view_projection[16];
+  float camera_position[4]; // w: 1 if clip space depth runs 0 to 1
+  float camera_forward[4];
+  float particles[4];     // radius, pixels per unit length at unit depth
+  float filter_params[4]; // blur radius, its range in depth beyond a slant,
+                          // its largest radius in pixels
+};
+
+/*! the surface over SPH particles: the blur's radius and its range in
+ * depth beyond that of a slant, in radii of the particles drawn; the
+ * strides of its levels in pixels, an even number of them so that the last
+ * writes fluid_depth_[0]: doubling to the largest, then fine again, which
+ * takes out what the sparse samples of the coarse levels leave between
+ * neighbouring pixels (the normals are found from them); and its largest
+ * radius (fluid_blur.frag) */
+static constexpr float kFluidBlurRadius = 4.0f;
+static constexpr float kFluidBlurRange = 2.0f;
+static constexpr int kFluidBlurStrides[] = {1, 2, 4, 8, 16, 32, 2, 1};
+static constexpr int kFluidBlurLevels =
+  int(sizeof(kFluidBlurStrides) / sizeof(kFluidBlurStrides[0]));
+static constexpr float kFluidBlurMaxPixels = 64.f;
+static_assert(kFluidBlurLevels % 2 == 0, "the last level writes [0]");
+
 /*! per terrain, see terrain_common.glsl */
 struct TerrainUniforms {
   float pose[16];
@@ -105,9 +131,17 @@ static_assert(sizeof(LightUniforms) == 32 + kMaxLights * 96);
 /*! per mesh, at a dynamic offset */
 struct MaterialUniforms {
   float albedo[4];   // w = normal map scale
-  float material[4]; // x = metallic, y = roughness, z = triplanar,
+  float material[4]; // x = metallic, y = roughness, z = triplanar (2: hex-tiled
+                     // too),
                      // w = 1 / texture scale
-  int32_t layers[4]; // base color, metallic roughness, normal; -1: none
+  int32_t layers[4]; // base color, metallic roughness, normal; -1: none;
+                     // w = holes used
+  float variation[4]; // x = 1: vary the tiles of triplanar textures
+  int32_t surface_layers[4]; // base color and normal of surfaces 0 and 1
+  float surface[2][4]; // x = 1 / texture scale, y = normal scale, z = noise
+                       // level, w = 1 / patch size
+  float emission[4]; // rgb: factor of the base color added to the shading
+  float holes[4][4]; // of a terrain, in its uv: x0, y0, x1, y1 (SceneMesh)
 };
 
 /*! per instance vertex attributes: the body origin pose, column major */
@@ -115,6 +149,158 @@ struct InstanceAttributes {
   float model[16];
 };
 static_assert(sizeof(InstanceAttributes) == 64);
+
+/*! a vertex of the arrows of a coordinate frame, see axes.vert */
+struct AxesVertex {
+  float position[3];
+  float normal[3];
+  float color[3];
+};
+
+/*! per frame or joint axis drawn, see axes.vert */
+struct AxesInstance {
+  float model[16];
+  float tint[4];
+};
+static_assert(sizeof(AxesInstance) == 80);
+
+/*! a x + b y */
+static ksl_vec3f_t Combined(float a, const ksl_vec3f_t& x, float b,
+                            const ksl_vec3f_t& y) {
+  ksl_vec3f_t sum;
+  ksl_product_avf(a, &x, &sum);
+  ksl_axpy_vvf(b, &y, &sum);
+  return sum;
+}
+
+/*! the unit vector along a + b */
+static ksl_vec3f_t Bisector(const ksl_vec3f_t& a, const ksl_vec3f_t& b) {
+  ksl_vec3f_t sum;
+  ksl_add_vvf(&a, &b, &sum);
+  ksl_vec3f_normalize(&sum);
+  return sum;
+}
+
+/* the arrows of a coordinate frame, one unit long: along each axis a
+cylinder and a cone at its end, x red, y green and z blue; arrow_indices of
+the indices are theirs. Then the arrow of a joint axis, white, from -1 to 1
+along z, pointing to +z: a cylinder of radius 1, scaled to the thickness of
+the line, and a cone three times as wide over the last 12 % of its length. */
+static void MakeAxesMesh(std::vector<AxesVertex>& vertices,
+                         std::vector<uint32_t>& indices,
+                         uint32_t& arrow_indices) {
+  constexpr int kSegments = 24;
+  constexpr float kShaftRadius = 0.025f;
+  constexpr float kShaftLength = 0.78f;
+  constexpr float kHeadRadius = 0.07f;
+  const float kColors[3][3] = {
+    {0.92f, 0.16f, 0.14f}, {0.18f, 0.78f, 0.18f}, {0.20f, 0.38f, 0.98f}};
+  const ksl_vec3f_t zero = ksl_vec3f(0.f, 0.f, 0.f);
+  vertices.clear();
+  indices.clear();
+  for(int axis = 0; axis < 3; axis++) {
+    ksl_vec3f_t e = zero, u = zero, v = zero;
+    e.at[axis] = 1.f;
+    u.at[(axis + 1) % 3] = 1.f;
+    v.at[(axis + 2) % 3] = 1.f;
+    ksl_vec3f_t minus_e;
+    ksl_product_avf(-1.f, &e, &minus_e);
+    const float* color = kColors[axis];
+    auto add = [&](const ksl_vec3f_t& p, const ksl_vec3f_t& n) {
+      AxesVertex vertex;
+      for(int i = 0; i < 3; i++) {
+        vertex.position[i] = p.at[i];
+        vertex.normal[i] = n.at[i];
+        vertex.color[i] = color[i];
+      }
+      vertices.push_back(vertex);
+      return static_cast<uint32_t>(vertices.size() - 1);
+    };
+    // the slope of the cone's side
+    const float head_length = 1.f - kShaftLength;
+    const float slope = std::hypot(head_length, kHeadRadius);
+    const ksl_vec3f_t tip = e;
+    const ksl_vec3f_t base = Combined(kShaftLength, e, 0.f, e);
+    const uint32_t base_center = add(base, minus_e);
+    for(int k = 0; k < kSegments; k++) {
+      const float a0 = 2.f * float(M_PI) * float(k) / kSegments;
+      const float a1 = 2.f * float(M_PI) * float(k + 1) / kSegments;
+      const ksl_vec3f_t r0 = Combined(std::cos(a0), u, std::sin(a0), v);
+      const ksl_vec3f_t r1 = Combined(std::cos(a1), u, std::sin(a1), v);
+      // shaft
+      const uint32_t s0 = add(Combined(kShaftRadius, r0, 0.f, r0), r0);
+      const uint32_t s1 = add(Combined(kShaftRadius, r1, 0.f, r1), r1);
+      const uint32_t s2 = add(Combined(1.f, base, kShaftRadius, r1), r1);
+      const uint32_t s3 = add(Combined(1.f, base, kShaftRadius, r0), r0);
+      indices.insert(indices.end(), {s0, s1, s2, s0, s2, s3});
+      // the base of the head
+      const uint32_t b0 = add(Combined(1.f, base, kHeadRadius, r0), minus_e);
+      const uint32_t b1 = add(Combined(1.f, base, kHeadRadius, r1), minus_e);
+      indices.insert(indices.end(), {base_center, b1, b0});
+      // the side of the head
+      const ksl_vec3f_t n0 =
+        Combined(head_length / slope, r0, kHeadRadius / slope, e);
+      const ksl_vec3f_t n1 =
+        Combined(head_length / slope, r1, kHeadRadius / slope, e);
+      const uint32_t h0 = add(Combined(1.f, base, kHeadRadius, r0), n0);
+      const uint32_t h1 = add(Combined(1.f, base, kHeadRadius, r1), n1);
+      const uint32_t h2 = add(tip, Bisector(n0, n1));
+      indices.insert(indices.end(), {h0, h1, h2});
+    }
+  }
+  arrow_indices = static_cast<uint32_t>(indices.size());
+
+  constexpr int kLineSegments = 16;
+  constexpr float kLineRadius = 1.f;
+  constexpr float kLineHeadRadius = 3.f;
+  constexpr float kLineHeadLength = 0.24f; // of the length 2
+  auto add = [&](const ksl_vec3f_t& p, const ksl_vec3f_t& n) {
+    AxesVertex vertex;
+    for(int i = 0; i < 3; i++) {
+      vertex.position[i] = p.at[i];
+      vertex.normal[i] = n.at[i];
+      vertex.color[i] = 1.f;
+    }
+    vertices.push_back(vertex);
+    return static_cast<uint32_t>(vertices.size() - 1);
+  };
+  const ksl_vec3f_t z = ksl_vec3f(0.f, 0.f, 1.f);
+  const ksl_vec3f_t minus_z = ksl_vec3f(0.f, 0.f, -1.f);
+  const ksl_vec3f_t head_base = ksl_vec3f(0.f, 0.f, 1.f - kLineHeadLength);
+  const float head_slope = std::hypot(kLineHeadLength, kLineHeadRadius);
+  const uint32_t tail_center = add(minus_z, minus_z);
+  const uint32_t head_center = add(head_base, minus_z);
+  for(int k = 0; k < kLineSegments; k++) {
+    const float a0 = 2.f * float(M_PI) * float(k) / kLineSegments;
+    const float a1 = 2.f * float(M_PI) * float(k + 1) / kLineSegments;
+    const ksl_vec3f_t r0 = ksl_vec3f(std::cos(a0), std::sin(a0), 0.f);
+    const ksl_vec3f_t r1 = ksl_vec3f(std::cos(a1), std::sin(a1), 0.f);
+    // shaft, closed at the tail
+    const uint32_t s0 = add(Combined(kLineRadius, r0, 1.f, minus_z), r0);
+    const uint32_t s1 = add(Combined(kLineRadius, r1, 1.f, minus_z), r1);
+    const uint32_t s2 = add(Combined(1.f, head_base, kLineRadius, r1), r1);
+    const uint32_t s3 = add(Combined(1.f, head_base, kLineRadius, r0), r0);
+    indices.insert(indices.end(), {s0, s1, s2, s0, s2, s3});
+    const uint32_t t0 = add(Combined(kLineRadius, r0, 1.f, minus_z), minus_z);
+    const uint32_t t1 = add(Combined(kLineRadius, r1, 1.f, minus_z), minus_z);
+    indices.insert(indices.end(), {tail_center, t1, t0});
+    // the base of the head
+    const uint32_t b0 =
+      add(Combined(1.f, head_base, kLineHeadRadius, r0), minus_z);
+    const uint32_t b1 =
+      add(Combined(1.f, head_base, kLineHeadRadius, r1), minus_z);
+    indices.insert(indices.end(), {head_center, b1, b0});
+    // the side of the head
+    const ksl_vec3f_t n0 = Combined(kLineHeadLength / head_slope, r0,
+                                    kLineHeadRadius / head_slope, z);
+    const ksl_vec3f_t n1 = Combined(kLineHeadLength / head_slope, r1,
+                                    kLineHeadRadius / head_slope, z);
+    const uint32_t h0 = add(Combined(1.f, head_base, kLineHeadRadius, r0), n0);
+    const uint32_t h1 = add(Combined(1.f, head_base, kLineHeadRadius, r1), n1);
+    const uint32_t h2 = add(z, Bisector(n0, n1));
+    indices.insert(indices.end(), {h0, h1, h2});
+  }
+}
 
 struct RtUniforms {
   float inverse_view[16];
@@ -140,9 +326,13 @@ struct RtInstance {
   int32_t offsets[4]; // x = root node, y..w = texture layers as in
                       // MaterialUniforms
   float previous_body_to_world[16]; // pose in the previous frame
-  float optical[4]; // x = opacity
+  float optical[4]; // x = opacity, yzw = glow (CopyEmission)
+  float variation[4]; // as in MaterialUniforms
+  int32_t surface_layers[4];
+  float surface[2][4];
 };
-static_assert(sizeof(RtInstance) == 288);
+static_assert(sizeof(RtInstance) == 352);
+static_assert(sizeof(MaterialUniforms) == 192);
 
 struct DenoiseUniforms {
   float previous_view_projection[16];
@@ -245,11 +435,52 @@ static void CopyMaterial(const shift::gui::SceneMesh& mesh, float* material,
                   int32_t* layers) {
   material[0] = mesh.metallic;
   material[1] = mesh.roughness;
-  material[2] = mesh.triplanar ? 1.f : 0.f;
+  material[2] = mesh.hex_tiling ? 2.f : mesh.triplanar ? 1.f : 0.f;
   material[3] = 1.f / mesh.texture_scale;
   layers[0] = mesh.base_color_layer;
   layers[1] = mesh.metallic_roughness_layer;
   layers[2] = mesh.normal_layer;
+}
+
+/*! the variation of the textures of a mesh and its surfaces, as in
+ * MaterialUniforms */
+static void CopySurfaces(const shift::gui::SceneMesh& mesh, float* variation,
+                         int32_t* surface_layers, float surface[2][4]) {
+  variation[0] = mesh.texture_variation ? 1.f : 0.f;
+  variation[1] = variation[2] = variation[3] = 0.f;
+  for(int i = 0; i < 2; i++) {
+    surface_layers[2 * i] = surface_layers[2 * i + 1] = -1;
+    surface[i][0] = surface[i][1] = surface[i][3] = 1.f;
+    surface[i][2] = 2.f;
+    if(i < static_cast<int>(mesh.surfaces.size())) {
+      const auto& s = mesh.surfaces[i];
+      surface_layers[2 * i] = s.base_color_layer;
+      surface_layers[2 * i + 1] = s.normal_layer;
+      surface[i][0] = 1.f / s.texture_scale;
+      surface[i][1] = s.normal_scale;
+      surface[i][2] = s.level;
+      surface[i][3] = 1.f / s.patch_size;
+    }
+  }
+}
+
+/*! the glow of a mesh at the time shown, as rgb: the diffuse color times
+ * the intensity of the light it glows with (SceneMesh::glow_light), or 0 */
+static void CopyEmission(const shift::gui::Scene& scene,
+                         const shift::gui::SceneMesh& mesh,
+                         const shift::gui::Poses& poses, float* emission) {
+  emission[0] = emission[1] = emission[2] = 0.f;
+  if(mesh.glow_light < 0 ||
+     mesh.glow_light >= static_cast<int>(scene.lights.size())) {
+    return;
+  }
+  const auto& light = scene.lights[mesh.glow_light];
+  const float intensity = mesh.glow_light < int(poses.lights.size())
+                            ? poses.lights[mesh.glow_light]
+                            : light.intensity;
+  for(int k = 0; k < 3; k++) {
+    emission[k] = light.diffuse.at[k] * intensity;
+  }
 }
 
 /*! world space box of a body space box under a pose */
@@ -282,10 +513,14 @@ static int FillLights(const shift::gui::Scene& scene,
   out = LightUniforms{};
   int count = 0;
   ksl_vec3f_t ambient = ksl_vec3f(0.f, 0.f, 0.f);
-  for(const auto& light : scene.lights) {
+  for(size_t i = 0; i < scene.lights.size(); i++) {
+    const auto& light = scene.lights[i];
     if(count == kMaxLights) {
       break;
     }
+    // as bright as at the time shown (a controller may switch it)
+    const float intensity =
+      i < poses.lights.size() ? poses.lights[i] : light.intensity;
     if(light.body_index >= int(poses.bodies.size())) {
       continue;
     }
@@ -301,9 +536,10 @@ static int FillLights(const shift::gui::Scene& scene,
     CopyVector(shine, cos_outer, d.direction);
     CopyVector(Normalized(frame.R.v0), cos_inner, d.axis_x);
     // pi: a white matte surface facing the light shows its color Kd
-    CopyVector(Scaled(float(M_PI), light.diffuse), float(light.ies_profile),
-               d.diffuse);
-    CopyVector(Scaled(float(M_PI), light.specular), 0.f, d.specular);
+    CopyVector(Scaled(float(M_PI) * intensity, light.diffuse),
+               float(light.ies_profile), d.diffuse);
+    CopyVector(Scaled(float(M_PI) * intensity, light.specular), 0.f,
+               d.specular);
     CopyVector(light.attenuation, 0.f, d.attenuation);
     ksl_xpy_vvf(&light.ambient, &ambient);
   }
@@ -324,7 +560,8 @@ shift::gui::Viewport::~Viewport() {
   ReleaseRhi();
 }
 
-void shift::gui::Viewport::set_simulation(Simulation* simulation) {
+void shift::gui::Viewport::set_simulation(Simulation* simulation,
+                                          bool frame_scene) {
   set_follow_body(-1);
   simulation_ = simulation;
   poses_ = Poses();
@@ -335,7 +572,9 @@ void shift::gui::Viewport::set_simulation(Simulation* simulation) {
     simulation_->TakePoses(poses_);
   }
   scene_dirty_ = true;
-  FrameScene();
+  if(frame_scene) {
+    FrameScene();
+  }
 }
 
 void shift::gui::Viewport::set_render_mode(RenderMode mode) {
@@ -350,10 +589,48 @@ void shift::gui::Viewport::set_smooth_terrain(bool smooth) {
   update();
 }
 
+void shift::gui::Viewport::set_particle_surface(bool surface) {
+  particle_surface_ = surface;
+  update();
+}
+
 void shift::gui::Viewport::set_floor_enabled(bool enabled) {
   floor_enabled_ = enabled;
   rt_frame_ = 0;
   rt_history_valid_ = false;
+  update();
+}
+
+void shift::gui::Viewport::set_frame_axes(std::vector<FrameAxes> axes) {
+  frame_axes_ = std::move(axes);
+  update();
+}
+
+void shift::gui::Viewport::set_frame_axes_scale(float scale) {
+  frame_axes_scale_ = scale;
+  update();
+}
+
+void shift::gui::Viewport::set_joint_axes(std::vector<JointAxis> axes) {
+  joint_axes_ = std::move(axes);
+  update();
+}
+
+void shift::gui::Viewport::set_joint_color(const ksl_vec3f_t& color) {
+  joint_color_ = color;
+  update();
+}
+
+void shift::gui::Viewport::set_joint_thickness(float thickness) {
+  joint_thickness_ = thickness;
+  update();
+}
+
+void shift::gui::Viewport::set_hidden_bodies(std::vector<bool> hidden) {
+  hidden_bodies_ = std::move(hidden);
+  // the ray tracer's instances hold the bodies' boxes
+  rt_instances_dirty_ = true;
+  rt_frame_ = 0;
   update();
 }
 
@@ -730,11 +1007,36 @@ void shift::gui::Viewport::initialize() {
 }
 
 void shift::gui::Viewport::ReleaseAll() {
+  axes_pipeline_.reset();
+  axes_instances_.reset();
+  axes_indices_.reset();
+  axes_vertices_.reset();
+  axes_mesh_uploaded_ = false;
+  axes_instance_count_ = 0;
   cad_pipeline_.reset();
   gpu_cads_.clear();
   cad_ubo_.reset();
   terrain_pipeline_.reset();
   gpu_terrains_.clear();
+  fluid_pipeline_.reset();
+  fluid_sphere_pipeline_.reset();
+  fluid_bindings_.reset();
+  fluid_sphere_bindings_.reset();
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_pipeline_[k].reset();
+    fluid_blur_bindings_[k].reset();
+    fluid_blur_target_[k].reset();
+  }
+  fluid_blur_render_pass_.reset();
+  fluid_sphere_target_.reset();
+  fluid_sphere_render_pass_.reset();
+  fluid_depth_stencil_.reset();
+  fluid_depth_[0].reset();
+  fluid_depth_[1].reset();
+  fluid_level_ubo_.reset();
+  fluid_ubo_.reset();
+  particle_pipeline_.reset();
+  gpu_particles_.clear();
   ies_texture_.reset();
   lights_ubo_.reset();
   texture_sampler_.reset();
@@ -812,11 +1114,37 @@ void shift::gui::Viewport::CreateDeviceResources() {
                                     QRhiBuffer::UniformBuffer,
                                     sizeof(LightUniforms)));
   lights_ubo_->create();
+  fluid_ubo_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                   QRhiBuffer::UniformBuffer,
+                                   sizeof(FluidUniforms)));
+  fluid_ubo_->create();
+  fluid_level_stride_ = rhi_->ubufAligned(4 * sizeof(float));
+  fluid_level_ubo_.reset(rhi_->newBuffer(
+    QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer,
+    fluid_level_stride_ * quint32(kFluidBlurLevels)));
+  fluid_level_ubo_->create();
   // placeholder until a scene with IES lights is loaded
   ies_texture_.reset(rhi_->newTexture(QRhiTexture::R16F, QSize(1, 1)));
   ies_texture_->create();
 
   raster_bindings_.reset(rhi_->newShaderResourceBindings());
+
+  // the arrows of the coordinate frames, uploaded with the first frame
+  {
+    std::vector<AxesVertex> vertices;
+    std::vector<uint32_t> indices;
+    MakeAxesMesh(vertices, indices, axes_arrow_index_count_);
+    axes_vertices_.reset(rhi_->newBuffer(
+      QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer,
+      quint32(vertices.size() * sizeof(AxesVertex))));
+    axes_vertices_->create();
+    axes_indices_.reset(rhi_->newBuffer(
+      QRhiBuffer::Immutable, QRhiBuffer::IndexBuffer,
+      quint32(indices.size() * sizeof(uint32_t))));
+    axes_indices_->create();
+    axes_index_count_ = static_cast<uint32_t>(indices.size());
+    axes_mesh_uploaded_ = false;
+  }
 
   using Tables = EnvironmentTables;
   auto make_table = [&](int width, int height) {
@@ -885,6 +1213,9 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   output_size_ = get_render_target()->pixelSize();
   rt_frame_ = 0;
   rt_history_valid_ = false;
+  CreateFluidTargets();
+  // bindings reference the textures; rebuild them along with the pipelines
+  pipeline_render_pass_ = nullptr;
   if(!ray_tracing_supported_) {
     return;
   }
@@ -911,6 +1242,44 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   }
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
+}
+
+void shift::gui::Viewport::CreateFluidTargets() {
+  const QSize size(std::max(output_size_.width(), 1),
+                   std::max(output_size_.height(), 1));
+  for(int k = 0; k < 2; k++) {
+    fluid_depth_[k].reset(rhi_->newTexture(QRhiTexture::R32F, size, 1,
+                                           QRhiTexture::RenderTarget));
+    fluid_depth_[k]->create();
+  }
+  fluid_depth_stencil_.reset(
+    rhi_->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size));
+  fluid_depth_stencil_->create();
+
+  QRhiTextureRenderTargetDescription spheres{
+    QRhiColorAttachment(fluid_depth_[0].get())};
+  spheres.setDepthStencilBuffer(fluid_depth_stencil_.get());
+  fluid_sphere_target_.reset(rhi_->newTextureRenderTarget(spheres));
+  fluid_sphere_render_pass_.reset(
+    fluid_sphere_target_->newCompatibleRenderPassDescriptor());
+  fluid_sphere_target_->setRenderPassDescriptor(
+    fluid_sphere_render_pass_.get());
+  fluid_sphere_target_->create();
+
+  // [k] renders into fluid_depth_[k]; the targets are compatible
+  fluid_blur_render_pass_.reset();
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_target_[k].reset(rhi_->newTextureRenderTarget(
+      QRhiTextureRenderTargetDescription(
+        QRhiColorAttachment(fluid_depth_[k].get()))));
+    if(!fluid_blur_render_pass_) {
+      fluid_blur_render_pass_.reset(
+        fluid_blur_target_[k]->newCompatibleRenderPassDescriptor());
+    }
+    fluid_blur_target_[k]->setRenderPassDescriptor(
+      fluid_blur_render_pass_.get());
+    fluid_blur_target_[k]->create();
+  }
 }
 
 void shift::gui::Viewport::CreatePipelines() {
@@ -978,6 +1347,99 @@ void shift::gui::Viewport::CreatePipelines() {
   mesh_pipeline_->setVertexInputLayout(layout);
   mesh_pipeline_->create();
 
+  // particles: the meshes' vertices, and the centre of each instance
+  particle_pipeline_.reset(make_pipeline("particle.vert.qsb", "mesh.frag.qsb",
+                                         raster_bindings_.get(), true));
+  QRhiVertexInputLayout particle_layout;
+  particle_layout.setBindings(
+    {QRhiVertexInputBinding(sizeof(Vertex)),
+     QRhiVertexInputBinding(4 * sizeof(float),
+                            QRhiVertexInputBinding::PerInstance)});
+  particle_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float3,
+                              offsetof(Vertex, position)),
+     QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute::Float3,
+                              offsetof(Vertex, normal)),
+     QRhiVertexInputAttribute(0, 2, QRhiVertexInputAttribute::Float2,
+                              offsetof(Vertex, uv)),
+     QRhiVertexInputAttribute(1, 3, QRhiVertexInputAttribute::Float4, 0)});
+  particle_pipeline_->setVertexInputLayout(particle_layout);
+  particle_pipeline_->create();
+
+  // their surface: the spheres' depth, the blur (from [0] into [1] and
+  // back), and the shading of the surface in the target
+  fluid_sphere_bindings_.reset(rhi_->newShaderResourceBindings());
+  fluid_sphere_bindings_->setBindings(
+    {Binding::uniformBuffer(0, vertex_fragment, fluid_ubo_.get())});
+  fluid_sphere_bindings_->create();
+  fluid_sphere_pipeline_.reset(rhi_->newGraphicsPipeline());
+  fluid_sphere_pipeline_->setShaderStages(
+    {{QRhiShaderStage::Vertex, LoadShader("fluid_depth.vert.qsb")},
+     {QRhiShaderStage::Fragment, LoadShader("fluid_depth.frag.qsb")}});
+  fluid_sphere_pipeline_->setShaderResourceBindings(
+    fluid_sphere_bindings_.get());
+  fluid_sphere_pipeline_->setRenderPassDescriptor(
+    fluid_sphere_render_pass_.get());
+  fluid_sphere_pipeline_->setCullMode(QRhiGraphicsPipeline::None);
+  fluid_sphere_pipeline_->setDepthTest(true);
+  fluid_sphere_pipeline_->setDepthWrite(true);
+  fluid_sphere_pipeline_->setDepthOp(QRhiGraphicsPipeline::LessOrEqual);
+  QRhiVertexInputLayout center_layout;
+  center_layout.setBindings({QRhiVertexInputBinding(
+    4 * sizeof(float), QRhiVertexInputBinding::PerInstance)});
+  center_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float4, 0)});
+  fluid_sphere_pipeline_->setVertexInputLayout(center_layout);
+  fluid_sphere_pipeline_->create();
+
+  for(int k = 0; k < 2; k++) {
+    fluid_blur_bindings_[k].reset(rhi_->newShaderResourceBindings());
+    fluid_blur_bindings_[k]->setBindings(
+      {Binding::sampledTexture(0, Binding::FragmentStage,
+                               fluid_depth_[k].get(), sampler_.get()),
+       Binding::uniformBuffer(1, Binding::FragmentStage, fluid_ubo_.get()),
+       Binding::uniformBufferWithDynamicOffset(
+         2, Binding::FragmentStage, fluid_level_ubo_.get(),
+         4 * sizeof(float))});
+    fluid_blur_bindings_[k]->create();
+    fluid_blur_pipeline_[k].reset(rhi_->newGraphicsPipeline());
+    fluid_blur_pipeline_[k]->setShaderStages(
+      {{QRhiShaderStage::Vertex, LoadShader("fullscreen.vert.qsb")},
+       {QRhiShaderStage::Fragment, LoadShader("fluid_blur.frag.qsb")}});
+    fluid_blur_pipeline_[k]->setShaderResourceBindings(
+      fluid_blur_bindings_[k].get());
+    fluid_blur_pipeline_[k]->setRenderPassDescriptor(
+      fluid_blur_render_pass_.get());
+    fluid_blur_pipeline_[k]->setCullMode(QRhiGraphicsPipeline::None);
+    fluid_blur_pipeline_[k]->create();
+  }
+
+  fluid_bindings_.reset(rhi_->newShaderResourceBindings());
+  fluid_bindings_->setBindings(
+    {Binding::uniformBuffer(0, vertex_fragment, frame_ubo_.get()),
+     Binding::uniformBufferWithDynamicOffset(
+       1, vertex_fragment, material_ubo_.get(), sizeof(MaterialUniforms)),
+     Binding::sampledTexture(2, Binding::FragmentStage,
+                             environment_specular_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(3, Binding::FragmentStage,
+                             environment_irradiance_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(4, Binding::FragmentStage,
+                             environment_brdf_.get(), linear_sampler_.get()),
+     Binding::sampledTexture(5, Binding::FragmentStage, texture_array_.get(),
+                             texture_sampler_.get()),
+     Binding::uniformBuffer(8, Binding::FragmentStage, lights_ubo_.get()),
+     Binding::sampledTexture(9, Binding::FragmentStage, ies_texture_.get(),
+                             linear_sampler_.get()),
+     Binding::sampledTexture(10, Binding::FragmentStage,
+                             fluid_depth_[0].get(), sampler_.get()),
+     Binding::uniformBuffer(11, Binding::FragmentStage, fluid_ubo_.get())});
+  fluid_bindings_->create();
+  fluid_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "fluid.frag.qsb",
+                                      fluid_bindings_.get(), true));
+  fluid_pipeline_->create();
+
   sky_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "sky.frag.qsb",
                                     raster_bindings_.get(), false));
   sky_pipeline_->create();
@@ -985,6 +1447,31 @@ void shift::gui::Viewport::CreatePipelines() {
   floor_pipeline_.reset(make_pipeline("floor.vert.qsb", "floor.frag.qsb",
                                       raster_bindings_.get(), true));
   floor_pipeline_->create();
+
+  // the arrows of the coordinate frames: binding 0 their vertices, binding
+  // 1 the pose of each frame, as the meshes
+  axes_pipeline_.reset(make_pipeline("axes.vert.qsb", "axes.frag.qsb",
+                                     raster_bindings_.get(), true));
+  QRhiVertexInputLayout axes_layout;
+  axes_layout.setBindings(
+    {QRhiVertexInputBinding(sizeof(AxesVertex)),
+     QRhiVertexInputBinding(sizeof(AxesInstance),
+                            QRhiVertexInputBinding::PerInstance)});
+  axes_layout.setAttributes(
+    {QRhiVertexInputAttribute(0, 0, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, position)),
+     QRhiVertexInputAttribute(0, 1, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, normal)),
+     QRhiVertexInputAttribute(0, 2, QRhiVertexInputAttribute::Float3,
+                              offsetof(AxesVertex, color)),
+     QRhiVertexInputAttribute(1, 3, QRhiVertexInputAttribute::Float4, 0),
+     QRhiVertexInputAttribute(1, 4, QRhiVertexInputAttribute::Float4, 16),
+     QRhiVertexInputAttribute(1, 5, QRhiVertexInputAttribute::Float4, 32),
+     QRhiVertexInputAttribute(1, 6, QRhiVertexInputAttribute::Float4, 48),
+     QRhiVertexInputAttribute(1, 7, QRhiVertexInputAttribute::Float4,
+                              offsetof(AxesInstance, tint))});
+  axes_pipeline_->setVertexInputLayout(axes_layout);
+  axes_pipeline_->create();
 
   // terrains: the bindings of the meshes, with the terrain's uniforms and
   // control points for the tessellation stages
@@ -1189,7 +1676,9 @@ void shift::gui::Viewport::CreatePipelines() {
     svgf_taa_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_position_[p]),
        load(3, rt_color_), load(4, rt_taa_[q]), store(5, rt_taa_[p]),
-       store(6, rt_output_), load(7, rt_accumulation_)});
+       store(6, rt_output_), load(7, rt_accumulation_),
+       load(8, rt_position_[q]), load(9, rt_normal_[p]),
+       load(10, rt_normal_[q])});
   }
 
   rt_pipeline_.reset(NewComputePipeline("raytrace.comp.qsb",
@@ -1418,6 +1907,30 @@ static bool RayHitsTriangle(const ksl_vec3f_t& o, const ksl_vec3f_t& d,
   b1_out = b1;
   b2_out = b2;
   return true;
+}
+
+void shift::gui::Viewport::UploadParticleUpdates(
+  QRhiResourceUpdateBatch* batch, bool all) {
+  simulation_->TakeParticleUpdates(particle_updates_, all);
+  for(const auto& update : particle_updates_) {
+    for(auto& gpu : gpu_particles_) {
+      if(gpu.particles_index != update.particles) {
+        continue;
+      }
+      const quint32 bytes = quint32(update.centers.size() * sizeof(float));
+      gpu.count = quint32(update.centers.size() / 4);
+      if(bytes == 0) {
+        continue;
+      }
+      if(!gpu.centers || gpu.centers->size() < bytes) {
+        gpu.centers.reset(rhi_->newBuffer(QRhiBuffer::Static,
+                                          QRhiBuffer::VertexBuffer, bytes));
+        gpu.centers->create();
+      }
+      batch->uploadStaticBuffer(gpu.centers.get(), 0, bytes,
+                                update.centers.data());
+    }
+  }
 }
 
 void shift::gui::Viewport::UploadTerrainUpdates(
@@ -1688,6 +2201,15 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     gpu.instance_count++;
   }
 
+  // the particles of the SPH soils, uploaded with the updates
+  gpu_particles_.clear();
+  gpu_particles_reset_ = true;
+  for(size_t p = 0; p < scene.particles.size(); p++) {
+    GpuParticles gpu;
+    gpu.particles_index = static_cast<int>(p);
+    gpu_particles_.push_back(std::move(gpu));
+  }
+
   // terrain control points, read exactly by the tessellation shaders
   gpu_terrains_.clear();
   if(tessellation_supported_) {
@@ -1906,6 +2428,11 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
   } else if(simulation_) {
     UploadTerrainUpdates(batch);
   }
+  if(simulation_) {
+    // all of them after the scene was uploaded again
+    UploadParticleUpdates(batch, gpu_particles_reset_);
+    gpu_particles_reset_ = false;
+  }
 
   if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_) {
     RenderRayTraced(cb, batch);
@@ -1965,15 +2492,28 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       MaterialUniforms material{};
       CopyVector(mesh.albedo, mesh.normal_scale, material.albedo);
       CopyMaterial(mesh, material.material, material.layers);
-      material.layers[3] = -1; // unused
+      CopySurfaces(mesh, material.variation, material.surface_layers,
+                   material.surface);
+      CopyEmission(scene, mesh, poses_, material.emission);
+      const int holes = std::min<int>(int(mesh.holes.size()), 4);
+      material.layers[3] = holes;
+      for(int k = 0; k < holes; k++) {
+        std::copy(mesh.holes[k].begin(), mesh.holes[k].end(),
+                  material.holes[k]);
+      }
       batch->updateDynamicBuffer(material_ubo_.get(),
                                  quint32(i) * material_stride_,
                                  sizeof(material), &material);
     }
     std::vector<InstanceAttributes> instances(scene.instances.size());
     for(size_t i = 0; i < instances.size(); i++) {
-      CopyMatrix(poses_.bodies[scene.instances[i].body_index],
-                 instances[i].model);
+      // a hidden body's meshes collapse to a point, and draw nothing
+      const int body = scene.instances[i].body_index;
+      if(is_body_shown(body)) {
+        CopyMatrix(poses_.bodies[body], instances[i].model);
+      } else {
+        std::fill(instances[i].model, instances[i].model + 16, 0.f);
+      }
     }
     if(!instances.empty()) {
       batch->updateDynamicBuffer(
@@ -1995,18 +2535,21 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       material.material[1] = cad.roughness;
       material.material[3] = 1.f;
       material.layers[0] = material.layers[1] = material.layers[2] = -1;
-      material.layers[3] = -1;
+      material.layers[3] = 0; // no holes
+      CopySurfaces(SceneMesh(), material.variation, material.surface_layers,
+                   material.surface);
       batch->updateDynamicBuffer(
         material_ubo_.get(),
         quint32(scene.meshes.size() + gpu.cad_index) * material_stride_,
         sizeof(material), &material);
       std::vector<InstanceAttributes> instances(cad.bodies.size());
       for(size_t i = 0; i < instances.size(); i++) {
-        // the pose, its rotation scaled by the CAD's scale
+        // the pose, its rotation scaled by the CAD's scale (zero: hidden)
+        const float scale = is_body_shown(cad.bodies[i]) ? cad.scale : 0.f;
         CopyMatrix(poses_.bodies[cad.bodies[i]], instances[i].model);
         for(int c = 0; c < 3; c++) {
           for(int r = 0; r < 3; r++) {
-            instances[i].model[4 * c + r] *= cad.scale;
+            instances[i].model[4 * c + r] *= scale;
           }
         }
       }
@@ -2058,6 +2601,12 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     }
   }
 
+  batch = UploadFrameAxes(batch, view_projection, false);
+  // the surface over the particles: its depth before the render pass
+  const bool particle_surface =
+    have_poses && particle_surface_ && fluid_pipeline_ &&
+    RenderFluidDepth(cb, batch, view_projection, aspect);
+
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
   const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
   const QRhiCommandBuffer::DynamicOffset zero_offset(1, 0);
@@ -2091,12 +2640,55 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     }
   }
 
+  if(particle_surface) {
+    // with the material of the first particles' sphere
+    const Scene& scene = simulation_->get_scene();
+    const int mesh_index = scene.particles[0].mesh_index;
+    const QRhiCommandBuffer::DynamicOffset offset(
+      1, quint32(mesh_index) * material_stride_);
+    cb->setGraphicsPipeline(fluid_pipeline_.get());
+    cb->setViewport(viewport);
+    cb->setShaderResources(fluid_bindings_.get(), 1, &offset);
+    cb->draw(6);
+  } else if(have_poses && particle_pipeline_) {
+    const Scene& scene = simulation_->get_scene();
+    bool bound = false;
+    for(const auto& gpu : gpu_particles_) {
+      if(gpu.count == 0 || !gpu.centers) {
+        continue;
+      }
+      if(!bound) {
+        cb->setGraphicsPipeline(particle_pipeline_.get());
+        cb->setViewport(viewport);
+        bound = true;
+      }
+      const int mesh_index = scene.particles[gpu.particles_index].mesh_index;
+      const GpuMesh& mesh = gpu_meshes_[size_t(mesh_index)];
+      const QRhiCommandBuffer::DynamicOffset offset(
+        1, quint32(mesh_index) * material_stride_);
+      cb->setShaderResources(raster_bindings_.get(), 1, &offset);
+      const QRhiCommandBuffer::VertexInput inputs[2] = {
+        {mesh.vertices.get(), 0}, {gpu.centers.get(), 0}};
+      cb->setVertexInput(0, 2, inputs, mesh.indices.get(), 0,
+                         QRhiCommandBuffer::IndexUInt32);
+      cb->drawIndexed(mesh.index_count, gpu.count);
+    }
+  }
+
   if(tessellate) {
     const Scene& scene = simulation_->get_scene();
     cb->setGraphicsPipeline(terrain_pipeline_.get());
     cb->setViewport(viewport);
     for(const auto& gpu : gpu_terrains_) {
       const int mesh_index = scene.terrains[gpu.terrain_index].mesh_index;
+      bool shown = false; // as the instances of its mesh
+      for(const SceneInstance& instance : scene.instances) {
+        shown = shown || (instance.mesh_index == mesh_index &&
+                          is_body_shown(instance.body_index));
+      }
+      if(!shown) {
+        continue;
+      }
       const QRhiCommandBuffer::DynamicOffset offset(1, quint32(mesh_index) *
                                                          material_stride_);
       cb->setShaderResources(gpu.bindings.get(), 1, &offset);
@@ -2125,7 +2717,78 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     cb->setShaderResources(raster_bindings_.get(), 1, &zero_offset);
     cb->draw(6);
   }
+  DrawFrameAxes(cb, viewport);
   cb->endPass();
+}
+
+bool shift::gui::Viewport::RenderFluidDepth(
+  QRhiCommandBuffer* cb, QRhiResourceUpdateBatch*& batch,
+  const QMatrix4x4& view_projection, float aspect) {
+  const Scene& scene = simulation_->get_scene();
+  float radius = 0.f;
+  bool any = false;
+  for(const auto& gpu : gpu_particles_) {
+    if(gpu.count > 0 && gpu.centers) {
+      any = true;
+      radius = std::max(radius, scene.particles[gpu.particles_index].radius);
+    }
+  }
+  if(!any || !fluid_depth_[0] ||
+     fluid_depth_[0]->pixelSize() != output_size_) {
+    return false;
+  }
+  const QSize size = output_size_;
+  const QMatrix4x4 projection = camera_.get_projection_matrix(aspect);
+  FluidUniforms u{};
+  CopyMatrix(view_projection, u.view_projection);
+  CopyMatrix(view_projection.inverted(), u.inverse_view_projection);
+  CopyVector(camera_.get_position(), rhi_->isClipDepthZeroToOne() ? 1.f : 0.f,
+             u.camera_position);
+  CopyVector(Normalized(camera_.get_forward()), 0.f, u.camera_forward);
+  u.particles[0] = radius;
+  u.particles[1] = 0.5f * float(size.height()) * std::fabs(projection(1, 1));
+  u.filter_params[0] = kFluidBlurRadius * radius;
+  u.filter_params[1] = kFluidBlurRange * radius;
+  u.filter_params[2] = kFluidBlurMaxPixels;
+  batch->updateDynamicBuffer(fluid_ubo_.get(), 0, sizeof(u), &u);
+  for(int k = 0; k < kFluidBlurLevels; k++) {
+    const float level[4] = {float(kFluidBlurStrides[k]), 0.f, 0.f, 0.f};
+    batch->updateDynamicBuffer(fluid_level_ubo_.get(),
+                               quint32(k) * fluid_level_stride_,
+                               sizeof(level), level);
+  }
+
+  const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
+  cb->beginPass(fluid_sphere_target_.get(), QColor(0, 0, 0, 0), {1.0f, 0},
+                batch);
+  batch = nullptr; // submitted with the first pass
+  cb->setGraphicsPipeline(fluid_sphere_pipeline_.get());
+  cb->setViewport(viewport);
+  cb->setShaderResources(fluid_sphere_bindings_.get());
+  for(const auto& gpu : gpu_particles_) {
+    if(gpu.count == 0 || !gpu.centers) {
+      continue;
+    }
+    const QRhiCommandBuffer::VertexInput input(gpu.centers.get(), 0);
+    cb->setVertexInput(0, 1, &input);
+    cb->draw(6, gpu.count);
+  }
+  cb->endPass();
+
+  for(int level = 0; level < kFluidBlurLevels; level++) {
+    // from [0] into [1], and back
+    const int k = level % 2;
+    const QRhiCommandBuffer::DynamicOffset offset(
+      2, quint32(level) * fluid_level_stride_);
+    cb->beginPass(fluid_blur_target_[1 - k].get(), QColor(0, 0, 0, 0),
+                  {1.0f, 0});
+    cb->setGraphicsPipeline(fluid_blur_pipeline_[k].get());
+    cb->setViewport(viewport);
+    cb->setShaderResources(fluid_blur_bindings_[k].get(), 1, &offset);
+    cb->draw(6);
+    cb->endPass();
+  }
+  return true;
 }
 
 bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
@@ -2172,6 +2835,9 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       CopyVector(mesh.albedo, mesh.normal_scale, instances[i].albedo);
       CopyMaterial(mesh, instances[i].material, instances[i].offsets + 1);
       instances[i].optical[0] = mesh.opacity;
+      CopyEmission(scene, mesh, poses_, instances[i].optical + 1);
+      CopySurfaces(mesh, instances[i].variation, instances[i].surface_layers,
+                   instances[i].surface);
     } else {
       // CAD geometry: its triangles are scaled, its faces may have colors
       const SceneCad& cad = scene.cads[instance.mesh_index - mesh_count];
@@ -2185,8 +2851,16 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       instances[i].optical[0] = cad.opacity;
       instances[i].offsets[1] = instances[i].offsets[2] =
         instances[i].offsets[3] = -1;
+      CopySurfaces(SceneMesh(), instances[i].variation,
+                   instances[i].surface_layers, instances[i].surface);
     }
     instances[i].offsets[0] = rt_roots_[instance.mesh_index];
+    if(!is_body_shown(instance.body_index)) {
+      // far beyond anything a ray reaches: its triangles are never tested
+      for(int k = 0; k < 3; k++) {
+        instances[i].box_min[k] = instances[i].box_max[k] = 1e30f;
+      }
+    }
   }
   batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
                             quint32(instances.size() * sizeof(RtInstance)),
@@ -2236,6 +2910,13 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   bool bodies_moved = false;
   if(have_poses) {
     instance_count = static_cast<int>(rt_instance_list_.size());
+    // a light switched on or off changes the glow of its meshes, which the
+    // instances hold, and what the progressive mean converges to
+    if(poses_.lights != rt_light_values_) {
+      rt_light_values_ = poses_.lights;
+      rt_instances_dirty_ = true;
+      rt_frame_ = 0;
+    }
     // after a frame with motion the instances still hold the old previous
     // poses, so upload once more with previous = current
     if(rt_instances_dirty_ || rt_instances_moving_) {
@@ -2334,12 +3015,115 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     rt_previous_view_projection_ = view_projection;
   }
 
+  batch = UploadFrameAxes(batch, view_projection, true);
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
+  const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
   cb->setGraphicsPipeline(blit_pipeline_.get());
-  cb->setViewport(QRhiViewport(0, 0, float(size.width()), float(size.height())));
+  cb->setViewport(viewport);
   cb->setShaderResources(blit_bindings_.get());
   cb->draw(6);
+  DrawFrameAxes(cb, viewport);
   cb->endPass();
+}
+
+QRhiResourceUpdateBatch* shift::gui::Viewport::UploadFrameAxes(
+  QRhiResourceUpdateBatch* batch, const QMatrix4x4& view_projection,
+  bool frame_uniforms) {
+  axes_instance_count_ = 0;
+  axes_frame_instance_count_ = 0;
+  if((frame_axes_.empty() && joint_axes_.empty()) || !simulation_ ||
+     poses_.bodies.empty() || !axes_pipeline_) {
+    return batch;
+  }
+  if(!batch) {
+    batch = rhi_->nextResourceUpdateBatch();
+  }
+  if(!axes_mesh_uploaded_) {
+    std::vector<AxesVertex> vertices;
+    std::vector<uint32_t> indices;
+    MakeAxesMesh(vertices, indices, axes_arrow_index_count_);
+    batch->uploadStaticBuffer(axes_vertices_.get(), vertices.data());
+    batch->uploadStaticBuffer(axes_indices_.get(), indices.data());
+    axes_mesh_uploaded_ = true;
+  }
+  if(frame_uniforms) {
+    // ray traced, the raster pass did not set the camera: only the fields
+    // the arrows read, view_projection to camera_position
+    FrameUniforms frame{};
+    CopyMatrix(view_projection, frame.view_projection);
+    CopyMatrix(view_projection.inverted(), frame.inverse_view_projection);
+    CopyVector(camera_.get_position(), 1.f, frame.camera_position);
+    batch->updateDynamicBuffer(frame_ubo_.get(), 0,
+                               offsetof(FrameUniforms, sun_direction), &frame);
+  }
+  std::vector<AxesInstance> instances;
+  instances.reserve(frame_axes_.size() + joint_axes_.size());
+  // radius across the z axis (x, y), scale along it
+  auto add = [&](int body, const ksl_SE3f_t& frame, const ksl_vec3f_t& tint,
+                 float radius) {
+    if(body < 0 || body >= static_cast<int>(poses_.bodies.size())) {
+      return;
+    }
+    ksl_SE3f_t pose;
+    ksl_product_ddf(&poses_.bodies[body], &frame, &pose);
+    instances.emplace_back();
+    float* model = instances.back().model;
+    CopyMatrix(pose, model);
+    // the columns of the rotation scaled: x and y by the radius, z by the
+    // length
+    const float scale[3] = {radius, radius, frame_axes_scale_};
+    for(int c = 0; c < 3; c++) {
+      for(int r = 0; r < 3; r++) {
+        model[4 * c + r] *= scale[c];
+      }
+    }
+    CopyVector(tint, 1.f, instances.back().tint);
+  };
+  for(const FrameAxes& axes : frame_axes_) {
+    add(axes.body_index, axes.frame, ksl_vec3f(1.f, 1.f, 1.f),
+        frame_axes_scale_);
+  }
+  axes_frame_instance_count_ = static_cast<uint32_t>(instances.size());
+  for(const JointAxis& axis : joint_axes_) {
+    add(axis.body_index, axis.line, joint_color_, 0.5f * joint_thickness_);
+  }
+  if(instances.empty()) {
+    return batch;
+  }
+  const quint32 bytes = quint32(instances.size() * sizeof(AxesInstance));
+  if(!axes_instances_ || axes_instances_->size() < bytes) {
+    axes_instances_.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                          QRhiBuffer::VertexBuffer, bytes));
+    axes_instances_->create();
+  }
+  batch->updateDynamicBuffer(axes_instances_.get(), 0, bytes,
+                             instances.data());
+  axes_instance_count_ = static_cast<uint32_t>(instances.size());
+  return batch;
+}
+
+void shift::gui::Viewport::DrawFrameAxes(QRhiCommandBuffer* cb,
+                                         const QRhiViewport& viewport) {
+  if(axes_instance_count_ == 0) {
+    return;
+  }
+  const QRhiCommandBuffer::DynamicOffset zero_offset(1, 0);
+  cb->setGraphicsPipeline(axes_pipeline_.get());
+  cb->setViewport(viewport);
+  cb->setShaderResources(raster_bindings_.get(), 1, &zero_offset);
+  const QRhiCommandBuffer::VertexInput inputs[2] = {
+    {axes_vertices_.get(), 0}, {axes_instances_.get(), 0}};
+  cb->setVertexInput(0, 2, inputs, axes_indices_.get(), 0,
+                     QRhiCommandBuffer::IndexUInt32);
+  // the arrows of the frames, then the lines of the joints
+  if(axes_frame_instance_count_ > 0) {
+    cb->drawIndexed(axes_arrow_index_count_, axes_frame_instance_count_);
+  }
+  if(axes_instance_count_ > axes_frame_instance_count_) {
+    cb->drawIndexed(axes_index_count_ - axes_arrow_index_count_,
+                    axes_instance_count_ - axes_frame_instance_count_,
+                    axes_arrow_index_count_, 0, axes_frame_instance_count_);
+  }
 }
 
 void shift::gui::Viewport::mousePressEvent(QMouseEvent* event) {
@@ -2580,7 +3364,8 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, ksl_vec3f_t& point) {
   std::vector<int> stack;
   for(const auto& instance : RtInstanceList(scene)) {
     if(instance.mesh_index >= static_cast<int>(pick_roots_.size()) ||
-       instance.body_index >= static_cast<int>(poses_.bodies.size())) {
+       instance.body_index >= static_cast<int>(poses_.bodies.size()) ||
+       !is_body_shown(instance.body_index)) {
       continue;
     }
     // the ray in body coordinates; poses are rigid, so t is unchanged

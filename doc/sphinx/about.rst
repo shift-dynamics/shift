@@ -150,6 +150,90 @@ along the ground, with every contact found on the surfaces of the STEP files. Re
 files needs the optional STEPcode library.
 
 
+Tracked vehicles
+****************
+
+.. raw:: html
+
+    <video src="_static/m1a2.webm" width="640" controls>
+    </video>
+
+
+This M1A2 Abrams model has 193 bodies. Each of its two tracks is a loop of 78
+links, each link on a revolute joint to the next, carried by seven road wheels
+on torsion bar road arms, an idler and two return rollers, and driven by a
+sprocket in contact with the link end connectors. A controller holds the speed
+of each sprocket; the 62 t tank settles on its suspension, drives away and
+turns right by slowing its right track.
+
+The tank is based on "abrams m1a2"
+(https://sketchfab.com/3d-models/abrams-m1a2-0e98541f6f684311ac7a8abe08c9449e)
+by coderslava402 (https://sketchfab.com/coderslava402), licensed under
+CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+
+Tracks on soft soil
+*******************
+
+.. raw:: html
+
+    <video src="_static/excavator_drive.webm" width="640" controls>
+    </video>
+
+
+This 24.1 t excavator drives on two tracks of 46 links each over dry
+sand. Each track runs around a drive
+sprocket, an idler, seven track rollers and two carrier rollers, all from STEP
+files, and each idler is pushed out by a preloaded recoil spring that keeps
+its track tensioned. The sand is a deformable soil model that sinks and
+shears under the shoes, so the tracks leave ruts. A speed controller at each
+sprocket follows a schedule: the machine settles, drives forward, turns on the
+spot to the left, drives on and stops.
+
+
+Vehicle dynamics
+****************
+
+.. raw:: html
+
+    <video src="_static/polo_r_wrc.webm" width="640" controls>
+    </video>
+
+
+This Volkswagen Polo R World Rally Car has 55 bodies and 71 joints: McPherson
+struts with bump and rebound stops at each corner, anti-roll bars front and
+rear, rack and pinion steering, and a powertrain with the published engine
+torque and power, a clutch, six gears and permanent four wheel drive through
+limited slip differentials. Its tires roll on a hilly gravel stage with
+patches of dirt and grass; the car drives away through the gears, takes two
+jumps, landing on its bump stops, and brakes hard into a tight right.
+
+The car is based on "volkswagen polo r wrc"
+(https://sketchfab.com/3d-models/volkswagen-polo-r-wrc-41278d76f7184a0c9639ba62a41ff2e3)
+by amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2), licensed
+under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/), with the license
+plate changed to read SHIFT. The source has only the body, the wheels and the
+brake calipers; the suspension, steering and driveline are added.
+
+
+Granular materials on the GPU
+*****************************
+
+.. raw:: html
+
+    <video src="_static/rocks_hull.webm" width="640" controls>
+    </video>
+
+
+100,000 rocks about 1 cm across, the convex hulls of 16 rock shapes, fall from
+a lattice into a steel box and settle into a bed in 1.5 s. The discrete
+element method computes the contacts between the rocks with Vulkan compute
+shaders on the GPU, where a step of 29 µs takes 3.4 ms on an NVIDIA RTX 5060
+Ti. The grains are coupled to the bodies of a model: a 20 kg block dropped on
+the bed feels the force of every rock it touches, and sinks into it, making
+a crater.
+
+
 Mobility analysis and interactive positioning
 **********************************************
 

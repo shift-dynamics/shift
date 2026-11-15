@@ -1,10 +1,22 @@
 #include "shift/core/solver/base.h"
 #include "shift/core/context.h"
 #include "shift/core/integrator/base.h"
+#include "shift/core/solver/aba.h"
+#include "shift/core/solver/auto.h"
+#include "shift/core/solver/dca.h"
 #include "shift/core/solver/rnca.h"
 
 bool shift::core::solver::Modules::is_initialized() {
   if(!shift::core::solver::RNCA::is_registered()) {
+    return false;
+  }
+  if(!shift::core::solver::ABA::is_registered()) {
+    return false;
+  }
+  if(!shift::core::solver::DCA::is_registered()) {
+    return false;
+  }
+  if(!shift::core::solver::Auto::is_registered()) {
     return false;
   }
   return true;

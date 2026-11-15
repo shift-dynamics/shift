@@ -224,6 +224,18 @@ void shift::core::force_module::SpringDamper::Load() {
   equation_count_ = (torsion_ ? 1 : 0) + (hysteresis_.is_used() ? 1 : 0) +
                     (unloading_stiffness_ > 0.0 ? 2 : 0);
   q_0_.assign(equation_count_, 0.0);
+
+  /* the outputs, positive in tension */
+  DeclareOutput(torsion_ ? "angle" : "length", &length_,
+                torsion_ ? "angle of the torsion spring" : "length");
+  DeclareOutput("rate", &rate_, "rate of the length or the angle");
+  DeclareOutput(torsion_ ? "moment" : "force", &force_,
+                torsion_ ? "moment of the torsion spring" : "force");
+  if(unloading_stiffness_ > 0.0) {
+    DeclareOutput("crush", &crush_, "deflection crushed in");
+    DeclareOutput("absorbed", &absorbed_,
+                  "work the force has done on the crushed part");
+  }
 }
 
 double shift::core::force_module::SpringDamper::Force(double x, double v,
@@ -360,26 +372,4 @@ void shift::core::force_module::SpringDamper::UpdateOutputs(double t,
                                                             const double* y) {
   (void)t;
   Compute(y, nullptr);
-}
-
-std::vector<std::string>
-shift::core::force_module::SpringDamper::get_output_names() const {
-  std::vector<std::string> names = {torsion_ ? "angle" : "length", "rate",
-                                    torsion_ ? "moment" : "force"};
-  if(unloading_stiffness_ > 0.0) {
-    names.push_back("crush");
-    names.push_back("absorbed");
-  }
-  return names;
-}
-
-void shift::core::force_module::SpringDamper::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(length_);
-  values.push_back(rate_);
-  values.push_back(force_);
-  if(unloading_stiffness_ > 0.0) {
-    values.push_back(crush_);
-    values.push_back(absorbed_);
-  }
 }

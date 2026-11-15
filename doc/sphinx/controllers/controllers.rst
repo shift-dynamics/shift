@@ -47,6 +47,39 @@ joints negatively, so the gains are negative.
       "joint": "crank_bearing"}
    ]
 
+Instead of a force on a joint, the effort can set an *input* of another
+component: a number that the component reads each time it
+is evaluated, such as the valve command of a hydraulic cylinder. Give
+``component`` and ``input`` in place of ``joint``. The controller finds the
+component by its name when the model loads; where two kinds of component
+share the name (a sensor and a force module, say), give the kind too, as
+``"force_modules/boom_cylinder"``. A component of another assembly is
+named by its fully qualified name, the names of its assemblies from the top
+and its own, joined by two underscores: ``"arm__boom_cylinder"`` for the
+cylinder of assembly ``arm``, ``"machine__arm__boom_cylinder"`` where ``arm``
+is nested in ``machine`` (with the kind before it if needed, as
+``"force_modules/arm__boom_cylinder"``). An input is set by one controller at
+most, so a model in which a PID controller and a schedule both set the same
+input does not load. This holds the extension of a cylinder at 0.1 m:
+
+.. code:: javascript
+
+   "sensors": [
+     {"type": "joint", "name": "boom_extension", "joint": "boom_slide",
+      "quantity": "position"}
+   ],
+   "controllers": [
+     {"type": "pid", "name": "boom_position", "kp": 20, "target": 0.1,
+      "sensor": "boom_extension", "component": "boom_cylinder",
+      "input": "command"}
+   ]
+
+The inputs of a component are listed with its parameters, marked "Input.".
+The PID controller's own ``target`` is an input, which a schedule (or
+another controller) can set, and its ``error`` and ``effort`` are outputs,
+which the loggers record (see :ref:`logging`); a schedule's output is its
+``value``.
+
 .. shift-parameters:: shift/core/controller/pid.cc
 
 Examples
@@ -204,8 +237,10 @@ later would have no effect, so they are not allowed: the model does not load, an
 the message names the target and says that it cannot be changed while the
 model runs. The same happens for a path that does not exist, a list or
 vector without its index, an index that is out of range, and a path that
-ends at an object and not at a number. The parameters that can be changed as
-the model runs are marked so in the list of parameters of their component:
+ends at an object and not at a number. A component's inputs (marked "Input."
+in its list of parameters) can always be set, but by one controller only: a
+schedule refuses an input that a PID controller or another schedule sets. The
+parameters that can be changed as the model runs are:
 
 .. list-table::
    :header-rows: 1
@@ -213,14 +248,16 @@ the model runs are marked so in the list of parameters of their component:
    * - component
      - parameters
    * - PID controller
-     - ``kp``, ``ki``, ``target``
+     - ``kp``, ``ki``, ``target`` (an input)
    * - hydraulic cylinder
-     - ``command``, ``supply_pressure``, ``leakage``, ``friction``,
+     - ``command`` (an input), ``supply_pressure``, ``leakage``, ``friction``,
        ``end_stop_stiffness``, ``end_stop_damping``
    * - belt
      - ``friction_coefficient``
    * - track soil
      - ``ground``, ``shoe_center``, ``unloading_ratio``
+   * - light of a body
+     - ``intensity`` (an input), as ``"bodies/<body>/lights/<light>/intensity"``
 
 A schedule does not check that a value is one that its component accepts (a
 negative friction coefficient, for example); the schedule's points are the
@@ -267,6 +304,53 @@ Keys of ``schedule``:
 
 :source:`examples/excavator/excavator.json` drives the valves of its four
 cylinders with three schedules. Tests: :source:`test/test_schedule.cc`.
+
+.. _map:
+
+Map
+---
+
+``"type": "map"`` sets parameters of other components from an *output* of a
+component, through a curve: the brake lamps of a car from the brake pedal,
+say. It reads the output named ``output`` of the component named
+``component`` (the ``value`` of a schedule, the signal of a sensor, the
+``effort`` of a PID controller) and sets its ``targets`` to the value of the
+curve at it. The component is found as for a PID controller: by its name in
+the same assembly, or by its fully qualified name, as
+``"car__brake_pedal"``, in another.
+
+The curve is given as a schedule's control points, with the output in place
+of the time: ``points`` is :math:`[x_0, v_0, x_1, v_1, \dots]`, the value
+:math:`v` at each value :math:`x` of the output, with :math:`x` increasing.
+Between the points the value follows ``interpolation`` (``"linear"``,
+``"cubic"`` or ``"step"``, as for a schedule) and beyond them it holds the
+value of the nearest point. Without ``points`` the value is the output
+itself. The targets are given, and checked, as a schedule's (see
+:ref:`schedule`).
+
+A map is evaluated with the other controllers, in the order of the model
+file, after the schedules. It reads the output of a schedule, a sensor or a
+force module as it is at that evaluation; the output of another controller
+that is not a schedule is the one that controller left, so put the map after
+it in the file. Its own ``value`` is an output, which the loggers record.
+
+The stop lamps of :source:`examples/polo_r_wrc/polo_r_wrc.json` are lights of
+the chassis that start dark; this map lights them, at full brightness (an
+intensity of 8) once the brake pedal is pressed 5 %:
+
+.. code:: javascript
+
+   {"type": "map", "name": "brake_lights", "component": "brake_pedal",
+    "output": "value", "points": [0, 0, 0.05, 8],
+    "targets": ["bodies/chassis/lights/left_brake_lamp/intensity",
+                "bodies/chassis/lights/right_brake_lamp/intensity"]}
+
+Keys of ``map``:
+
+.. shift-parameters:: shift/core/controller/map.cc
+   :exclude: name, type, active
+
+Tests: :source:`test/test_map.cc`.
 
 Inverse kinematics
 ------------------

@@ -1,0 +1,5 @@
+newmtl high_stop_lamp_lens
+Kd 1 1 1
+Pm 0.0
+Pr 0.2
+map_Kd polo_r_wrc_lamp_glow.jpg

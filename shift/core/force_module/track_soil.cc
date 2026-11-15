@@ -82,7 +82,9 @@ void shift::core::force_module::TrackSoil::DeclareParameters() {
 
 void shift::core::force_module::TrackSoil::Connect() {
   scm_ = nullptr;
-  for(auto terrain : context_->get_active_terrain()) {
+  /* among the terrains and their regions, e.g. sand in rigid ground */
+  for(auto terrain : shift::core::terrain::Base::WithRegions(
+        context_->get_active_terrain())) {
     if(auto scm = dynamic_cast<shift::core::terrain::Scm*>(terrain)) {
       scm_ = scm;
     }
@@ -171,7 +173,8 @@ void shift::core::force_module::TrackSoil::Load() {
   equation_count_ =
     static_cast<int>(shoes_.size()) * get_shoe_state_count();
   q_0_.assign(equation_count_, 0.0);
-  outputs_.assign(get_output_names().size(), 0.0);
+  DeclareOutputs(OutputNames(), &outputs_,
+                 "an output of the track on the soil (see its description)");
 }
 
 double shift::core::force_module::TrackSoil::Pressure(double z,
@@ -379,7 +382,7 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
 }
 
 std::vector<std::string>
-shift::core::force_module::TrackSoil::get_output_names() const {
+shift::core::force_module::TrackSoil::OutputNames() const {
   std::vector<std::string> names;
   for(const auto& name : shoe_names_) {
     names.push_back(name + "_sinkage");
@@ -393,9 +396,4 @@ shift::core::force_module::TrackSoil::get_output_names() const {
 void shift::core::force_module::TrackSoil::UpdateOutputs(double,
                                                          const double* y) {
   Evaluate(y + state_offset_, nullptr, false);
-}
-
-void shift::core::force_module::TrackSoil::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), outputs_.begin(), outputs_.end());
 }

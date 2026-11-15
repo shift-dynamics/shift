@@ -183,6 +183,103 @@ TEST(IowaTire, WhatItRefuses) {
   EXPECT_THROW(tire.Prepare(), std::exception);
 }
 
+/* the relaxed slip ratio, the state of a tire with a relaxation length */
+static ksl_coscrew_t Relaxed(Iowa& tire, const Contact& contact, double kappa,
+                             double* rate) {
+  ksl_coscrew_t force;
+  tire.Evaluate(contact, &kappa, rate, &force);
+  return force;
+}
+
+TEST(IowaTire, ARelaxationLengthAddsTheRelaxedSlipAsAState) {
+  Iowa tire;
+  Configure(tire);
+  EXPECT_EQ(tire.get_state_count(), 0u);
+  tire.relaxation_length = 0.3;
+  EXPECT_EQ(tire.get_state_count(), 1u);
+  tire.relaxation_length = -0.1;
+  EXPECT_THROW(tire.Prepare(), std::exception);
+}
+
+TEST(IowaTire, TheRelaxedSlipLagsTheSlipOfTheTread) {
+  // l dk'/dt = -v_p - (|v_x| + v_eps) k', from rest of the state and settled
+  Iowa tire;
+  Configure(tire);
+  tire.relaxation_length = 0.3;
+  const Contact c = Rolling(10.0, 0.0, 0.1); // driving: the tread slips back
+  const double v_p = c.vx + c.omega * (0.3 - 0.02);
+  double rate = 0.0;
+  const ksl_coscrew_t start = Relaxed(tire, c, 0.0, &rate);
+  EXPECT_NEAR(rate, -v_p / 0.3, 1e-9);
+  EXPECT_GT(rate, 0.0);
+  EXPECT_NEAR(start.lin.x, -0.02 * 4000.0 * 10.0 / (0.0635 + 10.0), 1e-9);
+  const double settled = -v_p / (10.0 + 0.0635);
+  const ksl_coscrew_t force = Relaxed(tire, c, settled, &rate);
+  EXPECT_NEAR(rate, 0.0, 1e-9);
+  EXPECT_EQ(tire.get_slip(), settled);
+  EXPECT_NEAR(force.lin.x,
+              4000.0 * tire.LongitudinalFriction(settled) -
+                0.02 * 4000.0 * 10.0 / (0.0635 + 10.0),
+              1e-9);
+}
+
+TEST(IowaTire, TheRelaxedSlipIsHeldWithinOne) {
+  Iowa tire;
+  Configure(tire);
+  tire.relaxation_length = 0.3;
+  const Contact spinning = Rolling(1.0, 0.0, 5.0);
+  double rate = 0.0;
+  Relaxed(tire, spinning, 1.0, &rate);
+  EXPECT_EQ(rate, 0.0);
+  Relaxed(tire, spinning, 0.9, &rate);
+  EXPECT_GT(rate, 0.0);
+  const Contact locked = Rolling(10.0, 0.0, -1.5); // spun backwards
+  Relaxed(tire, locked, -1.0, &rate);
+  EXPECT_EQ(rate, 0.0);
+  Contact flying = locked;
+  flying.in_contact = false;
+  Relaxed(tire, flying, 0.5, &rate);
+  EXPECT_NEAR(rate, -(10.0 + 0.0635) * 0.5 / 0.3, 1e-9);
+}
+
+TEST(IowaTire, WithARelaxationLengthTheLongitudinalForceTakesTheFrictionFirst) {
+  Iowa tire;
+  Configure(tire);
+  tire.relaxation_length = 0.3;
+  tire.rolling_resistance = 0.0;
+  const double limit = 0.8 * 4000.0;
+  double rate = 0.0;
+  // past the limit alone: the longitudinal force is the limit, no lateral
+  const ksl_coscrew_t peak = Relaxed(tire, Rolling(10.0, 3.0, 0.0), 0.2, &rate);
+  EXPECT_NEAR(peak.lin.x, limit, 1e-9);
+  EXPECT_EQ(peak.lin.y, 0.0);
+  EXPECT_EQ(peak.ang.z, 0.0);
+  // within it: the lateral force takes what is left
+  const ksl_coscrew_t both = Relaxed(tire, Rolling(10.0, 3.0, 0.0), 0.1, &rate);
+  const double f_x = 4000.0 * tire.LongitudinalFriction(0.1);
+  EXPECT_NEAR(both.lin.x, f_x, 1e-9);
+  EXPECT_NEAR(both.lin.y, -std::sqrt(limit * limit - f_x * f_x), 1e-9);
+  EXPECT_NEAR(both.ang.z, -0.03 * both.lin.y, 1e-9);
+}
+
+TEST(IowaTire, OnSoftSoilTheLoadAndTheResistanceAreBekkers) {
+  // W = (3 - n)/3 b k sqrt(d) z^(n + 1/2), r_c = b k z^(n + 1)/(n + 1)
+  Iowa tire;
+  Configure(tire);
+  tire.width = 0.2;
+  shift::core::force_module::SoilProperties& soil = tire.soil;
+  soil.n = 0.7;
+  soil.k_c = 5270.0;
+  soil.k_phi = 1515040.0;
+  const double k = 5270.0 / 0.2 + 1515040.0;
+  const double z = 0.02;
+  double load, resistance;
+  tire.SoilForces(z, &load, &resistance);
+  EXPECT_NEAR(load, 2.3 / 3.0 * 0.2 * k * std::sqrt(0.6) * std::pow(z, 1.2),
+              1e-9);
+  EXPECT_NEAR(resistance, 0.2 * k * std::pow(z, 1.7) / 1.7, 1e-9);
+}
+
 /* a wheel that moves freely along x and z and does not spin */
 static void LoadWheel(shift::core::Context& context, const std::string& tire,
                       const std::string& terrain, double x0, double z0,
@@ -379,6 +476,40 @@ TEST(IowaTireContact, AStepSmallerThanThePatchMovesTheForceAndTiltsTheNormal) {
   EXPECT_GT(c.depth, 0.015);
   EXPECT_LT(c.depth, 0.035);
   std::remove((testing::TempDir() + "/iowa_map.tiff").c_str());
+}
+
+TEST(IowaTireContact, WithARelaxationLengthALockedWheelStillSlidesAtItsFriction) {
+  // the relaxed slip reaches the slip of the sliding tread within a fraction
+  // of a relaxation length
+  shift::core::Context context;
+  LoadWheel(context,
+            R"("segments": 20, "friction_coefficient": 0.5,
+               "rolling_resistance": 0, "relaxation_length": 0.3)",
+            "", 0.0, -0.285, 10.0, 1.0);
+  const auto state = Simulate(context);
+  const double v = Velocity(context, state, "x");
+  EXPECT_NEAR(v, 10.0 - 0.5 * 9.81 * 1.0, 0.05);
+  // settled at -v_p / (|v_x| + v_eps), with v_p = v_x for a locked wheel
+  EXPECT_NEAR(dynamic_cast<const Iowa*>(Find(context)->get_model())
+                ->get_slip(),
+              -v / (v + 0.0635), 1e-3);
+}
+
+TEST(IowaTireContact, OnSoftSoilTheWheelSinksToBekkersSinkage) {
+  // at rest W = (3 - n)/3 b k sqrt(d) z^(n + 1/2), so
+  // z = (3 W / ((3 - n) b k sqrt(d)))^(1 / (n + 1/2)); sandy loam
+  shift::core::Context context;
+  LoadWheel(context,
+            R"("segments": 0, "width": 0.235,
+               "soil": {"name": "sandy_loam"})",
+            "", 0.0, -0.29, 0.0, 1.5);
+  const auto state = Simulate(context);
+  const double n = 0.7, k = 5270.0 / 0.235 + 1515040.0;
+  const double sinkage =
+    std::pow(3.0 * 299.0 * 9.81 / ((3.0 - n) * 0.235 * k * std::sqrt(0.6)),
+             1.0 / (n + 0.5));
+  EXPECT_NEAR(Find(context)->get_contact().depth, sinkage, 1e-5);
+  EXPECT_NEAR(Position(context, state, "z"), -(0.3 - sinkage), 1e-4);
 }
 
 TEST(TireParameters, EachModelReadsTheBlockOfItsName) {

@@ -80,8 +80,9 @@ the bodies are markers among the particles, and the load on each is the
 soil's on its markers over the last accepted step (terrain::Sph::
 get_body_load). Under an SPH region the SCM nodes are the region's.
 
-Outputs: normal_force (the total pressure force), contact_nodes and sinkage
-(the deepest, from the undisturbed surface).
+Outputs: normal_force (the total pressure force of SCM soil), contact_nodes
+and sinkage (the deepest, from the undisturbed surface), and sph_force (the
+SPH soils' loads on the bodies along the up axis, -z, of each soil's frame).
 
 JSON:
 \code
@@ -111,12 +112,13 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   double get_normal_force() const {
     return normal_force_;
+  }
+  double get_sph_force() const {
+    return sph_force_;
   }
   double get_contact_nodes() const {
     return contact_nodes_;
@@ -173,6 +175,7 @@ private:
   std::vector<double> distances_;
 
   double normal_force_ = 0.0;
+  double sph_force_ = 0.0;
   double contact_nodes_ = 0.0;
   double sinkage_ = 0.0;
 };

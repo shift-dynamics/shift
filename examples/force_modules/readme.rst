@@ -17,6 +17,10 @@ Small models, each showing one force module:
   the alternator and water pump through a belt with a backside tensioner.
   A PID controller brings the crankshaft to 80 rad/s, and the belt slips
   over the alternator during the spin-up.
+* ``electric_motor.json``: a spindle on an electric motor whose current a
+  proportional speed controller sets, stepped to 310 rad/s and back to
+  150 rad/s: the drive holds its 20 A limit on the way up and brakes at it
+  on the way down, returning power to the 48 V supply.
 * ``gear_mesh.json``: a 20 tooth pinion driving a wheel, loaded by a viscous
   torque, with a PID controller holding the pinion at 100 rad/s. The mesh
   force ripples about its mean of 100 N at the mesh frequency, 318 Hz.

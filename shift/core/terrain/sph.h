@@ -45,23 +45,39 @@ dilatancy_angle (optional, 0 by default). Bekker's sinkage properties are not
 needed.
 
 The particles move on the GPU (device "gpu", see Context::GetGpuDevice) or the
-CPU ("cpu", single threaded, for small soils), in substeps no longer than the
-stable step of the soil (see sph::StableStep). After each accepted step of
-the integrator (AcceptStep) the soil advances by whole substeps to the time
-of the step; what is left of a substep is carried to the next one, so the
-soil is less than a substep behind. Gravity is that of the model, in the
-terrain frame.
+CPU ("cpu", single threaded, for small soils). After each accepted step of
+the integrator (AcceptStep) the soil advances to the time of the step, in
+equal substeps no longer than the stable step of the soil (see
+sph::StableStep). The integrator's steps are no longer than
+substeps_per_step stable steps (StepLimit, see Context::GetStepLimit).
+Gravity is that of the model, in the terrain frame.
 
 Bodies on the soil (those of force_module::SoilContact, SetBodies) are
 markers too: at the first step, the lattice points of the particles' spacing
 inside each body's collision geometry within marker_layers spacings of its
 surface, and the points where rays along its axes reach its surface, so that
-thin parts get markers too. Over each accepted step the markers follow their
+thin parts get markers too. The particles inside a body's collision geometry
+then are taken out of the soil, which the body displaces (its volume is
+neither landed nor lost). Over each accepted step the markers follow their
 body from its pose and velocity at the step before to those at the step, by
 cubic Hermite interpolation (sph::Interpolate), and the soil pushes back on
 them. The mean of that force over the step, as a load on each body
 (get_body_load), acts on the body over the next step: the soil and the
 bodies are coupled explicitly, the soil's force a step behind the bodies.
+That lag puts energy into a body on the soil, which the soil's damping takes
+out only while the step is short: a 2 kg plate settles on sand at one
+substep per step, but bounces on it at two, ever higher. Hence
+substeps_per_step, 1 by default; a heavy body may allow more.
+
+Particles are not confined to the extent: soil carried out in a bucket stays
+particles until it lands. Every landing_interval (in AcceptStep) the
+particles outside the extent, and outside every other region of the terrain
+that holds it, that have reached its surface at their x, y (z at or below
+it, z down; for a terrain of the fixed body, its own elevation map there)
+leave the soil: of a region of an scm terrain, their volume (mass over the
+density of their soil) goes to its nearest node (Scm::Deposit) and adds to
+get_landed_volume; off its grid, or on any other terrain, it is lost
+(get_lost_volume, with a warning the first time).
 
 At each output time (UpdateOutput) the particles are read back, and the
 surface (SurfaceZ, Query) is the top of the particles of each column, half a
@@ -98,6 +114,8 @@ public:
   void Load() override;
   void AcceptStep() override;
   void UpdateOutput() override;
+  /*! \brief substeps_per_step stable steps of the soil */
+  double StepLimit() const override;
 
   double SurfaceZ(double x, double y, double& z_x,
                   double& z_y) const override;
@@ -123,6 +141,34 @@ public:
   /*! \brief the materials, one per soil of get_soils() */
   const std::vector<shift::core::sph::Material>& get_materials() const {
     return materials_;
+  }
+  /*! \brief start again from the particles of Load, at rest, as before
+   * the first step; between simulations (e.g. the viewer's Reset) */
+  void Restart();
+  /*! \brief z (down) of the floor of the soil under x, y of the terrain
+   * frame, from the nearest column */
+  double FloorZ(double x, double y) const;
+  /*! \brief the pose of the frame of the particles' positions (the terrain
+   * frame moved to get_origin) in the inertial frame */
+  ksl_SE3_t get_particle_frame() const;
+  /*! \brief the stable step of the soil, from Load */
+  double get_stable_step() const {
+    return step_;
+  }
+  /*! \brief the number of particles the bodies displaced at the first
+   * step (see SetBodies) */
+  size_t get_displaced_count() const {
+    return displaced_count_;
+  }
+  /*! \brief the volume of the particles that landed on the SCM terrain
+   * that holds this one, m^3 */
+  double get_landed_volume() const {
+    return landed_volume_;
+  }
+  /*! \brief the volume of the particles that left the soil where no SCM
+   * terrain could take them, m^3 */
+  double get_lost_volume() const {
+    return lost_volume_;
   }
   /*! \brief the time the particles have reached */
   double get_time() const {
@@ -160,10 +206,16 @@ private:
   /*! \brief the solver, with gravity in the terrain frame, at the first
    * accepted step, when the pose of the frame is known */
   void Start();
+  /*! \brief the particles that have landed outside the extent leave the
+   * soil, their volume to the SCM terrain that holds it or lost */
+  void Land();
   /*! \brief the surface of each column from state_ */
   void UpdateSurface();
   /*! \brief the markers of each body, into state */
   void SampleBodies(shift::core::sph::State& state);
+  /*! \brief take the particles inside the bodies' collision geometry out
+   * of state, after SampleBodies (which places the geometry) */
+  void DisplaceSoil(shift::core::sph::State& state);
   /*! \brief the poses of the bodies now, in the frame of the particles */
   void BodyPoses(std::vector<shift::core::sph::BodyPose>& poses);
   /*! \brief the bodies' loads from the impulses over duration */
@@ -178,19 +230,26 @@ private:
   int marker_layers_ = 3;
   double wall_height_ = std::numeric_limits<double>::quiet_NaN();
   std::string device_ = "gpu";
+  int substeps_per_step_ = 1;
+  double landing_interval_ = 0.01;
 
   shift::core::sph::Settings settings_;
   std::vector<shift::core::sph::Material> materials_;
   shift::core::sph::State state_;
+  shift::core::sph::State initial_state_; //!< of Load
+  size_t initial_particle_count_ = 0;
   /* the device outlives the solver on it, which is destroyed first */
   std::shared_ptr<shift::core::gpu::Device> device_ptr_;
   std::unique_ptr<shift::core::sph::Solver> solver_;
   std::array<double, 3> origin_ = {0.0, 0.0, 0.0};
   size_t particle_count_ = 0;
-  double step_ = 0.0;     //!< the substep
+  double step_ = 0.0;     //!< the stable substep
   double time_ = 0.0;     //!< reached by the particles
   double last_time_ = 0.0; //!< of the last accepted step
-  double pending_ = 0.0;  //!< time not yet advanced, less than a substep
+  double next_landing_ = 0.0; //!< the time of the next Land
+  double landed_volume_ = 0.0;
+  size_t displaced_count_ = 0;
+  double lost_volume_ = 0.0;
   bool started_ = false;
 
   std::vector<body::Base*> bodies_;

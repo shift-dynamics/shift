@@ -105,9 +105,9 @@ public:
    * evaluation; Iowa: deflection, slip, slip_angle, normal_force,
    * longitudinal_force, lateral_force and aligning_moment; the other tire
    * models have no outputs */
-  std::vector<std::string> get_output_names() const override;
+  /*! \brief the names of the outputs, in the order of outputs_ */
+  std::vector<std::string> OutputNames() const;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
 private:
   /*! \brief path of a file next to the model file or in an include

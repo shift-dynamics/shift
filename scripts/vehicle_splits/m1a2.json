@@ -1,0 +1,332 @@
+{
+  "comment": "bodies of examples/m1a2 from the 'abrams m1a2' glTF by coderslava402 (see examples/m1a2/readme.rst), for ../split_vehicle_gltf.py. The source's one-piece track and its sprockets go to 'unused', which is not kept: the model draws its own track links and sprockets (STEP parts written by examples/m1a2/generate_m1a2.py). The scale makes the road wheels 0.633 m across, as on the tank (25 in); the translation puts the origin on the ground, midway between the sprocket and idler axles",
+  "scale": 3.05,
+  "axes": [
+    [
+      0,
+      -1,
+      0
+    ],
+    [
+      -1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1
+    ]
+  ],
+  "translations": [
+    {
+      "mesh": ".",
+      "translation": [
+        1.12423,
+        0.0,
+        0.1281
+      ]
+    }
+  ],
+  "max_texture_size": 1024,
+  "image_format": "JPEG",
+  "default": "hull",
+  "bodies": {
+    "hull": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "right_road_wheel1": [
+      1.9607,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel2": [
+      1.1093,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel3": [
+      0.4205,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel4": [
+      -0.2949,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel5": [
+      -0.9995,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel6": [
+      -1.7122,
+      1.3987,
+      -0.399
+    ],
+    "right_road_wheel7": [
+      -2.4766,
+      1.3987,
+      -0.399
+    ],
+    "left_road_wheel1": [
+      2.1657,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel2": [
+      1.3077,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel3": [
+      0.5665,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel4": [
+      -0.1372,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel5": [
+      -0.8522,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel6": [
+      -1.5767,
+      -1.4031,
+      -0.399
+    ],
+    "left_road_wheel7": [
+      -2.2871,
+      -1.4031,
+      -0.399
+    ],
+    "right_idler": [
+      3.0847,
+      1.3987,
+      -0.843
+    ],
+    "left_idler": [
+      3.0869,
+      -1.4031,
+      -0.8207
+    ],
+    "unused": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "rules": [
+    {
+      "body": "right_road_wheel1",
+      "mesh": "^Object_29 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel2",
+      "mesh": "^Object_27 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel3",
+      "mesh": "^Object_25 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel4",
+      "mesh": "^Object_23 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel5",
+      "mesh": "^Object_21 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel6",
+      "mesh": "^Object_19 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_road_wheel7",
+      "mesh": "^Object_17 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel1",
+      "mesh": "^Object_33 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel2",
+      "mesh": "^Object_37 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel3",
+      "mesh": "^Object_39 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel4",
+      "mesh": "^Object_41 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel5",
+      "mesh": "^Object_43 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel6",
+      "mesh": "^Object_45 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_road_wheel7",
+      "mesh": "^Object_35 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "right_idler",
+      "mesh": "^Object_31 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "left_idler",
+      "mesh": "^Object_47 ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    },
+    {
+      "body": "unused",
+      "mesh": "^Object_(4|5|51|52|15|49) ",
+      "box": [
+        -9,
+        9,
+        -9,
+        9,
+        -9,
+        9
+      ]
+    }
+  ]
+}

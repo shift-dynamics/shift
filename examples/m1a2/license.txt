@@ -1,0 +1,11 @@
+Model Information:
+* title:	abrams m1a2
+* source:	https://sketchfab.com/3d-models/abrams-m1a2-0e98541f6f684311ac7a8abe08c9449e
+* author:	coderslava402 (https://sketchfab.com/coderslava402)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "abrams m1a2" (https://sketchfab.com/3d-models/abrams-m1a2-0e98541f6f684311ac7a8abe08c9449e) by coderslava402 (https://sketchfab.com/coderslava402) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -49,7 +49,9 @@ entry of a vector of doubles or of a 3 vector).
 A parameter can be a target only if its component has declared that it reads
 it each time it evaluates its forces and computes nothing from it only when it
 loads (parameter::Value::set_runtime); the schedule refuses others when the
-model is loaded, with a message saying so.
+model is loaded, with a message saying so. Inputs (parameter::List::
+DeclareInput) are such parameters; an input is set by one component at most,
+so a schedule refuses one that a PID controller or another schedule sets.
 
 JSON:
 \code
@@ -86,6 +88,8 @@ public:
   void DeclareParameters() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief the output value at the time t, and the targets set to it */
+  void UpdateOutputs(double t, const double* y) override;
 
   /*! \brief schedules are evaluated before the other controllers, so that
    * what they set is what the other controllers and the force modules read in
@@ -102,7 +106,7 @@ public:
     return value_;
   }
 
-private:
+protected:
   /*! a target number: a double, or an entry of a vector of doubles or of a
    * 3 vector */
   struct Target {
@@ -120,8 +124,18 @@ private:
    * or one that is not changeable at run time */
   Target Resolve(const std::string& path) const;
 
+  /*! \brief the curve and the targets, checked and resolved; Connect
+   * calls it */
+  void ConnectCurve();
+  /*! \brief sets the targets to value_ */
+  void SetTargets();
+
+  std::string label_ = "Schedule"; //!< names the controller in messages
+
+private:
   static bool registered_;
 
+protected:
   std::string interpolation_name_ = "linear";
   std::vector<double> points_;
   double transition_time_ = 0.0;

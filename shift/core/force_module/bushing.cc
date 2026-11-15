@@ -205,6 +205,18 @@ void shift::core::force_module::Bushing::Load() {
   x_.assign(n, 0.0);
   v_.assign(n, 0.0);
   f_.assign(n, 0.0);
+
+  /* the outputs: the force and moment of each pair, as get_forces */
+  static const char* const kComponents[6] = {"fx", "fy", "fz",
+                                             "mx", "my", "mz"};
+  for(size_t k = 0; k < pairs_.size(); k++) {
+    const std::string pair = "pair_" + std::to_string(k);
+    for(size_t c = 0; c < 6; c++) {
+      DeclareOutput(pair + "_" + kComponents[c], &f_[6 * k + c],
+                    std::string(kComponents[c]) +
+                      " of the force and moment of " + pair);
+    }
+  }
 }
 
 void shift::core::force_module::Bushing::Service(const double* y, double* dy) {
@@ -307,20 +319,4 @@ void shift::core::force_module::Bushing::Apply() {
     }
     context_->AddBodyLoad(attachments_[pair.i].load_index, load);
   }
-}
-
-std::vector<std::string>
-shift::core::force_module::Bushing::get_output_names() const {
-  std::vector<std::string> names;
-  for(size_t k = 0; k < pairs_.size(); k++) {
-    for(const char* c : {"fx", "fy", "fz", "mx", "my", "mz"}) {
-      names.push_back("pair_" + std::to_string(k) + "_" + c);
-    }
-  }
-  return names;
-}
-
-void shift::core::force_module::Bushing::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), f_.begin(), f_.end());
 }

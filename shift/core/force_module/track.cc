@@ -112,13 +112,14 @@ void shift::core::force_module::Track::Load() {
     }
     supports_.push_back({find(span->supports[0]), find(span->supports[1])});
   }
-  outputs_.assign(get_output_names().size(), 0.0);
+  DeclareOutputs(OutputNames(), &outputs_,
+                 "an output of the track (see its description)");
 }
 
 void shift::core::force_module::Track::Service(const double*, double*) {}
 
 std::vector<std::string>
-shift::core::force_module::Track::get_output_names() const {
+shift::core::force_module::Track::OutputNames() const {
   std::vector<std::string> names;
   /* get_data is not const; reading the spans does not change them */
   for(const auto& span :
@@ -131,12 +132,10 @@ shift::core::force_module::Track::get_output_names() const {
 }
 
 void shift::core::force_module::Track::UpdateOutputs(double, const double*) {
-  outputs_ = Measure();
-}
-
-void shift::core::force_module::Track::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), outputs_.begin(), outputs_.end());
+  /* in place: the outputs point into outputs_ */
+  const std::vector<double> measured = Measure();
+  assert(measured.size() == outputs_.size());
+  std::copy(measured.begin(), measured.end(), outputs_.begin());
 }
 
 std::vector<double> shift::core::force_module::Track::Measure() {

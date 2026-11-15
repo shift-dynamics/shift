@@ -696,7 +696,8 @@ void shift::core::force_module::Powertrain::Load() {
         fill;
     }
   }
-  outputs_.assign(get_output_names().size(), 0.0);
+  DeclareOutputs(OutputNames(), &outputs_,
+                 "an output of the powertrain (see its description)");
 }
 
 /* 0 below 0, 1 above 1, and a cubic between with no slope at either end */
@@ -969,18 +970,21 @@ void shift::core::force_module::Powertrain::Compute(const double* y,
       d.inertia;
   }
 
-  outputs_.assign({w_e, engine_torque, fuel, w_t, w_o, torque_ratio,
-                   engaged_sum > 1e-9 ? ratio_sum / engaged_sum : 0.0,
-                   gear_loss});
-  outputs_.insert(outputs_.end(), axle_outputs.begin(), axle_outputs.end());
+  /* in place: the outputs point into outputs_ */
+  std::vector<double> values = {
+    w_e, engine_torque, fuel, w_t, w_o, torque_ratio,
+    engaged_sum > 1e-9 ? ratio_sum / engaged_sum : 0.0, gear_loss};
+  values.insert(values.end(), axle_outputs.begin(), axle_outputs.end());
   if(center_state_ != kNone) {
-    outputs_.push_back(w_d);
+    values.push_back(w_d);
   }
-  outputs_.insert(outputs_.end(), pressures.begin(), pressures.end());
+  values.insert(values.end(), pressures.begin(), pressures.end());
+  assert(values.size() == outputs_.size());
+  std::copy(values.begin(), values.end(), outputs_.begin());
 }
 
 std::vector<std::string>
-shift::core::force_module::Powertrain::get_output_names() const {
+shift::core::force_module::Powertrain::OutputNames() const {
   std::vector<std::string> names = {
     "engine_speed", "engine_torque", "fuel",       "turbine_speed",
     "output_speed", "converter_torque_ratio", "gear_ratio", "gear_loss"};
@@ -1000,11 +1004,6 @@ shift::core::force_module::Powertrain::get_output_names() const {
     }
   }
   return names;
-}
-
-void shift::core::force_module::Powertrain::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), outputs_.begin(), outputs_.end());
 }
 
 void shift::core::force_module::Powertrain::CheckUniqueNames() {

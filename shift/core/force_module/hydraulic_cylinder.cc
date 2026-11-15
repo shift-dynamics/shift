@@ -64,12 +64,10 @@ void shift::core::force_module::HydraulicCylinder::DeclareParameters() {
                    "pressure drop below which the valve flow is laminar; "
                    "optional, default 5 % of rated_pressure_drop",
                    false);
-  DeclareParameter("command", &command_,
-                   "valve opening, -1 to 1; optional, default 0 (closed); "
-                   "changed as the model runs by a schedule controller or "
-                   "set_command",
-                   false)
-    .set_runtime();
+  DeclareInput("command", &command_,
+               "valve opening, -1 to 1 (beyond, it is clipped); optional, "
+               "default 0 (closed); set as the model runs by a PID or "
+               "schedule controller, or set_command");
   DeclareParameter("relief_flow_gain", &relief_flow_gain_,
                    "relief flow per unit pressure over the relief pressure; "
                    "optional, default rated_flow / (0.1 relief_pressure)",
@@ -106,6 +104,13 @@ void shift::core::force_module::HydraulicCylinder::DeclareParameters() {
                    "the tank pressure",
                    false)
     .set_row_dim(2);
+  DeclareOutput("head_pressure", &p_head_, "pressure in the head chamber");
+  DeclareOutput("rod_pressure", &p_rod_, "pressure in the rod chamber");
+  DeclareOutput("force", &force_, "force of the cylinder along its extension");
+  DeclareOutput("extension", &extension_, "extension of the cylinder");
+  DeclareOutput("opening", &opening_, "opening of the valve, -1 to 1");
+  DeclareOutput("head_flow", &q_head_, "flow into the head chamber");
+  DeclareOutput("rod_flow", &q_rod_, "flow into the rod chamber");
 }
 
 void shift::core::force_module::HydraulicCylinder::Connect() {
@@ -277,18 +282,6 @@ void shift::core::force_module::HydraulicCylinder::Evaluate(const double* y,
     }
   }
   force_ = p_head_ * area_head_ - p_rod_ * area_rod_ - friction_ * dx - stop;
-}
-
-std::vector<std::string>
-shift::core::force_module::HydraulicCylinder::get_output_names() const {
-  return {"head_pressure", "rod_pressure", "force",   "extension",
-          "opening",       "head_flow",    "rod_flow"};
-}
-
-void shift::core::force_module::HydraulicCylinder::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {p_head_, p_rod_, force_, extension_, opening_,
-                               q_head_, q_rod_});
 }
 
 void shift::core::force_module::HydraulicCylinder::Hold(double force,

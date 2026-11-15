@@ -3,6 +3,7 @@
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/context.h"
+#include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/sensor/base.h"
 
@@ -60,6 +61,97 @@ void shift::core::Assembly::DeclareParameters() {
                "Shift 'Constraint' datastructures. Each "
                "constraint in the array must have a unique name identifier",
                false);
+}
+
+shift::core::parameter::List*
+shift::core::Assembly::FindComponent(const std::string& name) {
+  struct Kind {
+    const char* key;
+    shift::core::parameter::List* found;
+  };
+  const size_t slash = name.find('/');
+  const std::string bare =
+    slash == std::string::npos ? name : name.substr(slash + 1);
+  Kind kinds[] = {
+    {"bodies", FindByName(bodies_.get_data(), bare)},
+    {"joints", FindByName(joints_.get_data(), bare)},
+    {"force_modules", FindByName(force_modules_.get_data(), bare)},
+    {"sensors", FindByName(sensors_.get_data(), bare)},
+    {"controllers", FindByName(controllers_.get_data(), bare)},
+    {"constraints", FindByName(constraints_.get_data(), bare)},
+    {"assemblies", FindByName(assemblies_.get_data(), bare)},
+  };
+  if(slash != std::string::npos) {
+    const std::string key = name.substr(0, slash);
+    for(const auto& kind : kinds) {
+      if(key == kind.key) {
+        return kind.found;
+      }
+    }
+    throw shift::core::Exception(
+      "'" + name + "': '" + key +
+      "' is not a kind of component of an assembly (bodies, joints, "
+      "force_modules, sensors, controllers, constraints or assemblies)");
+  }
+  shift::core::parameter::List* found = nullptr;
+  std::string keys;
+  for(const auto& kind : kinds) {
+    if(kind.found) {
+      found = kind.found;
+      keys += (keys.empty() ? "" : ", ") + std::string(kind.key) + "/" + name;
+    }
+  }
+  if(keys.find(',') != std::string::npos) {
+    throw shift::core::Exception("'" + name + "' names more than one "
+                                 "component in assembly '" + get_name() +
+                                 "': give one of " + keys);
+  }
+  return found;
+}
+
+shift::core::parameter::List* shift::core::Assembly::FindComponent(
+  const std::string& name,
+  std::vector<std::unique_ptr<shift::core::Assembly>>& assemblies) {
+  shift::core::parameter::List* found = FindComponent(name);
+  if(found != nullptr) {
+    return found;
+  }
+  /* the kind, if given, then <assembly>__..__<name>: each split at a "__",
+  from the last, into the name of an assembly and of a component in it */
+  const size_t slash = name.find('/');
+  const std::string kind =
+    slash == std::string::npos ? "" : name.substr(0, slash + 1);
+  const std::string qualified =
+    slash == std::string::npos ? name : name.substr(slash + 1);
+  for(size_t split = qualified.rfind("__");
+      split != std::string::npos && split > 0;
+      split = qualified.rfind("__", split - 1)) {
+    shift::core::Assembly* assembly =
+      FindQualifiedAssembly(assemblies, qualified.substr(0, split));
+    if(assembly != nullptr) {
+      found = assembly->FindComponent(kind + qualified.substr(split + 2));
+      if(found != nullptr) {
+        return found;
+      }
+    }
+  }
+  return nullptr;
+}
+
+shift::core::Assembly* shift::core::Assembly::FindQualifiedAssembly(
+  std::vector<std::unique_ptr<shift::core::Assembly>>& assemblies,
+  const std::string& qualified) {
+  for(auto& assembly : assemblies) {
+    if(assembly->FullyQualifiedName(assembly->get_name()) == qualified) {
+      return assembly.get();
+    }
+    shift::core::Assembly* nested =
+      FindQualifiedAssembly(assembly->get_assemblies(), qualified);
+    if(nested != nullptr) {
+      return nested;
+    }
+  }
+  return nullptr;
 }
 
 void shift::core::Assembly::CheckUniqueNames() {

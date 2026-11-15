@@ -40,6 +40,11 @@ import sys
 import numpy as np
 from PIL import Image
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+# the helpers that write meshes are shared with the other generators
+sys.path.insert(0, os.path.join(HERE, ".."))
+import mesh_builder  # noqa: E402
+
 out = sys.argv[1] if len(sys.argv) > 1 else "raptor.json"
 speed = 0.0        # the truck starts at rest
 radius = 0.394
@@ -453,7 +458,9 @@ joint("prop_shaft_rear", "spherical", [[slide], "origin"],
       [["rear_axle"], "prop_shaft"])
 
 bodies.insert(0, {
-    "name": "chassis", "geometry": mesh("chassis"),
+    "name": "chassis",
+    "geometry": mesh("chassis") + [{"type": "mesh",
+                                    "filename": ["license_plate.obj"]}],
     "frames": chassis_frames, "center_of_mass": [0.42, 0.0, -0.85],
     "comment": "estimated: frame, body, engine and transmission",
     "inertia": inertia(2150.0, 1100.0, 5000.0, 5300.0)})
@@ -580,4 +587,12 @@ with open(out, "w") as f:
     json.dump(model, f, indent=2)
 os.chdir(os.path.dirname(os.path.abspath(out)))
 write_terrain()
+# the source has no license plate: a plate of 12 by 6 inches on the flat of
+# the rear bumper, over the hitch, seen upright from behind
+mesh_builder.license_plate((512, 256), "SHIFT").save("license_plate.png")
+plate_x, plate_z, half_w, half_h = -2.958, -0.545, 0.1524, 0.0762
+mesh_builder.textured_quad(".", "license_plate", [
+    [plate_x, -half_w, plate_z + half_h], [plate_x, half_w, plate_z + half_h],
+    [plate_x, half_w, plate_z - half_h], [plate_x, -half_w, plate_z - half_h]],
+    "license_plate.png")
 print("bodies", len(bodies), "joints", len(joints))

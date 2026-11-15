@@ -112,6 +112,25 @@ void shift::core::force_module::GearMesh::DeclareParameters() {
   DeclareParameter("min_film", &min_film_,
                    "thinnest film of the squeeze film; optional, default 1e-6",
                    false);
+  DeclareOutput("transmission_error", &transmission_error_,
+                "transmission error, the compression of the mesh along the "
+                "line of action");
+  DeclareOutput("mesh_force", &mesh_force_,
+                "net tangential force on the pitch circles");
+  DeclareOutput("force_plus", &force_plus_,
+                "force of the flanks in contact on the side of positive "
+                "transmission error");
+  DeclareOutput("force_minus", &force_minus_,
+                "force of the flanks in contact on the side of negative "
+                "transmission error");
+  DeclareOutput("stiffness", &stiffness_,
+                "stiffness of the mesh at its position");
+  DeclareOutput("phase", &phase_, "position in the mesh cycle, 0 to 1");
+  DeclareOutput("radial_force", &radial_force_, "force separating the gears");
+  DeclareOutput("axial_force", &axial_force_,
+                "force along the axes, of helical teeth");
+  DeclareOutput("squeeze_force", &squeeze_force_,
+                "force of the squeeze of the oil film");
 }
 
 shift::core::force_module::GearMesh::Attachment
@@ -479,18 +498,4 @@ void shift::core::force_module::GearMesh::Compute(const double* y, double* dy,
     load.at[i] = -load.at[i];
   }
   context_->AddBodyLoad(gear_1_.load_index, load);
-}
-
-std::vector<std::string>
-shift::core::force_module::GearMesh::get_output_names() const {
-  return {"transmission_error", "mesh_force",   "force_plus",
-          "force_minus",        "stiffness",    "phase",
-          "radial_force",       "axial_force",  "squeeze_force"};
-}
-
-void shift::core::force_module::GearMesh::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {transmission_error_, mesh_force_, force_plus_,
-                               force_minus_, stiffness_, phase_, radial_force_,
-                               axial_force_, squeeze_force_});
 }

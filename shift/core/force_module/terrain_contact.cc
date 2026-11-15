@@ -40,6 +40,10 @@ void shift::core::force_module::TerrainContact::DeclareParameters() {
                    "sliding speed over which the friction builds up; "
                    "optional, default 0.01",
                    false);
+  DeclareOutput("normal_force", &normal_force_,
+                "total normal force of the terrain");
+  DeclareOutput("contacts", &contacts_, "number of points in contact");
+  DeclareOutput("depth", &depth_, "deepest penetration of a point");
 }
 
 void shift::core::force_module::TerrainContact::Connect() {}
@@ -139,14 +143,4 @@ void shift::core::force_module::TerrainContact::Service(const double*,
 void shift::core::force_module::TerrainContact::UpdateOutputs(double,
                                                               const double*) {
   Evaluate(false);
-}
-
-std::vector<std::string>
-shift::core::force_module::TerrainContact::get_output_names() const {
-  return {"normal_force", "contacts", "depth"};
-}
-
-void shift::core::force_module::TerrainContact::AppendOutputs(
-  std::vector<double>& values) const {
-  values.insert(values.end(), {normal_force_, contacts_, depth_});
 }

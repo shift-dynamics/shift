@@ -3,8 +3,7 @@
 *Shift*
 =======
 
-A multibody dynamics engine and visualization tool for robotics,
-automation and vehicle dynamics.
+Shift: A Dynamics Engine and Visualization Tool for Automation, Robotics and Vehicle Dynamics
 
 .. raw:: html
 
@@ -41,6 +40,7 @@ theory
    notation/notation
    topology/topology
    dynamics/dynamics
+   dynamics/articulated_body_algorithms
    contact/contact
    dem/dem
 

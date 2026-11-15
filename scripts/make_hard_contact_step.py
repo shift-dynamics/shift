@@ -47,7 +47,10 @@ each turn rising (towards -z) by the lead as it turns from x to y. The bolt's
 thread, 2 mm wide, runs from 8 mm to 10 mm radius over 6 turns; the nut's,
 1.9 mm wide, from 8.2 mm to 10.2 mm over 3 turns, in the bolt's groove with
 0.05 mm of clearance either side. Each flank, crest and root is a face, its
-helices cubic B-splines interpolating the helix at every 7.5 degrees.
+helices cubic B-splines interpolating the helix at every 7.5 degrees. The bolt's
+shank goes on 2 mm above its thread and 8 mm below, to flat ends; the nut's
+body goes out to 14 mm radius, its ends helical, the top flank of its last turn
+and the root of its first carried out to it.
 
 examples/cad/drum.step: a brake drum, a cylinder of 50 mm radius about y from
 y = -20 to 20 mm, its side two halves split at x = +-50 mm, its top half facing
@@ -656,6 +659,40 @@ def helical_face(part, points, knots, a, b, outward):
     part.face_param(surface, dot(cross(du, dv), direction) > 0.0, loop)
 
 
+def core_face(part, points, knots, radius, dz, z):
+    """the face of the cylinder of radius (outward) between the helix at
+    radius and dz over one turn and the plane z: bounded by the helix, the
+    full circle on the plane, and the two lines of the cylinder at angle 0
+    from the helix's ends to the circle"""
+    helix_points = [(radius * c[0], radius * c[1], c[2] + dz) for c in points]
+    start = part.vertex(helix_points[0])
+    end = part.vertex(helix_points[-1])
+    point = part.vertex((radius, 0.0, z))
+    helix_edge = part.spline(start, end, helix_points, knots)
+    circle = part.arc(point, point, (0.0, 0.0, z), Z)
+    to_start = part.line(start, point)
+    to_end = part.line(end, point)
+    # counterclockwise in (u, v) = (angle about z, z), so about du x dv,
+    # which is outward
+    if z < helix_points[0][2]:
+        loop = [(circle, True), (to_end, False), (helix_edge, False),
+                (to_start, True)]
+    else:
+        loop = [(helix_edge, True), (to_end, True), (circle, False),
+                (to_start, False)]
+    surface = part.surface_cylinder((0.0, 0.0, 0.0), Z, X, radius)
+    part.face_param(surface, True, loop)
+
+
+def disc(part, radius, z, normal):
+    """a flat end of radius at z, its outward normal along z either way"""
+    a = part.vertex((radius, 0.0, z))
+    b = part.vertex((-radius, 0.0, z))
+    halves = [part.arc(a, b, (0.0, 0.0, z), Z), part.arc(b, a, (0.0, 0.0, z), Z)]
+    part.face(part.surface_plane((0.0, 0.0, z), normal, X), True, normal,
+              [[(halves[0], True), (halves[1], True)]])
+
+
 def bolt(step, name):
     part = Part(step)
     points, knots = helix(0.0, 6.0)
@@ -664,6 +701,15 @@ def bolt(step, name):
     helical_face(part, points, knots, (10.0, 0.0), (10.0, 2.0), 'out')
     helical_face(part, points, knots, (8.0, 2.0), (10.0, 2.0), 'down')
     helical_face(part, points, knots, (8.0, 2.0), (8.0, LEAD), 'out')
+    # the shank beyond the thread, its core cylinder from the last turn of
+    # the thread to a flat end 2 mm above it, and from the first turn to a
+    # flat end 8 mm below it
+    top, top_knots = helix(5.0, 6.0)
+    core_face(part, top, top_knots, 8.0, 0.0, -6.0 * LEAD - 2.0)
+    disc(part, 8.0, -6.0 * LEAD - 2.0, UP)
+    bottom, bottom_knots = helix(0.0, 1.0)
+    core_face(part, bottom, bottom_knots, 8.0, LEAD, LEAD + 8.0)
+    disc(part, 8.0, LEAD + 8.0, Z)
     return part.solid(name)
 
 
@@ -678,6 +724,16 @@ def nut(step, name):
                  'down')
     helical_face(part, points, knots, (10.2, LEAD - c), (10.2, LEAD + 2.0 + c),
                  'in')
+    # the body about the thread, out to 14 mm: its ends the top flank of the
+    # last turn and the root of the first carried out to it, and its outside
+    # between them, 3 leads less the tooth high
+    last, last_knots = helix(3.5, 4.5)
+    helical_face(part, last, last_knots, (10.2, 2.0 + c), (14.0, 2.0 + c), 'up')
+    first, first_knots = helix(1.5, 2.5)
+    helical_face(part, first, first_knots, (10.2, LEAD + 2.0 + c),
+                 (14.0, LEAD + 2.0 + c), 'down')
+    helical_face(part, first, first_knots, (14.0, 2.0 + c - 2.0 * LEAD),
+                 (14.0, LEAD + 2.0 + c), 'out')
     return part.solid(name)
 
 
@@ -742,8 +798,10 @@ def main():
         ('spline_hole', 'a flat B-spline face with a hole of %g mm radius '
          'and its bore' % HOLE, GRAY),
         ('shell', 'a dome of B-spline faces 1 mm thick', GRAY),
-        ('bolt', 'a square thread of %g mm lead over 6 turns' % LEAD, GRAY),
-        ('nut', 'the square thread of a nut over 3 turns', GOLD),
+        ('bolt', 'a square thread of %g mm lead over 6 turns on a shank' % LEAD,
+         GRAY),
+        ('nut', 'a nut of 14 mm radius with a square thread over 3 turns',
+         GOLD),
         ('groove', 'a groove along a helix of %g mm radius' % GROOVE_RADIUS,
          GRAY),
         ('drum', 'a brake drum of %g mm radius' % DRUM, GRAY),

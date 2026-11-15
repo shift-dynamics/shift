@@ -70,8 +70,8 @@ highlight_language = 'javascript'  # model files are JSON with // comments
 html_theme = 'alabaster'
 html_theme_options = {
     'logo_name': True,
-    'description': 'Multibody dynamics for robotics, automation and '
-                   'vehicles',
+    'description': 'Shift: A Dynamics Engine and Visualization Tool for '
+                   'Automation, Robotics and Vehicle Dynamics',
     'fixed_sidebar': True,
 }
 html_theme_path = [alabaster.get_path()]

@@ -41,7 +41,7 @@ Its integral over time is \f$t_p\f$, so that force = impulse / \f$t_p\f$ gives t
 impulse. A variable step integrator knows nothing of a pulse ahead of it and
 can step right over it: keep the integrator's hmax below pulse_duration.
 
-Outputs: scale.
+Outputs: load_scale, the scale s(t).
 
 JSON (SI units):
 \code
@@ -72,9 +72,7 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
-  std::vector<std::string> get_output_names() const override;
   void UpdateOutputs(double t, const double* y) override;
-  void AppendOutputs(std::vector<double>& values) const override;
 
   /*! \brief the scale s at the time t */
   double Scale(double t) const;

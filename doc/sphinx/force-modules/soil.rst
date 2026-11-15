@@ -277,7 +277,9 @@ its shoe.
     "geometry": ["shoe"]}
 
 Outputs: ``normal_force`` (the total), ``contact_nodes`` and ``sinkage`` (the
-deepest, from the undisturbed surface).
+deepest, from the undisturbed surface) on SCM terrains, and ``sph_force``,
+the force of SPH soils on the bodies, up (against the terrain's z axis),
+averaged over the last step.
 
 **SPH soil.** On an SPH terrain or region (see
 :doc:`../model-file/model-file`), the bodies listed in ``bodies`` are not
@@ -286,7 +288,8 @@ among the particles, and the particles push back on them. The soil's force
 over each accepted step, averaged over the step, is applied to the body
 during the next step. The force of a single step comes from a few SPH
 substeps and is noisy. The body's mass smooths it, and its mean carries the
-body's weight.
+body's weight. The terrain limits the integrator's step so that this lag
+stays short (``substeps_per_step``, see :doc:`../model-file/model-file`).
 
 **Bulldozing.** Without it, the soil a body presses down is compacted: the rut
 is left and nothing rises around it. With the terrain's ``bulldozing``
@@ -412,9 +415,27 @@ is a benchmark (``examples/cad/track_frame.json``).
 
 ``examples/terramechanics/track_frame_scm.json`` drives the same track on deformable dry
 sand (a terrain of type ``scm`` of 0.05 m spacing), the soil contact module
-carrying a box of each shoe and its grousers. It sinks about 0.13 m, leaving
-its rut, and moves forward at about 0.31 m/s. It takes about 50 s in an
-optimized build, so it is a benchmark.
+carrying a box of each shoe and its grousers. Its sprocket and idler sit
+25 mm above the rollers' line, as on a machine, so they carry little of the
+load. It settles for 2 s with the sprocket held, about 60 mm into the sand,
+then drives at about 0.32 m/s. The shoes keep sinking while it drives, to
+about 95 mm on average (up to 0.13 m) after 3 s, leaving its rut. The cause
+is that the shoes rock, about 0.06 to 0.1 rad, as they pass under the
+rollers: the soil keeps the deepest sinkage it reaches, so each tilt digs
+the edges of a shoe in a little deeper. One shoe of the track rocked by
+0.08 rad every 0.6 s under a constant load sinks from 57 to 73 mm in the
+first cycle and to 88 mm after 12, with or without bulldozing. It takes
+about 50 s in an optimized build, so it is a benchmark.
+
+The sinkage levels off once the whole length of track on the ground has
+landed on fresh sand. Driven for 12 s (about 3.8 m), the fine variant,
+``track_frame_scm_fine.json``, sinks quickly at first, then more slowly:
+its shoes sink on average 75 mm when it starts to drive, 123 mm after 1.2 m,
+and a steady 134 mm from about 3 m on, about one ground length. Each shoe
+lands flat at the same 75 to 85 mm and sinks to about 190 mm by the
+sprocket, over some 17 rocking cycles and five roller passes, so the rut is
+deepest at the rear: the frame trims 34 mrad nose up, and the roller next
+to the sprocket carries 26 kN to the 17 to 20 kN of the others.
 
 The viewer (``build-release/shift/main/shift``) draws the rut while the track
 runs and when you play it back. At each output time it records only the nodes
@@ -427,6 +448,18 @@ when the soil springs back. **Reset** returns the sand to undisturbed. The
 ray-traced view draws the rut too, on the same surface: up to four
 triangle pairs per cell along each side, fewer on a large grid.
 ``--no-smooth-terrain`` turns smoothing off for ``--image``.
+
+The viewer draws an SPH soil from its particles, recorded at each output
+time; playback shows those of the output time at or before the time shown.
+**View > Soil surface** draws one surface over the particles, as the soil
+looks. The depth of the particles seen, each a sphere, is smoothed across
+the view, over a few particle spacings, by a filter that keeps a near surface
+apart from one behind it, and the smoothed depth is shaded as a surface. A
+loose particle away from the rest stays a sphere. Unchecked, the particles
+are drawn as spheres. ``--particle-spheres`` draws them as spheres for
+``--image``. **Run** continues the soil from where it was last computed, not
+from the time shown, and **Reset** fills it again. The ray-traced view does
+not draw SPH soil.
 
 .. shift-parameters:: shift/core/force_module/track_soil.cc
    :exclude: name, type, active
@@ -448,6 +481,10 @@ Example and test
   :source:`test/terramechanics/test_scm_playback.cc` (the SCM terrain in the
   viewer and in HDF5 logs), :source:`test/terramechanics/test_sph.cc` (the
   SPH soil: the GPU matches the CPU bit for bit, a block carries its weight,
-  a column collapses as far as experiments show, and a heap settles at the
-  friction angle) and :source:`test/terramechanics/test_sph_terrain.cc`
-  (the SPH terrain, regions of terrains, and a plate settling on SPH soil).
+  a body just above the soil feels no pull, a column collapses as far as
+  experiments show, and a heap settles at the friction angle) and
+  :source:`test/terramechanics/test_sph_terrain.cc` (the SPH terrain, regions
+  of terrains, a plate settling on SPH soil, and a blade pushing soil out of
+  an SPH region onto the SCM terrain with its volume conserved). The example
+  :source:`examples/terramechanics/sph_blade.json` drives a blade through an
+  SPH pit in an SCM terrain.

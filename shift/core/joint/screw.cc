@@ -106,7 +106,7 @@ static void ScrewVelocity(shift::core::topology::DHVA& dhva,
   ksl_screw_t aq_relative = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   ksl_product_as(dq[offsets.dq], h, &v_relative);
   ksl_add_ss(v_parent, &v_relative, v_child);
-  ksl_cross_ss(v_child, &v_relative, &aq_relative);
+  ksl_cross_ss(v_parent, &v_relative, &aq_relative);
   ksl_add_ss(aq_parent, &aq_relative, aq_child);
 }
 

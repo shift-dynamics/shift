@@ -48,6 +48,7 @@ abiflexx_d4_1300    abiflexx_d4_1300/abiflexx_d4_1300.json       0.5
 kuka_iiwa           kuka_lbr_iiwa_14_r820/kuka_iiwa.json         0    --view 40,20
 excavator_simple    excavator/excavator_simple.json              0
 excavator           excavator/excavator.json                     0    --view 120,20
+excavator_drive     excavator/excavator_drive.json               0    --view 210,20
 bushing             force_modules/bushing.json                   2    --view 35,15
 rubber_mount        force_modules/rubber_mount.json              0.2  --view 35,20
 beam                force_modules/beam.json                      0.5  --view 75,12
@@ -56,6 +57,9 @@ vehicle_control     vehicle/vehicle_control.json                 2.0
 vehicle_terrain     vehicle/vehicle_terrain.json                 3.0
 tire_fiala          vehicle/tire_fiala.json                      0.5
 raptor              raptor/raptor.json                           0    --view 40,18
+polo_r_wrc          polo_r_wrc/polo_r_wrc.json                   0    --view 40,18
+polo_r_wrc_suspension polo_r_wrc/polo_r_wrc_suspension.json     8.0  --view 35,15 --follow chassis
+m1a2                m1a2/m1a2.json                               1.0  --view 40,18
 collision_50        collision/collision_test_50.json             1.0
 collision_e_ch      collision/collision_test_e_ch.json           0.5
 terrain             terrain/bricard_asphalt.json                 1.0

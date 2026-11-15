@@ -1,6 +1,6 @@
 # Shift
 
-A dynamics engine and visualization tool for automation and robotics.
+Shift: A Dynamics Engine and Visualization Tool for Automation, Robotics and Vehicle Dynamics
 
 ## Overview
 

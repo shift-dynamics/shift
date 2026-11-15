@@ -92,6 +92,7 @@ void shift::core::sensor::Frame::Connect() {
       prefix + "positions are measured as Tx, Ty, Tz in global coordinates");
   }
   has_rate_ = position_;
+  DeclareSignalOutputs();
 }
 
 void shift::core::sensor::Frame::Update(const double* y) {

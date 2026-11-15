@@ -62,15 +62,24 @@ Force modules, sensors and controllers
      - :doc:`../force-modules/hydraulic-cylinder`: a 30 t excavator with
        four cylinders, starting held, through a dig cycle; CSV and HDF5
        logs of the cylinders' pressures and forces
+   * - .. image:: ../images/examples/excavator_drive.jpg
+          :width: 220px
+          :alt: excavator_drive
+     - :source:`examples/excavator/excavator_drive.json`
+     - :doc:`../force-modules/soil`, :ref:`controllers`: the excavator on
+       tracks of 46 STEP links each, driven forward, turned on the spot and
+       stopped over dry sand by PID speed control of the sprockets (a
+       benchmark: it is not run in the regular tests)
    * - .. image:: ../images/examples/vehicle_control.jpg
           :width: 220px
           :alt: vehicle_control
      - :tree:`examples/vehicle`
      - :doc:`../force-modules/tire`, sensors and PID controllers: a
-       passenger car with Fiala or PAC2002 tires, on flat ground or a rally
-       stage (``vehicle_control.json``, ``vehicle_control_magic.json``,
-       ``vehicle_terrain.json``), and single tires (``tire_fiala.json``,
-       ``tire_pac2002.json``)
+       passenger car with Fiala, PAC2002 or Iowa tires, on flat ground or a
+       rally stage (``vehicle_control.json``, ``vehicle_control_magic.json``,
+       ``vehicle_control_iowa.json``, ``vehicle_terrain.json``,
+       ``vehicle_terrain_iowa.json``), and single tires (``tire_fiala.json``,
+       ``tire_pac2002.json``, ``tire_iowa.json``)
    * - .. image:: ../images/examples/raptor.jpg
           :width: 220px
           :alt: raptor
@@ -80,6 +89,34 @@ Force modules, sensors and controllers
        powertrain over rolling ground, around a route of schedules for the
        throttle, gears, brakes and steering (model by VTX,
        CC-BY-NC-SA-4.0, see :source:`examples/raptor/readme.rst`)
+   * - .. image:: ../images/examples/polo_r_wrc.jpg
+          :width: 220px
+          :alt: polo_r_wrc
+     - :source:`examples/polo_r_wrc/polo_r_wrc.json`
+     - a World Rally Car, 43 bodies and 55 joints: McPherson struts at all four
+       corners, added to a body-only source model, Iowa tires and a four wheel
+       drive powertrain after the published figures (six speed sequential,
+       fixed drive to front and rear limited slip differentials), over a gravel
+       stage; ``polo_r_wrc_suspension.json`` leaves off the body shell to show
+       the suspension at work (model by amogusstrikesback2, CC-BY-4.0, see
+       :source:`examples/polo_r_wrc/readme.rst`)
+   * - .. image:: ../images/examples/polo_r_wrc_suspension.jpg
+          :width: 220px
+          :alt: polo_r_wrc_suspension
+     - :source:`examples/polo_r_wrc/polo_r_wrc_suspension.json`
+     - the Polo R WRC without its body shell at 8 s: the struts, lower arms,
+       tie rods and halfshafts follow the wheels over the stage
+   * - .. image:: ../images/examples/m1a2.jpg
+          :width: 220px
+          :alt: m1a2
+     - :tree:`examples/m1a2`
+     - :doc:`../force-modules/track` and :doc:`../force-modules/contact`: a
+       62 t tank on two tracks of 78 links, seven road wheels a side on
+       torsion bar road arms, driven by its sprockets away from rest and into
+       a right turn; contact on primitive shapes (``m1a2.json``) or on STEP
+       surfaces (``m1a2_step.json``). The masses, springs and track are
+       estimates (benchmarks; model by coderslava402, CC-BY-4.0, see
+       :source:`examples/m1a2/readme.rst`)
    * - .. image:: ../images/examples/collision_50.jpg
           :width: 220px
           :alt: collision_50

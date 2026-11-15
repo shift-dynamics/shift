@@ -995,7 +995,7 @@ TEST_F(CadContact, TrackFrameStartsClear) {
     }
   }
   ASSERT_NE(track, nullptr);
-  const auto names = track->get_output_names();
+  const auto names = track->get_output_keys();
   const auto values = track->Measure();
   ASSERT_EQ(names.size(), 4u);
   ASSERT_EQ(values.size(), 4u);

@@ -224,8 +224,10 @@ TEST(StickSlip, TheDeflectionOfTheBristlesCarriesTheLoad) {
   // the output: how near the limit of holding, tan(slope) / mu_s
   contact->UpdateOutputs(0.0, state.data());
   std::vector<double> outputs;
-  contact->AppendOutputs(outputs);
-  const auto names = contact->get_output_names();
+  for(const auto& key : contact->get_output_keys()) {
+    outputs.push_back(contact->GetOutput(key));
+  }
+  const auto names = contact->get_output_keys();
   ASSERT_EQ(names.size(), 1u);
   EXPECT_EQ(names[0], "stick_ground_box");
   ASSERT_EQ(outputs.size(), 1u);
@@ -281,7 +283,7 @@ TEST(StickSlip, APairNotListedKeepsItsStatelessFriction) {
   auto contact = ContactModule(context);
   ASSERT_NE(contact, nullptr);
   EXPECT_EQ(contact->get_equation_count(), 0u);
-  EXPECT_TRUE(contact->get_output_names().empty());
+  EXPECT_TRUE(contact->get_output_keys().empty());
 }
 
 TEST(StickSlip, WhatItRefuses) {
@@ -339,7 +341,7 @@ TEST(StickSlipAll, EveryPairHoldsWithoutBeingListed) {
               Downhill(listed, slope.tan_slope), 1e-8);
   EXPECT_LT(Speed(holding), 1e-6);
   EXPECT_EQ(ContactModule(holding)->get_shared_pairs(), 1);
-  const auto names = ContactModule(holding)->get_output_names();
+  const auto names = ContactModule(holding)->get_output_keys();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "stick_all");
   EXPECT_EQ(names[1], "stick_pairs");

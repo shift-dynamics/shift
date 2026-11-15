@@ -105,6 +105,14 @@ void shift::core::force_module::JointFriction::Load() {
   }
   equation_count_ = bristle_stiffness_ > 0.0 ? 1 : 0;
   q_0_.assign(equation_count_, 0.0);
+
+  DeclareOutput("friction_force", &force_,
+                "friction force on the joint (torque on a revolute joint)");
+  if(bristle_stiffness_ > 0.0) {
+    DeclareOutput("stick", &stick_,
+                  "share of the static friction in use, 1 at the limit of "
+                  "holding");
+  }
 }
 
 void shift::core::force_module::JointFriction::Evaluate(const double* y,
@@ -143,22 +151,6 @@ void shift::core::force_module::JointFriction::UpdateOutputs(double,
   Evaluate(y, nullptr);
 }
 
-std::vector<std::string>
-shift::core::force_module::JointFriction::get_output_names() const {
-  if(bristle_stiffness_ > 0.0) {
-    return {"friction", "stick"};
-  }
-  return {"friction"};
-}
-
-void shift::core::force_module::JointFriction::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(force_);
-  if(bristle_stiffness_ > 0.0) {
-    values.push_back(stick_);
-  }
-}
-
 void shift::core::force_module::JointMap::DeclareParameters() {
   DeclareParameter("joint", &joint_name_,
                    "name of the revolute or prismatic joint the force acts "
@@ -183,6 +175,9 @@ void shift::core::force_module::JointMap::DeclareParameters() {
                    "text file of the number of x values, the number of y "
                    "values, x_values, y_values and forces; in place of them",
                    false);
+
+  DeclareOutput("force", &force_,
+                "force of the map on the joint (torque on a revolute joint)");
 }
 
 void shift::core::force_module::JointMap::Connect() {
@@ -278,14 +273,4 @@ void shift::core::force_module::JointMap::Service(const double* y, double*) {
 void shift::core::force_module::JointMap::UpdateOutputs(double,
                                                         const double* y) {
   force_ = Force(Variable(x_kind_, joint_, y), Variable(y_kind_, y_joint_, y));
-}
-
-std::vector<std::string>
-shift::core::force_module::JointMap::get_output_names() const {
-  return {"force"};
-}
-
-void shift::core::force_module::JointMap::AppendOutputs(
-  std::vector<double>& values) const {
-  values.push_back(force_);
 }
