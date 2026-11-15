@@ -104,10 +104,29 @@ shift_test = executable(
   implicit_include_directories: false,
 )
 
-# everything except the per-model cases, which are registered one by one below
+# the contact tests that take longest (15 s to 2 min each, in a release
+# build): run as the benchmark contact_heavy, not with the regular tests
+heavy_contact_tests = [
+  'Faces/CurvedOnCurved.TiltedFlanksHaveNoJump/*',
+  'Faces/CurvedOnCurved.FlanksHaveNoJump/*',
+  'CadContact.TrackBenchmarksDoNotStall',
+  'CadContact.LinksSettleOnTheSprocket',
+  'CadRound.CornerOffAnEdgeHasNoStep',
+  'DemModel.GpuNscPlateSettlesOnGrains',
+  'DemModel.GpuMatchesCpu',
+  'DemNsc.GpuGrainsSettleInBox',
+]
+
+# everything except the per-model cases, which are registered one by one
+# below, the speed benchmarks and the heavy contact tests
 test('shift-test', shift_test,
-     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*'],
+     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
+            + ':'.join(heavy_contact_tests)],
      timeout: 3600)
+
+benchmark('contact_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
+          timeout: 0)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc

@@ -314,9 +314,12 @@ Examples and tests
   file; grains of a hull and a clump drawn as a mesh, read from a file) and
   :source:`test/dem/test_dem_playback.cc` (the grains in the viewer: played
   back forward and back, Reset repeating the run, Run from the grains
-  shown).
+  shown). The three that take longest, the plate with NSC on the GPU,
+  grains settling in a box with NSC on the GPU and the GPU against the CPU
+  with SMC, run with the benchmark ``contact_heavy`` instead (below).
 * Benchmarks, not run with the tests, each run with
-  ``meson test -C build --benchmark <name>``: ``dem_speed`` (the GPU solver
+  ``meson test -C build --benchmark <name>``: ``contact_heavy`` (the
+  longest contact tests, the three above among them), ``dem_speed`` (the GPU solver
   alone on up to 885,000 grains), ``dem_rock`` (a rock of 41 kg, the convex
   hull of a lumpy ellipsoid's mesh, thrown into 186,000 beads, 0.3 s),
   ``dem_million`` (a million beads falling into place, 0.05 s) and
