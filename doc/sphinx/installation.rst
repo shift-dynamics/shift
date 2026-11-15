@@ -59,8 +59,9 @@ This builds ``build/shift/main/shift-cli``, the viewer
 every model in ``examples/``, except for a few long collision models that
 are kept as benchmarks (``meson test -C build --benchmark``). So are the
 contact tests that take longest, a dozen of 15 s to 2 minutes each in a
-release build: run them with ``meson test -C build --benchmark
-contact_heavy`` (they are listed in :source:`test/meson.build`).
+release build, and the long runs of the SPH soil: run them with ``meson
+test -C build --benchmark contact_heavy`` and ``--benchmark sph_heavy``
+(they are listed in :source:`test/meson.build`).
 
 ``build/`` is a debug build (``-O0``, with asserts). For simulation work,
 keep an optimized build next to it, which is 4–8 times faster:

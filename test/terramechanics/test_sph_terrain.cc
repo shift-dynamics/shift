@@ -329,9 +329,11 @@ TEST(SphTerrain, StaysAtRestOnTheGpu) {
 }
 
 /* a plate of mass on a vertical slide, its bottom a few millimetres above SPH
-soil at rest (on the GPU), on soil_contact */
+soil at rest, on soil_contact; on the GPU of the context, or with device
+"cpu" on the CPU */
 static void LoadPlateOnSoil(shift::core::Context& context, double mass,
-                            double time_span) {
+                            double time_span,
+                            const std::string& device = "gpu") {
   const std::string path = testing::TempDir() + "/sph_plate.json";
   std::ostringstream model;
   model.precision(17);
@@ -348,7 +350,7 @@ static void LoadPlateOnSoil(shift::core::Context& context, double mass,
   "frames": [{"name": "terrain", "T": [0, 0, 0]}],
   "terrain": [{"type": "sph", "name": "pit", "parent": [["fixed"], "terrain"],
                "x": [0, 0.3], "y": [0, 0.3], "depth": 0.1, "spacing": 0.02,
-               )" << kSand << R"(}],
+               "device": ")" << device << R"(", )" << kSand << R"(}],
   "assemblies": [{"name": "a",
     "force_modules": [{"type": "soil_contact", "name": "soil",
                        "bodies": ["plate"]}],
@@ -377,30 +379,16 @@ static void LoadPlateOnSoil(shift::core::Context& context, double mass,
   }
 }
 
-/* the plate lands on the soil and settles on it: at the end the soil carries
-its weight and it is at rest, a little sunk in; it never bounces higher than
-it started (the coupling adds no energy) */
-TEST(SphTerrain, PlateSettlesOnTheSoil) {
-  if(!shift::core::gpu::Device::is_built()) {
-    GTEST_SKIP() << "built without Vulkan";
-  }
-  const double mass = 2.0;
-  shift::core::Context context;
-  LoadPlateOnSoil(context, mass, 0.4);
-  try {
-    context.GetGpuDevice();
-  } catch(const shift::core::Exception& e) {
-    if(std::getenv("SHIFT_GPU_REQUIRED")) {
-      FAIL() << e.what();
-    }
-    GTEST_SKIP() << "no GPU device: " << e.what();
-  }
-  context.Simulate();
+/* the plate of LoadPlateOnSoil after time_span: the soil carries its
+weight and it is at rest on the surface; the soil's impulse on it over the
+run is that of the weight but for its momentum at the end (the load of one
+step is that of a few substeps, noisy, but its mean carries the plate) */
+static void ExpectPlateCarried(shift::core::Context& context, double mass,
+                               double time_span) {
   shift::core::terrain::Sph* sph = GetSph(context);
   ASSERT_NE(sph, nullptr);
   /* 6 by 6 by 2: half a spacing inside the plate's faces */
   EXPECT_EQ(sph->get_body_marker_count(0), 72u);
-  const ksl_coscrew_t& load = sph->get_body_load(0);
   shift::core::body::Base* plate = nullptr;
   for(auto body : context.get_active_articulated_bodies()) {
     if(body->get_name() == "plate") {
@@ -413,22 +401,50 @@ TEST(SphTerrain, PlateSettlesOnTheSoil) {
     context.GetBodyVelocity(context.GetBodyLoadIndex(plate));
   /* the bottom of the plate, from the surface of the soil at rest (z down) */
   const double bottom = z - 0.005;
-  std::printf("load %.4g N (weight %.4g N), bottom %.3g mm, speed %.3g "
-              "mm/s\n",
-              load.lin.z, mass * 9.81, 1e3 * bottom, 1e3 * velocity.lin.z);
-  /* the load of one step is that of a few substeps, noisy, but its mean
-  carries the plate: over the run, the impulse of the soil is that of the
-  weight but for the plate's momentum at the end */
   const ksl_coscrew_t& impulse = sph->get_body_impulse(0);
-  const double expected = mass * 9.81 * 0.4 - mass * velocity.lin.z;
-  std::printf("impulse %.4g N s, of the weight %.4g N s\n", -impulse.lin.z,
-              expected);
+  const double expected = mass * 9.81 * time_span - mass * velocity.lin.z;
+  std::printf("bottom %.3g mm, speed %.3g mm/s; impulse %.4g N s, of the "
+              "weight %.4g N s\n",
+              1e3 * bottom, 1e3 * velocity.lin.z, -impulse.lin.z, expected);
   EXPECT_NEAR(-impulse.lin.z, expected, 0.03 * expected);
   EXPECT_LT(std::abs(impulse.lin.x), 0.01 * expected);
   EXPECT_LT(std::abs(impulse.lin.y), 0.01 * expected);
   EXPECT_LT(std::abs(velocity.lin.z), 0.05);
   /* on the surface, within half a spacing */
   EXPECT_NEAR(bottom, 0.0, 0.01);
+}
+
+/* the plate on the soil for 0.05 s, on the CPU: a short run of the soil
+through the context and soil_contact, carrying a body (1.6 s in a release
+build; SphTerrain.PlateSettlesOnTheSoil is the long run, on the GPU) */
+TEST(SphTerrain, PlateRestsOnTheSoil) {
+  const double mass = 2.0, time_span = 0.05;
+  shift::core::Context context;
+  LoadPlateOnSoil(context, mass, time_span, "cpu");
+  context.Simulate();
+  ExpectPlateCarried(context, mass, time_span);
+}
+
+/* the plate lands on the soil and settles on it, on the GPU, for 0.4 s: at
+the end the soil carries its weight and it is at rest, a little sunk in
+(the benchmark sph_heavy) */
+TEST(SphTerrain, PlateSettlesOnTheSoil) {
+  if(!shift::core::gpu::Device::is_built()) {
+    GTEST_SKIP() << "built without Vulkan";
+  }
+  const double mass = 2.0, time_span = 0.4;
+  shift::core::Context context;
+  LoadPlateOnSoil(context, mass, time_span);
+  try {
+    context.GetGpuDevice();
+  } catch(const shift::core::Exception& e) {
+    if(std::getenv("SHIFT_GPU_REQUIRED")) {
+      FAIL() << e.what();
+    }
+    GTEST_SKIP() << "no GPU device: " << e.what();
+  }
+  context.Simulate();
+  ExpectPlateCarried(context, mass, time_span);
 }
 
 /* a blade pushes the soil of an SPH region of an SCM terrain, whose walls

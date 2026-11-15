@@ -117,15 +117,30 @@ heavy_contact_tests = [
   'DemNsc.GpuGrainsSettleInBox',
 ]
 
+# the SPH soil's long runs on the GPU (10 s to 75 s each, in a release
+# build), against measurements and at rest: run as the benchmark sph_heavy.
+# The regular tests keep short runs of the soil (SphTerrain.StaysAtRest,
+# PlateRestsOnTheSoil, SpilledSoilLandsOnTheScm; Sph.GpuMatchesCpu,
+# BodyPressesIntoTheSoil)
+heavy_sph_tests = [
+  'Sph.BlockCarriesItsWeight',
+  'Sph.ColumnCollapseRunout',
+  'Sph.HeapSettlesNearTheFrictionAngle',
+  'SphTerrain.PlateSettlesOnTheSoil',
+]
+
 # everything except the per-model cases, which are registered one by one
-# below, the speed benchmarks and the heavy contact tests
+# below, the speed benchmarks and the heavy tests
 test('shift-test', shift_test,
      args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
-            + ':'.join(heavy_contact_tests)],
+            + ':'.join(heavy_contact_tests + heavy_sph_tests)],
      timeout: 3600)
 
 benchmark('contact_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
+          timeout: 0)
+benchmark('sph_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_sph_tests)],
           timeout: 0)
 
 # the time contact of CAD surfaces takes, in the hard cases of
