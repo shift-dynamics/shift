@@ -1,0 +1,155 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 5 (in a search): each sphere's neighbors, the spheres of other
+// grains within the margin, and the triangles of bodies within it, by index,
+// each keeping the history it had in the last list; and the positions the
+// next search is measured from
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer SphereAnchor { ivec4 sphere_anchor[]; };
+layout(std430, binding = 1) readonly buffer SphereOffset { vec4 sphere_offset[]; };
+layout(std430, binding = 2) readonly buffer Start { uint start[]; };
+layout(std430, binding = 3) readonly buffer Order { uint order[]; };
+layout(std430, binding = 4) buffer NeighborCount { uint neighbor_count[]; };
+layout(std430, binding = 5) buffer Neighbor { uint neighbor[]; };
+layout(std430, binding = 6) buffer History { vec4 history[]; };
+layout(std430, binding = 7) writeonly buffer ReferenceAnchor { ivec4 reference_anchor[]; };
+layout(std430, binding = 8) writeonly buffer ReferenceOffset { vec4 reference_offset[]; };
+layout(std430, binding = 9) buffer Flags { uint flags[]; };
+layout(std430, binding = 10) readonly buffer TriangleStart { uint triangle_start[]; };
+layout(std430, binding = 11) readonly buffer TriangleOrder { uint triangle_order[]; };
+layout(std430, binding = 12) readonly buffer TriangleAnchor { ivec4 triangle_anchor[]; };
+layout(std430, binding = 13) readonly buffer TriangleVertex { vec4 triangle_vertex[]; };
+layout(std430, binding = 14) buffer TriangleCount { uint triangle_count[]; };
+layout(std430, binding = 15) buffer TriangleList { uint triangle_list[]; };
+layout(std430, binding = 16) buffer TriangleHistory { vec4 triangle_history[]; };
+
+const uint kMost = 64u;
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres || flags[0] == 0u) {
+    return;
+  }
+  const ivec4 a = sphere_anchor[s];
+  const vec4 x = sphere_offset[s];
+  uint found[kMost];
+  uint n = 0u, total = 0u;
+  uint hashes[27];
+  const int cells = NeighborCells(Cell(a.xyz, x.xyz), hashes);
+  for(int c = 0; c < cells; c++) {
+    const uint first = start[hashes[c]], end = start[hashes[c] + 1u];
+    for(uint k = first; k < end; k++) {
+      const uint t = order[k];
+      const ivec4 b = sphere_anchor[t];
+      if(t == s || b.w == a.w) {
+        continue;
+      }
+      const vec4 y = sphere_offset[t];
+      /* the distance as the pair computes it, lower index first */
+      const vec3 rel = s < t ? Relative(a.xyz, x.xyz, b.xyz, y.xyz)
+                             : Relative(b.xyz, y.xyz, a.xyz, x.xyz);
+      if(length(rel) < x.w + y.w + margin) {
+        if(n < max_neighbors) {
+          found[n++] = t;
+        }
+        total++;
+      }
+    }
+  }
+  /* by index */
+  for(uint k = 1u; k < n; k++) {
+    const uint moving = found[k];
+    uint m = k;
+    while(m > 0u && found[m - 1u] > moving) {
+      found[m] = found[m - 1u];
+      m--;
+    }
+    found[m] = moving;
+  }
+  /* the histories of the pairs already listed (both lists by index) */
+  const uint base = s * max_neighbors;
+  const uint old = neighbor_count[s];
+  vec4 kept[kMost];
+  uint j = 0u;
+  for(uint k = 0u; k < n; k++) {
+    while(j < old && neighbor[base + j] < found[k]) {
+      j++;
+    }
+    kept[k] = (j < old && neighbor[base + j] == found[k])
+                ? history[base + j] : vec4(0.0);
+  }
+  for(uint k = 0u; k < n; k++) {
+    neighbor[base + k] = found[k];
+    history[base + k] = kept[k];
+  }
+  neighbor_count[s] = n;
+  /* the triangles: within the margin of the sphere, each once (a triangle
+  is in up to 8 cells) */
+  if(triangles > 0u) {
+    uint m = 0u, triangle_total = 0u;
+    const int triangle_cells =
+      NeighborCellsIn(Cell(a.xyz, x.xyz), triangle_mask, hashes);
+    for(int c = 0; c < triangle_cells; c++) {
+      const uint first = triangle_start[hashes[c]],
+                 end = triangle_start[hashes[c] + 1u];
+      for(uint k = first; k < end; k++) {
+        const uint t = triangle_order[k] / 8u;
+        bool seen = false;
+        for(uint j = 0u; j < m; j++) {
+          seen = seen || found[j] == t;
+        }
+        if(seen) {
+          continue;
+        }
+        const vec3 p = Relative(a.xyz, x.xyz, triangle_anchor[t].xyz, vec3(0.0));
+        const vec3 q = ClosestPointOnTriangle(
+          p, triangle_vertex[3u * t].xyz, triangle_vertex[3u * t + 1u].xyz,
+          triangle_vertex[3u * t + 2u].xyz);
+        if(length(p - q) < x.w + margin) {
+          if(m < max_triangles) {
+            found[m++] = t;
+          } else {
+            atomicOr(flags[1], kTooManyTriangles);
+          }
+          triangle_total++;
+        }
+      }
+    }
+    for(uint k = 1u; k < m; k++) {
+      const uint moving = found[k];
+      uint i = k;
+      while(i > 0u && found[i - 1u] > moving) {
+        found[i] = found[i - 1u];
+        i--;
+      }
+      found[i] = moving;
+    }
+    const uint triangle_base = s * max_triangles;
+    const uint triangle_old = triangle_count[s];
+    j = 0u;
+    for(uint k = 0u; k < m; k++) {
+      while(j < triangle_old && triangle_list[triangle_base + j] < found[k]) {
+        j++;
+      }
+      kept[k] = (j < triangle_old && triangle_list[triangle_base + j] == found[k])
+                  ? triangle_history[triangle_base + j] : vec4(0.0);
+    }
+    for(uint k = 0u; k < m; k++) {
+      triangle_list[triangle_base + k] = found[k];
+      triangle_history[triangle_base + k] = kept[k];
+    }
+    triangle_count[s] = m;
+    atomicMax(flags[4], triangle_total);
+  }
+  reference_anchor[s] = a;
+  reference_offset[s] = x;
+  atomicMax(flags[2], total);
+  if(total > max_neighbors) {
+    atomicOr(flags[1], kTooManyNeighbors);
+  }
+}

@@ -70,6 +70,8 @@ test_sources = [
   'gpu/test_gpu.cc',
   'terramechanics/test_sph.cc',
   'terramechanics/test_sph_terrain.cc',
+  'dem/test_dem.cc',
+  'dem/test_dem_model.cc',
 ]
 # the compute shader of the GPU tests, as a C initializer of SPIR-V words
 if gpu_found
@@ -89,6 +91,7 @@ if not is_disabler(shift_gui_dep)
                    'test_embedded_texture.cc', 'test_camera.cc',
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
+                   'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
                    'test_light_glow.cc']
   test_deps += [shift_gui_dep]
@@ -101,15 +104,72 @@ shift_test = executable(
   implicit_include_directories: false,
 )
 
-# everything except the per-model cases, which are registered one by one below
+# the contact tests that take longest (15 s to 2 min each, in a release
+# build): run as the benchmark contact_heavy, not with the regular tests
+heavy_contact_tests = [
+  'Faces/CurvedOnCurved.TiltedFlanksHaveNoJump/*',
+  'Faces/CurvedOnCurved.FlanksHaveNoJump/*',
+  'CadContact.TrackBenchmarksDoNotStall',
+  'CadContact.LinksSettleOnTheSprocket',
+  'CadRound.CornerOffAnEdgeHasNoStep',
+  'DemModel.GpuNscPlateSettlesOnGrains',
+  'DemModel.GpuMatchesCpu',
+  'DemNsc.GpuGrainsSettleInBox',
+]
+
+# the SPH soil's long runs on the GPU (10 s to 75 s each, in a release
+# build), against measurements and at rest: run as the benchmark sph_heavy.
+# The regular tests keep short runs of the soil (SphTerrain.StaysAtRest,
+# PlateRestsOnTheSoil, SpilledSoilLandsOnTheScm; Sph.GpuMatchesCpu,
+# BodyPressesIntoTheSoil)
+heavy_sph_tests = [
+  'Sph.BlockCarriesItsWeight',
+  'Sph.ColumnCollapseRunout',
+  'Sph.HeapSettlesNearTheFrictionAngle',
+  'SphTerrain.PlateSettlesOnTheSoil',
+]
+
+# everything except the per-model cases, which are registered one by one
+# below, the speed benchmarks and the heavy tests
 test('shift-test', shift_test,
-     args: ['--gtest_filter=-Examples/*:CadSpeed.*:SolverSpeed.*'],
+     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
+            + ':'.join(heavy_contact_tests + heavy_sph_tests)],
      timeout: 3600)
+
+benchmark('contact_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
+          timeout: 0)
+benchmark('sph_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_sph_tests)],
+          timeout: 0)
 
 # the time contact of CAD surfaces takes, in the hard cases of
 # test/contact/test_cad_hard_contact.cc
 benchmark('cad_contact_speed', shift_test,
           args: ['--gtest_filter=CadSpeed.*'], timeout: 0)
+
+# the speed of the GPU DEM solver (test/dem/test_dem.cc)
+benchmark('dem_speed', shift_test,
+          args: ['--gtest_filter=DemSpeed.Gpu'], timeout: 0)
+
+# smooth against non-smooth contact on the CPU (test/dem/test_dem.cc)
+benchmark('dem_nsc', shift_test,
+          args: ['--gtest_filter=DemSpeed.NscAgainstSmc'], timeout: 0)
+
+# the non-smooth method on the GPU against the CPU (test/dem/test_dem.cc)
+benchmark('dem_nsc_gpu', shift_test,
+          args: ['--gtest_filter=DemSpeed.NscGpu'], timeout: 0)
+
+# a rock (the convex hull of a mesh) thrown into 186,000 grains, and a
+# million grains falling into place, on the GPU (test/dem/test_dem_model.cc)
+benchmark('dem_rock', shift_test,
+          args: ['--gtest_filter=DemSpeed.RockInGrains'], timeout: 0)
+benchmark('dem_million', shift_test,
+          args: ['--gtest_filter=DemSpeed.MillionGrains'], timeout: 0)
+# 100,000 convex hull rocks settling, and a block dropped on them, on the
+# GPU (test/dem/test_dem_model.cc)
+benchmark('dem_rocks', shift_test,
+          args: ['--gtest_filter=DemSpeed.BlockOnRocks'], timeout: 0)
 
 # the time of one evaluation of the equations of motion of trees without
 # closed loops by the rnca, aba and dca solvers (test/test_tree_solvers.cc)

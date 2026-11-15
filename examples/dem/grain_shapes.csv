@@ -1,0 +1,5 @@
+# grains of the DEM: shape, position (m), orientation (unit quaternion, scalar last), velocity (m/s), angular velocity in principal axes (rad/s)
+grain,x,y,z,qx,qy,qz,qw,vx,vy,vz,wx,wy,wz
+sphere,0,0.015,-0.0036,0,0,0,1,0,0,0,0,0,0
+clump,0,0,-0.0035,0,0,0,1,0,0,0,0,0,0
+hull,0,-0.015,-0.0042,0,0,0,1,0,0,0,0,0,0

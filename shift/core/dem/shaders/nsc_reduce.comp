@@ -1,0 +1,79 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 256) in;
+
+// NSC pass 8: the sums (or largest values) of mode (nsc_common.glsl) over
+// each 1024 contacts, in a fixed order: each invocation over 4 contacts,
+// then a tree over the workgroup. In the order of the modes, va .. ve are
+// x, g_x, g_ones (Lipschitz); x, g_x, -, g_y, y (at x); x, g_x, -, g_y, x0
+// (residual); -, the changes (Jacobi)
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 1) readonly buffer A { vec4 va[]; };
+layout(std430, binding = 2) readonly buffer B { vec4 vb[]; };
+layout(std430, binding = 3) readonly buffer C { vec4 vc[]; };
+layout(std430, binding = 4) readonly buffer D { vec4 vd[]; };
+layout(std430, binding = 5) readonly buffer E { vec4 ve[]; };
+layout(std430, binding = 6) writeonly buffer Partials { vec4 partials[]; };
+layout(std430, binding = 7) readonly buffer Control { NscControl control; };
+
+shared vec4 sums[256];
+
+float Dot6(vec3 a, vec3 ar, vec3 b, vec3 br) {
+  return dot(a, b) + dot(ar, br);
+}
+
+vec4 Value(uint c) {
+  const uint i = 2u * c, j = i + 1u;
+  if(mode == kReduceLipschitz) {
+    const vec3 d = vb[i].xyz - vc[i].xyz, dr = vb[j].xyz - vc[j].xyz;
+    const vec3 e = va[i].xyz - 1.0, er = va[j].xyz - 1.0;
+    return vec4(Dot6(d, dr, d, dr), Dot6(e, er, e, er), 0.0, 0.0);
+  }
+  if(mode == kReduceAtX) {
+    const vec3 d = va[i].xyz - ve[i].xyz, dr = va[j].xyz - ve[j].xyz;
+    return vec4(Dot6(d, dr, vb[i].xyz - vd[i].xyz, vb[j].xyz - vd[j].xyz),
+                Dot6(d, dr, d, dr), 0.0, 0.0);
+  }
+  if(mode == kReduceResidual) {
+    const uint r = 9u * c;
+    vec3 p = va[i].xyz - vb[i].xyz, pr = va[j].xyz - vb[j].xyz;
+    ProjectScaled(contacts[r + 1u].w, contacts[r].xyz, contacts[r + 2u].w,
+                  contacts[r + 8u], p, pr);
+    const vec3 d = abs(va[i].xyz - p), dr = abs(va[j].xyz - pr);
+    const vec3 x = abs(va[i].xyz), xr = abs(va[j].xyz);
+    return vec4(max(max(max(d.x, d.y), max(d.z, dr.x)), max(dr.y, dr.z)),
+                max(max(max(x.x, x.y), max(x.z, xr.x)), max(xr.y, xr.z)),
+                Dot6(vd[i].xyz, vd[j].xyz, va[i].xyz - ve[i].xyz,
+                     va[j].xyz - ve[j].xyz),
+                0.0);
+  }
+  return vec4(vb[i].x, vb[i].y, 0.0, 0.0);
+}
+
+void main() {
+  const uint i = gl_LocalInvocationID.x, group = gl_WorkGroupID.x;
+  const uint count = control.count;
+  vec4 value = vec4(0.0);
+  for(uint k = 0u; k < 4u; k++) {
+    const uint c = 1024u * group + 256u * k + i;
+    if(c < count) {
+      value = Combine(mode, value, Value(c));
+    }
+  }
+  sums[i] = value;
+  barrier();
+  for(uint half_n = 128u; half_n > 0u; half_n /= 2u) {
+    if(i < half_n) {
+      sums[i] = Combine(mode, sums[i], sums[i + half_n]);
+    }
+    barrier();
+  }
+  if(i == 0u) {
+    partials[group] = sums[0];
+  }
+}

@@ -1,0 +1,59 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 256) in;
+
+// NSC pass 5b (with bodies of mass), one workgroup: each body's sums over
+// the partial sums of nsc_body_reduce.comp, in a fixed order, and the change
+// of its velocity and angular velocity they make: -p / m and -I^-1 (lc x p +
+// rho), at 2 b and 2 b + 1 of body_delta; 0 for a body of no mass
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Partials { float partials[]; };
+layout(std430, binding = 1) readonly buffer BodyInfo { vec4 body_info[]; };
+layout(std430, binding = 2) writeonly buffer BodyDelta { vec4 body_delta[]; };
+layout(std430, binding = 3) readonly buffer Control { NscControl control; };
+
+shared float sums[256][6];
+
+void main() {
+  const uint i = gl_LocalInvocationID.x;
+  const uint groups = (control.count + 1023u) / 1024u;
+  for(uint b = 0u; b < bodies; b++) {
+    float value[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    for(uint group = i; group < groups; group += 256u) {
+      for(uint k = 0u; k < 6u; k++) {
+        value[k] += partials[(group * bodies + b) * 6u + k];
+      }
+    }
+    for(uint k = 0u; k < 6u; k++) {
+      sums[i][k] = value[k];
+    }
+    barrier();
+    for(uint half_n = 128u; half_n > 0u; half_n /= 2u) {
+      if(i < half_n) {
+        for(uint k = 0u; k < 6u; k++) {
+          sums[i][k] = sums[i][k] + sums[i + half_n][k];
+        }
+      }
+      barrier();
+    }
+    if(i == 0u) {
+      const uint info = 5u * (substep * bodies + b);
+      const float mass = body_info[info].x;
+      vec3 dv = vec3(0.0), dw = vec3(0.0);
+      if(mass > 0.0) {
+        const vec3 p = vec3(sums[0][0], sums[0][1], sums[0][2]);
+        const vec3 m = vec3(sums[0][3], sums[0][4], sums[0][5]);
+        dv = -p / mass;
+        dw = -Times(body_info[info + 1u].xyz, body_info[info + 2u].xyz,
+                    body_info[info + 3u].xyz, m);
+      }
+      body_delta[2u * b] = vec4(dv, 0.0);
+      body_delta[2u * b + 1u] = vec4(dw, 0.0);
+    }
+    barrier();
+  }
+}

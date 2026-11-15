@@ -42,6 +42,7 @@ theory
    dynamics/dynamics
    dynamics/articulated_body_algorithms
    contact/contact
+   dem/dem
 
 developer reference
 -------------------

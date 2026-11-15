@@ -484,7 +484,11 @@ Example and test
   a body just above the soil feels no pull, a column collapses as far as
   experiments show, and a heap settles at the friction angle) and
   :source:`test/terramechanics/test_sph_terrain.cc` (the SPH terrain, regions
-  of terrains, a plate settling on SPH soil, and a blade pushing soil out of
-  an SPH region onto the SCM terrain with its volume conserved). The example
+  of terrains, a plate resting on SPH soil, and a blade pushing soil out of
+  an SPH region onto the SCM terrain with its volume conserved). The long
+  runs of the soil, the block carrying its weight, the column collapse, the
+  heap and the plate settling for 0.4 s on the GPU, are the benchmark
+  ``sph_heavy`` (``meson test -C build --benchmark sph_heavy``); the
+  regular tests run the soil for a short time. The example
   :source:`examples/terramechanics/sph_blade.json` drives a blade through an
-  SPH pit in an SCM terrain.
+  SPH pit in an SCM terrain (also a benchmark).

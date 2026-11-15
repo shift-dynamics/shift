@@ -3,24 +3,32 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/body/base.h"
+#include "shift/core/force_module/dem.h"
 #include "shift/core/geometry/cad.h"
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/integrator/base.h"
+#include "shift/core/log.h"
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
 #include "shift/core/terrain/sph.h"
 
+#include "ksl/matrix.h"
+#include "ksl/quaternion.h"
+#include "ksl/SE3.h"
+#include "ksl/vec3.h"
+
 #include <H5Cpp.h>
-#include <QGenericMatrix>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <random>
 #include <sstream>
 #include <map>
@@ -34,13 +42,19 @@ static double WallTime() {
     .count();
 }
 
-static QMatrix4x4 ToMatrix(const ksl_SE3_t& d) {
-  // ksl_SE3_t is column major: as_array[3 * column + row]
-  const double* a = d.as_array;
-  return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
-                    float(a[1]), float(a[4]), float(a[7]), float(a[10]),
-                    float(a[2]), float(a[5]), float(a[8]), float(a[11]), 0.f,
-                    0.f, 0.f, 1.f);
+/* a pose in single precision */
+static ksl_SE3f_t ToPose(const ksl_SE3_t& d) {
+  ksl_SE3f_t f;
+  for(int k = 0; k < 12; k++) {
+    f.as_array[k] = float(d.as_array[k]);
+  }
+  return f;
+}
+
+/* the box that holds no point yet, which points then grow */
+static void EmptyBox(ksl_vec3f_t& box_min, ksl_vec3f_t& box_max) {
+  box_min = ksl_vec3f(1e30f, 1e30f, 1e30f);
+  box_max = ksl_vec3f(-1e30f, -1e30f, -1e30f);
 }
 
 /*! area weighted vertex normals, for meshes imported without normals */
@@ -52,25 +66,33 @@ static void ComputeNormals(shift::gui::SceneMesh& mesh) {
     shift::gui::Vertex* v[3] = {&mesh.vertices[mesh.indices[i]],
                                 &mesh.vertices[mesh.indices[i + 1]],
                                 &mesh.vertices[mesh.indices[i + 2]]};
-    const QVector3D p0(v[0]->position[0], v[0]->position[1],
-                       v[0]->position[2]);
-    const QVector3D p1(v[1]->position[0], v[1]->position[1],
-                       v[1]->position[2]);
-    const QVector3D p2(v[2]->position[0], v[2]->position[1],
-                       v[2]->position[2]);
-    const QVector3D n = QVector3D::crossProduct(p1 - p0, p2 - p0);
+    ksl_vec3f_t p[3];
+    for(int k = 0; k < 3; k++) {
+      p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
+                       v[k]->position[2]);
+    }
+    ksl_vec3f_t e1, e2, n;
+    ksl_subtract_vvf(&p[1], &p[0], &e1);
+    ksl_subtract_vvf(&p[2], &p[0], &e2);
+    ksl_cross_vvf(&e1, &e2, &n);
     for(auto vertex : v) {
-      vertex->normal[0] += n.x();
-      vertex->normal[1] += n.y();
-      vertex->normal[2] += n.z();
+      for(int k = 0; k < 3; k++) {
+        vertex->normal[k] += n.at[k];
+      }
     }
   }
+  /* divided by the length, however small the triangles; a vertex of no
+  area keeps its zero normal */
   for(auto& vertex : mesh.vertices) {
-    QVector3D n(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
-    n.normalize();
-    vertex.normal[0] = n.x();
-    vertex.normal[1] = n.y();
-    vertex.normal[2] = n.z();
+    ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
+                              vertex.normal[2]);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(length > 0.f) {
+      ksl_vec3f_scale(&n, 1.f / length);
+    }
+    for(int k = 0; k < 3; k++) {
+      vertex.normal[k] = n.at[k];
+    }
   }
 }
 
@@ -84,14 +106,15 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   const bool has_normals = data.normals.size() == data.vertices.size();
   const bool has_uvs = data.texture_coordinates.size() == data.vertices.size();
   mesh.vertices.resize(vertex_count);
-  mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-  mesh.bounds_max = -mesh.bounds_min;
+  EmptyBox(mesh.bounds_min, mesh.bounds_max);
   for(size_t i = 0; i < vertex_count; i++) {
     for(int k = 0; k < 3; k++) {
       mesh.vertices[i].position[k] = data.vertices[3 * i + k];
       mesh.vertices[i].normal[k] = has_normals ? data.normals[3 * i + k] : 0.f;
-      mesh.bounds_min[k] = std::min(mesh.bounds_min[k], data.vertices[3 * i + k]);
-      mesh.bounds_max[k] = std::max(mesh.bounds_max[k], data.vertices[3 * i + k]);
+      mesh.bounds_min.at[k] =
+        std::min(mesh.bounds_min.at[k], data.vertices[3 * i + k]);
+      mesh.bounds_max.at[k] =
+        std::max(mesh.bounds_max.at[k], data.vertices[3 * i + k]);
     }
     /* assimp gives texture coordinates with v = 0 at the bottom of the image
     (OpenGL); the texture layers are uploaded with the top row of the image at
@@ -111,7 +134,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   if(data.material_index >= 0 &&
      data.material_index < static_cast<int>(materials.size())) {
     const auto& material = materials[data.material_index];
-    mesh.albedo = QVector3D(material.Kd[0], material.Kd[1], material.Kd[2]);
+    mesh.albedo = ksl_vec3f(material.Kd[0], material.Kd[1], material.Kd[2]);
     mesh.opacity = std::clamp(material.opacity, 0.f, 1.f);
     // use the metallic-roughness value if given, otherwise map the
     // Blinn-Phong exponent to an approximately equivalent GGX roughness
@@ -133,6 +156,118 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   return mesh;
 }
 
+
+/* a sphere of center c and radius r in mesh, of segments around its z axis
+and rings from pole to pole, its triangles wound counterclockwise seen from
+outside */
+static void AddSphere(const std::array<float, 3>& c, float r, int segments,
+                      int rings, shift::gui::SceneMesh& mesh) {
+  const uint32_t first = static_cast<uint32_t>(mesh.vertices.size());
+  for(int j = 0; j <= rings; j++) {
+    const double polar = M_PI * j / rings;
+    for(int i = 0; i <= segments; i++) {
+      const double azimuth = 2.0 * M_PI * i / segments;
+      const float n[3] = {float(std::sin(polar) * std::cos(azimuth)),
+                          float(std::sin(polar) * std::sin(azimuth)),
+                          float(std::cos(polar))};
+      shift::gui::Vertex v;
+      for(int k = 0; k < 3; k++) {
+        v.position[k] = c[k] + r * n[k];
+        v.normal[k] = n[k];
+      }
+      v.uv[0] = float(i) / segments;
+      v.uv[1] = float(j) / rings;
+      mesh.vertices.push_back(v);
+    }
+  }
+  const uint32_t row = uint32_t(segments + 1);
+  for(uint32_t j = 0; j < uint32_t(rings); j++) {
+    for(uint32_t i = 0; i < uint32_t(segments); i++) {
+      const uint32_t a = first + j * row + i, b = a + 1, d = a + row,
+                     e = d + 1;
+      if(j > 0) {
+        mesh.indices.insert(mesh.indices.end(), {a, d, b});
+      }
+      if(j + 1 < uint32_t(rings)) {
+        mesh.indices.insert(mesh.indices.end(), {b, d, e});
+      }
+    }
+  }
+  for(int k = 0; k < 3; k++) {
+    mesh.bounds_min.at[k] = std::min(mesh.bounds_min.at[k], c[k] - r);
+    mesh.bounds_max.at[k] = std::max(mesh.bounds_max.at[k], c[k] + r);
+  }
+}
+
+/* triangles of vertices in mesh, flat shaded: each triangle its own three
+vertices, of its normal */
+static void AddTriangles(
+  const std::vector<std::array<float, 3>>& vertices,
+  const std::vector<std::array<uint32_t, 3>>& triangles,
+  shift::gui::SceneMesh& mesh) {
+  for(const auto& t : triangles) {
+    const auto& a = vertices[t[0]];
+    const auto& b = vertices[t[1]];
+    const auto& c = vertices[t[2]];
+    /* the normal divided by its length, which for a grain a few millimeters
+    across is twice an area of the order of 1e-5 m^2 (QVector3D::normalized()
+    returned zero below 1e-5, and the face was drawn black); a triangle of no
+    area is left out */
+    const ksl_vec3f_t pa = ksl_vec3f(a[0], a[1], a[2]);
+    const ksl_vec3f_t pb = ksl_vec3f(b[0], b[1], b[2]);
+    const ksl_vec3f_t pc = ksl_vec3f(c[0], c[1], c[2]);
+    ksl_vec3f_t ab, ac, n;
+    ksl_subtract_vvf(&pb, &pa, &ab);
+    ksl_subtract_vvf(&pc, &pa, &ac);
+    ksl_cross_vvf(&ab, &ac, &n);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(!(length > 0.0f)) {
+      continue;
+    }
+    ksl_vec3f_scale(&n, 1.0f / length);
+    for(int k = 0; k < 3; k++) {
+      const auto& x = vertices[t[k]];
+      shift::gui::Vertex v;
+      for(int i = 0; i < 3; i++) {
+        v.position[i] = x[i];
+        v.normal[i] = n.at[i];
+        mesh.bounds_min.at[i] = std::min(mesh.bounds_min.at[i], x[i]);
+        mesh.bounds_max.at[i] = std::max(mesh.bounds_max.at[i], x[i]);
+      }
+      v.uv[0] = v.uv[1] = 0.0f;
+      mesh.indices.push_back(static_cast<uint32_t>(mesh.vertices.size()));
+      mesh.vertices.push_back(v);
+    }
+  }
+}
+
+/* the colors of the shapes of grains, in turn: sand, granite, clay, moss,
+slate, ochre */
+static const float kGrainColors[][3] = {
+  {0.62f, 0.52f, 0.38f}, {0.48f, 0.48f, 0.50f}, {0.55f, 0.33f, 0.24f},
+  {0.36f, 0.42f, 0.28f}, {0.30f, 0.34f, 0.40f}, {0.70f, 0.50f, 0.20f}};
+
+/* the pose of a grain: its principal axes at its center of mass */
+static ksl_SE3f_t GrainPose(const double position[3],
+                            const float orientation[4]) {
+  /* scalar last, as KSL's; in double precision, as KSL's single precision
+  ksl_quaternionf_toMat3x3f takes z y for z w in two entries */
+  ksl_quaternion_t q;
+  for(int k = 0; k < 4; k++) {
+    q.at[k] = orientation[k];
+  }
+  ksl_mat3x3_t r;
+  ksl_quaternion_toMat3x3(&q, &r);
+  ksl_SE3f_t pose;
+  for(int c = 0; c < 3; c++) {
+    for(int k = 0; k < 3; k++) {
+      pose.R.at[c][k] = float(r.at[c][k]);
+    }
+  }
+  pose.t = ksl_vec3f(float(position[0]), float(position[1]),
+                     float(position[2]));
+  return pose;
+}
 
 /* a terrain: its control points for the tessellation shaders, and a
 triangle mesh of the surface (terrain::Basic::LocalZ) in world coordinates,
@@ -185,24 +320,21 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   if(!(x_extent > 0.0) || !(y_extent > 0.0)) {
     return -1;
   }
-  const auto& d = terrain.get_pose();
-  QMatrix4x4 pose;
-  for(int r = 0; r < 3; r++) {
-    pose(r, 0) = float(d.R.v0.at[r]);
-    pose(r, 1) = float(d.R.v1.at[r]);
-    pose(r, 2) = float(d.R.v2.at[r]);
-    pose(r, 3) = float(d.t.at[r]);
-  }
-  pose.translate(float(x0), float(y0), 0.f);
+  /* the terrain's pose, its origin moved to (x0, y0) in its frame */
+  ksl_SE3f_t pose = ToPose(terrain.get_pose());
+  const ksl_vec3f_t corner = ksl_vec3f(float(x0), float(y0), 0.f);
+  ksl_vec3f_t origin;
+  ksl_product_dvf(&pose, &corner, &origin);
+  pose.t = origin;
   t.pose = pose;
 
   /* the mesh, in world coordinates */
   shift::gui::SceneMesh mesh;
-  mesh.albedo = QVector3D(0.42f, 0.38f, 0.33f); // dry earth
+  mesh.albedo = ksl_vec3f(0.42f, 0.38f, 0.33f); // dry earth
   mesh.roughness = 0.95f;
   mesh.base_color_layer = textures.Load(terrain.get_texture_path());
   if(mesh.base_color_layer >= 0) {
-    mesh.albedo = QVector3D(1.f, 1.f, 1.f);
+    mesh.albedo = ksl_vec3f(1.f, 1.f, 1.f);
   }
   mesh.normal_layer = textures.Load(terrain.get_normal_map_path());
   mesh.normal_scale = float(terrain.get_normal_scale());
@@ -233,8 +365,8 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
        region->has_extent()) {
       const auto& x = region->get_x_range();
       const auto& y = region->get_y_range();
-      mesh.holes.push_back(QVector4D(float(x[0]), float(y[0]), float(x[1]),
-                                     float(y[1])));
+      mesh.holes.push_back(
+        {float(x[0]), float(y[0]), float(x[1]), float(y[1])});
     }
   }
   /* twice the resolution of the control points, and at least
@@ -261,9 +393,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     mesh_x = s * (t.width - 1) + 1;
     mesh_y = s * (t.height - 1) + 1;
   }
-  const QMatrix3x3 rotation = pose.normalMatrix();
-  mesh.bounds_min = QVector3D(1e30f, 1e30f, 1e30f);
-  mesh.bounds_max = -mesh.bounds_min;
+  EmptyBox(mesh.bounds_min, mesh.bounds_max);
   for(int j = 0; j < mesh_y; j++) {
     const double y = y_extent * j / (mesh_y - 1);
     for(int i = 0; i < mesh_x; i++) {
@@ -272,16 +402,18 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
       const double z = terrain.LocalZ(x0 + x, y0 + y, z_x, z_y);
       /* outward, up: (z_x, z_y, -1) normalized */
       const double length = std::sqrt(z_x * z_x + z_y * z_y + 1.0);
-      const float n[3] = {float(z_x / length), float(z_y / length),
-                          float(-1.0 / length)};
-      const QVector3D world = pose.map(QVector3D(float(x), float(y), float(z)));
+      const ksl_vec3f_t n = ksl_vec3f(
+        float(z_x / length), float(z_y / length), float(-1.0 / length));
+      const ksl_vec3f_t local = ksl_vec3f(float(x), float(y), float(z));
+      ksl_vec3f_t world, normal;
+      ksl_product_dvf(&pose, &local, &world);
+      ksl_product_drvf(&pose.R, &n, &normal);
       shift::gui::Vertex v;
       for(int a = 0; a < 3; a++) {
-        v.position[a] = world[a];
-        v.normal[a] = rotation(a, 0) * n[0] + rotation(a, 1) * n[1] +
-                      rotation(a, 2) * n[2];
-        mesh.bounds_min[a] = std::min(mesh.bounds_min[a], world[a]);
-        mesh.bounds_max[a] = std::max(mesh.bounds_max[a], world[a]);
+        v.position[a] = world.at[a];
+        v.normal[a] = normal.at[a];
+        mesh.bounds_min.at[a] = std::min(mesh.bounds_min.at[a], world.at[a]);
+        mesh.bounds_max.at[a] = std::max(mesh.bounds_max.at[a], world.at[a]);
       }
       v.uv[0] = float(x0 + x);
       v.uv[1] = float(y0 + y);
@@ -291,9 +423,9 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   /* without the triangles inside a hole (the raster shader drops the
   pixels of the rest inside it) */
   auto in_hole = [&mesh](const shift::gui::Vertex& v) {
-    for(const QVector4D& h : mesh.holes) {
-      if(v.uv[0] >= h.x() && v.uv[0] <= h.z() && v.uv[1] >= h.y() &&
-         v.uv[1] <= h.w()) {
+    for(const std::array<float, 4>& h : mesh.holes) {
+      if(v.uv[0] >= h[0] && v.uv[0] <= h[2] && v.uv[1] >= h[1] &&
+         v.uv[1] <= h[3]) {
         return true;
       }
     }
@@ -328,19 +460,21 @@ static int AddParticles(const shift::core::terrain::Sph& sph,
   particles.radius =
     float(sph.get_settings().spacing * std::cbrt(3.0 / (4.0 * M_PI)));
   shift::gui::SceneMesh mesh;
-  mesh.albedo = QVector3D(0.36f, 0.31f, 0.25f);
+  mesh.albedo = ksl_vec3f(0.36f, 0.31f, 0.25f);
   mesh.roughness = 0.95f;
   /* an icosphere, subdivided twice: 320 triangles */
   const float g = (1.f + std::sqrt(5.f)) / 2.f;
-  std::vector<QVector3D> points = {
-    {-1, g, 0}, {1, g, 0},  {-1, -g, 0}, {1, -g, 0}, {0, -1, g},  {0, 1, g},
-    {0, -1, -g}, {0, 1, -g}, {g, 0, -1},  {g, 0, 1},  {-g, 0, -1}, {-g, 0, 1}};
+  std::vector<ksl_vec3f_t> points = {
+    ksl_vec3f(-1, g, 0),  ksl_vec3f(1, g, 0),   ksl_vec3f(-1, -g, 0),
+    ksl_vec3f(1, -g, 0),  ksl_vec3f(0, -1, g),  ksl_vec3f(0, 1, g),
+    ksl_vec3f(0, -1, -g), ksl_vec3f(0, 1, -g),  ksl_vec3f(g, 0, -1),
+    ksl_vec3f(g, 0, 1),   ksl_vec3f(-g, 0, -1), ksl_vec3f(-g, 0, 1)};
   std::vector<uint32_t> faces = {
     0, 11, 5, 0, 5,  1,  0, 1, 7, 0, 7,  10, 0, 10, 11, 1, 5, 9, 5, 11,
     4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3,  9,  4, 3,  4,  2, 3, 2, 6, 3,
     6, 8,  3,  8, 9,  4, 9, 5, 2, 4, 11, 6,  2, 10, 8,  6, 7, 9, 8, 1};
-  for(QVector3D& p : points) {
-    p.normalize();
+  for(ksl_vec3f_t& p : points) {
+    ksl_vec3f_normalize(&p);
   }
   for(int level = 0; level < 2; level++) {
     std::map<std::pair<uint32_t, uint32_t>, uint32_t> middles;
@@ -349,7 +483,10 @@ static int AddParticles(const shift::core::terrain::Sph& sph,
       auto [it, inserted] = middles.try_emplace(key, 0);
       if(inserted) {
         it->second = uint32_t(points.size());
-        points.push_back((points[a] + points[b]).normalized());
+        ksl_vec3f_t m;
+        ksl_add_vvf(&points[a], &points[b], &m);
+        ksl_vec3f_normalize(&m);
+        points.push_back(m);
       }
       return it->second;
     };
@@ -362,18 +499,19 @@ static int AddParticles(const shift::core::terrain::Sph& sph,
     }
     faces.swap(finer);
   }
-  for(const QVector3D& p : points) {
+  for(const ksl_vec3f_t& p : points) {
     shift::gui::Vertex v;
     for(int k = 0; k < 3; k++) {
-      v.position[k] = particles.radius * p[k];
-      v.normal[k] = p[k];
+      v.position[k] = particles.radius * p.at[k];
+      v.normal[k] = p.at[k];
     }
     v.uv[0] = v.uv[1] = 0.f;
     mesh.vertices.push_back(v);
   }
   mesh.indices = faces;
-  mesh.bounds_min = QVector3D(-1.f, -1.f, -1.f) * particles.radius;
-  mesh.bounds_max = -mesh.bounds_min;
+  const float r = particles.radius;
+  mesh.bounds_min = ksl_vec3f(-r, -r, -r);
+  mesh.bounds_max = ksl_vec3f(r, r, r);
   particles.mesh_index = static_cast<int>(scene.meshes.size());
   scene.meshes.push_back(std::move(mesh));
   scene.particles.push_back(particles);
@@ -409,9 +547,9 @@ static void AddLight(const shift::core::light::Base& light,
     return;
   }
   l.body_index = static_cast<int>(body - bodies.begin());
-  l.frame = ToMatrix(*light.get_frame()->get_d_wrt_origin());
+  l.frame = ToPose(*light.get_frame()->get_d_wrt_origin());
   auto color = [](const ksl_vec3_t& c, double factor) {
-    return QVector3D(float(c.x * factor), float(c.y * factor),
+    return ksl_vec3f(float(c.x * factor), float(c.y * factor),
                      float(c.z * factor));
   };
   l.ambient = color(light.get_Ka(), 1.0);
@@ -450,6 +588,8 @@ shift::gui::Simulation::~Simulation() {
 void shift::gui::Simulation::Load(const std::string& filename) {
   JoinWorker();
   scm_views_.clear();
+  dem_views_.clear();
+  grain_records_ = 0;
   context_.reset();
   bodies_.clear();
   light_sources_.clear();
@@ -574,7 +714,7 @@ void shift::gui::Simulation::LoadModel(
         const auto& color = cad->get_color();
         if(color.size() == 3) {
           scene_cad.albedo =
-            QVector3D(float(color[0]), float(color[1]), float(color[2]));
+            ksl_vec3f(float(color[0]), float(color[1]), float(color[2]));
         }
         scene_cad.opacity = float(cad->get_opacity());
       }
@@ -627,6 +767,14 @@ void shift::gui::Simulation::LoadModel(
     }
   }
   scene_.body_count = static_cast<int>(bodies_.size());
+  /* the grains, their poses after the bodies' */
+  dem_views_.clear();
+  grain_records_ = 0;
+  for(auto module : context_->get_active_force_modules()) {
+    if(auto dem = dynamic_cast<shift::core::force_module::Dem*>(module)) {
+      AddDemView(*dem);
+    }
+  }
   shown_lights_.assign(light_sources_.size(), 0.f);
   for(size_t k = 0; k < light_sources_.size(); k++) {
     shown_lights_[k] = scene_.lights[k].intensity;
@@ -667,6 +815,8 @@ void shift::gui::Simulation::Run() {
     context_->UpdateDHVA();
     RestartTerrains(false);
   }
+  /* the grains shown, or, without results, those the DEM holds */
+  RestartGrains(false);
   ClearResults();
 
   std::lock_guard<std::mutex> lock(mutex_);
@@ -694,14 +844,40 @@ void shift::gui::Simulation::Work() {
 void shift::gui::Simulation::Observe(double time,
                                      const std::vector<double>& y) {
   // runs on the worker thread from Context::WriteStates at each output step
+  bool knot = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    knot = times_.empty() || time > times_.back();
+  }
+  /* the grains, read from the solver (from the GPU) without the lock; the
+  worker alone adds knot points */
+  std::vector<GrainRecord> grains;
+  if(knot && grain_records_ > 0) {
+    grains.resize(grain_records_);
+    for(const auto& view : dem_views_) {
+      view.dem->GetGrains(worker_grains_);
+      for(size_t g = 0; g < worker_grains_.size(); g++) {
+        GrainRecord& r = grains[view.record + g];
+        for(int k = 0; k < 3; k++) {
+          r.position[k] = worker_grains_.position[g][k];
+          r.velocity[k] = worker_grains_.velocity[g][k];
+          r.angular_velocity[k] = worker_grains_.angular_velocity[g][k];
+        }
+        for(int k = 0; k < 4; k++) {
+          r.orientation[k] = worker_grains_.orientation[g][k];
+        }
+      }
+    }
+  }
   std::lock_guard<std::mutex> lock(mutex_);
   if(stop_requested_) {
     throw StopRequested();
   }
-  if(times_.empty() || time > times_.back()) {
+  if(knot) {
     times_.push_back(time);
     states_.insert(states_.end(), y.begin(), y.begin() + state_size_);
     knot_deltas_.push_back(deltas_.size());
+    grains_.insert(grains_.end(), grains.begin(), grains.end());
     // the lights as the controllers set them for this state
     for(const auto* light : light_sources_) {
       light_values_.push_back(float(light->get_intensity()));
@@ -751,6 +927,7 @@ void shift::gui::Simulation::Reset() {
   }
   Stop();
   RestartTerrains(true);
+  RestartGrains(true);
   for(SphView& view : sph_views_) {
     view.sph->Restart();
     Snapshot(*view.sph, view.initial);
@@ -773,6 +950,9 @@ void shift::gui::Simulation::ClearResults() {
   light_values_.clear();
   deltas_.clear();
   knot_deltas_.clear();
+  grains_.clear();
+  shown_i0_ = 1;
+  shown_i1_ = 0;
   base_delta_ = partial_begin_ = partial_end_ = 0;
   for(auto& view : scm_views_) {
     view.base = view.worker = view.shown;
@@ -892,6 +1072,7 @@ void shift::gui::Simulation::ShowTime(double t) {
         ShowLevels(knot_end(i1), 0, 0, 0.0);
       }
     }
+    InterpolateGrains(i0, i1, p);
   }
   shown_time_ = t;
   // the worker owns the context DHVA while computing; evaluate the
@@ -908,19 +1089,28 @@ void shift::gui::Simulation::ShowContextState() {
   }
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
+  /* the grains the DEM holds: the worker is not running */
+  shift::core::dem::State state;
+  for(const auto& view : dem_views_) {
+    view.dem->GetGrains(state);
+    ShowGrains(view, state);
+  }
+  shown_i0_ = 1;
+  shown_i1_ = 0;
 }
 
 void shift::gui::Simulation::UpdatePoses(
   const shift::core::topology::DHVA& dhva) {
   poses_.time = shown_time_;
   poses_.lights = shown_lights_;
-  poses_.bodies.resize(bodies_.size());
+  // the grains' poses after the bodies' stay as they are
+  poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
   for(size_t i = 0; i < bodies_.size(); i++) {
     if(bodies_[i] == context_->get_fixed_body()) {
-      poses_.bodies[i].setToIdentity();
+      ksl_SE3f_setIdentity(&poses_.bodies[i]);
     } else {
       poses_.bodies[i] =
-        ToMatrix(context_->get_body_origin_pose(bodies_[i], dhva));
+        ToPose(context_->get_body_origin_pose(bodies_[i], dhva));
     }
   }
   poses_changed_ = true;
@@ -974,16 +1164,18 @@ void shift::gui::Simulation::TakeParticleUpdates(
     view.changed = false;
     const std::vector<qfloat16>& positions =
       view.shown >= 0 ? view.knots[size_t(view.shown)] : view.initial;
-    const QMatrix4x4 frame = ToMatrix(view.sph->get_particle_frame());
+    const ksl_SE3f_t frame = ToPose(view.sph->get_particle_frame());
     ParticleUpdate update;
     update.particles = view.particles;
     update.centers.resize(positions.size() / 3 * 4);
     for(size_t k = 0; 3 * k < positions.size(); k++) {
-      const QVector3D world = frame.map(
-        QVector3D(float(positions[3 * k]), float(positions[3 * k + 1]),
-                  float(positions[3 * k + 2])));
+      const ksl_vec3f_t local =
+        ksl_vec3f(float(positions[3 * k]), float(positions[3 * k + 1]),
+                  float(positions[3 * k + 2]));
+      ksl_vec3f_t world;
+      ksl_product_dvf(&frame, &local, &world);
       for(int c = 0; c < 3; c++) {
-        update.centers[4 * k + c] = world[c];
+        update.centers[4 * k + c] = world.at[c];
       }
       update.centers[4 * k + 3] = 0.f;
     }
@@ -1109,6 +1301,164 @@ void shift::gui::Simulation::TakeTerrainUpdates(
   }
 }
 
+// ------------------------------------------------------------ grains
+
+/*!
+The shapes of the grains become one mesh each, their spheres together in
+the grain's principal axes, or their mesh (Template::mesh_vertices, a
+hull's own triangles or a file's), flat shaded; the grains are instances of them, grouped by
+shape (Scene::instances are contiguous by mesh), and their poses follow the
+bodies' and the grains of the views before
+*/
+void shift::gui::Simulation::AddDemView(shift::core::force_module::Dem& dem) {
+  DemView view;
+  view.dem = &dem;
+  view.first = bodies_.size() + size_t(scene_.grain_count);
+  view.record = grain_records_;
+  const auto& templates = dem.get_templates();
+  const shift::core::dem::State& grains = dem.get_initial_grains();
+  /* finer spheres for fewer: 24 by 12 to 20000 spheres, 12 by 6 beyond */
+  size_t spheres = 0;
+  for(size_t g = 0; g < grains.size(); g++) {
+    spheres += templates[grains.template_index[g]].spheres.size();
+  }
+  const int segments = spheres <= 20000 ? 24 : 12;
+  std::vector<int> meshes(templates.size());
+  for(size_t t = 0; t < templates.size(); t++) {
+    SceneMesh mesh;
+    EmptyBox(mesh.bounds_min, mesh.bounds_max);
+    if(!templates[t].mesh_triangles.empty()) {
+      AddTriangles(templates[t].mesh_vertices, templates[t].mesh_triangles,
+                   mesh);
+    } else {
+      for(const auto& sphere : templates[t].spheres) {
+        AddSphere(sphere.center, sphere.radius, segments, segments / 2, mesh);
+      }
+    }
+    const float* color = kGrainColors[t % std::size(kGrainColors)];
+    mesh.albedo = ksl_vec3f(color[0], color[1], color[2]);
+    mesh.roughness = 0.8f;
+    meshes[t] = static_cast<int>(scene_.meshes.size());
+    scene_.meshes.push_back(std::move(mesh));
+  }
+  for(size_t t = 0; t < templates.size(); t++) {
+    for(size_t g = 0; g < grains.size(); g++) {
+      if(grains.template_index[g] == t) {
+        scene_.instances.push_back({meshes[t], static_cast<int>(view.first + g)});
+      }
+    }
+  }
+  scene_.grain_count += static_cast<int>(grains.size());
+  grain_records_ += grains.size();
+  dem_views_.push_back(view);
+}
+
+void shift::gui::Simulation::ShowGrains(
+  const DemView& view, const shift::core::dem::State& state) {
+  poses_.bodies.resize(bodies_.size() + size_t(scene_.grain_count));
+  for(size_t g = 0; g < state.size(); g++) {
+    poses_.bodies[view.first + g] =
+      GrainPose(state.position[g].data(), state.orientation[g].data());
+  }
+  poses_changed_ = true;
+}
+
+/* the state of the grain at fraction p from a to b: the positions and
+velocities linearly, the orientation normalized, along the shorter way */
+static void Interpolate(const double a_position[3], const float a_q[4],
+                        const double b_position[3], const float b_q[4],
+                        double p, double position[3], float q[4]) {
+  for(int k = 0; k < 3; k++) {
+    position[k] = a_position[k] + p * (b_position[k] - a_position[k]);
+  }
+  const float dot = a_q[0] * b_q[0] + a_q[1] * b_q[1] + a_q[2] * b_q[2] +
+                    a_q[3] * b_q[3];
+  const float sign = dot < 0.f ? -1.f : 1.f;
+  float length = 0.f;
+  for(int k = 0; k < 4; k++) {
+    q[k] = a_q[k] + float(p) * (sign * b_q[k] - a_q[k]);
+    length += q[k] * q[k];
+  }
+  length = std::sqrt(length);
+  for(int k = 0; k < 4; k++) {
+    q[k] = length > 0.f ? q[k] / length : a_q[k];
+  }
+}
+
+void shift::gui::Simulation::InterpolateGrains(size_t i0, size_t i1,
+                                               double p) {
+  if(grain_records_ == 0 || grains_.size() < (i1 + 1) * grain_records_) {
+    return; // none recorded (a log): as the model placed them
+  }
+  const GrainRecord* a = grains_.data() + i0 * grain_records_;
+  const GrainRecord* b = grains_.data() + i1 * grain_records_;
+  for(const auto& view : dem_views_) {
+    const size_t count = view.dem->get_initial_grains().size();
+    for(size_t g = 0; g < count; g++) {
+      const GrainRecord& r0 = a[view.record + g];
+      const GrainRecord& r1 = b[view.record + g];
+      double position[3];
+      float q[4];
+      Interpolate(r0.position, r0.orientation, r1.position, r1.orientation, p,
+                  position, q);
+      poses_.bodies[view.first + g] = GrainPose(position, q);
+    }
+  }
+  shown_i0_ = i0;
+  shown_i1_ = i1;
+  shown_p_ = p;
+}
+
+bool shift::gui::Simulation::ShownGrains(const DemView& view,
+                                         shift::core::dem::State& state) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if(shown_i0_ > shown_i1_ ||
+     grains_.size() < (shown_i1_ + 1) * grain_records_) {
+    return false;
+  }
+  state = view.dem->get_initial_grains();
+  const GrainRecord* a = grains_.data() + shown_i0_ * grain_records_;
+  const GrainRecord* b = grains_.data() + shown_i1_ * grain_records_;
+  const float p = float(shown_p_);
+  for(size_t g = 0; g < state.size(); g++) {
+    const GrainRecord& r0 = a[view.record + g];
+    const GrainRecord& r1 = b[view.record + g];
+    float q[4];
+    Interpolate(r0.position, r0.orientation, r1.position, r1.orientation,
+                shown_p_, state.position[g].data(), q);
+    for(int k = 0; k < 4; k++) {
+      state.orientation[g][k] = q[k];
+    }
+    for(int k = 0; k < 3; k++) {
+      state.velocity[g][k] =
+        r0.velocity[k] + p * (r1.velocity[k] - r0.velocity[k]);
+      state.angular_velocity[g][k] =
+        r0.angular_velocity[k] +
+        p * (r1.angular_velocity[k] - r0.angular_velocity[k]);
+    }
+  }
+  return true;
+}
+
+/*!
+Without grains recorded at the time shown (no run made yet, the context's
+own state after jogging, or a log), the grains the DEM holds start over:
+those it was set to, or where its last run left them
+*/
+void shift::gui::Simulation::RestartGrains(bool reset) {
+  // the worker is not running: Run, Reset and AdoptShownState joined it
+  shift::core::dem::State state;
+  for(const auto& view : dem_views_) {
+    if(reset) {
+      state = view.dem->get_initial_grains();
+    } else if(!ShownGrains(view, state)) {
+      view.dem->GetGrains(state);
+    }
+    view.dem->SetGrains(state);
+    ShowGrains(view, state);
+  }
+}
+
 // ------------------------------------------------------------ editing q
 
 bool shift::gui::Simulation::AdoptShownState() {
@@ -1122,6 +1472,7 @@ bool shift::gui::Simulation::AdoptShownState() {
     std::memcpy(context_->get_q().data(), interpolated_.data(),
                 state_size_ * sizeof(double));
     RestartTerrains(false);
+    RestartGrains(false);
     ClearResults();
     context_->UpdateDHVA();
   }
@@ -1391,6 +1742,10 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
     }
   } catch(H5::Exception& e) {
     throw shift::core::Exception(error_prefix + e.getDetailMsg());
+  }
+  if(!dem_views_.empty()) {
+    SHIFT_WARNING("Log " + filename + ": a log holds no grains of the DEM; "
+                  "they are shown as the model placed them");
   }
   if(has_results()) {
     std::lock_guard<std::mutex> lock(mutex_);

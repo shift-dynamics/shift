@@ -1,6 +1,7 @@
 #ifndef SHIFT_GUI_SIMULATION_H_
 #define SHIFT_GUI_SIMULATION_H_
 
+#include "shift/core/dem/dem.h"
 #include "shift/core/topology.h"
 #include "shift/gui/scene.h"
 
@@ -22,6 +23,9 @@ namespace core {
 class Context;
 namespace body {
 class Base;
+}
+namespace force_module {
+class Dem;
 }
 namespace light {
 class Base;
@@ -59,6 +63,14 @@ Follows the conventions of the original OpenGL workspace:
   shown is drawn (TakeParticleUpdates). They cannot be restarted from the
   time shown: Run continues the soil from where it was last computed, and
   Reset refills it (Sph::Restart).
+- The grains of a DEM (shift::core::force_module::Dem) are recorded at
+  each knot point, their positions, orientations and velocities, 64 bytes
+  a grain; playback interpolates them linearly (their orientations
+  normalized) and draws each grain as an instance of the mesh of its shape
+  (Scene::grain_count). Run and AdoptShownState restart the grains from
+  those shown (Dem::SetGrains), without the history of their contacts,
+  Reset from the grains as the model placed them. An HDF5 log holds no
+  grains: they are shown as the model placed them.
 - The workspace jogs joints by editing q in the context directly. That is
   only possible while no simulation is being computed; AdoptShownState
   first moves the context to the configuration shown and discards the
@@ -215,6 +227,35 @@ private:
     float after;
   };
 
+  /*! the grains of a DEM, drawn as the poses (Poses::bodies) from first */
+  struct DemView {
+    shift::core::force_module::Dem* dem = nullptr;
+    size_t first = 0;  /*!< pose of the first grain */
+    size_t record = 0; /*!< its record in a knot point's (GrainRecord) */
+  };
+  /*! the state of a grain recorded at a knot point */
+  struct GrainRecord {
+    double position[3];
+    float orientation[4]; /*!< scalar last */
+    float velocity[3];
+    float angular_velocity[3];
+  };
+  static_assert(sizeof(GrainRecord) == 64, "64 bytes a grain");
+
+  /*! \brief the meshes and instances of the grains of a DEM */
+  void AddDemView(shift::core::force_module::Dem& dem);
+  /*! \brief the grains' poses (in poses_) from their states */
+  void ShowGrains(const DemView& view, const shift::core::dem::State& state);
+  /*! \brief the grains shown at knot points i0 and i1 and the fraction p
+   * between them (mutex_ held) */
+  void InterpolateGrains(size_t i0, size_t i1, double p);
+  /*! \brief the state of the grains of a view shown, interpolated between
+   * the knot points shown; false if none are recorded there */
+  bool ShownGrains(const DemView& view, shift::core::dem::State& state);
+  /*! \brief start the grains over from those shown, or as the model placed
+   * them (reset) */
+  void RestartGrains(bool reset);
+
   /*! \brief the view of a deformable terrain drawn as
    * Scene::terrains[index] */
   void AddScmView(shift::core::terrain::Scm& scm, int index);
@@ -270,6 +311,9 @@ private:
   /*! the first of deltas_ of each knot point, which lead to it from the
    * previous one */
   std::vector<size_t> knot_deltas_;
+  /*! the grains at each knot point that has them, grain_records_ each */
+  std::vector<GrainRecord> grains_;
+  size_t grain_records_ = 0; /*!< all the views' grains */
   /*! the intensity of each light of the scene at each knot point,
    * light_sources_.size() each */
   std::vector<float> light_values_;
@@ -286,6 +330,12 @@ private:
   std::vector<const shift::core::light::Base*> light_sources_;
   std::vector<float> shown_lights_; /*!< their intensities at the time shown */
   std::vector<ScmView> scm_views_;
+  std::vector<DemView> dem_views_;
+  shift::core::dem::State worker_grains_; /*!< worker thread */
+  /*! the knot points of the grains shown and the fraction between them;
+   * i0 > i1 if they are not those of a knot point (the context's) */
+  size_t shown_i0_ = 1, shown_i1_ = 0;
+  double shown_p_ = 0.0;
   std::vector<SphView> sph_views_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */

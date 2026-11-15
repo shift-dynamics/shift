@@ -1,0 +1,131 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 256) in;
+
+// NSC pass 9, one workgroup: the reduction of nsc_reduce.comp's partials
+// in a fixed order, then the scalars of the solver (NscControl) and the
+// workgroup counts of the indirect dispatches, by stage:
+//   0, after the contacts are counted: the count, and all the dispatches;
+//   1 (Lipschitz): APGD's first Lipschitz constant, theta, the best residual;
+//   2 (at y, no reduction): the step 1 / L, and the dispatches of the tries;
+//   3 (at x, try option): the step is taken if it descends enough, (x - y)
+//      . (g_x - g_y) <= L |x - y|^2 (f being quadratic), or this is the last
+//      try, which stops the tries, and otherwise L doubles;
+//   4 (residual): the residual, whether the iterate is the best, the
+//      momentum and its restart, and L * 0.9;
+//   5 (Jacobi): the residual
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Partials { vec4 partials[]; };
+layout(std430, binding = 1) buffer Control { NscControl control; };
+layout(std430, binding = 2) buffer Args { uvec4 args[]; };
+layout(std430, binding = 3) readonly buffer ContactStart { uint contact_start[]; };
+layout(std430, binding = 4) buffer Flags { uint flags[]; };
+
+const uint kTries = 4u; // kApgdTries of dem.h
+
+shared vec4 sums[256];
+
+uint Groups(uint n, uint size) {
+  return (n + size - 1u) / size;
+}
+
+void SetTrying(bool trying) {
+  args[kArgsContactsTrying] = uvec4(trying ? args[kArgsContacts].x : 0u, 1u, 1u, 0u);
+  args[kArgsReduceTrying] = uvec4(trying ? args[kArgsReduce].x : 0u, 1u, 1u, 0u);
+  args[kArgsGrainsTrying] = uvec4(trying ? Groups(grains, 128u) : 0u, 1u, 1u, 0u);
+}
+
+void main() {
+  const uint i = gl_LocalInvocationID.x;
+  if(stage == 0u) {
+    if(i == 0u) {
+      const uint found = contact_start[spheres];
+      atomicMax(flags[5], found);
+      if(found > capacity) {
+        atomicOr(flags[1], kTooManyContacts);
+      }
+      const uint count = min(found, capacity);
+      control.count = count;
+      control.accepted = 0u;
+      control.restart = 0u;
+      control.improved = 0u;
+      control.residual = 0.0;
+      args[kArgsContacts] = uvec4(Groups(count, 128u), 1u, 1u, 0u);
+      args[kArgsReduce] = uvec4(Groups(count, 1024u), 1u, 1u, 0u);
+      args[kArgsBest] = uvec4(0u, 1u, 1u, 0u);
+      SetTrying(true);
+    }
+    return;
+  }
+  if(stage == 3u && control.accepted != 0u) {
+    return;
+  }
+  if(stage == 2u) {
+    if(i == 0u) {
+      control.step = 1.0 / control.lipschitz;
+      control.accepted = 0u;
+      SetTrying(true);
+    }
+    return;
+  }
+  const uint groups = Groups(control.count, 1024u);
+  const uint m = stage == 1u ? kReduceLipschitz
+                 : stage == 3u ? kReduceAtX
+                 : stage == 4u ? kReduceResidual
+                               : kReduceJacobi;
+  vec4 value = vec4(0.0);
+  for(uint g = i; g < groups; g += 256u) {
+    value = Combine(m, value, partials[g]);
+  }
+  sums[i] = value;
+  barrier();
+  for(uint half_n = 128u; half_n > 0u; half_n /= 2u) {
+    if(i < half_n) {
+      sums[i] = Combine(m, sums[i], sums[i + half_n]);
+    }
+    barrier();
+  }
+  if(i != 0u) {
+    return;
+  }
+  const vec4 sum = sums[0];
+  if(stage == 1u) {
+    const float num = sum.x, den = sum.y;
+    control.lipschitz = den > 0.0 && num > 0.0 ? sqrt(num / den) : 1.0;
+    control.theta = 1.0;
+    control.best_residual = 3.4e38;
+    control.step = 1.0 / control.lipschitz;
+  } else if(stage == 3u) {
+    const float lipschitz = control.lipschitz;
+    if(sum.x <= lipschitz * sum.y || option + 1u == kTries) {
+      control.accepted = 1u;
+      SetTrying(false);
+    } else {
+      control.lipschitz = 2.0 * lipschitz;
+      control.step = 1.0 / control.lipschitz;
+    }
+  } else if(stage == 4u) {
+    const float theta = control.theta;
+    const float theta_new =
+      0.5 * (-theta * theta + theta * sqrt(theta * theta + 4.0));
+    control.beta = theta * (1.0 - theta) / (theta * theta + theta_new);
+    const float residual = sum.y > 0.0 ? sum.x / sum.y : sum.x;
+    const bool improved = residual < control.best_residual;
+    if(improved) {
+      control.best_residual = residual;
+    }
+    control.improved = improved ? 1u : 0u;
+    args[kArgsBest] =
+      uvec4(improved ? args[kArgsContacts].x : 0u, 1u, 1u, 0u);
+    control.restart = sum.z > 0.0 ? 1u : 0u;
+    control.theta = sum.z > 0.0 ? 1.0 : theta_new;
+    control.lipschitz = 0.9 * control.lipschitz;
+    control.residual = control.best_residual;
+  } else {
+    control.residual = sum.y > 0.0 ? sum.x / sum.y : 0.0;
+  }
+}

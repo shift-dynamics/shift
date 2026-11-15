@@ -146,6 +146,11 @@ public:
   }
 
   const ksl_vec3_t get_center_of_mass_wrt_reference();
+  /*! \brief the vector from the body's origin to its center of mass, in
+   * the origin's coordinates */
+  const ksl_vec3_t& get_center_of_mass_wrt_origin() const {
+    return center_of_mass_wrt_origin_;
+  }
 
 
   /*! \brief density of the body, 0 unless given: then its mass, center of

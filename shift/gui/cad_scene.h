@@ -1,7 +1,7 @@
 #ifndef SHIFT_GUI_CAD_SCENE_H_
 #define SHIFT_GUI_CAD_SCENE_H_
 
-#include <QVector3D>
+#include "ksl/vec3.h"
 
 #include <cstdint>
 #include <string>
@@ -84,12 +84,13 @@ struct SceneCad {
   /*! model length units per meter: the shaders evaluate in meters and the
    * instance poses scale */
   float scale = 1.f;
-  QVector3D albedo{0.7f, 0.7f, 0.72f};
+  ksl_vec3f_t albedo = ksl_vec3f(0.7f, 0.7f, 0.72f);
   float roughness = 0.4f;
   float metallic = 0.f;
   float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
-  QVector3D bounds_min; //!< body coordinates (scaled)
-  QVector3D bounds_max;
+  ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f); //!< body coordinates
+                                                    //!< (scaled)
+  ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
 
   int faces_skipped = 0; //!< without trims (not repaired)
 };

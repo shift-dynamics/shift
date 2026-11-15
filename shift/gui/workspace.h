@@ -14,9 +14,8 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
-#include <QMatrix4x4>
 #include <QSize>
-#include <QVector3D>
+#include "ksl/vec3.h"
 
 class QAction;
 class QCheckBox;
@@ -123,7 +122,8 @@ public:
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
     bool set_frame = false;    /*!< frame this sphere, not the whole scene */
-    QVector3D frame_center;    /*!< of the sphere, inertial frame */
+    ksl_vec3f_t frame_center =
+      ksl_vec3f(0.f, 0.f, 0.f); /*!< of the sphere, inertial frame */
     float frame_radius = 1.f;  /*!< of the sphere */
   };
 
@@ -368,7 +368,8 @@ private:
     QTreeWidgetItem* item = nullptr;
     QString path;       /*!< see PathKey */
     int body_index = 0; /*!< of the simulation: of the frame, or the body */
-    QMatrix4x4 frame;   /*!< a frame, with respect to the body origin */
+    ksl_SE3f_t frame = Identity(); /*!< a frame, with respect to the body
+                                      origin */
     std::vector<Viewport::JointAxis> lines; /*!< a joint */
   };
   std::vector<EyeItem> eye_items_;

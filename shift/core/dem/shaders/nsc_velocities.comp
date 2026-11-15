@@ -1,0 +1,95 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 4: each grain's velocity and angular velocity at the end of the
+// step for the impulses of its contacts: those without contacts (gravity,
+// and the gyroscopic term), then, sphere by sphere, the impulses of the
+// pairs of which it is the higher sphere, by index, and those of its own
+// contacts, in order, as CpuSolver::NscStep adds them for single spheres.
+// The impulses, by option: 0, an APGD vector, the impulse its scales times
+// it; 1, the impulses; 2, none; 3, the scales (a vector of ones)
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer GrainAnchor { ivec4 grain_anchor[]; };
+layout(std430, binding = 1) readonly buffer GrainVelocity { vec4 grain_velocity[]; };
+layout(std430, binding = 2) readonly buffer GrainOmega { vec4 grain_omega[]; };
+layout(std430, binding = 3) readonly buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 4) readonly buffer FirstSphere { uint first_sphere[]; };
+layout(std430, binding = 5) readonly buffer TemplateMass { vec4 template_mass[]; };
+layout(std430, binding = 6) readonly buffer TemplateSpheres { uvec4 template_spheres[]; };
+layout(std430, binding = 7) readonly buffer NeighborCount { uint neighbor_count[]; };
+layout(std430, binding = 8) readonly buffer OtherContact { uint other_contact[]; };
+layout(std430, binding = 9) readonly buffer ContactStart { uint contact_start[]; };
+layout(std430, binding = 10) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 11) readonly buffer Impulse { vec4 impulse[]; };
+layout(std430, binding = 12) writeonly buffer Velocity { vec4 velocity[]; };
+layout(std430, binding = 13) writeonly buffer Omega { vec4 end_omega[]; };
+layout(std430, binding = 14) readonly buffer Control { NscControl control; };
+
+// the impulse and rolling impulse of contact c (inertial frame)
+void ImpulseOf(uint c, out vec3 p, out vec3 rho) {
+  const uint r = 9u * c;
+  vec3 g = vec3(0.0);
+  rho = vec3(0.0);
+  if(option == 0u) {
+    const vec4 scales = contacts[r + 8u];
+    g = scales.z * impulse[2u * c].xyz;
+    rho = scales.w * impulse[2u * c + 1u].xyz;
+  } else if(option == 1u) {
+    g = impulse[2u * c].xyz;
+    rho = impulse[2u * c + 1u].xyz;
+  } else if(option == 3u) {
+    const vec4 scales = contacts[r + 8u];
+    g = vec3(scales.z);
+    rho = vec3(scales.w);
+  }
+  p = g.x * contacts[r].xyz + g.y * contacts[r + 1u].xyz +
+      g.z * contacts[r + 2u].xyz;
+}
+
+void main() {
+  const uint g = gl_GlobalInvocationID.x;
+  if(g >= grains) {
+    return;
+  }
+  const uint t = uint(grain_anchor[g].w);
+  const vec4 mass = template_mass[t];
+  const vec3 inertia = mass.yzw;
+  const vec4 q = grain_quaternion[g];
+  const vec3 w0 = grain_omega[g].xyz;
+  vec3 v = grain_velocity[g].xyz + dt * gravity.xyz;
+  vec3 w = w0 - dt * cross(w0, inertia * w0) / inertia;
+  const uint count = control.count;
+  if(option != 2u) {
+    const uint first = first_sphere[g], spheres_n = template_spheres[t].y;
+    for(uint k = 0u; k < spheres_n; k++) {
+      const uint s = first + k;
+      const uint base = s * max_neighbors;
+      for(uint j = 0u; j < neighbor_count[s]; j++) {
+        const uint c = other_contact[base + j];
+        if(c == kNone || c >= count) {
+          continue;
+        }
+        vec3 p, rho;
+        ImpulseOf(c, p, rho);
+        v = v - p / mass.x;
+        w = w - AngularChange(q, inertia,
+                              cross(contacts[9u * c + 4u].xyz, p) + rho);
+      }
+      const uint end = min(contact_start[s + 1u], count);
+      for(uint c = contact_start[s]; c < end; c++) {
+        vec3 p, rho;
+        ImpulseOf(c, p, rho);
+        v = v + p / mass.x;
+        w = w + AngularChange(q, inertia,
+                              cross(contacts[9u * c + 3u].xyz, p) + rho);
+      }
+    }
+  }
+  velocity[g] = vec4(v, 0.0);
+  end_omega[g] = vec4(w, 0.0);
+}

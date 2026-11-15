@@ -1,0 +1,81 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 6: each contact's relative velocity and angular velocity at the
+// end of the step, from the grains' (nsc_velocities.comp) and the bodies'.
+// Mode 0 (APGD): the gradient N z + r of the scaled impulses, the normal
+// and tangent velocities and the bias times sqrt(eta), and the rolling
+// velocity times sqrt(eta_r). Mode 1 (Jacobi): the new impulses from the
+// impulses, a step of omega eta and omega eta_r projected onto the cone
+// and the disk, into next, and the change and the new normal impulse into
+// the gradient's place, for the residual
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 1) readonly buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 2) readonly buffer Velocity { vec4 velocity[]; };
+layout(std430, binding = 3) readonly buffer Omega { vec4 omega_of[]; };
+layout(std430, binding = 4) readonly buffer BodyDelta { vec4 body_delta[]; };
+layout(std430, binding = 5) readonly buffer Impulse { vec4 impulse[]; };
+layout(std430, binding = 6) writeonly buffer Next { vec4 next[]; };
+layout(std430, binding = 7) writeonly buffer Gradient { vec4 gradient[]; };
+layout(std430, binding = 8) readonly buffer Control { NscControl control; };
+
+void main() {
+  const uint c = gl_GlobalInvocationID.x;
+  if(c >= control.count) {
+    return;
+  }
+  const uint r = 9u * c;
+  const vec3 n = contacts[r].xyz, t1 = contacts[r + 1u].xyz,
+             t2 = contacts[r + 2u].xyz;
+  const float bias = contacts[r].w;
+  const uint a = floatBitsToUint(contacts[r + 3u].w),
+             b = floatBitsToUint(contacts[r + 4u].w),
+             body = floatBitsToUint(contacts[r + 5u].w);
+  const vec3 wa = Rotate(grain_quaternion[a], omega_of[a].xyz);
+  vec3 u = velocity[a].xyz + cross(wa, contacts[r + 3u].xyz);
+  vec3 relative_w = wa;
+  if(b != kNone) {
+    const vec3 wb = Rotate(grain_quaternion[b], omega_of[b].xyz);
+    u = u - (velocity[b].xyz + cross(wb, contacts[r + 4u].xyz));
+    relative_w = relative_w - wb;
+  } else {
+    u = u - contacts[r + 6u].xyz;
+    relative_w = relative_w - contacts[r + 7u].xyz;
+    if(body != kNone) {
+      const vec3 dv = body_delta[2u * body].xyz,
+                 dw = body_delta[2u * body + 1u].xyz;
+      u = u - (dv + cross(dw, contacts[r + 5u].xyz));
+      relative_w = relative_w - dw;
+    }
+  }
+  const vec4 scales = contacts[r + 8u];
+  if(mode == 0u) {
+    const vec3 rt = relative_w - dot(relative_w, n) * n;
+    gradient[2u * c] = vec4(scales.z * (dot(n, u) + bias),
+                            scales.z * dot(t1, u), scales.z * dot(t2, u), 0.0);
+    gradient[2u * c + 1u] = vec4(scales.w * rt, 0.0);
+    return;
+  }
+  /* Jacobi */
+  const vec3 gamma = impulse[2u * c].xyz, rho = impulse[2u * c + 1u].xyz;
+  const float mu = contacts[r + 1u].w, rolling = contacts[r + 2u].w;
+  vec3 g = vec3(gamma.x - omega * scales.x * (dot(n, u) + bias),
+                gamma.y - omega * scales.x * dot(t1, u),
+                gamma.z - omega * scales.x * dot(t2, u));
+  g = ProjectOnCone(mu, g);
+  vec3 rolling_impulse = vec3(0.0);
+  if(rolling > 0.0) {
+    const vec3 rolling_w = relative_w - dot(relative_w, n) * n;
+    rolling_impulse =
+      ProjectOnDisk(n, rolling * g.x, rho - omega * scales.y * rolling_w);
+  }
+  next[2u * c] = vec4(g, 0.0);
+  next[2u * c + 1u] = vec4(rolling_impulse, 0.0);
+  gradient[2u * c] = vec4(length(g - gamma), abs(g.x), 0.0, 0.0);
+}

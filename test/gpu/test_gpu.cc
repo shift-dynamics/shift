@@ -108,6 +108,43 @@ TEST_F(Gpu, KernelsInOrder) {
 }
 #endif
 
+#if SHIFT_HAVE_GPU
+/* an indirect dispatch runs the workgroups its buffer holds when it runs,
+written by a fill recorded before it; none for a count of 0 */
+TEST_F(Gpu, DispatchIndirect) {
+  const uint32_t count = 1000;
+  std::vector<float> x(count, 1.0f), y(count, 0.0f);
+  shift::core::gpu::Buffer bx(*device_, count * 4), by(*device_, count * 4),
+    groups(*device_, 16);
+  bx.Upload(x.data(), count * 4);
+  by.Upload(y.data(), count * 4);
+  shift::core::gpu::Kernel axpy(*device_, kAxpy, sizeof(kAxpy), 2, 8);
+  shift::core::gpu::Commands commands(*device_);
+  struct {
+    float a;
+    uint32_t count;
+  } constants = {1.0f, count};
+  /* 2 of the 4 workgroups: the first 512 values */
+  const uint32_t two[4] = {2u, 1u, 1u, 0u};
+  groups.Upload(two, sizeof(two));
+  commands.DispatchIndirect(axpy, {&bx, &by}, &constants, sizeof(constants),
+                            groups);
+  /* then none */
+  commands.Fill(groups, 0u, 0, 4);
+  commands.DispatchIndirect(axpy, {&bx, &by}, &constants, sizeof(constants),
+                            groups);
+  commands.Submit();
+  std::vector<float> result(count);
+  by.Download(result.data(), count * 4);
+  for(uint32_t k = 0; k < count; k++) {
+    ASSERT_EQ(result[k], k < 512 ? 1.0f : 0.0f) << k;
+  }
+  EXPECT_THROW(commands.DispatchIndirect(axpy, {&bx, &by}, &constants,
+                                         sizeof(constants), groups, 8),
+               shift::core::Exception);
+}
+#endif
+
 /* fill and copy, recorded with the kernels */
 TEST_F(Gpu, FillAndCopy) {
   shift::core::gpu::Buffer a(*device_, 64), b(*device_, 64);

@@ -137,13 +137,13 @@ TEST_F(CadScene, ScalesBounds) {
   const SceneCad two = MakeSceneCad(m, m.Flatten(), 2.0);
   EXPECT_FLOAT_EQ(two.scale, 2.f);
   for(int k = 0; k < 3; ++k) {
-    EXPECT_NEAR(two.bounds_min[k], 2.f * one.bounds_min[k], 1e-6f);
-    EXPECT_NEAR(two.bounds_max[k], 2.f * one.bounds_max[k], 1e-6f);
+    EXPECT_NEAR(two.bounds_min.at[k], 2.f * one.bounds_min.at[k], 1e-6f);
+    EXPECT_NEAR(two.bounds_max.at[k], 2.f * one.bounds_max.at[k], 1e-6f);
   }
   // 10 mm x 20 mm x 30 mm
-  EXPECT_NEAR(one.bounds_max[0] - one.bounds_min[0], 0.01f, 1e-6f);
-  EXPECT_NEAR(one.bounds_max[1] - one.bounds_min[1], 0.02f, 1e-6f);
-  EXPECT_NEAR(one.bounds_max[2] - one.bounds_min[2], 0.03f, 1e-6f);
+  EXPECT_NEAR(one.bounds_max.at[0] - one.bounds_min.at[0], 0.01f, 1e-6f);
+  EXPECT_NEAR(one.bounds_max.at[1] - one.bounds_min.at[1], 0.02f, 1e-6f);
+  EXPECT_NEAR(one.bounds_max.at[2] - one.bounds_min.at[2], 0.03f, 1e-6f);
 }
 
 /* the inside test of the packed segments agrees with the trim loops of the

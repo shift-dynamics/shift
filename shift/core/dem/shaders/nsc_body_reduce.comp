@@ -1,0 +1,75 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 256) in;
+
+// NSC pass 5a (with bodies of mass): over each 1024 contacts, for each body,
+// the sums of the impulses of its contacts and of their moments about its
+// center of mass, lc x p + rho, in a fixed order (a tree over the
+// workgroup); the impulses by option, as in nsc_velocities.comp
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 1) readonly buffer Impulse { vec4 impulse[]; };
+layout(std430, binding = 2) writeonly buffer Partials { float partials[]; };
+layout(std430, binding = 3) readonly buffer Control { NscControl control; };
+
+shared float sums[256][6];
+
+void main() {
+  const uint i = gl_LocalInvocationID.x, group = gl_WorkGroupID.x;
+  const uint count = control.count;
+  for(uint b = 0u; b < bodies; b++) {
+    float value[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    for(uint k = 0u; k < 4u; k++) {
+      const uint c = 1024u * group + 256u * k + i;
+      if(c >= count) {
+        continue;
+      }
+      const uint r = 9u * c;
+      if(floatBitsToUint(contacts[r + 5u].w) != b) {
+        continue;
+      }
+      vec3 g = impulse[2u * c].xyz, rho = impulse[2u * c + 1u].xyz;
+      if(option == 0u) {
+        g = contacts[r + 8u].z * g;
+        rho = contacts[r + 8u].w * rho;
+      } else if(option == 2u) {
+        g = vec3(0.0);
+        rho = vec3(0.0);
+      } else if(option == 3u) {
+        g = vec3(contacts[r + 8u].z);
+        rho = vec3(contacts[r + 8u].w);
+      }
+      const vec3 p = g.x * contacts[r].xyz + g.y * contacts[r + 1u].xyz +
+                     g.z * contacts[r + 2u].xyz;
+      const vec3 m = cross(contacts[r + 5u].xyz, p) + rho;
+      value[0] += p.x;
+      value[1] += p.y;
+      value[2] += p.z;
+      value[3] += m.x;
+      value[4] += m.y;
+      value[5] += m.z;
+    }
+    for(uint k = 0u; k < 6u; k++) {
+      sums[i][k] = value[k];
+    }
+    barrier();
+    for(uint half_n = 128u; half_n > 0u; half_n /= 2u) {
+      if(i < half_n) {
+        for(uint k = 0u; k < 6u; k++) {
+          sums[i][k] = sums[i][k] + sums[i + half_n][k];
+        }
+      }
+      barrier();
+    }
+    if(i == 0u) {
+      for(uint k = 0u; k < 6u; k++) {
+        partials[(group * bodies + b) * 6u + k] = sums[0][k];
+      }
+    }
+    barrier();
+  }
+}

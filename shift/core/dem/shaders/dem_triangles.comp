@@ -1,0 +1,42 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 1b: each triangle's vertices from its body's pose at the substep;
+// a new search when it has moved half the margin since the last
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) readonly buffer TriangleLocal { vec4 triangle_local[]; };
+layout(std430, binding = 1) readonly buffer Poses { vec4 poses[]; };
+layout(std430, binding = 2) writeonly buffer TriangleAnchor { ivec4 triangle_anchor[]; };
+layout(std430, binding = 3) writeonly buffer TriangleVertex { vec4 triangle_vertex[]; };
+layout(std430, binding = 4) readonly buffer ReferenceAnchor { ivec4 reference_anchor[]; };
+layout(std430, binding = 5) readonly buffer ReferenceVertex { vec4 reference_vertex[]; };
+layout(std430, binding = 6) buffer Flags { uint flags[]; };
+
+void main() {
+  const uint t = gl_GlobalInvocationID.x;
+  if(t >= triangles) {
+    return;
+  }
+  const uint b = floatBitsToUint(triangle_local[3u * t].w);
+  const uint row = 7u * (substep * bodies + b);
+  const ivec3 anchor = floatBitsToInt(poses[row].xyz);
+  const vec3 offset = poses[row + 1u].xyz;
+  const vec3 r0 = poses[row + 2u].xyz, r1 = poses[row + 3u].xyz,
+             r2 = poses[row + 4u].xyz;
+  triangle_anchor[t] = ivec4(anchor, int(b));
+  float moved = 0.0;
+  for(uint k = 0u; k < 3u; k++) {
+    const vec4 local = triangle_local[3u * t + k];
+    const vec3 x = offset + (r0 * local.x + r1 * local.y + r2 * local.z);
+    triangle_vertex[3u * t + k] = vec4(x, local.w);
+    moved = max(moved, length(Relative(anchor, x, reference_anchor[t].xyz,
+                                       reference_vertex[3u * t + k].xyz)));
+  }
+  if(2.0 * moved >= margin) {
+    atomicOr(flags[0], 1u);
+  }
+}

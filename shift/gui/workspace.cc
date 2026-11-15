@@ -52,7 +52,6 @@
 #include <QPalette>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QQuaternion>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
@@ -1614,13 +1613,32 @@ void shift::gui::Workspace::PopulateTree() {
   UpdateVisibility();
 }
 
-/* a displacement as a matrix, column major as ksl_SE3_t */
-static QMatrix4x4 SE3Matrix(const ksl_SE3_t& d) {
-  const double* a = d.as_array;
-  return QMatrix4x4(float(a[0]), float(a[3]), float(a[6]), float(a[9]),
-                    float(a[1]), float(a[4]), float(a[7]), float(a[10]),
-                    float(a[2]), float(a[5]), float(a[8]), float(a[11]), 0.f,
-                    0.f, 0.f, 1.f);
+/* a displacement in single precision */
+static ksl_SE3f_t SE3Float(const ksl_SE3_t& d) {
+  ksl_SE3f_t f;
+  for(int k = 0; k < 12; k++) {
+    f.as_array[k] = float(d.as_array[k]);
+  }
+  return f;
+}
+
+/* the rotation that turns the z axis onto the unit vector a, about their
+common normal (a half turn about x if a is -z) */
+static ksl_mat3x3f_t RotationFromZ(const ksl_vec3f_t& a) {
+  const ksl_vec3f_t z = ksl_vec3f(0.f, 0.f, 1.f);
+  ksl_vec3f_t normal;
+  ksl_cross_vvf(&z, &a, &normal);
+  const float sine = ksl_vec3f_l2norm(&normal);
+  const float cosine = ksl_dot_vvf(&z, &a);
+  ksl_mat3x3f_t r;
+  if(sine > 1e-6f) {
+    ksl_vec3f_scale(&normal, 1.f / sine);
+    ksl_mat3x3f_setFromAxisAngle(&r, &normal, std::atan2(sine, cosine));
+  } else {
+    const ksl_vec3f_t x = ksl_vec3f(1.f, 0.f, 0.f);
+    ksl_mat3x3f_setFromAxisAngle(&r, &x, cosine > 0.f ? 0.f : float(M_PI));
+  }
+  return r;
 }
 
 bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
@@ -1639,7 +1657,7 @@ bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
 respect to the body origin; false if the body is not drawn */
 static bool FramePlace(const shift::core::Frame& frame,
                        shift::gui::Simulation& simulation, int& body_index,
-                       QMatrix4x4& pose) {
+                       ksl_SE3f_t& pose) {
   const auto& bodies = simulation.get_bodies();
   const shift::core::body::Base* body = frame.get_parent_body();
   auto found = std::find(bodies.begin(), bodies.end(), body);
@@ -1650,7 +1668,7 @@ static bool FramePlace(const shift::core::Frame& frame,
     return false;
   }
   body_index = static_cast<int>(found - bodies.begin());
-  pose = SE3Matrix(*frame.get_d_wrt_origin());
+  pose = SE3Float(*frame.get_d_wrt_origin());
   return true;
 }
 
@@ -1665,28 +1683,32 @@ static bool JointLines(shift::core::joint::Base& joint,
                        shift::gui::Simulation& simulation,
                        std::vector<shift::gui::Viewport::JointAxis>& lines) {
   lines.clear();
-  auto add = [&](shift::core::Frame* frame, const QVector3D& axis) {
+  auto add = [&](shift::core::Frame* frame, const ksl_vec3f_t& axis) {
     shift::gui::Viewport::JointAxis line;
-    if(frame && axis.lengthSquared() > 0.f &&
+    const float length = ksl_vec3f_l2norm(&axis);
+    if(frame && length > 0.f &&
        FramePlace(*frame, simulation, line.body_index, line.line)) {
-      line.line.rotate(QQuaternion::rotationTo(QVector3D(0.f, 0.f, 1.f),
-                                               axis.normalized()));
+      ksl_vec3f_t unit = axis;
+      ksl_vec3f_scale(&unit, 1.f / length);
+      const ksl_mat3x3f_t turn = RotationFromZ(unit);
+      const ksl_mat3x3f_t r = line.line.R;
+      ksl_product_drdrf(&r, &turn, &line.line.R);
       lines.push_back(line);
     }
   };
   const std::string& type = joint.get_type();
   if(type == "revolute" || type == "prismatic" || type == "screw") {
-    QVector3D axis(0.f, 0.f, 1.f);
+    ksl_vec3f_t axis = ksl_vec3f(0.f, 0.f, 1.f);
     const shift::core::parameter::Value* value = joint.Find("axis");
     if(value && value->has_data() &&
        value->get_value_type() == shift::core::parameter::Value::KSL_VEC3) {
       const ksl_vec3_t* a = value->get_data<ksl_vec3_t>();
-      axis = QVector3D(float(a->x), float(a->y), float(a->z));
+      axis = ksl_vec3f(float(a->x), float(a->y), float(a->z));
     }
     add(joint.get_parent_frame(), axis);
   } else if(type == "gear") {
-    add(joint.get_parent_frame(), QVector3D(0.f, 0.f, 1.f));
-    add(joint.get_child_frame(), QVector3D(0.f, 0.f, 1.f));
+    add(joint.get_parent_frame(), ksl_vec3f(0.f, 0.f, 1.f));
+    add(joint.get_child_frame(), ksl_vec3f(0.f, 0.f, 1.f));
   }
   return !lines.empty();
 }
@@ -1750,9 +1772,8 @@ void shift::gui::Workspace::ApplySettings() {
   viewport_->set_frame_axes_scale(float(settings_.get_frame_scale()));
   viewport_->set_joint_thickness(float(settings_.get_joint_thickness()));
   const QColor& color = settings_.get_joint_color();
-  viewport_->set_joint_color(QVector3D(float(color.redF()),
-                                       float(color.greenF()),
-                                       float(color.blueF())));
+  viewport_->set_joint_color(ksl_vec3f(
+    float(color.redF()), float(color.greenF()), float(color.blueF())));
 }
 
 void shift::gui::Workspace::SettingsDialog() {
@@ -1794,7 +1815,7 @@ void shift::gui::Workspace::SettingsDialog() {
   auto preview = [this, frame_scale, joint_thickness, &joint_color] {
     viewport_->set_frame_axes_scale(float(frame_scale->value()));
     viewport_->set_joint_thickness(float(joint_thickness->value()));
-    viewport_->set_joint_color(QVector3D(float(joint_color.redF()),
+    viewport_->set_joint_color(ksl_vec3f(float(joint_color.redF()),
                                          float(joint_color.greenF()),
                                          float(joint_color.blueF())));
   };
@@ -2901,15 +2922,15 @@ void shift::gui::Workspace::UpdateFloor() {
           if(auto soil = dynamic_cast<
                const shift::core::force_module::TrackSoil*>(module)) {
             viewport_->set_floor(
-              QVector3D(0.f, 0.f, static_cast<float>(soil->get_ground())),
-              QVector3D(0.f, 0.f, -1.f));
+              ksl_vec3f(0.f, 0.f, static_cast<float>(soil->get_ground())),
+              ksl_vec3f(0.f, 0.f, -1.f));
             return;
           }
         }
         viewport_->set_floor_below_model(static_cast<float>(p.z));
       } else {
-        viewport_->set_floor(QVector3D(p.x, p.y, p.z),
-                             QVector3D(n.x, n.y, n.z));
+        viewport_->set_floor(ksl_vec3f(float(p.x), float(p.y), float(p.z)),
+                             ksl_vec3f(float(n.x), float(n.y), float(n.z)));
       }
       return;
     }
@@ -2952,10 +2973,12 @@ void shift::gui::Workspace::UpdateBodyPanel() {
   if(body_panel_.selected_body >= static_cast<int>(poses.bodies.size())) {
     return;
   }
-  const QMatrix4x4& m = poses.bodies[body_panel_.selected_body];
+  const ksl_SE3f_t& m = poses.bodies[body_panel_.selected_body];
   for(int row = 0; row < 3; row++) {
     for(int column = 0; column < 4; column++) {
-      body_panel_.m[4 * row + column]->setText(Number(m(row, column), 3));
+      // as_array is column major
+      body_panel_.m[4 * row + column]->setText(
+        Number(m.as_array[3 * column + row], 3));
     }
   }
 }

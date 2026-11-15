@@ -108,7 +108,7 @@ public:
   void set_particle_surface(bool surface);
   /*! \brief place the floor: a point on it and its normal, up (out of the
    * solid), in the inertial frame */
-  void set_floor(const QVector3D& point, const QVector3D& normal);
+  void set_floor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
 
   /*! \brief place a level floor at height z (+z down) that only marks the
    * ground: it is lowered whenever a pose shown reaches below it, so the
@@ -120,7 +120,7 @@ public:
   void FrameScene();
 
   /*! \brief frame a sphere of the scene, to look closely at a part of it */
-  void FrameSphere(const QVector3D& center, float radius);
+  void FrameSphere(const ksl_vec3f_t& center, float radius);
   /*! \brief look from azimuth and elevation (radians, see Camera) and frame
    * the camera on the current poses */
   void set_view(float azimuth, float elevation);
@@ -139,7 +139,7 @@ public:
    * shown if they reach below it */
   void LowerFloorBelowModel();
   /*! \brief move the floor, see set_floor */
-  void PlaceFloor(const QVector3D& point, const QVector3D& normal);
+  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
 
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
@@ -150,7 +150,8 @@ public:
    * green and z blue (set_frame_axes) */
   struct FrameAxes {
     int body_index = 0;  /*!< into the poses */
-    QMatrix4x4 frame;    /*!< frame with respect to the body origin */
+    ksl_SE3f_t frame = Identity(); /*!< frame with respect to the body
+                                      origin */
   };
   /*! \brief the coordinate frames to draw, none by default. They are drawn
    * over the model, so that frames inside a body show, in both render
@@ -169,7 +170,7 @@ public:
     int body_index = 0; /*!< into the poses */
     /*! the line with respect to the body origin: through its origin along
      * its z axis, the arrow pointing to +z */
-    QMatrix4x4 line;
+    ksl_SE3f_t line = Identity();
   };
   /*! \brief the joint axes to draw, none by default; drawn over the model
    * as the frames */
@@ -178,8 +179,8 @@ public:
     return joint_axes_;
   }
   /*! \brief the color of the joint axes (sRGB as shown) */
-  void set_joint_color(const QVector3D& color);
-  const QVector3D& get_joint_color() const {
+  void set_joint_color(const ksl_vec3f_t& color);
+  const ksl_vec3f_t& get_joint_color() const {
     return joint_color_;
   }
   /*! \brief the diameter of the lines of the joint axes (m) */
@@ -312,7 +313,7 @@ private:
   void RenderRaster(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   void RenderRayTraced(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   /*! \brief the frame the camera holds its transform to */
-  QMatrix4x4 FollowFrame(int body, FollowMode mode) const;
+  ksl_SE3f_t FollowFrame(int body, FollowMode mode) const;
   /*! \brief upload the instances (body poses, and the poses of the previous
    * frame for reprojection); returns true if a body moved */
   bool UploadInstances(QRhiResourceUpdateBatch* batch, int instance_count);
@@ -342,7 +343,7 @@ private:
   Camera camera_;
   int follow_body_ = -1;        /*!< see set_follow_body */
   FollowMode follow_mode_ = FollowMode::kBody;
-  QMatrix4x4 follow_offset_;    /*!< the motion of the camera in the frame
+  ksl_SE3f_t follow_offset_ = Identity();    /*!< the motion of the camera in the frame
                                  * followed, see FollowFrame */
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
@@ -355,11 +356,11 @@ private:
   int frame_count_ = 0;
 
   // environment, in world coordinates
-  QVector3D sun_direction_;
-  QVector3D floor_origin_{0.f, 0.f, 0.f};
-  QVector3D floor_u_{1.f, 0.f, 0.f};
-  QVector3D floor_v_{0.f, -1.f, 0.f};
-  QVector3D floor_normal_{0.f, 0.f, -1.f}; // up, +z is down
+  ksl_vec3f_t sun_direction_ = ksl_vec3f(0.f, 0.f, -1.f);
+  ksl_vec3f_t floor_origin_ = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t floor_u_ = ksl_vec3f(1.f, 0.f, 0.f);
+  ksl_vec3f_t floor_v_ = ksl_vec3f(0.f, -1.f, 0.f);
+  ksl_vec3f_t floor_normal_ = ksl_vec3f(0.f, 0.f, -1.f); // up, +z is down
   bool floor_below_model_ = false; /*!< see set_floor_below_model */
   float floor_spacing_ = 1.f;
   float floor_extent_ = 100.f;
@@ -402,7 +403,7 @@ private:
   std::vector<FrameAxes> frame_axes_;
   float frame_axes_scale_ = 0.25f;
   std::vector<JointAxis> joint_axes_;
-  QVector3D joint_color_{0.63f, 0.25f, 0.88f};
+  ksl_vec3f_t joint_color_ = ksl_vec3f(0.63f, 0.25f, 0.88f);
   float joint_thickness_ = 0.0075f;
   uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
   uint32_t axes_frame_instance_count_ = 0;
@@ -512,7 +513,7 @@ private:
   void BuildPickBvh();
   /*! \brief the nearest point of the scene meshes under a point of the
    * window (logical pixels), false if none */
-  bool Pick(const QPointF& pixel, QVector3D& point);
+  bool Pick(const QPointF& pixel, ksl_vec3f_t& point);
   std::unique_ptr<QRhiBuffer> rt_ubo_;
   std::unique_ptr<QRhiBuffer> rt_triangle_buffer_;
   std::unique_ptr<QRhiBuffer> rt_triangle_face_buffer_;
@@ -569,7 +570,7 @@ private:
    * resize, floor toggled, switching to ray tracing) */
   bool rt_history_valid_ = false;
   QMatrix4x4 rt_previous_view_projection_;
-  std::vector<QMatrix4x4> rt_previous_poses_; /*!< per instance */
+  std::vector<ksl_SE3f_t> rt_previous_poses_; /*!< per instance */
   /*! the last upload had a previous pose different from the current one, so
    * the instances must be uploaded again with previous = current */
   bool rt_instances_moving_ = false;

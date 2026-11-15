@@ -2,20 +2,27 @@
 #define SHIFT_GUI_SCENE_H_
 
 #include <QImage>
-#include <QMatrix4x4>
-#include <QVector3D>
-#include <QVector4D>
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
+#include "ksl/SE3.h"
+#include "ksl/vec3.h"
 #include "shift/gui/cad_scene.h"
 #include "shift/gui/mesh_data.h"
 
 namespace shift {
 namespace gui {
+
+/*! \brief the identity transform */
+inline ksl_SE3f_t Identity() {
+  ksl_SE3f_t d;
+  ksl_SE3f_setIdentity(&d);
+  return d;
+}
 
 struct Vertex {
   float position[3];
@@ -44,7 +51,7 @@ float SurfaceNoiseLevel(int surface, double coverage);
 struct SceneMesh {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
-  QVector3D albedo{0.6f, 0.6f, 0.6f};
+  ksl_vec3f_t albedo = ksl_vec3f(0.6f, 0.6f, 0.6f);
   float roughness = 0.6f;
   float metallic = 0.f;
   float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
@@ -67,10 +74,10 @@ struct SceneMesh {
   /*! of a terrain: rectangles x0, y0, x1, y1 of its frame (its uv) not
    * drawn, where regions of it are drawn as surfaces of their own; the
    * raster shader takes the first 4 (MaterialUniforms) */
-  std::vector<QVector4D> holes;
+  std::vector<std::array<float, 4>> holes;
 
-  QVector3D bounds_min;
-  QVector3D bounds_max;
+  ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
 
   /*! the light (Scene::lights) the mesh glows with, -1 if none
    * (shift::core::light::Base::get_glow): its color times the light's
@@ -104,7 +111,7 @@ struct SceneTerrain {
    * triangle pairs along each side of a cell, so that the ray tracer can
    * draw the smooth surface (Viewport::ShapeRtTerrain) */
   int mesh_subdivisions = 1;
-  QMatrix4x4 pose; /*!< terrain frame to world */
+  ksl_SE3f_t pose = Identity(); /*!< terrain frame to world */
 };
 
 /*! \brief the particles of an SPH soil (shift::core::terrain::Sph), each
@@ -126,13 +133,14 @@ struct SceneLight {
   enum Type { kPoint = 0, kSpot = 1, kDirectional = 2, kIes = 3 };
   Type type = kPoint;
   int body_index = 0;
-  QMatrix4x4 frame; /*!< light frame with respect to the body origin */
-  QVector3D ambient;  /*!< Ka */
-  QVector3D diffuse;  /*!< Kd */
-  QVector3D specular; /*!< Ks */
+  ksl_SE3f_t frame = Identity(); /*!< light frame with respect to the body
+                                    origin */
+  ksl_vec3f_t ambient = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Ka */
+  ksl_vec3f_t diffuse = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Kd */
+  ksl_vec3f_t specular = ksl_vec3f(0.f, 0.f, 0.f); /*!< Ks */
   float intensity = 1.f; /*!< factor of diffuse and specular at the start;
                           * Poses::lights at the time shown */
-  QVector3D attenuation{1.f, 0.f, 0.f}; /*!< c, l, q */
+  ksl_vec3f_t attenuation = ksl_vec3f(1.f, 0.f, 0.f); /*!< c, l, q */
   float cone_angle = 0.f;       /*!< spot: half angle (rad) */
   float inner_cone_angle = 0.f; /*!< spot: half angle of full light */
   int ies_profile = -1;         /*!< IES: index in Scene::ies_profiles */
@@ -154,6 +162,10 @@ struct Scene {
   /*! grouped by mesh: the instances of a mesh are contiguous */
   std::vector<SceneInstance> instances;
   int body_count = 0;
+  /*! the grains of the DEM (shift::core::force_module::Dem): their poses
+   * follow the bodies' in Poses::bodies, from body_count, and each is drawn
+   * as an instance of the mesh of its shape */
+  int grain_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
   std::vector<SceneTerrain> terrains;
@@ -203,10 +215,11 @@ private:
 };
 
 /*! \brief body origin poses with respect to the inertial frame at one
- * output time */
+ * output time, then those of the grains (Scene::grain_count): the poses of
+ * their principal axes at their centers of mass */
 struct Poses {
   double time = 0.0;
-  std::vector<QMatrix4x4> bodies;
+  std::vector<ksl_SE3f_t> bodies;
   /*! the intensity of each of Scene::lights at the time (a controller may
    * change it, as a brake lamp); empty: SceneLight::intensity */
   std::vector<float> lights;
@@ -231,8 +244,8 @@ struct ParticleUpdate {
 };
 
 /*! \brief world space bounding box of the scene meshes in the given poses */
-void SceneBounds(const Scene& scene, const Poses& poses, QVector3D& box_min,
-                 QVector3D& box_max);
+void SceneBounds(const Scene& scene, const Poses& poses, ksl_vec3f_t& box_min,
+                 ksl_vec3f_t& box_max);
 
 } // namespace gui
 } // namespace shift
