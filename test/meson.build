@@ -113,9 +113,26 @@ heavy_contact_tests = [
   'CadContact.TrackBenchmarksDoNotStall',
   'CadContact.LinksSettleOnTheSprocket',
   'CadRound.CornerOffAnEdgeHasNoStep',
+]
+
+# the DEM's simulations of grains settling, of a plate settling on them and
+# of a wedge splitting them (2 s to 45 s each in a debug build): run as the
+# benchmark dem_heavy. The regular tests keep the DEM's checks of single
+# contacts, of the GPU against the CPU over a few steps, and a short run of
+# a plate resting on grains in a model (DemModel.PlateRestsOnGrains)
+heavy_dem_tests = [
+  'Dem.GrainsSettleInBox',
+  'DemNsc.GrainsSettleInBox',
+  'DemNsc.StackRestsWithoutOverlap',
+  'DemNsc.GpuGrainsSettleInBox',
+  'DemHull.RocksSettleInBox',
+  'DemModel.PlateSettlesOnGrains',
+  'DemModel.NscPlateSettlesOnGrains',
   'DemModel.GpuNscPlateSettlesOnGrains',
   'DemModel.GpuMatchesCpu',
-  'DemNsc.GpuGrainsSettleInBox',
+  'DemModel.SettledGrainsStayAtRest',
+  'DemModel.WedgeHullSplitsGrains',
+  'DemModel.NscWedgeHullSplitsGrains',
 ]
 
 # the SPH soil's long runs on the GPU (10 s to 75 s each, in a release
@@ -134,11 +151,15 @@ heavy_sph_tests = [
 # below, the speed benchmarks and the heavy tests
 test('shift-test', shift_test,
      args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
-            + ':'.join(heavy_contact_tests + heavy_sph_tests)],
+            + ':'.join(heavy_contact_tests + heavy_dem_tests
+                     + heavy_sph_tests)],
      timeout: 3600)
 
 benchmark('contact_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
+          timeout: 0)
+benchmark('dem_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_dem_tests)],
           timeout: 0)
 benchmark('sph_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_sph_tests)],

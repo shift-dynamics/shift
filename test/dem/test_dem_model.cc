@@ -1,7 +1,9 @@
-/* the DEM in a model (force_module::Dem): a plate on a vertical slide drops
-onto a bed of grains in a box of walls and comes to rest on it, carried by
-the grains, and the GPU gives what the CPU does; a wedge, the convex hull of
-its mesh, splits a bed; and, as benchmarks (DemSpeed), a rock thrown into
+/* the DEM in a model (force_module::Dem): a plate on a vertical slide rests
+on a layer of grains, carried by them (DemModel.PlateRestsOnGrains, the
+short run of the regular tests); as the benchmark dem_heavy (test/meson.build),
+the plate drops onto a bed of grains in a box of walls and comes to rest on
+it, the GPU giving what the CPU does, and a wedge, the convex hull of its
+mesh, splits a bed; and, as benchmarks (DemSpeed), a rock thrown into
 186,000 grains and a million grains falling into place. */
 
 #include <algorithm>
@@ -185,6 +187,66 @@ TEST(DemModel, PlateSettlesOnGrains) {
 by them, as with smooth contact */
 TEST(DemModel, NscPlateSettlesOnGrains) {
   PlateSettles("cpu", R"("contact_method": "nsc",)");
+}
+
+/* the short run of the regular tests: one layer of 4 by 4 grains resting
+on the floor, apart, and the plate starting on them, its bottom on their
+tops (lift -0.02 m); over 0.05 s the grains carry the plate's weight, but
+for its momentum at the end, straight up, and it stays on them at rest, the
+grains where they were */
+TEST(DemModel, PlateRestsOnGrains) {
+  const double mass = 0.1, time_span = 0.05, lift = -0.02;
+  const std::string layer =
+    R"([{"grain": "bead", "min": [-0.022, -0.022, -0.0105],
+         "max": [0.022, 0.022, 0.0005], "spacing": 0.011, "jitter": 0,
+         "seed": 7}])";
+  shift::core::Context context;
+  LoadPlateOnGrains(context, "cpu", mass, time_span, 4e-5, layer, "", lift);
+  context.Simulate();
+  shift::core::force_module::Dem* dem = GetDem(context);
+  ASSERT_NE(dem, nullptr);
+  ASSERT_EQ(dem->get_grain_count(), 16u);
+  shift::core::body::Base* plate = nullptr;
+  for(auto body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "plate") {
+      plate = body;
+    }
+  }
+  ASSERT_NE(plate, nullptr);
+  /* the plate's geometry is at -0.035 - lift from its origin, 5 mm thick
+  either side */
+  const double bottom =
+    context.get_body_origin_pose(plate).t.z - 0.035 - lift + 0.005;
+  const ksl_screw_t velocity =
+    context.GetBodyVelocity(context.GetBodyLoadIndex(plate));
+  const ksl_coscrew_t& impulse = dem->get_body_impulse(0);
+  const double expected = mass * 9.81 * dem->get_time() - mass * velocity.lin.z;
+  shift::core::dem::State grains;
+  dem->GetGrains(grains);
+  const auto& start = dem->get_initial_grains();
+  double highest = 0.0, moved = 0.0;
+  for(size_t g = 0; g < grains.size(); g++) {
+    highest = std::min(highest, grains.position[g][2]);
+    double d = 0.0;
+    for(int k = 0; k < 3; k++) {
+      d += std::pow(grains.position[g][k] - start.position[g][k], 2);
+    }
+    moved = std::max(moved, std::sqrt(d));
+  }
+  std::printf("plate bottom at %.5f m, top grain at %.5f m; speed %.3g "
+              "mm/s; grains moved up to %.3g mm; impulse %.4g N s, of the "
+              "weight %.4g N s\n",
+              bottom, highest, 1e3 * velocity.lin.z, 1e3 * moved,
+              -impulse.lin.z, expected);
+  EXPECT_GT(dem->get_time(), time_span - 2.0 * dem->get_step() - 0.01);
+  EXPECT_NEAR(-impulse.lin.z, expected, 0.03 * expected);
+  EXPECT_LT(std::abs(impulse.lin.x), 0.01 * expected);
+  EXPECT_LT(std::abs(impulse.lin.y), 0.01 * expected);
+  EXPECT_LT(std::abs(velocity.lin.z), 0.02);
+  /* on the grains: their centers a radius below the plate, less the
+  overlaps (a few micrometers) */
+  EXPECT_NEAR(bottom, highest - 0.005, 1e-4);
+  EXPECT_LT(moved, 1e-4);
 }
 
 /* the plate on the grains, its height and the grains' impulse on it after
