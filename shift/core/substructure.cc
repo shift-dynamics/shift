@@ -688,6 +688,128 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
   return shift::core::Jacobian::Failure::OK;
 }
 
+double shift::core::Substructure::VelocityResidual(const double* dq) const {
+  const auto& h = context_->get_dhva().h;
+  std::vector<double> rate(constraint_equation_count_, 0.0);
+  auto it =
+    positive_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
+    for(auto variable_index : *it) {
+      for(int m = 0; m < 6; m++) {
+        rate[j * 6 + m] += h[variable_index].at[m] * dq[variable_index];
+      }
+    }
+  }
+  it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
+    for(auto variable_index : *it) {
+      for(int m = 0; m < 6; m++) {
+        rate[j * 6 + m] -= h[variable_index].at[m] * dq[variable_index];
+      }
+    }
+  }
+  double largest = 0.0;
+  for(double r : rate) {
+    largest = std::max(largest, std::fabs(r));
+  }
+  return largest;
+}
+
+bool shift::core::Substructure::MakeVelocitiesConsistent(double* dq) {
+  assert(context_);
+  double* rates = dq + dq_offset_;
+  double scale = 1.0;
+  for(unsigned int c = 0; c < dq_count_; c++) {
+    scale = std::max(scale, std::fabs(rates[c]));
+  }
+  const double tolerance = epsilon_rank_determination_ * scale;
+  const double initial_residual = VelocityResidual(dq);
+  if(initial_residual <= tolerance) {
+    return false;
+  }
+
+  /* first choice: keep the rates the model gives (the nonzero ones) by
+  making their coordinates independent */
+  std::vector<int> given;
+  for(unsigned int c = 0; c < dq_count_; c++) {
+    if(rates[c] != 0.0) {
+      given.push_back(dq_offset_ + c);
+    }
+  }
+  SetupPO1(context_->get_dhva());
+  bool kept = false;
+  if(!given.empty() && (int)given.size() <= (int)dq_count_ - rank_) {
+    try {
+      SetupPO1Specified(context_->get_dhva(), given);
+      /* the rows below the rank hold the Schur complement of the independent
+      columns; it must annihilate their rates, or the given rates violate the
+      constraints whatever the dependent rates are */
+      double residual = 0.0;
+      for(unsigned int i = rank_; i < constraint_equation_count_; i++) {
+        double sum = 0.0;
+        for(unsigned int j = rank_; j < dq_count_; j++) {
+          sum += J_[i * dq_count_ + j] * rates[pc_12_[j]];
+        }
+        residual = std::max(residual, std::fabs(sum));
+      }
+      if(residual <= tolerance) {
+        for(int i = 0; i < rank_; i++) {
+          double sum = 0.0;
+          for(unsigned int j = rank_; j < dq_count_; j++) {
+            sum += J_[i * dq_count_ + j] * rates[pc_12_[j]];
+          }
+          rates[pc_12_[i]] = -sum;
+        }
+        kept = true;
+      }
+    } catch(const shift::core::Exception&) {
+      /* the given coordinates cannot all be independent */
+    }
+  }
+
+  if(!kept) {
+    /* nearest consistent rates: dq <- Z Z^T dq, Z an orthonormal basis of
+    N = P_v^T [-B; I] */
+    SetupPO1(context_->get_dhva());
+    const int k = dq_count_ - rank_;
+    std::vector<double> z(dq_count_ * std::max(k, 1), 0.0);
+    if(k > 0) {
+      for(int i = 0; i < rank_; i++) {
+        for(int j = 0; j < k; j++) {
+          z[pc_12_[i] * k + j] = -J_[i * dq_count_ + rank_ + j];
+        }
+      }
+      for(int j = 0; j < k; j++) {
+        z[pc_12_[rank_ + j] * k + j] = 1.0;
+      }
+      ksl_linalg_gramSchmidt(z.data(), dq_count_, k);
+    }
+    std::vector<double> tangent(std::max(k, 1), 0.0);
+    for(int j = 0; j < k; j++) {
+      for(unsigned int c = 0; c < dq_count_; c++) {
+        tangent[j] += z[c * k + j] * rates[c];
+      }
+    }
+    for(unsigned int c = 0; c < dq_count_; c++) {
+      double sum = 0.0;
+      for(int j = 0; j < k; j++) {
+        sum += z[c * k + j] * tangent[j];
+      }
+      rates[c] = sum;
+    }
+  }
+
+  SHIFT_INFO("Initial velocities of substructure " + std::to_string(index_) +
+             (kept ? " completed from the given rates"
+                   : " projected onto the constraints") +
+             ": constraint velocity error " + std::to_string(initial_residual) +
+             " -> " + std::to_string(VelocityResidual(dq)));
+  /* leave the Jacobian factored with complete pivoting, as the assembly does */
+  SetupPO1(context_->get_dhva());
+  SetupBooleanPO2();
+  return true;
+}
+
 void shift::core::Substructure::PrintError(double initial_error,
                                            double final_error, double* q_copy) {
 
