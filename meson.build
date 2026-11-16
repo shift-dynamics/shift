@@ -99,6 +99,45 @@ if not gpu_found
   vulkan_dep = dependency('', required: false)
 endif
 
+# Finite element models of flexible bodies (shift/core/fea): Eigen and
+# Spectra (MPL-2.0, header-only) for the sparse factorizations and the modes,
+# and Netgen (LGPL-2.1) for the tetrahedral meshes. Netgen is built from its
+# CMake files with Python, the GUI and OpenCASCADE off, and only as shared
+# libraries (libnglib, libngcore), so that Shift links to it dynamically.
+fea_opt = get_option('fea')
+eigen_dep = dependency('eigen3', required: fea_opt)
+spectra_dep = dependency('spectra', required: fea_opt, allow_fallback: true)
+nglib_dep = dependency('', required: false)
+if eigen_dep.found() and spectra_dep.found()
+  cmake = import('cmake')
+  netgen_opts = cmake.subproject_options()
+  netgen_opts.add_cmake_defines({
+    'USE_SUPERBUILD': false,
+    'USE_PYTHON': false,
+    'USE_GUI': false,
+    'USE_OCC': false,
+    'USE_MPI': false,
+    'USE_NATIVE_ARCH': false,
+    'BUILD_STUB_FILES': false,
+    'ENABLE_UNIT_TESTS': false,
+    'CMAKE_BUILD_TYPE': 'Release',
+  })
+  # Netgen's own sources are not held to Shift's warnings
+  netgen_opts.set_override_option('warning_level', '0')
+  netgen_opts.set_override_option('werror', 'false')
+  netgen = cmake.subproject('netgen', options: netgen_opts, required: fea_opt)
+  if netgen.found()
+    # nglib.h is not among the target's include directories; it is included
+    # inside namespace nglib, as Netgen's own nglib.cpp does
+    nglib_dep = declare_dependency(
+      dependencies: netgen.dependency('nglib'),
+      include_directories: include_directories('subprojects/netgen/nglib',
+                                               is_system: true),
+    )
+  endif
+endif
+fea_found = eigen_dep.found() and spectra_dep.found() and nglib_dep.found()
+
 # example models (also used by the test suite)
 shift_examples_dir = meson.project_source_root() / 'examples'
 

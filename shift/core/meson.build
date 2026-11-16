@@ -21,6 +21,7 @@ subdir('cad')
 subdir('collision_geometry')
 subdir('constraint')
 subdir('dem')
+subdir('fea')
 subdir('force_module')
 subdir('geometry')
 subdir('gpu')
@@ -51,6 +52,9 @@ core_deps = [
   step_dep,
   vulkan_dep,
 ]
+if fea_found
+  core_deps += [eigen_dep, spectra_dep, nglib_dep]
+endif
 
 # all of src/core is one library; modules register themselves with the
 # factory from static initializers and Modules::is_initialized() keeps them

@@ -523,6 +523,33 @@ void shift::core::parameter::Value::ReadJSON_DOUBLE_ARRAY(
   }
 
   std::any_cast<std::vector<double>*>(data_)->clear();
+  /* a nested list, [[...], [...]], is read row by row: every row as long,
+  and as long as the column dimension if one is set */
+  if(json_value[0].isArray()) {
+    const unsigned int columns = json_value[0].size();
+    for(unsigned int i = 0; i < json_value.size(); i++) {
+      const Json::Value& row = json_value[i];
+      if(!row.isArray() || row.size() != columns ||
+         (col_dim_ > 0 && static_cast<int>(columns) != col_dim_)) {
+        throw shift::core::Exception(
+          "JSON Parsing error: the rows of a nested DOUBLE_ARRAY must all "
+          "have " +
+          std::to_string(col_dim_ > 0 ? col_dim_ : static_cast<int>(columns)) +
+          " numbers");
+      }
+      for(unsigned int j = 0; j < columns; j++) {
+        if(!row[j].isDouble()) {
+          throw shift::core::Exception(
+            "JSON Parsing error: required key has incorrectly formatted "
+            "data; expected DOUBLE_ARRAY");
+        }
+        std::any_cast<std::vector<double>*>(data_)->push_back(
+          row[j].asDouble());
+      }
+    }
+    loaded_from_file_ = true;
+    return;
+  }
   for(unsigned int i = 0; i < json_value.size(); i++) {
     if(!json_value[i].isDouble()) {
       throw shift::core::Exception(

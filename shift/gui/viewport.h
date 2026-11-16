@@ -286,6 +286,9 @@ private:
   /*! \brief upload the particles that changed (Simulation::
    * TakeParticleUpdates), or all of them; the buffers grow as needed */
   void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
+  /*! \brief the vertices of the deformable meshes (flexible bodies) that
+   * changed, or all */
+  void UploadFlexUpdates(QRhiResourceUpdateBatch* batch, bool all);
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -431,6 +434,7 @@ private:
   std::vector<GpuParticles> gpu_particles_;
   std::vector<ParticleUpdate> particle_updates_; /*!< reused each frame */
   bool gpu_particles_reset_ = false; /*!< all to upload, see UploadScene */
+  std::vector<FlexUpdate> flex_updates_; /*!< reused each frame */
   std::unique_ptr<QRhiGraphicsPipeline> particle_pipeline_;
   // their surface (set_particle_surface): the depth of the spheres in
   // fluid_depth_[0], blurred level by level from one into the other, ending

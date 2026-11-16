@@ -1,6 +1,7 @@
 #ifndef SHIFT_BODY_NODAL_H_
 #define SHIFT_BODY_NODAL_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,17 +48,29 @@ masses driven through \f$G\f$, an upper bound on each frequency that
 converges as more points are retained.
 
 The model is given with SetFiniteElementModel, in the coordinates of the
-body's origin. Making it from a mesh of the body's geometry (10-node
-tetrahedra) or reading it from CalculiX is still to be added, and until then
-the type is not registered for model files.
+body's origin, or made from fe_geometry (model type "nodal"): the solid is
+meshed with 10-node tetrahedra, each frame a joint or chord uses (and each
+listed in attachments) is tied to the mesh, and the mesh is reduced to the
+six motions of each attachment other than the reference frame and the three
+translations of the node nearest each of retained_points (fea::Reduce with
+no fixed-interface modes).
 */
 class Nodal : public Flex {
 public:
   Nodal()
-    : Flex() {}
+    : Flex() {
+    DeclareParameters();
+  }
   Nodal(std::string name)
-    : Flex(name) {}
+    : Flex(name) {
+    DeclareParameters();
+  }
   virtual ~Nodal() override {}
+  static std::unique_ptr<Nodal> Create();
+  static bool is_registered() {
+    return registered_;
+  }
+  void DeclareParameters() override;
 
   /*! \brief set the lumped finite element model and reduce it.
    * \p positions, \p masses and \p rotary_inertias of the points (the
@@ -78,6 +91,9 @@ public:
                              const std::vector<double>& damping,
                              const std::vector<unsigned int>& fixed_points,
                              const std::vector<unsigned int>& retained_points);
+
+private:
+  static bool registered_;
 };
 
 } // namespace body

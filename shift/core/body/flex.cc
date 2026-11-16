@@ -78,6 +78,14 @@ void shift::core::body::Flex::SetInitialElasticState(
 
 void shift::core::body::Flex::Connect() {
   Base::Connect();
+  /* a body built from a mesh has its model and nodes from BuildElastic */
+  if(builds_model()) {
+    return;
+  }
+  ResolveNodes();
+}
+
+void shift::core::body::Flex::ResolveNodes() {
   const size_t point_count = masses_.size();
   if(elastic_count_ == 0 || point_count == 0) {
     throw shift::core::Exception("Flexible body '" + get_name() +

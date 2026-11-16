@@ -3,6 +3,8 @@
 #include "shift/core/body/base.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/body/free.h"
+#include "shift/core/body/modal.h"
+#include "shift/core/body/nodal.h"
 #include "shift/core/body/rigid.h"
 #include "shift/core/body/virtual.h"
 #include "shift/core/context.h"
@@ -31,6 +33,10 @@ bool shift::core::body::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::body::Virtual::is_registered()) {
+    return false;
+  }
+  if(!shift::core::body::Modal::is_registered() ||
+     !shift::core::body::Nodal::is_registered()) {
     return false;
   }
   return true;

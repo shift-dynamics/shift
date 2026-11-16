@@ -31,6 +31,10 @@ test_sources = [
   'test_elastic_coordinates.cc',
   'test_flex_body.cc',
   'test_nodal_body.cc',
+  'test_fea_mesh.cc',
+  'test_fea_reduction.cc',
+  'test_flex_step.cc',
+  'test_cad_triangulate.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',
   'test_consistent_velocities.cc',
@@ -97,7 +101,7 @@ if not is_disabler(shift_gui_dep)
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
-                   'test_light_glow.cc']
+                   'test_light_glow.cc', 'test_flex_playback.cc']
   test_deps += [shift_gui_dep]
 endif
 

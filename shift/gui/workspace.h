@@ -14,6 +14,7 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSize>
 #include "ksl/vec3.h"
 
@@ -57,6 +58,7 @@ namespace gui {
 class PlaybackSlider;
 class VideoTrimmer;
 class Viewport;
+class ModeWindow;
 
 /*!
 @brief Main window, following the layout of the original OpenGL workspace
@@ -398,8 +400,18 @@ private:
     QGroupBox* group_box = nullptr;
     QLabel* title = nullptr;
     QLabel* m[12] = {};
+    QPushButton* modes = nullptr; /*!< of a flexible body built from a mesh */
     int selected_body = -1;
   } body_panel_;
+  /*! the mode window open, closed when the model loads again */
+  QPointer<ModeWindow> mode_window_;
+  /*! \brief open the mode window of the selected flexible body */
+  void OpenModeWindow();
+  /*! \brief write modes as modes_kept of flexible body body (an index in
+   * Simulation::get_bodies) and load the model again */
+  void ApplyModesKept(int body, const std::vector<int>& modes);
+  /*! \brief View > Deformation scale */
+  void DeformationScaleDialog();
 
   /* collision geometry of the fixed body; the pose of a plane can be set */
   struct {

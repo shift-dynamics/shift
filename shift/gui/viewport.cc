@@ -1933,6 +1933,22 @@ void shift::gui::Viewport::UploadParticleUpdates(
   }
 }
 
+void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
+                                             bool all) {
+  simulation_->TakeFlexUpdates(flex_updates_, all);
+  for(const auto& update : flex_updates_) {
+    if(update.mesh < 0 || update.mesh >= static_cast<int>(gpu_meshes_.size())) {
+      continue;
+    }
+    GpuMesh& gpu = gpu_meshes_[update.mesh];
+    const quint32 bytes = quint32(update.vertices.size() * sizeof(Vertex));
+    if(gpu.vertices && bytes == gpu.vertices->size()) {
+      batch->uploadStaticBuffer(gpu.vertices.get(), 0, bytes,
+                                update.vertices.data());
+    }
+  }
+}
+
 void shift::gui::Viewport::UploadTerrainUpdates(
   QRhiResourceUpdateBatch* batch) {
   simulation_->TakeTerrainUpdates(terrain_updates_);
@@ -2181,8 +2197,10 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     GpuMesh gpu;
     const quint32 vertex_bytes = quint32(mesh.vertices.size() * sizeof(Vertex));
     const quint32 index_bytes = quint32(mesh.indices.size() * sizeof(uint32_t));
-    gpu.vertices.reset(rhi_->newBuffer(QRhiBuffer::Immutable,
-                                       QRhiBuffer::VertexBuffer, vertex_bytes));
+    // a deformable mesh's vertices are uploaded again as it deforms
+    gpu.vertices.reset(rhi_->newBuffer(
+      mesh.deformable ? QRhiBuffer::Static : QRhiBuffer::Immutable,
+      QRhiBuffer::VertexBuffer, vertex_bytes));
     gpu.vertices->create();
     gpu.indices.reset(rhi_->newBuffer(QRhiBuffer::Immutable,
                                       QRhiBuffer::IndexBuffer, index_bytes));
@@ -2431,6 +2449,7 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
   if(simulation_) {
     // all of them after the scene was uploaded again
     UploadParticleUpdates(batch, gpu_particles_reset_);
+    UploadFlexUpdates(batch, gpu_particles_reset_);
     gpu_particles_reset_ = false;
   }
 

@@ -23,6 +23,7 @@ namespace core {
 class Context;
 namespace body {
 class Base;
+class Flex;
 }
 namespace force_module {
 class Dem;
@@ -184,7 +185,46 @@ public:
   void TakeParticleUpdates(std::vector<ParticleUpdate>& updates,
                            bool all = false);
 
+  // ---------------------------------------------------- flexible bodies
+  /*! \brief the flexible bodies built from a mesh, drawn by the surface of
+   * their mesh: their indices in get_bodies() */
+  std::vector<int> get_flex_bodies() const;
+  /*! \brief the factor the elastic deformation is drawn with (1: as
+   * computed) */
+  void set_deformation_scale(double scale);
+  double get_deformation_scale() const {
+    return deformation_scale_;
+  }
+  /*! \brief draw flexible body body (an index in get_bodies()) in a shape
+   * instead of the state shown: elastic coordinate coordinate (kind 0) or
+   * fixed-interface mode coordinate (kind 1, of
+   * body::Flex::get_computed_shapes), scaled so that its largest nodal
+   * displacement is amplitude (and not by the deformation scale);
+   * ClearShapePreview draws the state shown again */
+  void PreviewShape(int body, int kind, int coordinate, double amplitude);
+  void ClearShapePreview();
+  /*! \brief the vertices of the deformable meshes that changed since the
+   * previous call, or all */
+  void TakeFlexUpdates(std::vector<FlexUpdate>& updates, bool all = false);
+
 private:
+  /*! a flexible body built from a mesh, drawn as Scene::meshes[mesh]: a
+   * vertex for each mesh node on each B-rep face it lies on */
+  struct FlexView {
+    const shift::core::body::Flex* flex = nullptr;
+    int body = 0; /*!< in bodies_ */
+    int mesh = 0;
+    std::vector<int> vertex_point; /*!< the point of each vertex */
+    std::vector<double> eta;       /*!< the elastic coordinates shown */
+    bool changed = true;           /*!< since TakeFlexUpdates */
+  };
+  /*! \brief the views of the flexible bodies (in LoadModel) */
+  void AddFlexViews();
+  /*! \brief show the elastic coordinates of the state y (from q) */
+  void ShowElastic(const double* y);
+  /*! \brief the vertices of a view now: the elastic coordinates shown (or
+   * the preview) times the shapes */
+  void FlexVertices(const FlexView& view, std::vector<Vertex>& vertices) const;
   /*! an SPH soil drawn as Scene::particles[particles] */
   struct SphView {
     shift::core::terrain::Sph* sph = nullptr;
@@ -287,6 +327,13 @@ private:
   void UpdatePoses(const shift::core::topology::DHVA& dhva);
   void StoreInitialState();
 
+  std::vector<FlexView> flex_views_;
+  double deformation_scale_ = 1.0;
+  /* the shape previewed: view (-1 for none), kind, coordinate, amplitude */
+  int preview_view_ = -1;
+  int preview_kind_ = 0;
+  int preview_coordinate_ = 0;
+  double preview_amplitude_ = 0.0;
   std::string filename_;
   std::string log_directory_; /*!< files taken out of a log */
   /*! the path and file map of the model loaded last, even if it failed to

@@ -209,6 +209,28 @@ public:
    * body has nothing to prepare. */
   virtual void SetupElastic() {}
 
+  /*! \brief a frame of the body that a joint or chord uses, for a flexible
+   * body that builds its own model: the joint type, and for a revolute joint
+   * its axis in the frame's coordinates */
+  struct FrameUse {
+    enum class Joint { kOther, kRevolute, kSpherical };
+    Frame* frame = nullptr;
+    Joint joint = Joint::kOther;
+    ksl_vec3_t axis = {{0.0, 0.0, 1.0}};
+  };
+
+  /*! \brief build the elastic model of a flexible body from its own data
+   * (a finite element model of its geometry) once the joints are connected
+   * and before the context finds the frames of the spanning tree: \p
+   * reference is the frame its parent joint attaches to, \p uses the frames
+   * that joints and chords use. A rigid body, or a flexible body whose model
+   * is given in code, has nothing to build. */
+  virtual void BuildElastic(Frame* reference,
+                            const std::vector<FrameUse>& uses) {
+    (void)reference;
+    (void)uses;
+  }
+
   /*! \brief number of nodes: the frames of the body that move with its
    * deformation and that a joint, force module, sensor or chord uses; 0 for
    * a rigid body, whose frames all move with its reference frame */

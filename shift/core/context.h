@@ -948,6 +948,10 @@ private:
 
   /*! \brief identify frames in spanning tree and optimize rigid joints out of
    * model */
+  /*! the flexible bodies that make their own models (from a finite element
+   * model of their geometry) build them, with the frames their joints and
+   * chords use; before ProcessFrames, which needs their nodes */
+  void BuildElasticBodies();
   void ProcessFrames();
 
   /*! \brief allocate arrays used at run-time used to process kinematics and

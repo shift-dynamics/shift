@@ -50,6 +50,7 @@
 #include "shift/core/geometry/base.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/joint/revolute.h"
 #include "shift/core/joint/rigid.h"
 #include "shift/core/joint/spherical.h"
 #include "shift/core/light/base.h"
@@ -154,6 +155,7 @@ void shift::core::Context::PostLoad(const std::string) {
   ProcessLoopMembers();
   DetectSubstructures();
   ProcessPCL();
+  BuildElasticBodies();
   ProcessFrames();
   SetupFreeBodies();
   AllocateRunTimeArrays();
@@ -188,6 +190,50 @@ void shift::core::Context::ActivateLoggers() {
   for(auto& logger : active_loggers_) {
     logger->ConnectOutputs();
     logger->Initialize();
+  }
+}
+
+void shift::core::Context::BuildElasticBodies() {
+  for(auto body : active_articulated_bodies_) {
+    auto owns = [body](const shift::core::Frame* frame) {
+      for(auto& f : body->get_frames()) {
+        if(f.get() == frame) {
+          return true;
+        }
+      }
+      return false;
+    };
+    shift::core::Frame* reference = nullptr;
+    std::vector<shift::core::body::Base::FrameUse> uses;
+    auto use = [&](shift::core::Frame* frame,
+                   shift::core::joint::Base* joint) {
+      if(!frame || !owns(frame)) {
+        return;
+      }
+      shift::core::body::Base::FrameUse u;
+      u.frame = frame;
+      if(joint) {
+        if(auto revolute = dynamic_cast<shift::core::joint::Revolute*>(joint)) {
+          u.joint = shift::core::body::Base::FrameUse::Joint::kRevolute;
+          u.axis = revolute->get_axis();
+        } else if(dynamic_cast<shift::core::joint::Spherical*>(joint)) {
+          u.joint = shift::core::body::Base::FrameUse::Joint::kSpherical;
+        }
+      }
+      uses.push_back(u);
+    };
+    for(auto& joint : active_joints_) {
+      if(joint->get_system_child_body() == body) {
+        reference = joint->get_system_child_frame();
+      }
+      use(joint->get_parent_frame(), joint);
+      use(joint->get_child_frame(), joint);
+    }
+    for(auto& constraint : chord_constraints_) {
+      use(constraint->get_parent_frame(), nullptr);
+      use(constraint->get_child_frame(), nullptr);
+    }
+    body->BuildElastic(reference, uses);
   }
 }
 
@@ -975,7 +1021,8 @@ void shift::core::Context::LoadData() {
   body::Base::MassCache mass_cache;
   for(auto list : {&active_articulated_bodies_, &active_free_bodies_}) {
     for(auto body : *list) {
-      if(body->get_density() > 0.0) {
+      /* a flexible body's density is its finite element model's */
+      if(body->get_density() > 0.0 && !body->get_elastic_count()) {
         body->ComputeMassFromGeometry(mass_cache);
         from_density = true;
       }

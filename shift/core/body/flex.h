@@ -1,6 +1,7 @@
 #ifndef SHIFT_BODY_FLEX_H_
 #define SHIFT_BODY_FLEX_H_
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -10,10 +11,37 @@
 #include "ksl/screw.h"
 
 #include "shift/core/body/base.h"
+#include "shift/core/parameter/array.h"
+#include "shift/core/parameter/list.h"
 
 namespace shift {
 namespace core {
 namespace body {
+
+/*!
+@brief an entry of a flexible body's attachments: how one of its frames is
+tied to the finite element mesh, overriding the automatic choice (see
+fea::AttachmentRequest)
+*/
+class FlexAttachment : public parameter::List {
+public:
+  FlexAttachment() {
+    DeclareParameters();
+  }
+  virtual ~FlexAttachment() {}
+
+  static const std::string get_array_key() {
+    return "attachments";
+  }
+
+  std::string frame;
+  std::string spider = "rbe3";
+  std::vector<int> faces;
+  double radius = 0.0;
+
+protected:
+  virtual void DeclareParameters() override;
+};
 
 /*!
 @brief A flexible body in the floating frame of reference: the rigid motion of
@@ -172,6 +200,61 @@ public:
 
   /*! \brief find the node frames by name */
   void Connect() override;
+  /*! \brief with fe_geometry: mesh the geometry, tie the frames used to the
+   * mesh, reduce it (fixed-interface modes if HasFixedInterfaceModes) and
+   * set the model and its nodes */
+  void BuildElastic(Frame* reference,
+                    const std::vector<FrameUse>& uses) override;
+  /*! \brief whether the body makes its model from fe_geometry */
+  bool builds_model() const {
+    return !fe_geometry_.empty();
+  }
+  /*! \brief the natural frequencies (Hz) of the fixed-interface modes
+   * computed, ascending, kept or not (empty unless built from a mesh) */
+  const std::vector<double>& get_frequencies() const {
+    return frequencies_;
+  }
+  /*! \brief the kept fixed-interface modes, indices into get_frequencies */
+  const std::vector<unsigned int>& get_modes_kept() const {
+    return kept_;
+  }
+  /*! \brief the number of static (attachment and retained-node) modes,
+   * which come first among the elastic coordinates */
+  unsigned int get_static_count() const {
+    return static_count_;
+  }
+  /*! \brief the boundary of the mesh (built from a mesh): 6-node triangles
+   * of points (corners, then mid-sides of edges 01, 12, 20), outward */
+  const std::vector<std::array<int, 6>>& get_mesh_boundary() const {
+    return mesh_boundary_;
+  }
+  /*! \brief the B-rep face of each boundary triangle */
+  const std::vector<int>& get_mesh_boundary_face() const {
+    return mesh_boundary_face_;
+  }
+  /*! \brief the points that are mesh nodes, the first of the points (the
+   * attachments' points follow them); 0 unless built from a mesh */
+  unsigned int get_mesh_node_count() const {
+    return mesh_node_count_;
+  }
+  /*! \brief the translations of the mesh nodes in each fixed-interface
+   * mode computed, kept or not, in the origin's coordinates: x, y, z of node
+   * n in mode k at 3 (n * get_frequencies().size() + k) */
+  const std::vector<double>& get_computed_shapes() const {
+    return computed_shapes_;
+  }
+  /*! \brief the name of the geometry meshed, empty if the model is given */
+  const std::string& get_fe_geometry() const {
+    return fe_geometry_;
+  }
+  /*! \brief the points' undeformed positions and the shape matrix
+   * (SetModel), in the origin's coordinates */
+  const std::vector<ksl_vec3_t>& get_positions() const {
+    return positions_;
+  }
+  const std::vector<ksl_screw_t>& get_shapes() const {
+    return shapes_;
+  }
   void SetupElastic() override;
   void EvaluateElastic(const double* eta, const double* eta_dot,
                        const ksl_screw_t& v_r) override;
@@ -212,6 +295,39 @@ public:
   }
 
 protected:
+  /*! the keys of a body built from a finite element model, common to Modal
+   * and Nodal */
+  void DeclareFiniteElementParameters();
+  /*! find the node frames by name; throws if there is no model */
+  void ResolveNodes();
+  /*! Modal keeps fixed-interface modes; Nodal only static ones */
+  virtual bool HasFixedInterfaceModes() const {
+    return false;
+  }
+  /* finite element keys */
+  double youngs_modulus_ = 0.0;
+  double poisson_ratio_ = 0.0;
+  std::string fe_geometry_;
+  double element_size_ = 0.0;
+  double minimum_element_size_ = 0.0;
+  parameter::Array<FlexAttachment> attachments_;
+  int mode_count_ = 0;
+  double maximum_frequency_ = 0.0;
+  std::vector<int> modes_kept_;
+  double damping_ratio_ = 0.0;
+  std::vector<double> damping_ratios_;
+  std::vector<double> initial_elastic_coordinates_;
+  std::vector<double> initial_elastic_velocities_;
+  std::vector<double> retained_points_; /*!< x, y, z of each, row by row */
+  /* results of BuildElastic */
+  std::vector<double> frequencies_;
+  std::vector<unsigned int> kept_;
+  unsigned int static_count_ = 0;
+  std::vector<std::array<int, 6>> mesh_boundary_;
+  std::vector<int> mesh_boundary_face_;
+  unsigned int mesh_node_count_ = 0;
+  std::vector<double> computed_shapes_;
+
   /*! the rotational block J of the mass matrix about r's origin, the first
    * moment s, and the columns G_j, for \p eta */
   void EvaluateMassBlocks(const double* eta, ksl_mat3x3_t* J, ksl_vec3_t* s,

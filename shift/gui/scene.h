@@ -89,6 +89,10 @@ struct SceneMesh {
    * drawn tessellated from the terrain's maps where the device can, and as
    * this mesh otherwise and by the ray tracer */
   int terrain = -1;
+  /*! the surface of a flexible body's finite element mesh: its vertices
+   * move with the deformation shown (Simulation::TakeFlexUpdates); the ray
+   * tracer draws it undeformed */
+  bool deformable = false;
 };
 
 /*! \brief an elevation map terrain for the tessellation shaders: its
@@ -241,6 +245,13 @@ struct TerrainUpdate {
 struct ParticleUpdate {
   int particles = 0;         /*!< in Scene::particles */
   std::vector<float> centers; /*!< x, y, z in the world, then 0, each */
+};
+
+/*! \brief the vertices of a deformable mesh (SceneMesh::deformable) at
+ * the time shown, in its body's origin coordinates */
+struct FlexUpdate {
+  int mesh = 0; /*!< in Scene::meshes */
+  std::vector<Vertex> vertices;
 };
 
 /*! \brief world space bounding box of the scene meshes in the given poses */

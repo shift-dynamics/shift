@@ -3,4 +3,5 @@ core_src += files(
   'evaluate.cc',
   'repair.cc',
   'step_reader.cc',
+  'triangulate.cc',
 )

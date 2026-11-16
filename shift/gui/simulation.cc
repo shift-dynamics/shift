@@ -1,5 +1,7 @@
 #include "shift/gui/simulation.h"
 
+#include "shift/core/body/flex.h"
+
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/body/base.h"
@@ -58,14 +60,15 @@ static void EmptyBox(ksl_vec3f_t& box_min, ksl_vec3f_t& box_max) {
 }
 
 /*! area weighted vertex normals, for meshes imported without normals */
-static void ComputeNormals(shift::gui::SceneMesh& mesh) {
-  for(auto& vertex : mesh.vertices) {
+static void ComputeNormals(std::vector<shift::gui::Vertex>& vertices,
+                           const std::vector<uint32_t>& indices) {
+  for(auto& vertex : vertices) {
     std::fill(vertex.normal, vertex.normal + 3, 0.f);
   }
-  for(size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
-    shift::gui::Vertex* v[3] = {&mesh.vertices[mesh.indices[i]],
-                                &mesh.vertices[mesh.indices[i + 1]],
-                                &mesh.vertices[mesh.indices[i + 2]]};
+  for(size_t i = 0; i + 2 < indices.size(); i += 3) {
+    shift::gui::Vertex* v[3] = {&vertices[indices[i]],
+                                &vertices[indices[i + 1]],
+                                &vertices[indices[i + 2]]};
     ksl_vec3f_t p[3];
     for(int k = 0; k < 3; k++) {
       p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
@@ -83,7 +86,7 @@ static void ComputeNormals(shift::gui::SceneMesh& mesh) {
   }
   /* divided by the length, however small the triangles; a vertex of no
   area keeps its zero normal */
-  for(auto& vertex : mesh.vertices) {
+  for(auto& vertex : vertices) {
     ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
                               vertex.normal[2]);
     const float length = ksl_vec3f_l2norm(&n);
@@ -94,6 +97,10 @@ static void ComputeNormals(shift::gui::SceneMesh& mesh) {
       vertex.normal[k] = n.at[k];
     }
   }
+}
+
+static void ComputeNormals(shift::gui::SceneMesh& mesh) {
+  ComputeNormals(mesh.vertices, mesh.indices);
 }
 
 static shift::gui::SceneMesh
@@ -590,6 +597,8 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   scm_views_.clear();
   dem_views_.clear();
   grain_records_ = 0;
+  flex_views_.clear();
+  preview_view_ = -1;
   context_.reset();
   bodies_.clear();
   light_sources_.clear();
@@ -616,6 +625,8 @@ void shift::gui::Simulation::Reload(const Json::Value& model) {
   const std::string path = model_path_;
   JoinWorker();
   scm_views_.clear();
+  flex_views_.clear();
+  preview_view_ = -1;
   context_.reset();
   bodies_.clear();
   light_sources_.clear();
@@ -690,6 +701,7 @@ void shift::gui::Simulation::LoadModel(
       scene_.instances.push_back({static_cast<int>(m), body});
     }
   }
+  AddFlexViews();
   /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset),
   scale, color and opacity, drawn once per body */
   std::map<std::tuple<const shift::core::geometry::CadAsset*, double,
@@ -700,6 +712,12 @@ void shift::gui::Simulation::LoadModel(
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto cad = dynamic_cast<shift::core::geometry::Cad*>(geometry.get());
       if(!cad || !cad->is_active() || !cad->get_asset()) {
+        continue;
+      }
+      /* a flexible body's meshed solid is drawn by its mesh (AddFlexViews) */
+      auto flex = dynamic_cast<const shift::core::body::Flex*>(bodies_[i]);
+      if(flex && flex->builds_model() &&
+         flex->get_fe_geometry() == cad->get_name()) {
         continue;
       }
       const auto key = std::make_tuple(cad->get_asset(), cad->get_scale(),
@@ -1081,6 +1099,7 @@ void shift::gui::Simulation::ShowTime(double t) {
   context_->UpdateFreeDV(playback_dhva_, interpolated_.data() +
                                            context_->get_free_state_offset());
   UpdatePoses(playback_dhva_);
+  ShowElastic(interpolated_.data());
 }
 
 void shift::gui::Simulation::ShowContextState() {
@@ -1089,6 +1108,7 @@ void shift::gui::Simulation::ShowContextState() {
   }
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
+  ShowElastic(context_->get_q().data());
   /* the grains the DEM holds: the worker is not running */
   shift::core::dem::State state;
   for(const auto& view : dem_views_) {
@@ -1114,6 +1134,202 @@ void shift::gui::Simulation::UpdatePoses(
     }
   }
   poses_changed_ = true;
+}
+
+// ------------------------------------------------------ flexible bodies
+
+void shift::gui::Simulation::AddFlexViews() {
+  flex_views_.clear();
+  preview_view_ = -1;
+  for(size_t i = 0; i < bodies_.size(); i++) {
+    auto flex = dynamic_cast<const shift::core::body::Flex*>(bodies_[i]);
+    if(!flex || !flex->builds_model() || flex->get_mesh_boundary().empty()) {
+      continue;
+    }
+    FlexView view;
+    view.flex = flex;
+    view.body = static_cast<int>(i);
+    view.mesh = static_cast<int>(scene_.meshes.size());
+    view.eta.assign(flex->get_elastic_count(), 0.0);
+    SceneMesh mesh;
+    mesh.deformable = true;
+    for(auto& geometry : bodies_[i]->get_geometry()) {
+      auto cad = dynamic_cast<shift::core::geometry::Cad*>(geometry.get());
+      if(cad && cad->get_name() == flex->get_fe_geometry() &&
+         cad->get_color().size() == 3) {
+        const auto& c = cad->get_color();
+        mesh.albedo = ksl_vec3f(float(c[0]), float(c[1]), float(c[2]));
+      }
+    }
+    /* a vertex for each node on each face, so that edges between faces
+    stay sharp; each 6-node triangle as four */
+    std::map<std::pair<int, int>, uint32_t> vertex_of;
+    const auto& boundary = flex->get_mesh_boundary();
+    const auto& faces = flex->get_mesh_boundary_face();
+    auto vertex = [&](int point, int face) {
+      auto [it, inserted] = vertex_of.try_emplace(
+        std::make_pair(point, face), uint32_t(view.vertex_point.size()));
+      if(inserted) {
+        view.vertex_point.push_back(point);
+      }
+      return it->second;
+    };
+    static const int kSubTriangles[4][3] = {
+      {0, 3, 5}, {3, 1, 4}, {5, 4, 2}, {3, 4, 5}};
+    for(size_t k = 0; k < boundary.size(); k++) {
+      for(const auto& t : kSubTriangles) {
+        for(int c : t) {
+          mesh.indices.push_back(vertex(boundary[k][c], faces[k]));
+        }
+      }
+    }
+    FlexVertices(view, mesh.vertices);
+    ComputeNormals(mesh);
+    EmptyBox(mesh.bounds_min, mesh.bounds_max);
+    for(const Vertex& v : mesh.vertices) {
+      for(int c = 0; c < 3; c++) {
+        mesh.bounds_min.at[c] = std::min(mesh.bounds_min.at[c], v.position[c]);
+        mesh.bounds_max.at[c] = std::max(mesh.bounds_max.at[c], v.position[c]);
+      }
+    }
+    scene_.meshes.push_back(std::move(mesh));
+    scene_.instances.push_back({view.mesh, view.body});
+    flex_views_.push_back(std::move(view));
+  }
+}
+
+std::vector<int> shift::gui::Simulation::get_flex_bodies() const {
+  std::vector<int> bodies;
+  for(const auto& view : flex_views_) {
+    bodies.push_back(view.body);
+  }
+  return bodies;
+}
+
+void shift::gui::Simulation::ShowElastic(const double* y) {
+  for(auto& view : flex_views_) {
+    const int q = view.flex->get_elastic_q_index();
+    if(q < 0) {
+      continue;
+    }
+    for(size_t j = 0; j < view.eta.size(); j++) {
+      if(view.eta[j] != y[q + j]) {
+        view.eta[j] = y[q + j];
+        view.changed = true;
+      }
+    }
+  }
+}
+
+void shift::gui::Simulation::set_deformation_scale(double scale) {
+  if(scale != deformation_scale_) {
+    deformation_scale_ = scale;
+    for(auto& view : flex_views_) {
+      view.changed = true;
+    }
+  }
+}
+
+void shift::gui::Simulation::PreviewShape(int body, int kind, int coordinate,
+                                          double amplitude) {
+  for(size_t v = 0; v < flex_views_.size(); v++) {
+    if(flex_views_[v].body == body) {
+      if(preview_view_ >= 0) {
+        flex_views_[preview_view_].changed = true;
+      }
+      preview_view_ = static_cast<int>(v);
+      preview_kind_ = kind;
+      preview_coordinate_ = coordinate;
+      preview_amplitude_ = amplitude;
+      flex_views_[v].changed = true;
+    }
+  }
+}
+
+void shift::gui::Simulation::ClearShapePreview() {
+  if(preview_view_ >= 0) {
+    flex_views_[preview_view_].changed = true;
+  }
+  preview_view_ = -1;
+}
+
+void shift::gui::Simulation::FlexVertices(const FlexView& view,
+                                          std::vector<Vertex>& vertices) const {
+  const shift::core::body::Flex& flex = *view.flex;
+  const auto& positions = flex.get_positions();
+  const auto& shapes = flex.get_shapes();
+  const size_t n = flex.get_elastic_count();
+  const bool preview =
+    preview_view_ >= 0 && &flex_views_[preview_view_] == &view;
+  /* a preview's shape, and the factor that makes its largest displacement
+  the amplitude */
+  const size_t computed = flex.get_frequencies().size();
+  auto shape = [&](int point, double u[3]) {
+    if(preview_kind_ == 1) {
+      const double* s = flex.get_computed_shapes().data() +
+                        3 * (size_t(point) * computed + preview_coordinate_);
+      std::copy(s, s + 3, u);
+    } else {
+      const ksl_vec3_t& s = shapes[size_t(point) * n + preview_coordinate_].lin;
+      u[0] = s.x;
+      u[1] = s.y;
+      u[2] = s.z;
+    }
+  };
+  double factor = 0.0;
+  if(preview) {
+    double largest = 0.0;
+    for(unsigned int p = 0; p < flex.get_mesh_node_count(); p++) {
+      double u[3];
+      shape(int(p), u);
+      largest = std::max(largest, std::sqrt(u[0] * u[0] + u[1] * u[1] +
+                                            u[2] * u[2]));
+    }
+    factor = largest > 0.0 ? preview_amplitude_ / largest : 0.0;
+  }
+  vertices.resize(view.vertex_point.size());
+  for(size_t v = 0; v < vertices.size(); v++) {
+    const int p = view.vertex_point[v];
+    double x[3] = {positions[p].x, positions[p].y, positions[p].z};
+    if(preview) {
+      double u[3];
+      shape(p, u);
+      for(int c = 0; c < 3; c++) {
+        x[c] += factor * u[c];
+      }
+    } else {
+      for(size_t j = 0; j < n; j++) {
+        const ksl_vec3_t& s = shapes[size_t(p) * n + j].lin;
+        const double a = deformation_scale_ * view.eta[j];
+        x[0] += a * s.x;
+        x[1] += a * s.y;
+        x[2] += a * s.z;
+      }
+    }
+    Vertex& vertex = vertices[v];
+    for(int c = 0; c < 3; c++) {
+      vertex.position[c] = float(x[c]);
+    }
+    vertex.uv[0] = vertex.uv[1] = 0.f;
+  }
+  if(size_t(view.mesh) < scene_.meshes.size()) {
+    ComputeNormals(vertices, scene_.meshes[view.mesh].indices);
+  }
+}
+
+void shift::gui::Simulation::TakeFlexUpdates(std::vector<FlexUpdate>& updates,
+                                             bool all) {
+  updates.clear();
+  for(auto& view : flex_views_) {
+    if(!view.changed && !all) {
+      continue;
+    }
+    view.changed = false;
+    FlexUpdate update;
+    update.mesh = view.mesh;
+    FlexVertices(view, update.vertices);
+    updates.push_back(std::move(update));
+  }
 }
 
 bool shift::gui::Simulation::TakePoses(Poses& poses) {

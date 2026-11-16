@@ -1,5 +1,6 @@
 #include "shift/core/parameter/array.h"
 #include "shift/core/assembly.h"
+#include "shift/core/body/flex.h"
 #include "shift/core/force_module/contact.h"
 #include "shift/core/force_module/dem.h"
 #include "shift/core/force_module/powertrain.h"
@@ -11,6 +12,8 @@
 /* define specializations of Array class */
 template class shift::core::parameter::Array<shift::core::Assembly>;
 template class shift::core::parameter::Array<shift::core::Frame>;
+template class shift::core::parameter::Array<
+  shift::core::body::FlexAttachment>;
 template class shift::core::parameter::Array<
   shift::core::logger::LoggedComponent>;
 template class shift::core::parameter::Array<

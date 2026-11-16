@@ -19,6 +19,8 @@
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
 #include "shift/gui/video_trimmer.h"
+#include "shift/core/body/flex.h"
+#include "shift/gui/mode_window.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/axis.h"
@@ -43,6 +45,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QImage>
+#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenuBar>
@@ -279,6 +282,11 @@ void shift::gui::Workspace::InitializeMenus() {
   connect(particle_surface, &QAction::toggled, viewport_,
           &Viewport::set_particle_surface);
   particle_surface_action_ = particle_surface;
+  QAction* deformation = view_menu->addAction("&Deformation scale...");
+  deformation->setToolTip("the factor the deformation of flexible bodies is "
+                          "drawn with");
+  connect(deformation, &QAction::triggered, this,
+          &Workspace::DeformationScaleDialog);
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
   frame->setShortcut(Qt::Key_F);
@@ -401,6 +409,12 @@ void shift::gui::Workspace::InitializeLeftPanel() {
       body_layout->addWidget(body_panel_.m[4 * row + column], 2 + row, column);
     }
   }
+  body_panel_.modes = new QPushButton("Modes...");
+  body_panel_.modes->setToolTip("the mode shapes and frequencies of the "
+                                "flexible body, and the modes kept");
+  connect(body_panel_.modes, &QPushButton::clicked, this,
+          &Workspace::OpenModeWindow);
+  body_layout->addWidget(body_panel_.modes, 5, 0, 1, 4);
   body_panel_.group_box->setVisible(false);
   dynamic_layout->addWidget(body_panel_.group_box);
 
@@ -1046,6 +1060,10 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
     }
   }
 
+  // the mode window shows the model loaded until now
+  if(mode_window_) {
+    mode_window_->close();
+  }
   QApplication::setOverrideCursor(Qt::WaitCursor);
   viewport_->set_simulation(nullptr, !keep_view);
   playing_ = false;
@@ -1150,6 +1168,89 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   }
   UpdateStatus();
   return true;
+}
+
+void shift::gui::Workspace::OpenModeWindow() {
+  const int body = body_panel_.selected_body;
+  if(body < 0 || !simulation_.is_loaded()) {
+    return;
+  }
+  if(mode_window_) {
+    if(mode_window_->get_body() == body) {
+      mode_window_->raise();
+      mode_window_->activateWindow();
+      return;
+    }
+    mode_window_->close();
+  }
+  mode_window_ = new ModeWindow(
+    simulation_, body,
+    [this, body](const std::vector<int>& modes) {
+      // after the window has closed, from the event loop
+      QTimer::singleShot(0, this,
+                         [this, body, modes]() { ApplyModesKept(body, modes); });
+    },
+    [this]() { viewport_->update(); }, this);
+  mode_window_->show();
+}
+
+void shift::gui::Workspace::ApplyModesKept(int body,
+                                           const std::vector<int>& modes) {
+  if(!simulation_.is_loaded() ||
+     body >= static_cast<int>(simulation_.get_bodies().size())) {
+    return;
+  }
+  if(modes.empty()) {
+    QMessageBox::warning(this, "Modes kept", "Check at least one mode.");
+    return;
+  }
+  const std::vector<JsonStep>* path =
+    FindObjectPath(simulation_.get_bodies()[body]);
+  if(!path) {
+    return;
+  }
+  if((simulation_.has_results() || simulation_.is_computing()) &&
+     QMessageBox::question(this, "Modes kept",
+                           "Applying the modes kept loads the model again "
+                           "and drops the computed results. Apply?") !=
+       QMessageBox::Yes) {
+    return;
+  }
+  const double end_time = simulation_.get_end_time();
+  const double time_step = simulation_.get_time_step();
+  const Json::Value previous = model_json_;
+  Json::Value* object = &model_json_;
+  for(const JsonStep& step : *path) {
+    object = step.index >= 0 ? &(*object)[step.index] : &(*object)[step.key];
+  }
+  // modes_kept replaces the other ways of choosing the modes
+  object->removeMember("mode_count");
+  object->removeMember("maximum_frequency");
+  Json::Value kept(Json::arrayValue);
+  for(int k : modes) {
+    kept.append(k);
+  }
+  (*object)["modes_kept"] = kept;
+  QString error;
+  if(!ReloadModel(previous, error)) {
+    QMessageBox::critical(this, "Modes kept", error);
+    return;
+  }
+  simulation_.set_end_time(end_time);
+  simulation_.set_time_step(time_step);
+  LoadModelParameters();
+}
+
+void shift::gui::Workspace::DeformationScaleDialog() {
+  bool ok = false;
+  const double scale = QInputDialog::getDouble(
+    this, "Deformation scale",
+    "Draw the deformation of flexible bodies times:",
+    simulation_.get_deformation_scale(), 0.0, 1e9, 3, &ok);
+  if(ok) {
+    simulation_.set_deformation_scale(scale);
+    viewport_->update();
+  }
 }
 
 bool shift::gui::Workspace::ReloadModel(const Json::Value& previous,
@@ -2825,6 +2926,10 @@ void shift::gui::Workspace::SelectTreeItem() {
     body_panel_.selected_body = index;
     body_panel_.title->setText(QString::fromStdString(
       simulation_.get_bodies()[index]->get_name()));
+    const auto flex_bodies = simulation_.get_flex_bodies();
+    body_panel_.modes->setVisible(std::find(flex_bodies.begin(),
+                                            flex_bodies.end(),
+                                            index) != flex_bodies.end());
     body_panel_.group_box->setVisible(true);
     UpdateBodyPanel();
     if(!camera_panel_.follow->isChecked()) {

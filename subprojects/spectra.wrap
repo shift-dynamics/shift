@@ -1,0 +1,8 @@
+[wrap-git]
+url = https://github.com/yixuan/spectra.git
+revision = v1.2.0
+depth = 1
+patch_directory = spectra
+
+[provide]
+dependency_names = spectra

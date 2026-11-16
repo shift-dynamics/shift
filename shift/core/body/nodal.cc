@@ -5,6 +5,27 @@
 #include "ksl/linalg.h"
 
 #include "shift/core/exception.h"
+#include "shift/core/factory.h"
+
+bool shift::core::body::Nodal::registered_ =
+  shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
+    "nodal", shift::core::body::Nodal::Create);
+
+std::unique_ptr<shift::core::body::Nodal> shift::core::body::Nodal::Create() {
+  return std::make_unique<shift::core::body::Nodal>();
+}
+
+void shift::core::body::Nodal::DeclareParameters() {
+  shift::core::body::Base::DeclareParameters();
+  DeclareFiniteElementParameters();
+  DeclareParameter("retained_points", &retained_points_,
+                   "[[x, y, z], ...], points (body origin coordinates) "
+                   "whose nearest mesh nodes are kept, three translations "
+                   "each, after the attachments",
+                   false)
+    .set_row_dim(-1)
+    .set_column_dim(3);
+}
 
 void shift::core::body::Nodal::SetFiniteElementModel(
   const std::vector<ksl_vec3_t>& positions, const std::vector<double>& masses,
