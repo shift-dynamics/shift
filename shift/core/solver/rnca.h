@@ -7,6 +7,7 @@
 #include "shift/core/array2d.h"
 #include "shift/core/topology.h"
 #include "shift/core/solver/base.h"
+#include "shift/core/substructure.h"
 
 namespace shift {
 namespace core {
@@ -124,6 +125,13 @@ private:
 
   double infinity_norm_multiplier_ = 2.0;
   bool infinity_norm_failure_ = false;
+  /* what refactors the Jacobian (Substructure::Refactor), as named in the
+  model file, and the mobility number of an independent velocity divided by
+  the mobility below which Refactor::MOBILITY_EPSILON does so */
+  std::string refactor_criterion_name_ = "infinity_norm";
+  Substructure::Refactor refactor_criterion_ =
+    Substructure::Refactor::INFINITY_NORM;
+  double epsilon_mobility_ = 0.01;
 
   unsigned int dependent_count_ = 0;
   unsigned int q_count_ = 0;

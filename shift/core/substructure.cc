@@ -39,6 +39,7 @@ void shift::core::Substructure::set_context(shift::core::Context* context) {
 
 void shift::core::Substructure::SetupPO1(
   const shift::core::topology::DHVA& dhva) {
+  mobility_order_.clear();
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
   /* j is local loop index */
   auto it =
@@ -950,6 +951,7 @@ void shift::core::Substructure::SetupPO1Specified(
 void shift::core::Substructure::SetupPO1Specified(
   const shift::core::topology::DHVA& dhva, const std::vector<int>& dq_indices) {
 
+  mobility_order_.clear();
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
   /* j is local loop index */
@@ -1021,14 +1023,54 @@ unsigned int shift::core::Substructure::CheckCondition() {
 
 unsigned int shift::core::Substructure::CheckCondition(
   const double infinity_norm_multiplier) {
+  return CheckCondition(infinity_norm_multiplier, Refactor::INFINITY_NORM, 0.0);
+}
+
+unsigned int shift::core::Substructure::CheckCondition(
+  const double infinity_norm_multiplier, Refactor criterion,
+  const double epsilon_mobility) {
 
   unsigned int return_value = shift::core::Jacobian::Failure::OK;
 
-  const double infinity_norm_b = InfinityNormB();
-  if(infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_)) {
-    SHIFT_DEBUG("Infinity norm B check failed with value " +
-                std::to_string(infinity_norm_b));
-    return_value |= shift::core::Jacobian::Failure::INFINITY_NORM_B;
+  if(criterion == Refactor::INFINITY_NORM) {
+    const double infinity_norm_b = InfinityNormB();
+    if(infinity_norm_b > (infinity_norm_multiplier * initial_infinity_norm_b_)) {
+      SHIFT_DEBUG("Infinity norm B check failed with value " +
+                  std::to_string(infinity_norm_b));
+      return_value |= shift::core::Jacobian::Failure::INFINITY_NORM_B;
+    }
+  } else if(rank_ > 0 && rank_ < (int)dq_count_) {
+    /* a substructure without B (rank 0, or no mobility) has no partition to
+    choose */
+    const std::vector<double>& mobility = RunTimeMobility();
+    if(criterion == Refactor::MOBILITY_EPSILON) {
+      /* the independent velocities are columns rank_ and after in PO2 */
+      const double total = dq_count_ - rank_;
+      for(unsigned int k = rank_; k < dq_count_; k++) {
+        if(mobility[pc_12_[k]] / total < epsilon_mobility) {
+          SHIFT_DEBUG("Mobility epsilon check failed with value " +
+                      std::to_string(mobility[pc_12_[k]] / total));
+          return_value |= shift::core::Jacobian::Failure::MOBILITY_EPSILON;
+          break;
+        }
+      }
+    } else if(mobility_order_.empty()) {
+      mobility_order_.resize(dq_count_);
+      for(unsigned int i = 0; i < dq_count_; i++) {
+        mobility_order_[i] = i;
+      }
+      std::stable_sort(mobility_order_.begin(), mobility_order_.end(),
+                       [&](int a, int b) { return mobility[a] > mobility[b]; });
+    } else {
+      for(unsigned int i = 0; i + 1 < dq_count_; i++) {
+        if(mobility[mobility_order_[i + 1]] >
+           mobility[mobility_order_[i]] + kMobilityTie) {
+          SHIFT_DEBUG("Mobility order check failed");
+          return_value |= shift::core::Jacobian::Failure::MOBILITY_ORDER;
+          break;
+        }
+      }
+    }
   }
 
   const double pivot_ratio = PivotRatio();
@@ -1083,18 +1125,22 @@ J_ holds B^{di} = inverse(Ur) * UR (ksl_linalg_lu_setBMatrix_rmo), so the
 dependent rows of N are -B^{di} and J N = 0.
 */
 void shift::core::Substructure::CopyNullSpace() {
-  memset(right_null_space_, 0, dq_count_ * dq_count_ * sizeof(double));
+  CopyNullSpace(right_null_space_);
+}
+
+void shift::core::Substructure::CopyNullSpace(double* null_space) {
+  memset(null_space, 0, dq_count_ * dq_count_ * sizeof(double));
   /* dq_count - rank is the column dimension of null space */
   assert((int)dq_count_ >= rank_ && rank_ != -1);
   int col_dim = dq_count_ - rank_;
   for(int i = 0; i < rank_; i++) {
 #if SHIFT_WITH_BLAS_
     cblas_dcopy(col_dim, J_ + (i * dq_count_ + rank_), 1,
-                right_null_space_ + (pc_12_[i] * col_dim), 1);
-    cblas_dscal(col_dim, -1.0, right_null_space_ + (pc_12_[i] * col_dim), 1);
+                null_space + (pc_12_[i] * col_dim), 1);
+    cblas_dscal(col_dim, -1.0, null_space + (pc_12_[i] * col_dim), 1);
 #else
     for(int j = 0; j < col_dim; j++) {
-      right_null_space_[pc_12_[i] * col_dim + j] =
+      null_space[pc_12_[i] * col_dim + j] =
         -J_[i * dq_count_ + rank_ + j];
     }
 #endif
@@ -1103,11 +1149,29 @@ void shift::core::Substructure::CopyNullSpace() {
   /* set the remaining matrix to identity */
   unsigned int j = 0;
   for(unsigned int i = rank_; i < dq_count_; i++) {
-    right_null_space_[pc_12_[i] * col_dim + j++] = 1.0;
+    null_space[pc_12_[i] * col_dim + j++] = 1.0;
   }
 }
 
 /* m is row dimension, i iterates over all rows */
+
+const std::vector<double>& shift::core::Substructure::RunTimeMobility() {
+  assert(rank_ > 0 && rank_ < (int)dq_count_);
+  run_time_null_space_.resize(dq_count_ * dq_count_);
+  run_time_mobility_.resize(dq_count_);
+  CopyNullSpace(run_time_null_space_.data());
+  const int n = dq_count_ - rank_;
+  ksl_linalg_gramSchmidt(run_time_null_space_.data(), dq_count_, n);
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    const double* row = run_time_null_space_.data() + i * n;
+    double sum = 0.0;
+    for(int j = 0; j < n; j++) {
+      sum += row[j] * row[j];
+    }
+    run_time_mobility_[i] = sum;
+  }
+  return run_time_mobility_;
+}
 
 /*!
   @brief minimal version of computing mobility numbers, assumes

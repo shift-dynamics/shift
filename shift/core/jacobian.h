@@ -36,7 +36,11 @@ public:
     OK = 0,
     INFINITY_NORM_B = 1,
     PIVOT_RATIO = 2,
-    NEWTON_RAPHSON = 4
+    NEWTON_RAPHSON = 4,
+    MOBILITY_ORDER = 8,
+    MOBILITY_EPSILON = 16,
+    /*! the checks whose failure refactors the Jacobian */
+    REFACTOR = INFINITY_NORM_B | PIVOT_RATIO | MOBILITY_ORDER | MOBILITY_EPSILON
   };
   
   struct InfinityNormFailure {
@@ -149,6 +153,14 @@ public:
    */
   unsigned int CheckCondition(double time, double* q, const double* dq,
                                  const double infinity_norm_multiplier);
+
+  /*! check every substructure by the criterion given (see
+   * Substructure::Refactor) and the pivot ratio, and refactor those that fail
+   * \return the Failure flags of the checks that failed */
+  unsigned int CheckCondition(double time, double* q, const double* dq,
+                              const double infinity_norm_multiplier,
+                              Substructure::Refactor criterion,
+                              const double epsilon_mobility);
 
   unsigned int CheckCondition(const double);
 

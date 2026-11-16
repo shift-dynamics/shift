@@ -34,6 +34,7 @@ test_sources = [
   'test_light.cc',
   'test_beam.cc',
   'test_belt.cc',
+  'test_refactor_criterion.cc',
   'test_mesh_scale.cc',
   'test_applied_load.cc',
   'test_sensors.cc',

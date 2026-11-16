@@ -59,10 +59,42 @@ void shift::core::solver::RNCA::DeclareParameters() {
     "the infinity norm reaches this multiple of the initial starting value -- "
     "default: 2.0.",
     false);
+
+  DeclareParameter(
+    "refactor_criterion", &refactor_criterion_name_,
+    "What reapplies Gaussian elimination with complete row and column "
+    "pivoting (GECP): \"infinity_norm\", the infinity norm of B reaching "
+    "infinity_norm_multiplier times its value at the last GECP; "
+    "\"mobility_order\", the order of the mobility numbers changing from "
+    "their order after the last GECP; \"mobility_epsilon\", the mobility "
+    "number of an independent velocity divided by the mobility falling below "
+    "epsilon_mobility. The pivot ratio is checked whichever is chosen -- "
+    "default: \"infinity_norm\".",
+    false);
+
+  DeclareParameter(
+    "epsilon_mobility", &epsilon_mobility_,
+    "With refactor_criterion \"mobility_epsilon\", GECP is reapplied when "
+    "the mobility number of an independent velocity divided by the mobility "
+    "falls below this value -- default: 0.01.",
+    false);
 }
 
 void shift::core::solver::RNCA::Initialize() {
   assert(context_);
+
+  if(refactor_criterion_name_ == "infinity_norm") {
+    refactor_criterion_ = Substructure::Refactor::INFINITY_NORM;
+  } else if(refactor_criterion_name_ == "mobility_order") {
+    refactor_criterion_ = Substructure::Refactor::MOBILITY_ORDER;
+  } else if(refactor_criterion_name_ == "mobility_epsilon") {
+    refactor_criterion_ = Substructure::Refactor::MOBILITY_EPSILON;
+  } else {
+    throw shift::core::Exception(
+      "Unknown refactor_criterion \"" + refactor_criterion_name_ +
+      "\"; expected \"infinity_norm\", \"mobility_order\" or "
+      "\"mobility_epsilon\"");
+  }
 
   q_count_ = context_->get_q_count();
   dq_count_ = context_->get_dq_count();
@@ -1259,7 +1291,8 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
   jacobian.SetupBMatrixSparse();
   unsigned int condition_check = 
     jacobian.CheckCondition(
-      t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
+      t, const_cast<double*>(q), dq, infinity_norm_multiplier_,
+      refactor_criterion_, epsilon_mobility_);
 
   if(condition_check) {
 
@@ -1279,7 +1312,7 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
       double t;
       double dt;
       context_->get_current_time(t, dt);
-      ss << "Failed infinity norm or pivot ratio check at t = " << t
+      ss << "Failed a refactor check at t = " << t
          << ", but GECP was successfully reapplied and simulation "
          << "will attempt to continue";
       SHIFT_DEBUG(ss.str());
@@ -1305,7 +1338,8 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
   jacobian.FactorPO2();
   jacobian.SetupBMatrixSparse();
   int failure = jacobian.CheckCondition(
-    t, const_cast<double*>(q), dq, infinity_norm_multiplier_);
+    t, const_cast<double*>(q), dq, infinity_norm_multiplier_,
+      refactor_criterion_, epsilon_mobility_);
   
   if(failure) {
     
@@ -1326,6 +1360,12 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
       }
       if(failure & shift::core::Jacobian::Failure::PIVOT_RATIO) {
         ss << "(pivot ratio check) ";
+      }
+      if(failure & shift::core::Jacobian::Failure::MOBILITY_ORDER) {
+        ss << "(mobility order check) ";
+      }
+      if(failure & shift::core::Jacobian::Failure::MOBILITY_EPSILON) {
+        ss << "(mobility epsilon check) ";
       }
       ss << "at t = " << t
          << ", but GECP was successfully reapplied and simulation "
