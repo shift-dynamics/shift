@@ -1183,6 +1183,46 @@ void shift::gui::Simulation::AddFlexViews() {
         }
       }
     }
+    /* the rigid part of each shape: t = mean of u, theta = S^-1 sum
+    d x u, S = sum (|d|^2 I - d d^T), d the node from the centroid */
+    const auto& positions = flex->get_positions();
+    const auto& shapes = flex->get_shapes();
+    const size_t nodes = flex->get_mesh_node_count();
+    const size_t n = flex->get_elastic_count();
+    for(size_t p = 0; p < nodes; p++) {
+      ksl_add_vv(&view.centroid, &positions[p], &view.centroid);
+    }
+    ksl_product_av(1.0 / double(std::max<size_t>(nodes, 1)), &view.centroid,
+                   &view.centroid);
+    ksl_mat3x3_t S = {};
+    for(size_t p = 0; p < nodes; p++) {
+      ksl_vec3_t d;
+      ksl_subtract_vv(&positions[p], &view.centroid, &d);
+      const double dd = ksl_dot_vv(&d, &d);
+      for(int c = 0; c < 3; c++) {
+        for(int r = 0; r < 3; r++) {
+          S.at[c][r] += (r == c ? dd : 0.0) - d.at[r] * d.at[c];
+        }
+      }
+    }
+    ksl_mat3x3_t S_inverse;
+    const bool fit = nodes >= 3 && ksl_mat3x3_inverted(&S, &S_inverse) == 0;
+    view.rigid_translation.assign(n, ksl_vec3(0.0, 0.0, 0.0));
+    view.rigid_rotation.assign(n, ksl_vec3(0.0, 0.0, 0.0));
+    for(size_t j = 0; fit && j < n; j++) {
+      ksl_vec3_t moment = ksl_vec3(0.0, 0.0, 0.0);
+      for(size_t p = 0; p < nodes; p++) {
+        const ksl_vec3_t& u = shapes[p * n + j].lin;
+        ksl_vec3_t d, dxu;
+        ksl_subtract_vv(&positions[p], &view.centroid, &d);
+        ksl_cross_vv(&d, &u, &dxu);
+        ksl_add_vv(&moment, &dxu, &moment);
+        ksl_add_vv(&view.rigid_translation[j], &u, &view.rigid_translation[j]);
+      }
+      ksl_product_av(1.0 / double(nodes), &view.rigid_translation[j],
+                     &view.rigid_translation[j]);
+      ksl_product_drv(&S_inverse, &moment, &view.rigid_rotation[j]);
+    }
     FlexVertices(view, mesh.vertices);
     ComputeNormals(mesh);
     EmptyBox(mesh.bounds_min, mesh.bounds_max);
@@ -1298,12 +1338,19 @@ void shift::gui::Simulation::FlexVertices(const FlexView& view,
         x[c] += factor * u[c];
       }
     } else {
+      /* x0 + u + (scale - 1) (u - rigid part of u) */
+      ksl_vec3_t d;
+      ksl_subtract_vv(&positions[p], &view.centroid, &d);
       for(size_t j = 0; j < n; j++) {
         const ksl_vec3_t& s = shapes[size_t(p) * n + j].lin;
-        const double a = deformation_scale_ * view.eta[j];
-        x[0] += a * s.x;
-        x[1] += a * s.y;
-        x[2] += a * s.z;
+        ksl_vec3_t rigid;
+        ksl_cross_vv(&view.rigid_rotation[j], &d, &rigid);
+        ksl_add_vv(&rigid, &view.rigid_translation[j], &rigid);
+        const double eta = view.eta[j];
+        for(int c = 0; c < 3; c++) {
+          x[c] += eta * (deformation_scale_ * s.at[c] +
+                         (1.0 - deformation_scale_) * rigid.at[c]);
+        }
       }
     }
     Vertex& vertex = vertices[v];

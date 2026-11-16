@@ -12,3 +12,4 @@ cscope.po.out
 subprojects/*/
 !subprojects/packagefiles/
 __pycache__/
+*.fe.h5

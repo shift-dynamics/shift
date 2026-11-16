@@ -1345,6 +1345,7 @@ void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
   if(request.hide_floor) {
     floor_action_->setChecked(false);
   }
+  simulation_.set_deformation_scale(request.deformation_scale);
   if(request.samples > 0) {
     viewport_->set_render_mode(Viewport::RenderMode::kRayTraced);
   }

@@ -72,6 +72,13 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
       return false;
     }
   }
+  if(parser.isSet("deformation-scale")) {
+    request.deformation_scale = parser.value("deformation-scale").toDouble(&ok);
+    if(!ok || request.deformation_scale < 0.0) {
+      error = "--deformation-scale takes a factor of at least 0";
+      return false;
+    }
+  }
   request.hide_floor = parser.isSet("no-floor");
   request.bilinear_terrain = parser.isSet("no-smooth-terrain");
   request.particle_spheres = parser.isSet("particle-spheres");
@@ -108,6 +115,10 @@ int main(int argc, char* argv[]) {
      "X,Y,Z,RADIUS"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
+    {"deformation-scale",
+     "with --image: draw the deformation of flexible bodies this many times "
+     "as large",
+     "factor"},
     {"no-smooth-terrain",
      "with --image: draw deformable terrain bilinearly between its nodes, as "
      "the soil models see it"},

@@ -291,6 +291,81 @@ placed by its own initial pose and velocity:
 
 .. shift-parameters:: shift/core/body/free.cc
 
+Flexible bodies
+***************
+
+``"type": "modal"`` and ``"type": "nodal"`` are flexible bodies made from a
+finite element model of one of their geometries, a solid of a STEP file
+(``fe_geometry``, a ``cad`` geometry of the body). When the model loads,
+*Shift* meshes the solid with 10-node tetrahedra (Netgen, with the mid-side
+nodes on the boundary moved onto the exact surfaces), assembles the stiffness
+and lumped mass matrices from ``density``, ``youngs_modulus`` and
+``poisson_ratio``, and reduces them to a few elastic coordinates:
+
+- each frame used by a joint or a chord, and each frame listed in
+  ``attachments``, is tied to the mesh. A revolute joint's frame is tied to
+  the cylindrical faces coaxial with the joint's axis (its bores, or its pin
+  if it has no bore); a spherical joint's frame to the spherical faces
+  centred on it; any other frame to the nodes within ``radius`` of it. By
+  default the frame moves with the mean motion of those nodes (``"spider":
+  "rbe3"``); ``"rbe2"`` moves the nodes rigidly with the frame;
+- the frame of the body's parent joint holds the body (its reference frame),
+  and each other tied frame gives six static modes: the deflection of the
+  body when that frame alone moves;
+- ``modal`` adds fixed-interface vibration modes (Craig–Bampton), the lowest
+  ``mode_count`` of them (10 by default), those below
+  ``maximum_frequency``, or those listed in ``modes_kept`` (counted from 0,
+  the lowest); ``nodal`` adds instead the three translations of the mesh node
+  nearest each of ``retained_points`` (Guyan).
+
+The mass properties come from the mesh and the density, so ``inertia`` and
+``center_of_mass`` are not used. A force module or sensor that acts on a
+frame of a flexible body moves with the deformation only if that frame is
+listed in ``attachments``.
+
+.. code:: javascript
+
+   {
+     "name": "connecting_rod",
+     "type": "modal",
+     "density": 7850, "youngs_modulus": 2.1e11, "poisson_ratio": 0.3,
+     "fe_geometry": "rod", "element_size": 0.006,
+     "mode_count": 4, "damping_ratio": 0.02,
+     "geometry": [{"name": "rod", "type": "cad",
+                   "filename": "connecting_rod.step"}],
+     "frames": [{"name": "big_end"},
+                {"name": "small_end", "T": [0.25, 0.0, 0.0]}]
+   }
+
+The analysis is kept in a file beside the model (``fe_cache``, by default
+``<model>.<assembly>__<body>.fe.h5``) and runs again only when something it
+depends on changes: the STEP file, the material, the mesh sizes, the
+attachments or the retained points, or a choice of modes beyond those
+computed. Choosing other modes among those computed reads the file again.
+
+.. shift-parameters:: shift/core/body/flex_build.cc
+   :function: Flex::DeclareFiniteElementParameters
+
+``modal`` also takes:
+
+.. shift-parameters:: shift/core/body/modal.cc
+
+``nodal`` also takes:
+
+.. shift-parameters:: shift/core/body/nodal.cc
+
+Each entry of ``attachments``:
+
+.. shift-parameters:: shift/core/body/flex_build.cc
+   :function: FlexAttachment::DeclareParameters
+
+In the viewer, a flexible body is drawn by the surface of its mesh, deformed
+as the model runs; View > Deformation scale magnifies the deformation (but
+not the part of it that moves the body as a whole). The body's panel opens
+the mode window, which lists the static modes and every vibration mode
+computed with its frequency, draws the one selected on the body, and writes
+the modes checked back to the model as ``modes_kept``.
+
 Joints
 ------
 

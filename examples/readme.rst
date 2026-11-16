@@ -17,6 +17,7 @@ Mechanisms and robots
 
 * `Pendulum <pendulum>`_
 * `Slider crank <slider_crank>`_
+* `Slider crank with a flexible connecting rod <flex>`_
 * `Bricard's mechanism <bricard>`_
 * `Klann linkage and walker <klann_linkage>`_
 * `Strandbeest <strandbeest>`_

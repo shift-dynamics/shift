@@ -19,9 +19,18 @@ plate's, and the body swings briefly under gravity. */
 
 #if SHIFT_HAVE_FEA && SHIFT_HAVE_STEP
 
+/* the cache of a test's model, which each test starts without */
+static std::string CachePath(const std::string& name) {
+  return testing::TempDir() + "/" + name + ".test__plate.fe.h5";
+}
+
 static void LoadPlate(shift::core::Context& context, const std::string& name,
-                      const std::string& body_keys) {
+                      const std::string& body_keys, bool keep_cache = false,
+                      double element_size = 0.02) {
   const std::string path = testing::TempDir() + "/" + name + ".json";
+  if(!keep_cache) {
+    std::remove(CachePath(name).c_str());
+  }
   {
     std::ofstream file(path);
     file << R"({"model_parameters": {"version": "0.2",
@@ -35,7 +44,8 @@ static void LoadPlate(shift::core::Context& context, const std::string& name,
                        "relative_error": 1e-8, "absolute_error": 1e-10}]},
       "assemblies": [{"name": "test", "bodies": [{"name": "plate",
         "density": 7850, "youngs_modulus": 2.1e11, "poisson_ratio": 0.3,
-        "fe_geometry": "solid", "element_size": 0.02,
+        "fe_geometry": "solid", "element_size": )"
+         << element_size << R"(,
         "frames": [{"name": "pin", "T": [0, 0, 0.01]},
                    {"name": "corner", "T": [0.035, 0.035, 0.01]}],
         "geometry": [{"name": "solid", "type": "cad",
@@ -52,6 +62,9 @@ static void LoadPlate(shift::core::Context& context, const std::string& name,
   } catch(...) {
     std::remove(path.c_str());
     throw;
+  }
+  if(!keep_cache) {
+    std::remove(CachePath(name).c_str());
   }
 }
 
@@ -116,6 +129,44 @@ TEST(FlexStep, RefusesTwoModeSelections) {
                          R"("type": "modal", "mode_count": 3,
                             "modes_kept": [0, 1])"),
                shift::core::Exception);
+}
+
+/* the analysis is kept beside the model: loaded again, the body is read
+from it, with the same matrices; another choice of the modes computed comes
+from it too, and another mesh size runs the analysis again */
+TEST(FlexStep, CachesTheAnalysis) {
+  const std::string name = "cached_plate";
+  std::remove(CachePath(name).c_str());
+  const std::string keys = R"("type": "modal", "mode_count": 3)";
+  shift::core::Context first;
+  LoadPlate(first, name, keys, true);
+  ASSERT_FALSE(Plate(first)->from_cache());
+  shift::core::Context second;
+  LoadPlate(second, name, keys, true);
+  EXPECT_TRUE(Plate(second)->from_cache());
+  EXPECT_EQ(Plate(second)->get_stiffness(), Plate(first)->get_stiffness());
+  EXPECT_EQ(Plate(second)->get_frequencies(), Plate(first)->get_frequencies());
+  EXPECT_EQ(Plate(second)->get_mesh_boundary(),
+            Plate(first)->get_mesh_boundary());
+
+  /* modes 0 and 2 of the 3: K^eta is their part of the first one's */
+  shift::core::Context subset;
+  LoadPlate(subset, name, R"("type": "modal", "modes_kept": [0, 2])", true);
+  EXPECT_TRUE(Plate(subset)->from_cache());
+  ASSERT_EQ(Plate(subset)->get_elastic_count(), 2u);
+  const auto& k3 = Plate(first)->get_stiffness();
+  const auto& k2 = Plate(subset)->get_stiffness();
+  EXPECT_EQ(k2[0], k3[0]);
+  EXPECT_EQ(k2[3], k3[8]);
+
+  /* more modes than the cache holds, or another mesh: analysed again */
+  shift::core::Context more;
+  LoadPlate(more, name, R"("type": "modal", "mode_count": 4)", true);
+  EXPECT_FALSE(Plate(more)->from_cache());
+  shift::core::Context coarser;
+  LoadPlate(coarser, name, keys, true, 0.03);
+  EXPECT_FALSE(Plate(coarser)->from_cache());
+  std::remove(CachePath(name).c_str());
 }
 
 /* the rows of a nested list must have three numbers each */

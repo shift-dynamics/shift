@@ -190,7 +190,8 @@ public:
    * their mesh: their indices in get_bodies() */
   std::vector<int> get_flex_bodies() const;
   /*! \brief the factor the elastic deformation is drawn with (1: as
-   * computed) */
+   * computed); the part of it that is a rigid motion of the body is drawn
+   * as computed, see FlexView */
   void set_deformation_scale(double scale);
   double get_deformation_scale() const {
     return deformation_scale_;
@@ -216,6 +217,15 @@ private:
     int mesh = 0;
     std::vector<int> vertex_point; /*!< the point of each vertex */
     std::vector<double> eta;       /*!< the elastic coordinates shown */
+    /*! the rigid motion that fits each elastic coordinate's shape best
+     * over the mesh's nodes (least squares, equal weights): a translation
+     * and a rotation about the nodes' centroid; the deformation scale
+     * magnifies only what is left of the shape, so that a body
+     * whose reference frame is held at one attachment is not drawn swung
+     * away from the others */
+    ksl_vec3_t centroid = {};
+    std::vector<ksl_vec3_t> rigid_translation;
+    std::vector<ksl_vec3_t> rigid_rotation;
     bool changed = true;           /*!< since TakeFlexUpdates */
   };
   /*! \brief the views of the flexible bodies (in LoadModel) */

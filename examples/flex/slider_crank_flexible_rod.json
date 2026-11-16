@@ -1,0 +1,100 @@
+{
+  "model_parameters": {
+    "version": "2.0.0",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 0.2,
+        "time_step": 0.0005,
+        "hmax": 0.0001,
+        "relative_error": 1e-6,
+        "absolute_error": 1e-8
+      }
+    ]
+  },
+  "assemblies": [
+    {
+      "name": "slider_crank",
+      "bodies": [
+        {
+          "name": "crank",
+          "geometry": [{"name": "crank", "type": "cad",
+                        "filename": "crank.step"}],
+          "frames": [{"name": "pin", "T": [0.06, 0.0, 0.0]}],
+          "center_of_mass": [0.03, 0.0, 0.01],
+          "inertia": {"mass": 0.14855, "Ixx": 7.942e-6, "Iyy": 7.924e-5,
+                      "Izz": 8.471e-5, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        },
+        {
+          "name": "connecting_rod",
+          "type": "modal",
+          "density": 7850,
+          "youngs_modulus": 2.1e11,
+          "poisson_ratio": 0.3,
+          "fe_geometry": "rod",
+          "element_size": 0.006,
+          "mode_count": 4,
+          "damping_ratio": 0.02,
+          "geometry": [{"name": "rod", "type": "cad",
+                        "filename": "connecting_rod.step"}],
+          "frames": [
+            {"name": "big_end"},
+            {"name": "small_end", "T": [0.25, 0.0, 0.0]}
+          ]
+        },
+        {
+          "name": "slider",
+          "geometry": [{"name": "slider", "type": "cad",
+                        "filename": "slider.step"}],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {"mass": 0.2826, "Ixx": 4.239e-5, "Iyy": 5.888e-5,
+                      "Izz": 5.888e-5, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        }
+      ],
+      "joints": [
+        {
+          "name": "crank_shaft",
+          "type": "revolute",
+          "parent": [["fixed"], "origin"],
+          "child": [["crank"], "origin"],
+          "axis": [0, 0, 1],
+          "initial_displacement": 1.5707963,
+          "initial_velocity": 150.0
+        },
+        {
+          "name": "crank_pin",
+          "type": "revolute",
+          "parent": [["crank"], "pin"],
+          "child": [["connecting_rod"], "big_end"],
+          "axis": [0, 0, 1],
+          "initial_displacement": -1.8133289
+        },
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "parent": [["fixed"], "origin"],
+          "child": [["slider"], "origin"],
+          "axis": [1, 0, 0],
+          "initial_displacement": 0.2426932
+        },
+        {
+          "name": "wrist_pin",
+          "type": "revolute",
+          "parent": [["connecting_rod"], "small_end"],
+          "child": [["slider"], "origin"],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.2425326
+        }
+      ]
+    }
+  ]
+}

@@ -94,6 +94,16 @@ Reduction Reduce(const TetMesh& mesh, const Assembled& assembled,
                  const std::vector<unsigned int>& modes_kept);
 
 /*!
+@brief Reduce, keeping every fixed-interface mode found of the lowest \p
+modes_computed (fewer if the mesh has fewer), for KeepModes to choose from
+*/
+Reduction ReduceKeepingAll(const TetMesh& mesh, const Assembled& assembled,
+                           const std::vector<Attachment>& attachments,
+                           unsigned int reference,
+                           const std::vector<int>& retained_nodes,
+                           unsigned int modes_computed);
+
+/*!
 @brief the damping matrix \f$C^{\eta}\f$ of a reduced body (n^2, row-major)
 from damping ratios of its own modes: with the modes \f$\Phi\f$ of \f$K^{\eta},
 M^{\eta}\f$ (ascending, unit modal mass) and frequencies \f$\omega_k\f$,

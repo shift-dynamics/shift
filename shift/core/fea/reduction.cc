@@ -23,11 +23,14 @@ static Eigen::Vector3d Vec(const ksl_vec3_t& v) {
   return Eigen::Vector3d(v.x, v.y, v.z);
 }
 
-shift::core::fea::Reduction shift::core::fea::Reduce(
-  const TetMesh& mesh, const Assembled& assembled,
-  const std::vector<Attachment>& attachments, unsigned int reference,
-  const std::vector<int>& retained_nodes, unsigned int modes_computed,
-  const std::vector<unsigned int>& modes_kept) {
+/* Reduce, keeping modes_kept or, if keep_all, every mode found */
+static shift::core::fea::Reduction ReduceModes(
+  const shift::core::fea::TetMesh& mesh,
+  const shift::core::fea::Assembled& assembled,
+  const std::vector<shift::core::fea::Attachment>& attachments,
+  unsigned int reference, const std::vector<int>& retained_nodes,
+  unsigned int modes_computed, std::vector<unsigned int> modes_kept,
+  bool keep_all) {
   const Eigen::Index node_count = static_cast<Eigen::Index>(mesh.nodes.size());
   const Eigen::Index dofs = 3 * node_count;
   if(reference >= attachments.size()) {
@@ -88,7 +91,7 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
   enum class Kind { kFree, kSet, kPivot };
   std::vector<Kind> kind(dofs, Kind::kFree);
   for(size_t a = 0; a < attachments.size(); a++) {
-    if(attachments[a].spider == Attachment::Spider::kRbe2) {
+    if(attachments[a].spider == shift::core::fea::Attachment::Spider::kRbe2) {
       for(int node : attachments[a].nodes) {
         for(int d = 0; d < 3; d++) {
           kind[3 * node + d] = Kind::kSet;
@@ -112,8 +115,8 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
   };
   std::vector<Average> averages(attachments.size());
   for(size_t a = 0; a < attachments.size(); a++) {
-    const Attachment& at = attachments[a];
-    if(at.spider != Attachment::Spider::kRbe3) {
+    const shift::core::fea::Attachment& at = attachments[a];
+    if(at.spider != shift::core::fea::Attachment::Spider::kRbe3) {
       continue;
     }
     const size_t m = at.nodes.size();
@@ -202,8 +205,8 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
     }
   }
   for(size_t a = 0; a < attachments.size(); a++) {
-    const Attachment& at = attachments[a];
-    if(at.spider == Attachment::Spider::kRbe2) {
+    const shift::core::fea::Attachment& at = attachments[a];
+    if(at.spider == shift::core::fea::Attachment::Spider::kRbe2) {
       if(column[a] < 0) {
         continue; /* the reference: held */
       }
@@ -285,19 +288,19 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
   }
 
   /* the fixed-interface modes */
-  Reduction reduction;
+  shift::core::fea::Reduction reduction;
   Eigen::MatrixXd phi(dofs, 0);
   if(modes_computed > 0) {
     const Eigen::Index nev =
       std::min<Eigen::Index>(modes_computed, o_count - 1);
     const Eigen::Index ncv =
       std::min<Eigen::Index>(o_count, std::max<Eigen::Index>(2 * nev + 1, 20));
-    using OpType =
-      Spectra::SymShiftInvert<double, Eigen::Sparse, Eigen::Sparse>;
-    using BOpType = Spectra::SparseSymMatProd<double>;
-    OpType op(K_oo, M_oo);
-    BOpType bop(M_oo);
-    Spectra::SymGEigsShiftSolver<OpType, BOpType, Spectra::GEigsMode::ShiftInvert>
+    Spectra::SymShiftInvert<double, Eigen::Sparse, Eigen::Sparse> op(K_oo,
+                                                                     M_oo);
+    Spectra::SparseSymMatProd<double> bop(M_oo);
+    Spectra::SymGEigsShiftSolver<
+      Spectra::SymShiftInvert<double, Eigen::Sparse, Eigen::Sparse>,
+      Spectra::SparseSymMatProd<double>, Spectra::GEigsMode::ShiftInvert>
       solver(op, bop, nev, ncv, 0.0);
     solver.init();
     solver.compute(Spectra::SortRule::LargestMagn, 1000, 1e-10);
@@ -328,6 +331,19 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
           reduction.computed_shapes[3 * (n * computed + k) + d] =
             u(3 * n + d);
         }
+      }
+    }
+    if(keep_all) {
+      modes_kept.clear();
+      for(Eigen::Index k = 0; k < computed; k++) {
+        modes_kept.push_back(static_cast<unsigned int>(k));
+      }
+    }
+    for(unsigned int k : modes_kept) {
+      if(k >= order.size()) {
+        throw shift::core::Exception(
+          "Reduce: mode " + std::to_string(k) + " is kept but the mesh has "
+          "only " + std::to_string(order.size()) + " fixed-interface modes");
       }
     }
     phi.resize(dofs, static_cast<Eigen::Index>(modes_kept.size()));
@@ -380,6 +396,23 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
     }
   }
   return reduction;
+}
+
+shift::core::fea::Reduction shift::core::fea::Reduce(
+  const TetMesh& mesh, const Assembled& assembled,
+  const std::vector<Attachment>& attachments, unsigned int reference,
+  const std::vector<int>& retained_nodes, unsigned int modes_computed,
+  const std::vector<unsigned int>& modes_kept) {
+  return ReduceModes(mesh, assembled, attachments, reference, retained_nodes,
+                     modes_computed, modes_kept, false);
+}
+
+shift::core::fea::Reduction shift::core::fea::ReduceKeepingAll(
+  const TetMesh& mesh, const Assembled& assembled,
+  const std::vector<Attachment>& attachments, unsigned int reference,
+  const std::vector<int>& retained_nodes, unsigned int modes_computed) {
+  return ReduceModes(mesh, assembled, attachments, reference, retained_nodes,
+                     modes_computed, {}, true);
 }
 
 std::vector<double> shift::core::fea::ModalDamping(

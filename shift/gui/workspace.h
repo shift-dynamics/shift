@@ -123,6 +123,7 @@ public:
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
+    double deformation_scale = 1.0; /*!< View > Deformation scale */
     bool set_frame = false;    /*!< frame this sphere, not the whole scene */
     ksl_vec3f_t frame_center =
       ksl_vec3f(0.f, 0.f, 0.f); /*!< of the sphere, inertial frame */

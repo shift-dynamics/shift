@@ -243,6 +243,11 @@ public:
   const std::vector<double>& get_computed_shapes() const {
     return computed_shapes_;
   }
+  /*! \brief whether the finite element analysis was read from its cache
+   * (fe_cache) rather than run */
+  bool from_cache() const {
+    return from_cache_;
+  }
   /*! \brief the name of the geometry meshed, empty if the model is given */
   const std::string& get_fe_geometry() const {
     return fe_geometry_;
@@ -308,6 +313,7 @@ protected:
   double youngs_modulus_ = 0.0;
   double poisson_ratio_ = 0.0;
   std::string fe_geometry_;
+  std::string fe_cache_;
   double element_size_ = 0.0;
   double minimum_element_size_ = 0.0;
   parameter::Array<FlexAttachment> attachments_;
@@ -326,6 +332,7 @@ protected:
   std::vector<std::array<int, 6>> mesh_boundary_;
   std::vector<int> mesh_boundary_face_;
   unsigned int mesh_node_count_ = 0;
+  bool from_cache_ = false;
   std::vector<double> computed_shapes_;
 
   /*! the rotational block J of the mass matrix about r's origin, the first
