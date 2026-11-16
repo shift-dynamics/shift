@@ -49,6 +49,18 @@ struct RtDeformableTerrain {
   std::vector<int32_t> position;
 };
 
+/*! the ray tracer's triangles of a deformable mesh (a flexible body's
+ * surface), which the compute shaders write and refit as it deforms */
+struct RtFlexMesh {
+  int mesh = 0; /*!< in Scene::meshes */
+  int first_triangle = 0;
+  int first_node = 0; /*!< its root */
+  int node_count = 0;
+  /*! the mesh's triangle at each place after first_triangle, as the BVH
+   * ordered them */
+  std::vector<int32_t> order;
+};
+
 /*!
 @brief 3D view of a simulation, rendered with Qt RHI (Vulkan)
 
@@ -256,6 +268,22 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> normal_bindings;
     uint32_t vertex_count = 0;
     bool dispatch = false; /*!< updated since deformed */
+    /*! the farthest any vertex moves in each shape, and the farthest
+     * vertex from SceneMesh::flex_centroid: a bound of the deformation */
+    std::vector<float> reach;
+    float centroid_reach = 0.f;
+    /*! a box that holds the deformed mesh, body coordinates */
+    ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f);
+    ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
+    /*! the ray tracer's (RtFlexMesh), written by flex_refit.comp in
+     * steps: the triangles, the leaves, then the interior nodes by depth,
+     * the deepest first */
+    std::unique_ptr<QRhiBuffer> order;
+    std::unique_ptr<QRhiBuffer> list;
+    std::unique_ptr<QRhiBuffer> steps; /*!< uniform, a Step each */
+    std::unique_ptr<QRhiShaderResourceBindings> refit_bindings;
+    std::vector<uint32_t> step_counts; /*!< the work of each step */
+    bool rt_stale = false; /*!< deformed since its triangles were written */
   };
   struct GpuMesh {
     std::unique_ptr<QRhiBuffer> vertices;
@@ -312,6 +340,10 @@ private:
    * shaders that deform it */
   void CreateGpuFlex(const SceneMesh& mesh, GpuMesh& gpu,
                      QRhiResourceUpdateBatch* batch);
+  /*! \brief the ray tracer's buffers of a deformable mesh's triangles
+   * (after the ray tracer's buffers are made) */
+  void CreateRtFlex(const RtFlexMesh& rt, GpuMesh& gpu,
+                    QRhiResourceUpdateBatch* batch);
   /*! \brief deform the meshes updated since (UploadFlexUpdates) on the GPU,
    * in compute passes that take batch; returns the batch for what
    * follows (batch itself if there was nothing to deform) */
@@ -419,6 +451,8 @@ private:
   std::vector<GpuMesh> gpu_meshes_;
   std::unique_ptr<QRhiComputePipeline> flex_deform_pipeline_;
   std::unique_ptr<QRhiComputePipeline> flex_normals_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> flex_refit_pipeline_;
+  quint32 flex_step_stride_ = 0; /*!< of GpuFlex::steps, aligned */
   std::unique_ptr<QRhiBuffer> frame_ubo_;
   std::unique_ptr<QRhiBuffer> material_ubo_; /*!< per mesh */
   std::unique_ptr<QRhiBuffer> lights_ubo_; /*!< LightUniforms */

@@ -1,0 +1,99 @@
+#version 450
+// the ray tracer's triangles and BVH of a flexible body's mesh surface,
+// after flex_normals.comp deformed its vertices, in steps of their own
+// compute passes:
+// - mode 0: the triangles, from the vertices drawn, in the BVH's order
+// - mode 1: the boxes of the leaves, over their triangles
+// - mode 2: the boxes of the interior nodes of one depth, over their
+//   children (the deepest first, so the children are fitted already)
+
+layout(local_size_x = 64) in;
+
+struct RtTriangle {
+  vec4 v0, v1, v2; // body coordinates; w: the texture coordinates
+  vec4 n0, n1, n2;
+};
+
+struct BvhNode {
+  vec3 box_min;
+  int right_or_first;
+  vec3 box_max;
+  int triangle_count; // < 0: interior node
+};
+
+layout(std140, binding = 0) uniform Step {
+  // x: first entry of the list (mode 1, 2), y: count, z: mode,
+  // w: the first of the mesh's triangles in Triangles
+  uvec4 step;
+} params;
+
+// the vertices drawn, as Vertex: position, normal, uv (8 floats)
+layout(std430, binding = 1) readonly buffer Vertices {
+  float vertices[];
+};
+layout(std430, binding = 2) readonly buffer Indices {
+  uint indices[];
+};
+// the mesh's triangle at each place of the BVH
+layout(std430, binding = 3) readonly buffer Order {
+  uint order[];
+};
+// the nodes of each step: the leaves, then the interior nodes by depth
+layout(std430, binding = 4) readonly buffer List {
+  uint list[];
+};
+layout(std430, binding = 5) buffer Triangles {
+  RtTriangle triangles[];
+};
+layout(std430, binding = 6) buffer Nodes {
+  BvhNode nodes[];
+};
+
+vec4 Position(uint v) {
+  return vec4(vertices[8u * v], vertices[8u * v + 1u], vertices[8u * v + 2u],
+              vertices[8u * v + 6u]);
+}
+
+vec4 Normal(uint v) {
+  return vec4(vertices[8u * v + 3u], vertices[8u * v + 4u],
+              vertices[8u * v + 5u], vertices[8u * v + 7u]);
+}
+
+void main() {
+  uint k = gl_GlobalInvocationID.x;
+  if(k >= params.step.y) {
+    return;
+  }
+  uint mode = params.step.z;
+  if(mode == 0u) {
+    uint t = 3u * order[k];
+    uint a = indices[t], b = indices[t + 1u], c = indices[t + 2u];
+    RtTriangle triangle;
+    triangle.v0 = Position(a);
+    triangle.v1 = Position(b);
+    triangle.v2 = Position(c);
+    triangle.n0 = Normal(a);
+    triangle.n1 = Normal(b);
+    triangle.n2 = Normal(c);
+    triangles[params.step.w + k] = triangle;
+    return;
+  }
+  uint n = list[params.step.x + k];
+  BvhNode node = nodes[n];
+  vec3 lo = vec3(1e30), hi = vec3(-1e30);
+  if(mode == 1u) {
+    int first = node.right_or_first;
+    for(int i = first; i < first + node.triangle_count; i++) {
+      RtTriangle triangle = triangles[i];
+      lo = min(lo, min(triangle.v0.xyz, min(triangle.v1.xyz, triangle.v2.xyz)));
+      hi = max(hi, max(triangle.v0.xyz, max(triangle.v1.xyz, triangle.v2.xyz)));
+    }
+  } else {
+    BvhNode left = nodes[n + 1u];
+    BvhNode right = nodes[uint(node.right_or_first)];
+    lo = min(left.box_min, right.box_min);
+    hi = max(left.box_max, right.box_max);
+  }
+  nodes[n].box_min = lo;
+  nodes[n].box_max = hi;
+}

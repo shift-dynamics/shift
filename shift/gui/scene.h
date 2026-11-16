@@ -91,7 +91,8 @@ struct SceneMesh {
   int terrain = -1;
   /*! the surface of a flexible body's finite element mesh: its vertices
    * (undeformed here) move with the deformation shown, see FlexUpdate and
-   * DeformFlexMesh; the ray tracer draws it undeformed */
+   * DeformFlexMesh, drawn and ray traced deformed (picking takes it
+   * undeformed) */
   bool deformable = false;
   /*! of a deformable mesh: the displacement of each vertex in each of
    * flex_columns shapes, x, y, z, the shapes of a vertex together

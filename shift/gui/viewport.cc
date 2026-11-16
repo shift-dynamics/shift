@@ -1093,6 +1093,7 @@ void shift::gui::Viewport::ReleaseAll() {
   instance_buffer_.reset();
   material_ubo_.reset();
   frame_ubo_.reset();
+  flex_refit_pipeline_.reset();
   flex_normals_pipeline_.reset();
   flex_deform_pipeline_.reset();
   gpu_meshes_.clear();
@@ -1766,7 +1767,8 @@ static void BuildMeshBvhs(
   std::vector<shift::gui::RtTriangle>& all_triangles,
   std::vector<int32_t>& all_faces, std::vector<shift::gui::BvhNode>& all_nodes,
   std::vector<int>& roots,
-  std::vector<shift::gui::RtDeformableTerrain>* deformables = nullptr) {
+  std::vector<shift::gui::RtDeformableTerrain>* deformables = nullptr,
+  std::vector<shift::gui::RtFlexMesh>* flex_meshes = nullptr) {
   int last_node_count = 0;
   auto append = [&](std::vector<shift::gui::RtTriangle>& triangles,
                     std::vector<int32_t>& faces) {
@@ -1797,6 +1799,9 @@ static void BuildMeshBvhs(
   if(deformables) {
     deformables->clear();
   }
+  if(flex_meshes) {
+    flex_meshes->clear();
+  }
   for(size_t m = 0; m < scene.meshes.size(); m++) {
     const auto& mesh = scene.meshes[m];
     std::vector<shift::gui::RtTriangle> triangles(mesh.indices.size() / 3);
@@ -1816,8 +1821,9 @@ static void BuildMeshBvhs(
       deformables && mesh.terrain >= 0 &&
       mesh.terrain < static_cast<int>(scene.terrains.size()) &&
       scene.terrains[mesh.terrain].deformable;
+    const bool flex = flex_meshes && mesh.deformable && !triangles.empty();
     std::vector<int32_t> faces(triangles.size(), -1);
-    if(deformable) {
+    if(deformable || flex) {
       // the BVH reorders the tags with the triangles: where each went
       for(size_t i = 0; i < faces.size(); i++) {
         faces[i] = static_cast<int32_t>(i);
@@ -1838,6 +1844,18 @@ static void BuildMeshBvhs(
         all_faces[size_t(first_triangle) + k] = -1;
       }
       deformables->push_back(std::move(d));
+    }
+    if(flex) {
+      shift::gui::RtFlexMesh f;
+      f.mesh = static_cast<int>(m);
+      f.first_triangle = first_triangle;
+      f.first_node = roots.back();
+      f.node_count = last_node_count;
+      f.order.assign(faces.begin(), faces.end());
+      for(size_t k = 0; k < faces.size(); k++) {
+        all_faces[size_t(first_triangle) + k] = -1;
+      }
+      flex_meshes->push_back(std::move(f));
     }
   }
   for(size_t c = 0; c < scene.cads.size(); c++) {
@@ -2017,7 +2035,122 @@ void shift::gui::Viewport::CreateGpuFlex(const SceneMesh& mesh, GpuMesh& gpu,
     flex_normals_pipeline_.reset(NewComputePipeline(
       "flex_normals.comp.qsb", flex->normal_bindings.get()));
   }
+  /* a bound of the deformation (UploadFlexUpdates) */
+  const size_t columns = mesh.flex_columns;
+  flex->reach.assign(columns, 0.f);
+  for(size_t v = 0; v < vertex_count; v++) {
+    const float* x = mesh.vertices[v].position;
+    const ksl_vec3f_t d =
+      ksl_vec3f(x[0] - mesh.flex_centroid.x, x[1] - mesh.flex_centroid.y,
+                x[2] - mesh.flex_centroid.z);
+    flex->centroid_reach =
+      std::max(flex->centroid_reach, ksl_vec3f_l2norm(&d));
+    for(size_t j = 0; j < columns && mesh.flex_basis.size() ==
+                                       3 * columns * vertex_count; j++) {
+      const float* u = mesh.flex_basis.data() + 3 * (v * columns + j);
+      const ksl_vec3f_t shape = ksl_vec3f(u[0], u[1], u[2]);
+      flex->reach[j] = std::max(flex->reach[j], ksl_vec3f_l2norm(&shape));
+    }
+  }
+  flex->bounds_min = mesh.bounds_min;
+  flex->bounds_max = mesh.bounds_max;
   gpu.flex = std::move(flex);
+}
+
+/* Step of flex_refit.comp */
+struct FlexRefitStep {
+  uint32_t step[4];
+};
+
+void shift::gui::Viewport::CreateRtFlex(const RtFlexMesh& rt, GpuMesh& gpu,
+                                        QRhiResourceUpdateBatch* batch) {
+  GpuFlex& flex = *gpu.flex;
+  /* the depth of each node of the mesh's BVH: the left child follows its
+  node, and both children come after it */
+  const int first = rt.first_node;
+  const int count = rt.node_count;
+  if(first < 0 || first + count > static_cast<int>(rt_nodes_.size()) ||
+     count <= 0) {
+    return;
+  }
+  std::vector<int> depth(size_t(count), 0);
+  int deepest = 0;
+  std::vector<uint32_t> leaves;
+  for(int i = 0; i < count; i++) {
+    const BvhNode& node = rt_nodes_[size_t(first + i)];
+    if(node.triangle_count >= 0) {
+      leaves.push_back(uint32_t(first + i));
+      continue;
+    }
+    for(int child : {first + i + 1, node.right_or_first}) {
+      depth[size_t(child - first)] = depth[size_t(i)] + 1;
+    }
+    deepest = std::max(deepest, depth[size_t(i)]);
+  }
+  /* the list: the leaves, then the interior nodes the deepest first */
+  std::vector<uint32_t> list = leaves;
+  std::vector<FlexRefitStep> steps;
+  const uint32_t first_triangle = uint32_t(rt.first_triangle);
+  steps.push_back({{0, uint32_t(rt.order.size()), 0, first_triangle}});
+  steps.push_back({{0, uint32_t(leaves.size()), 1, first_triangle}});
+  for(int d = deepest; d >= 0; d--) {
+    const uint32_t start = uint32_t(list.size());
+    for(int i = 0; i < count; i++) {
+      if(rt_nodes_[size_t(first + i)].triangle_count < 0 &&
+         depth[size_t(i)] == d) {
+        list.push_back(uint32_t(first + i));
+      }
+    }
+    steps.push_back({{start, uint32_t(list.size()) - start, 2,
+                      first_triangle}});
+  }
+  flex_step_stride_ =
+    quint32(rhi_->ubufAligned(int(sizeof(FlexRefitStep))));
+  flex.steps.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
+                                   QRhiBuffer::UniformBuffer,
+                                   quint32(steps.size()) * flex_step_stride_));
+  flex.steps->create();
+  flex.step_counts.clear();
+  for(size_t k = 0; k < steps.size(); k++) {
+    batch->updateDynamicBuffer(flex.steps.get(),
+                               quint32(k) * flex_step_stride_,
+                               sizeof(FlexRefitStep), &steps[k]);
+    flex.step_counts.push_back(steps[k].step[1]);
+  }
+  auto storage = [&](const std::vector<uint32_t>& data) {
+    auto* buffer = rhi_->newBuffer(
+      QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
+      quint32(std::max<size_t>(data.size() * sizeof(uint32_t), 16)));
+    buffer->create();
+    if(!data.empty()) {
+      batch->uploadStaticBuffer(buffer, 0,
+                                quint32(data.size() * sizeof(uint32_t)),
+                                data.data());
+    }
+    return buffer;
+  };
+  flex.order.reset(
+    storage(std::vector<uint32_t>(rt.order.begin(), rt.order.end())));
+  flex.list.reset(storage(list));
+  const auto stage = QRhiShaderResourceBinding::ComputeStage;
+  flex.refit_bindings.reset(rhi_->newShaderResourceBindings());
+  flex.refit_bindings->setBindings(
+    {QRhiShaderResourceBinding::uniformBufferWithDynamicOffset(
+       0, stage, flex.steps.get(), sizeof(FlexRefitStep)),
+     QRhiShaderResourceBinding::bufferLoad(1, stage, gpu.vertices.get()),
+     QRhiShaderResourceBinding::bufferLoad(2, stage, gpu.indices.get()),
+     QRhiShaderResourceBinding::bufferLoad(3, stage, flex.order.get()),
+     QRhiShaderResourceBinding::bufferLoad(4, stage, flex.list.get()),
+     QRhiShaderResourceBinding::bufferLoadStore(5, stage,
+                                                rt_triangle_buffer_.get()),
+     QRhiShaderResourceBinding::bufferLoadStore(6, stage,
+                                                rt_node_buffer_.get())});
+  flex.refit_bindings->create();
+  if(!flex_refit_pipeline_) {
+    flex_refit_pipeline_.reset(NewComputePipeline(
+      "flex_refit.comp.qsb", flex.refit_bindings.get()));
+  }
+  flex.rt_stale = true;
 }
 
 void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
@@ -2053,6 +2186,22 @@ void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
           update.coefficients.data());
       }
       flex.dispatch = true;
+      flex.rt_stale = true;
+      /* a box that holds the deformed mesh: no vertex moves farther than
+      sum |a_j| reach_j + |t| + |theta| centroid_reach */
+      float radius = ksl_vec3f_l2norm(&update.translation) +
+                     ksl_vec3f_l2norm(&update.rotation) * flex.centroid_reach;
+      for(size_t j = 0; j < flex.reach.size(); j++) {
+        radius += std::fabs(update.coefficients[j]) * flex.reach[j];
+      }
+      for(int c = 0; c < 3; c++) {
+        flex.bounds_min.at[c] = mesh.bounds_min.at[c] - radius;
+        flex.bounds_max.at[c] = mesh.bounds_max.at[c] + radius;
+      }
+      if(flex.refit_bindings) {
+        rt_instances_dirty_ = true;
+        rt_frame_ = 0;
+      }
       continue;
     }
     DeformFlexMesh(mesh, update, flex_vertices_);
@@ -2074,26 +2223,59 @@ shift::gui::Viewport::DeformMeshes(QRhiCommandBuffer* cb,
       pending.push_back(gpu.flex.get());
     }
   }
-  if(pending.empty() || !flex_deform_pipeline_ || !flex_normals_pipeline_) {
-    return batch;
+  const bool deform =
+    !pending.empty() && flex_deform_pipeline_ && flex_normals_pipeline_;
+  if(deform) {
+    // the normals read the positions of the vertices around: a pass of
+    // their own, which QRhi orders after the positions are written
+    cb->beginComputePass(batch);
+    batch = nullptr;
+    cb->setComputePipeline(flex_deform_pipeline_.get());
+    for(GpuFlex* flex : pending) {
+      cb->setShaderResources(flex->deform_bindings.get());
+      cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+    }
+    cb->endComputePass();
+    cb->beginComputePass();
+    cb->setComputePipeline(flex_normals_pipeline_.get());
+    for(GpuFlex* flex : pending) {
+      cb->setShaderResources(flex->normal_bindings.get());
+      cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+    }
+    cb->endComputePass();
   }
-  // the normals read the positions of the vertices around: a pass of their
-  // own, which QRhi orders after the positions are written
-  cb->beginComputePass(batch);
-  cb->setComputePipeline(flex_deform_pipeline_.get());
-  for(GpuFlex* flex : pending) {
-    cb->setShaderResources(flex->deform_bindings.get());
-    cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+  // the ray tracer's triangles and BVH, while ray tracing: each step in a
+  // pass of its own, after the one whose results it reads
+  std::vector<GpuFlex*> stale;
+  if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_ &&
+     flex_refit_pipeline_) {
+    for(auto& gpu : gpu_meshes_) {
+      if(gpu.flex && gpu.flex->rt_stale && gpu.flex->refit_bindings) {
+        gpu.flex->rt_stale = false;
+        stale.push_back(gpu.flex.get());
+      }
+    }
   }
-  cb->endComputePass();
-  cb->beginComputePass();
-  cb->setComputePipeline(flex_normals_pipeline_.get());
-  for(GpuFlex* flex : pending) {
-    cb->setShaderResources(flex->normal_bindings.get());
-    cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+  size_t step_count = 0;
+  for(GpuFlex* flex : stale) {
+    step_count = std::max(step_count, flex->step_counts.size());
   }
-  cb->endComputePass();
-  return rhi_->nextResourceUpdateBatch();
+  for(size_t k = 0; k < step_count; k++) {
+    cb->beginComputePass(batch);
+    batch = nullptr;
+    cb->setComputePipeline(flex_refit_pipeline_.get());
+    for(GpuFlex* flex : stale) {
+      if(k >= flex->step_counts.size() || flex->step_counts[k] == 0) {
+        continue;
+      }
+      const QRhiCommandBuffer::DynamicOffset offset(
+        0, quint32(k) * flex_step_stride_);
+      cb->setShaderResources(flex->refit_bindings.get(), 1, &offset);
+      cb->dispatch(int((flex->step_counts[k] + 63) / 64), 1, 1);
+    }
+    cb->endComputePass();
+  }
+  return batch ? batch : rhi_->nextResourceUpdateBatch();
 }
 
 void shift::gui::Viewport::UploadTerrainUpdates(
@@ -2509,9 +2691,10 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   rt_instance_list_ = RtInstanceList(scene);
   if(ray_tracing_supported_) {
     CadTrimTables trims = MergeCadTrims(scene.cads);
+    std::vector<RtFlexMesh> rt_flex;
     BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, trims,
                   rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_,
-                  &rt_terrains_);
+                  &rt_terrains_, &rt_flex);
     // the deformable terrains as shown, not as the meshes were made
     rt_terrain_smooth_ = smooth_terrain_;
     for(const auto& terrain : rt_terrains_) {
@@ -2568,6 +2751,12 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     rt_instance_node_buffer_->create();
     batch->uploadStaticBuffer(rt_triangle_buffer_.get(), rt_triangles_.data());
     batch->uploadStaticBuffer(rt_node_buffer_.get(), rt_nodes_.data());
+    for(const auto& flex : rt_flex) {
+      GpuMesh& gpu = gpu_meshes_[size_t(flex.mesh)];
+      if(gpu.flex) {
+        CreateRtFlex(flex, gpu, batch);
+      }
+    }
     // the GPU copies are all that ray tracing needs from here on; picking
     // keeps the CPU copies
     pick_triangles_ = std::move(rt_triangles_);
@@ -2998,6 +3187,14 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
     if(instance.mesh_index < mesh_count) {
       const SceneMesh& mesh = scene.meshes[instance.mesh_index];
       ksl_vec3f_t bounds_min = mesh.bounds_min, bounds_max = mesh.bounds_max;
+      // a flexible body's: a box that holds its deformation
+      if(size_t(instance.mesh_index) < gpu_meshes_.size()) {
+        const GpuMesh& gpu = gpu_meshes_[size_t(instance.mesh_index)];
+        if(gpu.flex && gpu.flex->refit_bindings) {
+          bounds_min = gpu.flex->bounds_min;
+          bounds_max = gpu.flex->bounds_max;
+        }
+      }
       for(const auto& terrain : rt_terrains_) {
         // a deformable terrain's box is that of its refitted BVH
         if(terrain.mesh == instance.mesh_index &&
