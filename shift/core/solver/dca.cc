@@ -26,6 +26,13 @@ void shift::core::solver::DCA::CheckTrees() {
         "joint '" +
         RootName(tree) + "' has closed loops; use the 'rnca' solver");
     }
+    if(tree.elastic_count > 0) {
+      throw shift::core::Exception(
+        "Solver 'dca' does not handle flexible bodies yet; the tree with "
+        "root joint '" +
+        RootName(tree) + "' has bodies with elastic coordinates (solvers "
+        "'rnca', 'aba' and 'auto' do)");
+    }
   }
   const auto& has_mass = context_->get_has_mass_array();
   const auto& joint_lookup = context_->get_joint_lookup();

@@ -6,7 +6,10 @@
 #include <string>
 #include <vector>
 
+#include "ksl/SE3.h"
+#include "ksl/coscrew.h"
 #include "ksl/inertia.h"
+#include "ksl/screw.h"
 
 #include "shift/core/base.h"
 #include "shift/core/collision_geometry/base.h"
@@ -133,7 +136,7 @@ public:
     return parent_joint_;
   }
 
-  int get_va_index() {
+  int get_va_index() const {
     return va_index_;
   }
 
@@ -151,6 +154,143 @@ public:
   const ksl_vec3_t& get_center_of_mass_wrt_origin() const {
     return center_of_mass_wrt_origin_;
   }
+
+  /*! \name Elastic coordinates
+  A flexible body (body::Flex) adds \f$n_e\f$ elastic coordinates to the
+  generalized coordinates: modal coordinates \f$\underline{\eta}\f$ for
+  body::Modal, reduced nodal displacements for body::Nodal. The context
+  places them in \f$\underline{q}\f$ and \f$\underline{\dot{q}}\f$ right
+  after the coordinates of the body's parent joint. A rigid body has none,
+  so every function below has a default for \f$n_e = 0\f$, and the solvers
+  treat a rigid body as the special case of a flexible one.
+  */
+  ///@{
+
+  /*! \brief number \f$n_e\f$ of elastic coordinates; 0 for a rigid body */
+  virtual unsigned int get_elastic_count() const {
+    return 0;
+  }
+
+  /*! \brief index of the first elastic coordinate in the array of
+   * generalized coordinates, -1 if the body has none or the context has not
+   * placed them */
+  int get_elastic_q_index() const {
+    return elastic_q_index_;
+  }
+
+  /*! \brief index of the first elastic velocity in the array of generalized
+   * velocities, -1 if the body has none or the context has not placed them */
+  int get_elastic_dq_index() const {
+    return elastic_dq_index_;
+  }
+
+  void set_elastic_q_index(int index) {
+    elastic_q_index_ = index;
+  }
+
+  void set_elastic_dq_index(int index) {
+    elastic_dq_index_ = index;
+  }
+
+  /*! \brief initial values of the elastic coordinates and of their rates,
+   * \f$n_e\f$ each; nullptr for a rigid body */
+  virtual const double* get_initial_elastic_coordinates() const {
+    return nullptr;
+  }
+  virtual const double* get_initial_elastic_velocities() const {
+    return nullptr;
+  }
+
+  /*! \brief prepare a flexible body once its reference frame is final,
+   * before the context places its coordinates: express its model in the
+   * reference frame's coordinates and set its mass (its node frames are
+   * found when it is connected, as the context needs them earlier);
+   * the context calls it for every body with elastic coordinates. A rigid
+   * body has nothing to prepare. */
+  virtual void SetupElastic() {}
+
+  /*! \brief number of nodes: the frames of the body that move with its
+   * deformation and that a joint, force module, sensor or chord uses; 0 for
+   * a rigid body, whose frames all move with its reference frame */
+  virtual unsigned int get_node_count() const {
+    return 0;
+  }
+
+  /*! \brief the frame of node k, 0 <= k < get_node_count() */
+  virtual Frame* get_node_frame(unsigned int k) const {
+    (void)k;
+    return nullptr;
+  }
+
+  /*! \brief evaluate the mass matrix blocks and the bias forces of a
+   * flexible body for its elastic coordinates \p eta, their
+   * rates \p eta_dot and the spatial velocity \p v_r of its reference frame,
+   * all in the coordinates of the reference frame; the solvers call it once
+   * per evaluation of the equations of motion, before the getters below. A
+   * rigid body has nothing to evaluate. */
+  virtual void EvaluateElastic(const double* eta, const double* eta_dot,
+                               const ksl_screw_t& v_r) {
+    (void)eta;
+    (void)eta_dot;
+    (void)v_r;
+  }
+
+  /*! \brief frame-elastic mass block \f$M_{be}\f$: \f$n_e\f$ coscrews in the
+   * reference frame's coordinates (linear part first); nullptr for a rigid
+   * body. The frame-frame block is get_inertia_wrt_reference(), which keeps
+   * the ten-term form of a rigid inertia. */
+  virtual const ksl_coscrew_t* get_mass_be() const {
+    return nullptr;
+  }
+
+  /*! \brief elastic-elastic mass block \f$M_{ee}\f$, \f$n_e \times n_e\f$,
+   * symmetric, row-major; nullptr for a rigid body */
+  virtual const double* get_mass_ee() const {
+    return nullptr;
+  }
+
+  /*! \brief bias wrench on the reference frame from the terms quadratic in
+   * the velocities, in its coordinates (linear part first), without the
+   * gyroscopic wrench \f$\mathbf{v}_r \times^* M_{bb} \mathbf{v}_r\f$ of
+   * the frame-frame block, which the solvers form from
+   * get_inertia_wrt_reference() as for a rigid body; zero for a rigid body */
+  virtual ksl_coscrew_t get_bias_b() const {
+    return ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  }
+
+  /*! \brief bias forces of the elastic coordinates, \f$n_e\f$: the terms
+   * quadratic in the velocities and the elastic and damping forces
+   * \f$-K\underline{\eta} - C\underline{\dot{\eta}}\f$; nullptr for a rigid
+   * body */
+  virtual const double* get_bias_e() const {
+    return nullptr;
+  }
+
+  /*! \brief kinematics of node k, 0 <= k < get_node_count(), for the
+   * elastic coordinates \p eta and their rates \p eta_dot, all in the
+   * coordinates of the body's reference frame r and referred to its origin:
+   * \p d_rk the deformed displacement of the node from r; \p h_k its
+   * \f$n_e\f$ influence screws (the node's slice of the mode shapes, the
+   * velocity of the node relative to r is \f$\sum_m h_{km}\dot{\eta}_m\f$);
+   * \p gamma_k \f$\sum_m \dot{h}_{km}\dot{\eta}_m\f$, the part of the
+   * node's acceleration relative to r that comes from the change of its
+   * influence screws in r. The context adds the motion of r. \p h_k may be
+   * nullptr when only the displacement is needed, and \p eta_dot and
+   * \p gamma_k are nullptr when the velocities are not. A rigid body has no
+   * nodes. */
+  virtual void EvaluateNode(unsigned int k, const double* eta,
+                            const double* eta_dot, ksl_SE3_t* d_rk,
+                            ksl_screw_t* h_k, ksl_screw_t* gamma_k) const {
+    (void)k;
+    (void)eta;
+    (void)eta_dot;
+    (void)h_k;
+    *d_rk = ksl_SE3_identity();
+    if(gamma_k) {
+      *gamma_k = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
+  }
+  ///@}
 
 
   /*! \brief density of the body, 0 unless given: then its mass, center of
@@ -226,6 +366,8 @@ protected:
   int index_ = -1;
   int level_ = -1;
   int va_index_ = -1;
+  int elastic_q_index_ = -1;  /*!< index of the first elastic coordinate */
+  int elastic_dq_index_ = -1; /*!< index of the first elastic velocity */
   joint::Base* parent_joint_ = nullptr;
   shift::core::Frame* reference_frame_ =
     nullptr; /*!< pointer to unique reference frame on body, in an articulated

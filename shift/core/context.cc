@@ -1,4 +1,5 @@
 #include "shift/core/context.h"
+#include "shift/core/body/node_kinematics.h"
 
 #include <assert.h>
 #include <string.h>
@@ -50,6 +51,7 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/joint/rigid.h"
+#include "shift/core/joint/spherical.h"
 #include "shift/core/light/base.h"
 #include "shift/core/logger/base.h"
 #include "shift/core/sensor/base.h"
@@ -166,6 +168,7 @@ void shift::core::Context::PostLoad(const std::string) {
   jacobian_.Initialize();
   InitializeMobility();
   InitializeInertia();
+  InitializeElasticBodies();
   SetupQuaternionMap();
 
   // SetupDReferenceFrames();
@@ -218,9 +221,11 @@ void shift::core::Context::ProcessFrames() {
   /* identify frames attached to non-rigid, active joints */
   for(auto& joint : active_joints_) {
     /* parent and child frames of a joint are only added to spanning tree if
-     * joint has nonzero degrees of freedom. Rigid joints
-     * are optimized out of the spanning tree */
-    if(joint->get_q_count()) {
+     * joint has nonzero degrees of freedom or a flexible child body (an
+     * entry of the compressed tree). Other rigid joints are optimized out of
+     * the spanning tree */
+    auto child_body = joint->get_system_child_body();
+    if(joint->get_q_count() || (child_body && child_body->get_elastic_count())) {
       auto parent_frame = joint->get_system_parent_frame();
       assert(parent_frame);
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
@@ -232,6 +237,21 @@ void shift::core::Context::ProcessFrames() {
       if(std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
                    child_frame) == frames_in_tree_.end()) {
         frames_in_tree_.push_back(child_frame);
+      }
+    }
+  }
+
+  /* the nodes of the flexible bodies, which their node slots follow */
+  for(auto& joint : active_joints_) {
+    auto body = joint->get_system_child_body();
+    if(!body || !body->get_elastic_count()) {
+      continue;
+    }
+    for(unsigned int k = 0; k < body->get_node_count(); k++) {
+      auto frame = body->get_node_frame(k);
+      if(frame && std::find(frames_in_tree_.begin(), frames_in_tree_.end(),
+                            frame) == frames_in_tree_.end()) {
+        frames_in_tree_.push_back(frame);
       }
     }
   }
@@ -262,6 +282,14 @@ void shift::core::Context::ProcessFrames() {
   for(auto& joint : active_joints_) {
     auto body = joint->get_system_child_body();
     body->set_parent_joint(joint);
+  }
+
+  /* the reference frames are final: the flexible bodies express their
+  models in them */
+  for(auto body : active_articulated_bodies_) {
+    if(body->get_elastic_count()) {
+      body->SetupElastic();
+    }
   }
 
   for(auto& body : active_articulated_bodies_) {
@@ -955,6 +983,7 @@ void shift::core::Context::LoadData() {
   }
   if(from_density) {
     InitializeInertia();
+    InitializeElasticBodies();
     for(auto body : free_bodies_) {
       body->SetupInertia();
     }
@@ -1797,9 +1826,11 @@ void shift::core::Context::CompressRigidJoints(
 
   int j = i;
   auto parent_joint = active_joints_[i];
-  /* parent body of the topmost rigid joint of the chain: D is the
-  displacement with respect to its reference frame */
+  /* the frame the chain of rigid joints hangs from: the reference frame of
+  the parent body of its topmost rigid joint, or the node of a flexible body
+  it is attached at; D is the displacement with respect to it */
   auto reference_body = parent_joint->get_system_parent_body();
+  shift::core::Frame* reference_frame = reference_body->get_reference_frame();
 
   // D_p_01: transformation from proximal frame 0 to distal frame 1 on parent
   // body p
@@ -1807,21 +1838,27 @@ void shift::core::Context::CompressRigidJoints(
   // D_c_01: transformation from proximal frame 0 to distal frame 1 on child
   // body c
 
-  while(!parent_joint->get_q_count()) { // rigid joint
+  while(!IsTreeEntry(j)) { // rigid joint
     // D = D_p1_c0 * D
     ksl_SE3_t temp;
     ksl_SE3_t D_p1_c0 = parent_joint->get_transform();
     // ksl_SE3_print(stdout, &D_p1_c0, "  D_p1_c0: ");
     ksl_product_dd(&D_p1_c0, &D, &temp);
     ksl_SE3_copy(&temp, &D);
+    reference_body = parent_joint->get_system_parent_body();
+
+    /* a chain attached at a node of a flexible body hangs from the node */
+    auto parent_frame = parent_joint->get_system_parent_frame();
+    if(GetNodeSlot(parent_frame) > -1) {
+      reference_frame = parent_frame;
+      break;
+    }
 
     // D = D_p0_p1 * D_p1_c0
     // D <- D_p0_c0
-    ksl_product_dd(
-      parent_joint->get_system_parent_frame()->get_d_wrt_reference(), &D,
-      &temp);
+    ksl_product_dd(parent_frame->get_d_wrt_reference(), &D, &temp);
     ksl_SE3_copy(&temp, &D);
-    reference_body = parent_joint->get_system_parent_body();
+    reference_frame = reference_body->get_reference_frame();
 
     j = pcl_[j];
     if(j == -1) {
@@ -1830,14 +1867,12 @@ void shift::core::Context::CompressRigidJoints(
     parent_joint = active_joints_[j];
   }
 
-  auto joint = active_joints_[i];
-  if(!joint->get_q_count()) {
+  if(!IsTreeEntry(i)) {
     // std::cout << "processing joint: " << joint->get_name() << std::endl;
     auto child_body = active_articulated_bodies_[i];
     /* its frames that are not in the tree, e.g. the origin of a body with
     no joints below it, are placed from this (get_body_origin_pose) */
-    rigid_placements_[child_body] = {
-      reference_body->get_reference_frame()->get_index(), D};
+    rigid_placements_[child_body] = {reference_frame->get_index(), D};
 
     // ksl_SE3_print(stdout, &D, "  D_p0_c0: ");
 
@@ -1858,8 +1893,7 @@ void shift::core::Context::CompressRigidJoints(
 
         ksl_SE3_copy(&D_p0_c1, &d_wrt_reference_[frame->get_index()]);
 
-        dhva_offsets_[operation_count].parent.d =
-          reference_body->get_reference_frame()->get_index();
+        dhva_offsets_[operation_count].parent.d = reference_frame->get_index();
         dhva_offsets_[operation_count].child.d = frame->get_index();
         dhva_offsets_[operation_count].q = frame->get_index();
 
@@ -1881,9 +1915,8 @@ void shift::core::Context::CompressRigidJoints(
         //   parent_joint->get_system_parent_body()->get_reference_frame()->get_index(),
         //   " d_parent: ");
 
-        ksl_product_dd(
-          &dhva_.d[reference_body->get_reference_frame()->get_index()],
-          &D_p0_c1, &dhva_.d[frame->get_index()]);
+        ksl_product_dd(&dhva_.d[reference_frame->get_index()], &D_p0_c1,
+                       &dhva_.d[frame->get_index()]);
         // ksl_SE3_print(stdout, dhva_.d + frame->get_index(), "  d_absolute:
         // ");
       }
@@ -1897,19 +1930,54 @@ void shift::core::Context::AllocateRunTimeArrays() {
   dq_count_ = 0;
   unsigned int data_count = 0;
   non_rigid_joint_count_ = 0;
-  for(auto& joint : active_joints_) {
+  for(unsigned int i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
     dc_count += joint->get_dc_count();
-    q_count_ += joint->get_q_count();
-    dq_count_ += joint->get_dq_count();
+    /* the elastic coordinates of a flexible body follow those of its parent
+    joint */
+    const unsigned int elastic_count = GetElasticCount(i);
+    q_count_ += joint->get_q_count() + elastic_count;
+    dq_count_ += joint->get_dq_count() + elastic_count;
     data_count += joint->get_data_count();
-    if(joint->get_q_count() > 0) {
+    if(IsTreeEntry(i)) {
       non_rigid_joint_count_++;
     }
   }
+  CheckElasticBodies();
+
+  /* the node slots of the flexible bodies are entries of the compressed tree
+  with no coordinates; their indices follow their body's (below) */
+  node_slots_.clear();
+  unsigned int he_count = 0;
+  for(unsigned int i = 0; i < active_joints_.size(); i++) {
+    auto body = active_articulated_bodies_[i];
+    const unsigned int elastic_count = body->get_elastic_count();
+    if(!elastic_count) {
+      continue;
+    }
+    for(unsigned int k = 0; k < body->get_node_count(); k++) {
+      topology::NodeSlot slot;
+      slot.body = body;
+      slot.frame = body->get_node_frame(k);
+      slot.node = k;
+      slot.he_offset = (int)he_count;
+      if(!slot.frame) {
+        const std::string message = "Flexible body '" + body->get_name() +
+                                    "' gives no frame for node " +
+                                    std::to_string(k);
+        SHIFT_ERROR(message);
+        throw shift::core::Exception(message);
+      }
+      node_slots_.push_back(slot);
+      he_count += elastic_count;
+    }
+  }
+  non_rigid_joint_count_ += node_slots_.size();
 
   dhva_ = shift::core::topology::DHVA(frames_in_tree_.size(), dc_count,
                                       dq_count_, non_rigid_joint_count_);
   dhva_.free.Resize(free_bodies_.size());
+  dhva_.he.assign(he_count, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
   // std::cout << "q_count: " << q_count_ << std::endl;
   // std::cout << "dq_count: " << dq_count_ << std::endl;
@@ -1952,12 +2020,21 @@ void shift::core::Context::AllocateRunTimeArrays() {
   by a rigid joint has its index already: the body moves with its parent and
   shares its velocities (-1 is the fixed body) */
   unsigned int i = 0;
-  for(auto& body : active_articulated_bodies_) {
+  for(unsigned int b = 0; b < active_articulated_bodies_.size(); b++) {
+    auto body = active_articulated_bodies_[b];
     auto joint = body->get_parent_joint();
-    if(joint && joint->get_q_count() > 0) {
+    if(joint && IsTreeEntry(b)) {
       body->set_va_index(i++);
+      /* the node slots of a flexible body follow it */
+      for(auto& slot : node_slots_) {
+        if(slot.body == body) {
+          slot.index = (int)i++;
+        }
+      }
     } else if(joint && joint->get_system_parent_body()) {
-      body->set_va_index(joint->get_system_parent_body()->get_va_index());
+      /* attached by a rigid joint: it moves with its parent's entry, or with
+      the node slot it is attached at */
+      body->set_va_index(GetJointParentVaIndex(active_joints_[b]));
     } else {
       body->set_va_index(-1);
     }
@@ -1968,9 +2045,8 @@ void shift::core::Context::AllocateRunTimeArrays() {
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     int j = i;
     auto joint = active_joints_[j];
-    auto parent_joint = joint;
     bool rigid_connection_to_fixed_frame = false;
-    while(!parent_joint->get_q_count()) { // rigid joint
+    while(!IsTreeEntry(j)) { // rigid joint
       j = pcl_[j];
       if(j == -1) {
         // std::cout << "rigid connection to fixed frame found: ";
@@ -1978,7 +2054,6 @@ void shift::core::Context::AllocateRunTimeArrays() {
         rigid_connection_to_fixed_frame = true;
         break;
       }
-      parent_joint = active_joints_[j];
     }
 
     if(!rigid_connection_to_fixed_frame) {
@@ -2012,7 +2087,8 @@ void shift::core::Context::AllocateRunTimeArrays() {
   int dq_offset = 0;
   int dc_offset = 0;
   int data_offset = 0;
-  for(auto& joint : active_joints_) {
+  for(unsigned int i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
     joint->set_q_index(q_offset);
     joint->set_dq_index(dq_offset);
     joint->set_dc_index(dc_offset);
@@ -2027,6 +2103,14 @@ void shift::core::Context::AllocateRunTimeArrays() {
     dq_offset += joint->get_dq_count();
     dc_offset += joint->get_dc_count();
     data_offset += joint->get_data_count();
+
+    /* the child body's elastic coordinates, right after the joint's */
+    auto body = active_articulated_bodies_[i];
+    const unsigned int elastic_count = body->get_elastic_count();
+    body->set_elastic_q_index(elastic_count ? (int)q_offset : -1);
+    body->set_elastic_dq_index(elastic_count ? (int)dq_offset : -1);
+    q_offset += elastic_count;
+    dq_offset += elastic_count;
   }
 
   /* one time update of frames on fixed body */
@@ -2052,30 +2136,48 @@ void shift::core::Context::AllocateRunTimeArrays() {
   rigid_placements_.clear();
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     auto& joint = active_joints_[i];
-    auto parent_body = joint->get_system_parent_body();
     auto parent_frame = joint->get_system_parent_frame();
     auto child_body = active_articulated_bodies_[i];
     auto child_frame = child_body->get_reference_frame();
 
-    if(joint->get_q_count()) {
+    if(IsTreeEntry(i)) {
       if(joint->get_dc_count()) {
         dcq_[joint->get_dc_index()] = joint->get_q_index();
         dhva_offsets_[operation_count].dc = joint->get_dc_index() * 2;
-      } else {
+      } else if(joint->get_q_count()) {
         dhva_offsets_[operation_count].q = joint->get_q_index();
+      } else {
+        /* a flexible body on a rigid joint: its reference frame is placed
+        from the parent frame by the joint's constant displacement, kept in
+        d_wrt_reference_ at the child frame */
+        ksl_SE3_t D_ij = joint->get_transform();
+        if(!child_frame->is_reference()) {
+          ksl_SE3_t temp;
+          ksl_SE3_copy(&D_ij, &temp);
+          ksl_product_ddinv(&temp, child_frame->get_d_wrt_reference(), &D_ij);
+        }
+        ksl_SE3_copy(&D_ij, &d_wrt_reference_[child_frame->get_index()]);
+        dhva_offsets_[operation_count].q = child_frame->get_index();
       }
 
       dhva_offsets_[operation_count].parent.d = parent_frame->get_index();
       dhva_offsets_[operation_count].child.d = child_frame->get_index();
 
-      dhva_offsets_[operation_count].parent.v = parent_body->get_va_index();
+      /* a joint at a node of a flexible body moves with the node slot */
+      dhva_offsets_[operation_count].parent.v = GetJointParentVaIndex(joint);
       dhva_offsets_[operation_count].child.v = child_body->get_va_index();
       dhva_offsets_[operation_count].dq = joint->get_dq_index();
       dhva_offsets_[operation_count].data = joint->get_data_index();
 
-      d_fptr_[operation_count] = joint->Dfptr();
-      dh_fptr_[operation_count] = joint->DHfptr();
-      dhva_fptr_[operation_count] = joint->DHVAfptr();
+      if(joint->get_q_count()) {
+        d_fptr_[operation_count] = joint->Dfptr();
+        dh_fptr_[operation_count] = joint->DHfptr();
+        dhva_fptr_[operation_count] = joint->DHVAfptr();
+      } else {
+        d_fptr_[operation_count] = shift::core::body::RigidEntryD;
+        dh_fptr_[operation_count] = shift::core::body::RigidEntryD;
+        dhva_fptr_[operation_count] = shift::core::body::RigidEntryDhva;
+      }
       operation_count++;
 
       auto reference_frame = child_body->get_reference_frame();
@@ -2089,7 +2191,26 @@ void shift::core::Context::AllocateRunTimeArrays() {
           for now, all function pointers are assigned as general SE3
           displacements
         */
-        if(!frame->is_reference() && frame->is_in_tree()) {
+        const int slot_index = GetNodeSlot(frame.get());
+        if(!frame->is_reference() && frame->is_in_tree() && slot_index > -1) {
+          /* a node of a flexible body follows the body's deformation */
+          const auto& slot = node_slots_[slot_index];
+          d_fptr_[operation_count] = shift::core::body::NodeD;
+          dh_fptr_[operation_count] = shift::core::body::NodeDh;
+          dhva_fptr_[operation_count] = shift::core::body::NodeDhva;
+          dhva_offsets_[operation_count].parent.d =
+            reference_frame->get_index();
+          dhva_offsets_[operation_count].child.d = frame->get_index();
+          dhva_offsets_[operation_count].parent.v = child_body->get_va_index();
+          dhva_offsets_[operation_count].child.v = slot.index;
+          dhva_offsets_[operation_count].q = child_body->get_elastic_q_index();
+          dhva_offsets_[operation_count].dq =
+            child_body->get_elastic_dq_index();
+          dhva_offsets_[operation_count].data = slot_index;
+          ksl_SE3_copy(frame->get_d_wrt_reference(),
+                       &d_wrt_reference_[frame->get_index()]);
+          operation_count++;
+        } else if(!frame->is_reference() && frame->is_in_tree()) {
           d_fptr_[operation_count] = shift::core::joint::rigid_dh;
           dh_fptr_[operation_count] = shift::core::joint::rigid_dh;
           dhva_fptr_[operation_count] = shift::core::joint::rigid_dhva;
@@ -2118,9 +2239,15 @@ void shift::core::Context::AllocateRunTimeArrays() {
   // std::cout << "d_reference_frames: ";
   size_t j = 0;
   for(size_t i = 0; i < active_joints_.size(); i++) {
-    if(active_joints_[i]->get_dq_count() > 0) {
+    if(IsTreeEntry(i)) {
       d_reference_frames_[j++] =
         active_articulated_bodies_[i]->get_reference_frame()->get_index();
+      /* a node slot's frame is its node */
+      for(auto& slot : node_slots_) {
+        if(slot.body == active_articulated_bodies_[i]) {
+          d_reference_frames_[j++] = slot.frame->get_index();
+        }
+      }
       // std::cout <<
       // active_articulated_bodies_[i]->get_reference_frame()->get_index()
       //           << " ";
@@ -2230,7 +2357,8 @@ void shift::core::Context::SetToInitialConditions() {
   assert(dq_);
   unsigned int q_offset = 0;
   unsigned int dq_offset = 0;
-  for(auto& joint : active_joints_) {
+  for(unsigned int i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
     if(joint->get_q_count()) {
       // std::cout << joint->get_name() << " " << std::flush;
       assert(joint->get_q0());
@@ -2252,6 +2380,21 @@ void shift::core::Context::SetToInitialConditions() {
     }
     q_offset += joint->get_q_count();
     dq_offset += joint->get_dq_count();
+
+    /* elastic coordinates of the child body: its initial values, zero if it
+    gives none */
+    auto body = active_articulated_bodies_[i];
+    const unsigned int elastic_count = body->get_elastic_count();
+    if(elastic_count) {
+      const double* eta0 = body->get_initial_elastic_coordinates();
+      const double* eta_dot0 = body->get_initial_elastic_velocities();
+      for(unsigned int k = 0; k < elastic_count; k++) {
+        q_[q_offset + k] = eta0 ? eta0[k] : 0.0;
+        dq_[dq_offset + k] = eta_dot0 ? eta_dot0[k] : 0.0;
+      }
+    }
+    q_offset += elastic_count;
+    dq_offset += elastic_count;
   }
   double* free_q = q_.data() + get_free_state_offset();
   for(auto body : free_bodies_) {
@@ -2374,12 +2517,20 @@ void shift::core::Context::InitializeInertia() {
   rigid bodies already merged into it, before its parent is merged in turn;
   and every merge adds to what the parent holds so far, so that a body with
   several rigid children carries the mass of all of them */
+  /* the inertias of bodies rigidly attached at a node of a flexible body,
+  with respect to the node's frame */
+  std::vector<ksl_inertia_t> slot_inertia(
+    node_slots_.size(), ksl_inertia(0, {{0, 0, 0}}, 0, 0, 0, 0, 0, 0));
   for(int i = (int)active_joints_.size() - 1; i > -1; i--) {
     /* only perform merge if parent joint type is rigid and
        the parent body is not the fixed body */
-    if(active_joints_[i]->get_q_count() == 0 && pcl_[i] > -1) {
+    if(!IsTreeEntry(i) && pcl_[i] > -1) {
       assert(pcl_[i] < i);
-      ksl_inertia_t& parent_inertia = inertia_temp[pcl_[i]];
+      const int slot_index =
+        GetNodeSlot(active_joints_[i]->get_system_parent_frame());
+      ksl_inertia_t& parent_inertia = slot_index > -1
+                                        ? slot_inertia[slot_index]
+                                        : inertia_temp[pcl_[i]];
       const ksl_inertia_t& child_inertia = inertia_temp[i];
       if(!(child_inertia.m > 0.0)) {
         continue; // nothing to add
@@ -2401,7 +2552,8 @@ void shift::core::Context::InitializeInertia() {
       auto child_frame = active_joints_[i]->get_system_child_frame();
       ksl_SE3_t D_ij;
       ksl_SE3_t temp = active_joints_[i]->get_transform();
-      if(parent_frame->is_reference()) {
+      if(parent_frame->is_reference() || slot_index > -1) {
+        /* a node slot's frame is the node itself */
         ksl_SE3_copy(&temp, &D_ij);
       } else {
         ksl_product_dd(parent_frame->get_d_wrt_reference(), &temp, &D_ij);
@@ -2410,14 +2562,31 @@ void shift::core::Context::InitializeInertia() {
         ksl_SE3_copy(&D_ij, &temp);
         ksl_product_ddinv(&temp, child_frame->get_d_wrt_reference(), &D_ij);
       }
-      // i = parent, j = child;
-      ksl_inertia_merge(&parent_inertia, &t_ic_i, &child_inertia, &t_jc_j,
-                        &D_ij);
+      if(parent_inertia.m > 0.0) {
+        // i = parent, j = child;
+        ksl_inertia_merge(&parent_inertia, &t_ic_i, &child_inertia, &t_jc_j,
+                          &D_ij);
+      } else {
+        /* nothing to merge with (a node slot holds no mass of its own): the
+        child's inertia in the parent's frame, in the same ten-term form,
+        with centroidal moments (ksl_inertia_transformed would refer them to
+        the frame's origin) */
+        ksl_inertia_rotated(&child_inertia, &D_ij.R, &parent_inertia);
+        ksl_vec3_t m_t;
+        ksl_product_av(child_inertia.m, &D_ij.t, &m_t);
+        ksl_xpy_vv(&m_t, &parent_inertia.mt);
+      }
     }
   }
 
   /* compress expanded inertia list into compressed list */
   inertia_.resize(non_rigid_joint_count_);
+  for(size_t k = 0; k < node_slots_.size(); k++) {
+    inertia_[node_slots_[k].index] = slot_inertia[k];
+    if(slot_inertia[k].m > 0.0) {
+      has_mass_[node_slots_[k].index] = true;
+    }
+  }
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     int j = joint_lookup_[i];
     if(j != -1) {
@@ -2435,15 +2604,71 @@ void shift::core::Context::InitializeInertia() {
   }
 }
 
+void shift::core::Context::InitializeElasticBodies() {
+  elastic_bodies_.clear();
+  for(size_t i = 0; i < active_articulated_bodies_.size(); i++) {
+    if(GetElasticCount(i)) {
+      elastic_bodies_.push_back((int)i);
+    }
+  }
+  const ksl_coscrew_t zero = ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  elastic_mass_be_.assign(dq_count_, zero);
+  elastic_bias_b_.assign(non_rigid_joint_count_, zero);
+  elastic_bias_e_.assign(dq_count_, 0.0);
+  EvaluateElasticBodies();
+}
+
+void shift::core::Context::EvaluateElasticBodies() {
+  EvaluateElasticBodies(dhva_, q_.data(), dq_);
+}
+
+void shift::core::Context::EvaluateElasticBodies(
+  const topology::DHVA& dhva, const double* q, const double* dq) {
+  for(int i : elastic_bodies_) {
+    auto body = active_articulated_bodies_[i];
+    const unsigned int elastic_count = body->get_elastic_count();
+    const int j = joint_lookup_[i];
+    const int q_index = body->get_elastic_q_index();
+    const int dq_index = body->get_elastic_dq_index();
+    assert(j > -1 && q_index > -1 && dq_index > -1);
+
+    /* the velocity of the reference frame, from fixed coordinates referred
+    to the fixed origin to the coordinates of the reference frame */
+    const ksl_SE3_t* D_0r = &dhva.d[d_reference_frames_[j]];
+    ksl_screw_t v_r;
+    ksl_product_Adinvs(D_0r, &dhva.v[body->get_va_index()], &v_r);
+
+    body->EvaluateElastic(q + q_index, dq + dq_index, v_r);
+
+    /* the frame-frame block is the body's inertia, which the solvers
+    transform as a rigid body's */
+    inertia_[j] = body->get_inertia_wrt_reference();
+
+    const ksl_coscrew_t* mass_be = body->get_mass_be();
+    const double* bias_e = body->get_bias_e();
+    assert(mass_be && bias_e);
+    for(unsigned int m = 0; m < elastic_count; m++) {
+      ksl_product_CoAdc(D_0r, &mass_be[m], &elastic_mass_be_[dq_index + m]);
+      elastic_bias_e_[dq_index + m] = bias_e[m];
+    }
+    const ksl_coscrew_t bias_b = body->get_bias_b();
+    ksl_product_CoAdc(D_0r, &bias_b, &elastic_bias_b_[j]);
+  }
+}
+
 void shift::core::Context::SetInitialConditionsToCurrentConditions() {
   assert(dq_);
   unsigned int q_offset = 0;
   unsigned int dq_offset = 0;
-  for(auto& joint : active_joints_) {
+  for(unsigned int i = 0; i < active_joints_.size(); i++) {
+    auto& joint = active_joints_[i];
     joint->set_initial_displacement(q_.data() + q_offset);
     joint->set_initial_velocity(dq_ + dq_offset);
-    q_offset += joint->get_q_count();
-    dq_offset += joint->get_dq_count();
+    /* a flexible body's initial elastic coordinates are kept by the body
+    (body::Flex); here only their place is skipped */
+    const unsigned int elastic_count = GetElasticCount(i);
+    q_offset += joint->get_q_count() + elastic_count;
+    dq_offset += joint->get_dq_count() + elastic_count;
   }
   UpdateFreeDV(dhva_, q_.data() + get_free_state_offset());
   for(auto body : free_bodies_) {
@@ -2470,19 +2695,28 @@ void shift::core::Context::SetupLookup() {
   int q_count = 0;
   unsigned int i = 0;
   for(auto& joint : get_active_joints()) {
-    if(joint->get_q_count() > 0) {
+    if(IsTreeEntry(i)) {
       joint_lookup_[i] = joint_count;
       dq_lookup_[i] = dq_count;
       q_lookup_[i] = q_count;
       joint_count++;
+      /* the node slots of a flexible child body take the next entries of
+      the compressed tree (as in AllocateRunTimeArrays) */
+      for(auto& slot : node_slots_) {
+        if(slot.body == active_articulated_bodies_[i]) {
+          assert(slot.index == joint_count);
+          joint_count++;
+        }
+      }
     } else {
       joint_lookup_[i] = -1;
       dq_lookup_[i] = -1;
       q_lookup_[i] = -1;
     }
+    const unsigned int elastic_count = GetElasticCount(i);
     i++;
-    dq_count += joint->get_dq_count();
-    q_count += joint->get_q_count();
+    dq_count += joint->get_dq_count() + elastic_count;
+    q_count += joint->get_q_count() + elastic_count;
   }
 
   for(unsigned int j = 0; j < active_joints_.size(); j++) {
@@ -2496,10 +2730,12 @@ void shift::core::Context::SetupLookup() {
   }
 
   joint_dof_compressed_.resize(non_rigid_joint_count_);
+  elastic_count_compressed_.assign(non_rigid_joint_count_, 0);
   for(size_t i = 0; i < active_joints_.size(); i++) {
     int compressed_joint_index = joint_lookup_[i];
     if(compressed_joint_index > -1) {
       joint_dof_compressed_[compressed_joint_index] = joint_dof_[i];
+      elastic_count_compressed_[compressed_joint_index] = GetElasticCount(i);
     }
   }
 
@@ -2508,7 +2744,8 @@ void shift::core::Context::SetupLookup() {
     /* the parent variable is the last one of the nearest joint above that is
     not rigid; a rigid joint has no variables */
     int parent_index = pcl_[i];
-    while(parent_index != -1 && joint_dof_[parent_index] == 0) {
+    while(parent_index != -1 && joint_dof_[parent_index] == 0 &&
+          !GetElasticCount(parent_index)) {
       parent_index = pcl_[parent_index];
     }
     int variable_index = dq_lookup_[i];
@@ -2516,6 +2753,14 @@ void shift::core::Context::SetupLookup() {
       if(parent_index != -1) {
         int joint_dof_offset = fmax(joint_dof_[parent_index] - 1, 0);
         pcldq_[variable_index] = dq_lookup_[parent_index] + joint_dof_offset;
+        /* below a flexible body, the parent variable is the last of its
+        elastic coordinates, which follow its parent joint's */
+        const unsigned int parent_elastic_count = GetElasticCount(parent_index);
+        if(parent_elastic_count) {
+          pcldq_[variable_index] = dq_lookup_[parent_index] +
+                                   joint_dof_[parent_index] +
+                                   parent_elastic_count - 1;
+        }
       } else {
         pcldq_[variable_index] = -1;
       }
@@ -2524,6 +2769,18 @@ void shift::core::Context::SetupLookup() {
     if(dof > 1) {
       for(int j = 1; j < dof; j++) {
         pcldq_[variable_index + j] = variable_index + j - 1;
+      }
+    }
+    /* the elastic coordinates of the child body form a chain after the
+    joint's last variable, so that every variable below the body is coupled
+    to each of them */
+    const unsigned int elastic_count = GetElasticCount(i);
+    for(unsigned int k = 0; k < elastic_count; k++) {
+      const int e = variable_index + dof + (int)k;
+      /* the first elastic coordinate of a body on a rigid joint hangs from
+      the parent's last variable, set above */
+      if(dof > 0 || k > 0) {
+        pcldq_[e] = e - 1;
       }
     }
   }
@@ -2540,7 +2797,8 @@ void shift::core::Context::SetupLookup() {
     if(joint_index > -1) {
       if(body->has_mass()) {
         has_mass_[joint_index] = true;
-        for(size_t j = 0; j < joint->get_dq_count(); j++) {
+        for(size_t j = 0; j < joint->get_dq_count() + GetElasticCount(i);
+            j++) {
           has_mass_dq_[dq_index + j] = true;
         }
       }
@@ -2577,32 +2835,44 @@ void shift::core::Context::SetupLookup() {
   std::fill(pcl_compressed_.begin(), pcl_compressed_.end(), 0);
 
   for(size_t i = 0; i < active_joints_.size(); i++) {
-    auto& joint = active_joints_[i];
-    if(joint->get_dq_count() > 0) {
-      int parent = pcl_[i];
-      while(true) {
-        if(parent == -1) {
-          break;
-        }
-        if(active_joints_[parent]->get_dq_count() > 0) {
-          break;
-        }
-        parent = pcl_[parent];
-      }
-      if(parent == -1) {
-        pcl_compressed_[joint_lookup_[i]] = -1;
-      } else {
-        pcl_compressed_[joint_lookup_[i]] = joint_lookup_[parent];
-      }
+    if(IsTreeEntry(i)) {
+      /* the entry the joint's parent frame moves with: a node slot, or the
+      entry of the parent body */
+      const int slot_index =
+        GetNodeSlot(active_joints_[i]->get_system_parent_frame());
+      pcl_compressed_[joint_lookup_[i]] =
+        slot_index > -1 ? node_slots_[slot_index].index : EntryOf(pcl_[i]);
     }
+  }
+
+  /* a node slot hangs below its flexible body; it has no coordinates of its
+  own and no mass */
+  for(auto& slot : node_slots_) {
+    pcl_compressed_[slot.index] = slot.body->get_va_index();
+    joint_dof_compressed_[slot.index] = 0;
+    dq_lookup_compressed_[slot.index] = slot.body->get_elastic_dq_index();
+    has_mass_[slot.index] = false;
   }
 }
 
 int shift::core::Context::CompressedIndex(int i) const {
+  return EntryOf(i);
+}
+
+int shift::core::Context::EntryOf(int i) const {
   while(i > -1 && joint_lookup_[i] < 0) {
+    const int slot_index =
+      GetNodeSlot(active_joints_[i]->get_system_parent_frame());
+    if(slot_index > -1) {
+      return node_slots_[slot_index].index;
+    }
     i = pcl_[i];
   }
   return i < 0 ? -1 : joint_lookup_[i];
+}
+
+bool shift::core::Context::IsTreeEntry(int i) const {
+  return active_joints_[i]->get_q_count() > 0 || GetElasticCount(i) > 0;
 }
 
 void shift::core::Context::DetectTrees() {
@@ -2618,7 +2888,8 @@ void shift::core::Context::DetectTrees() {
     }
   }
   trees_ = topology::DetectTrees(pcl_compressed_, joint_dof_compressed_,
-                                 joint_lookup_, loop_bodies);
+                                 elastic_count_compressed_, joint_lookup_,
+                                 loop_bodies);
 
   for(auto& tree : trees_) {
     std::stringstream ss;
@@ -3216,15 +3487,97 @@ int shift::core::Context::GetBodyLoadIndex(const body::Base* body) const {
     if(active_articulated_bodies_[i] != body) {
       continue;
     }
-    /* bodies attached by rigid joints move with their nearest non-rigid
-    ancestor */
-    int j = static_cast<int>(i);
-    while(j > -1 && joint_lookup_[j] < 0) {
-      j = pcl_[j];
-    }
-    return j > -1 ? joint_lookup_[j] : -1;
+    /* bodies attached by rigid joints move with their nearest entry of the
+    compressed tree, or with the node slot they are attached at */
+    return EntryOf(static_cast<int>(i));
   }
   return -1;
+}
+
+int shift::core::Context::GetFrameLoadIndex(const Frame* frame) const {
+  /* a load at a node of a flexible body acts on its node slot; every other
+  frame moves with its body group */
+  const int slot_index = GetNodeSlot(frame);
+  if(slot_index > -1) {
+    return node_slots_[slot_index].index;
+  }
+  return GetBodyLoadIndex(frame->get_parent_body());
+}
+
+int shift::core::Context::GetNodeSlot(const Frame* frame) const {
+  for(size_t k = 0; k < node_slots_.size(); k++) {
+    if(node_slots_[k].frame == frame) {
+      return (int)k;
+    }
+  }
+  return -1;
+}
+
+int shift::core::Context::GetJointParentVaIndex(
+  joint::Base* joint) const {
+  const int slot_index = GetNodeSlot(joint->get_system_parent_frame());
+  if(slot_index > -1) {
+    return node_slots_[slot_index].index;
+  }
+  return joint->get_system_parent_body()->get_va_index();
+}
+
+int shift::core::Context::GetFrameVaIndex(const Frame* frame) const {
+  const int slot_index = GetNodeSlot(frame);
+  if(slot_index > -1) {
+    return node_slots_[slot_index].index;
+  }
+  return frame->get_parent_body()->get_va_index();
+}
+
+unsigned int shift::core::Context::GetElasticCount(unsigned int i) const {
+  return active_articulated_bodies_[i]->get_elastic_count();
+}
+
+bool shift::core::Context::HasElasticBodies() const {
+  for(auto body : active_articulated_bodies_) {
+    if(body->get_elastic_count()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void shift::core::Context::CheckElasticBodies() const {
+  /* a joint on a flexible body must be at one of its nodes, which follow the
+  deformation; any other frame would move with the undeformed body */
+  for(auto& joint : active_joints_) {
+    /* spherical joints next to a flexible body are not supported yet */
+    auto child_body = joint->get_system_child_body();
+    auto parent_body = joint->get_system_parent_body();
+    if(dynamic_cast<const shift::core::joint::Spherical*>(joint) &&
+       ((child_body && child_body->get_elastic_count()) ||
+        (parent_body && parent_body->get_elastic_count()))) {
+      const std::string message =
+        "Spherical joint '" + joint->get_name() +
+        "' is attached to a flexible body (not yet supported)";
+      SHIFT_ERROR(message);
+      throw shift::core::Exception(message);
+    }
+    if(!parent_body || !parent_body->get_elastic_count()) {
+      continue;
+    }
+    auto frame = joint->get_system_parent_frame();
+    bool is_node = false;
+    for(unsigned int k = 0; k < parent_body->get_node_count(); k++) {
+      if(parent_body->get_node_frame(k) == frame) {
+        is_node = true;
+      }
+    }
+    if(!is_node) {
+      const std::string message =
+        "Joint '" + joint->get_name() + "' is attached to the flexible body '" +
+        parent_body->get_name() + "' at frame '" + frame->get_name() +
+        "', which is not one of its nodes";
+      SHIFT_ERROR(message);
+      throw shift::core::Exception(message);
+    }
+  }
 }
 
 ksl_screw_t shift::core::Context::GetBodyVelocity(int load_index) const {
@@ -3419,6 +3772,14 @@ void shift::core::Context::SetupQuaternionMap() {
       for(unsigned int i = 0; i < joint->get_q_count(); i++) {
         non_quaternion_indices_.push_back({q_index++, dq_index++});
       }
+    }
+    /* the elastic coordinates of the child body follow the joint's; their
+    rates are their velocities */
+    const unsigned int elastic_count =
+      active_articulated_bodies_[&joint - active_joints_.data()]
+        ->get_elastic_count();
+    for(unsigned int i = 0; i < elastic_count; i++) {
+      non_quaternion_indices_.push_back({q_index++, dq_index++});
     }
   }
   /* the internal states of force modules and controllers follow q and dq

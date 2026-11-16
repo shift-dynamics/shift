@@ -119,6 +119,7 @@ bool shift::core::topology::IsSubstructureMember(
 std::vector<shift::core::topology::Tree> shift::core::topology::DetectTrees(
   const std::vector<int>& pcl_compressed,
   const std::vector<unsigned int>& joint_dof_compressed,
+  const std::vector<unsigned int>& elastic_count_compressed,
   const std::vector<int>& joint_lookup, const std::vector<int>& loop_bodies) {
   std::vector<Tree> trees;
   const int n = static_cast<int>(pcl_compressed.size());
@@ -137,7 +138,9 @@ std::vector<shift::core::topology::Tree> shift::core::topology::DetectTrees(
       child_count[parent]++;
     }
     trees[tree_of[j]].bodies.push_back(j);
-    trees[tree_of[j]].dq_count += joint_dof_compressed[j];
+    trees[tree_of[j]].dq_count +=
+      joint_dof_compressed[j] + elastic_count_compressed[j];
+    trees[tree_of[j]].elastic_count += elastic_count_compressed[j];
   }
   for(size_t i = 0; i < joint_lookup.size(); i++) {
     const int j = joint_lookup[i];

@@ -28,6 +28,8 @@ test_sources = [
   'test_joint_axis.cc',
   'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',
+  'test_elastic_coordinates.cc',
+  'test_flex_body.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',
   'test_consistent_velocities.cc',

@@ -1,4 +1,8 @@
 #include "shift/core/solver/base.h"
+
+#include <algorithm>
+
+#include "shift/core/body/base.h"
 #include "shift/core/context.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/solver/aba.h"
@@ -27,6 +31,31 @@ void shift::core::solver::Base::DeclareParameters() {
 }
 
 void shift::core::solver::Base::Load() {}
+
+double shift::core::solver::Base::ElasticKineticEnergy(
+  const topology::DHVA& dhva, const std::vector<int>* entries) const {
+  double sum = 0.0;
+  const double* dq = context_->get_dq();
+  const auto& mass_be = context_->get_elastic_mass_be();
+  for(int i : context_->get_elastic_bodies()) {
+    const auto body = context_->get_active_articulated_bodies()[i];
+    if(entries && std::find(entries->begin(), entries->end(),
+                            body->get_va_index()) == entries->end()) {
+      continue;
+    }
+    const int n = (int)body->get_elastic_count();
+    const int e = body->get_elastic_dq_index();
+    const double* mass_ee = body->get_mass_ee();
+    const ksl_screw_t& v = dhva.v[body->get_va_index()];
+    for(int m = 0; m < n; m++) {
+      sum += dq[e + m] * ksl_dot_cs(&mass_be[e + m], &v);
+      for(int l = 0; l < n; l++) {
+        sum += 0.5 * dq[e + l] * mass_ee[l * n + m] * dq[e + m];
+      }
+    }
+  }
+  return sum;
+}
 
 void shift::core::solver::Base::Connect() {
   // @TODO in the future, may allow multiple integrators and multiple solvers,

@@ -44,23 +44,31 @@ void shift::core::Substructure::SetupPO1(
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
   SHIFT_TRACE("positive loop members");
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variable_index : *it) {
+  auto columns =
+    positive_loop_columns_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+    for(size_t c = 0; c < it->size(); c++) {
+      const int variable_index = (*it)[c];
       SHIFT_TRACE(std::to_string(variable_index));
-      assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
-      ksl_screw_copy_rmo(&dhva.h[variable_index], J_, j * 6,
-                         variable_index - dq_offset_, dq_count_);
+      assert(variable_index >= 0 &&
+             variable_index - (int)dq_offset_ < (int)dq_count_);
+      ksl_screw_copy_rmo(&Column(dhva, variable_index, (*columns)[c]), J_,
+                         j * 6, variable_index - dq_offset_, dq_count_);
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
   SHIFT_TRACE("negative loop members");
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variable_index : *it) {
+  columns =
+    negative_loop_columns_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+    for(size_t c = 0; c < it->size(); c++) {
+      const int variable_index = (*it)[c];
       SHIFT_TRACE(std::to_string(variable_index));
-      assert(variable_index >= 0 && variable_index - dq_offset_ < dq_count_);
-      ksl_screw_ncopy_rmo(&dhva.h[variable_index], J_, j * 6,
-                          variable_index - dq_offset_, dq_count_);
+      assert(variable_index >= 0 &&
+             variable_index - (int)dq_offset_ < (int)dq_count_);
+      SubtractColumn(Column(dhva, variable_index, (*columns)[c]), J_, j * 6,
+                     variable_index - dq_offset_, dq_count_);
     }
   }
 
@@ -100,25 +108,35 @@ void shift::core::Substructure::SetupPO2(
   /* j is local loop index*/
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variable_index : *it) {
-      int column_index_2 = pc_21_[variable_index - dq_offset_];
-      for(int m = 0; m < 6; m++) {
-        int row_index_2 = pr_21_[j * 6 + m];
-        J_[row_index_2 * dq_count_ + column_index_2] =
-          dhva.h[variable_index].at[m];
+  {
+    auto columns =
+      positive_loop_columns_compressed_->begin() + chord_constraint_offset_;
+    for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+      for(size_t c = 0; c < it->size(); c++) {
+        const int variable_index = (*it)[c];
+        const ksl_screw_t& h = Column(dhva, variable_index, (*columns)[c]);
+        int column_index_2 = pc_21_[variable_index - dq_offset_];
+        for(int m = 0; m < 6; m++) {
+          int row_index_2 = pr_21_[j * 6 + m];
+          J_[row_index_2 * dq_count_ + column_index_2] = h.at[m];
+        }
       }
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variable_index : *it) {
-      int column_index_2 = pc_21_[variable_index - dq_offset_];
-      for(int m = 0; m < 6; m++) {
-        int row_index_2 = pr_21_[j * 6 + m];
-        J_[row_index_2 * dq_count_ + column_index_2] =
-          -dhva.h[variable_index].at[m];
+  {
+    auto columns =
+      negative_loop_columns_compressed_->begin() + chord_constraint_offset_;
+    for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+      for(size_t c = 0; c < it->size(); c++) {
+        const int variable_index = (*it)[c];
+        const ksl_screw_t& h = Column(dhva, variable_index, (*columns)[c]);
+        int column_index_2 = pc_21_[variable_index - dq_offset_];
+        for(int m = 0; m < 6; m++) {
+          int row_index_2 = pr_21_[j * 6 + m];
+          J_[row_index_2 * dq_count_ + column_index_2] -= h.at[m];
+        }
       }
     }
   }
@@ -359,6 +377,11 @@ void shift::core::Substructure::Updateq() {
   unsigned int q_index = q_offset_;
   unsigned int dq_index = dq_offset_;
 
+  /* the head's elastic coordinates first, one q per velocity */
+  for(unsigned int i = 0; i < head_elastic_count_; i++) {
+    context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
+  }
+
   for(unsigned int j = 1;
       j < context_->get_substructure_members()[index_].size(); j++) {
     int index = context_->get_substructure_members()[index_][j];
@@ -403,6 +426,12 @@ void shift::core::Substructure::Updateq() {
       dq_index += 3;
     } else {
       assert(0);
+    }
+    /* the elastic coordinates of a flexible child body follow the joint's,
+    one q per velocity */
+    const unsigned int elastic_count = context_->GetElasticCount(index);
+    for(unsigned int i = 0; i < elastic_count; i++) {
+      context_->get_q()[q_index++] -= context_->get_delta_q()[dq_index++];
     }
   }
 }
@@ -689,22 +718,32 @@ unsigned int shift::core::Substructure::RemoveConstraintViolationsFast(
 }
 
 double shift::core::Substructure::VelocityResidual(const double* dq) const {
-  const auto& h = context_->get_dhva().h;
+  const auto& dhva = context_->get_dhva();
   std::vector<double> rate(constraint_equation_count_, 0.0);
+  /* each column from its source, as SetupPO1 takes it: the joint's influence
+  coefficient, or for an elastic coordinate the node's */
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variable_index : *it) {
+  auto columns =
+    positive_loop_columns_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+    for(size_t c = 0; c < it->size(); c++) {
+      const int variable_index = (*it)[c];
+      const ksl_screw_t& h = Column(dhva, variable_index, (*columns)[c]);
       for(int m = 0; m < 6; m++) {
-        rate[j * 6 + m] += h[variable_index].at[m] * dq[variable_index];
+        rate[j * 6 + m] += h.at[m] * dq[variable_index];
       }
     }
   }
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto variable_index : *it) {
+  columns =
+    negative_loop_columns_compressed_->begin() + chord_constraint_offset_;
+  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+    for(size_t c = 0; c < it->size(); c++) {
+      const int variable_index = (*it)[c];
+      const ksl_screw_t& h = Column(dhva, variable_index, (*columns)[c]);
       for(int m = 0; m < 6; m++) {
-        rate[j * 6 + m] -= h[variable_index].at[m] * dq[variable_index];
+        rate[j * 6 + m] -= h.at[m] * dq[variable_index];
       }
     }
   }
@@ -1077,22 +1116,28 @@ void shift::core::Substructure::SetupPO1Specified(
   /* j is local loop index */
   auto it =
     positive_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variable_index : *it) {
-      // std::cout << variable_index << std::endl;
-      // ksl_screw_print(stdout, &dhva.h[variable_index]);
-      ksl_screw_copy_rmo(&dhva.h[variable_index], J_, j * 6,
-                         variable_index - dq_offset_, dq_count_);
+  {
+    auto columns =
+      positive_loop_columns_compressed_->begin() + chord_constraint_offset_;
+    for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+      for(size_t c = 0; c < it->size(); c++) {
+        const int variable_index = (*it)[c];
+        ksl_screw_copy_rmo(&Column(dhva, variable_index, (*columns)[c]), J_, j * 6,
+                           variable_index - dq_offset_, dq_count_);
+      }
     }
   }
 
   it = negative_loop_members_compressed_->begin() + chord_constraint_offset_;
-  for(unsigned int j = 0; j < chord_constraint_count_; j++, it++) {
-    for(auto& variable_index : *it) {
-      // std::cout << variable_index << std::endl;
-      // ksl_screw_print(stdout, &dhva.h[variable_index]);
-      ksl_screw_ncopy_rmo(&dhva.h[variable_index], J_, j * 6,
-                          variable_index - dq_offset_, dq_count_);
+  {
+    auto columns =
+      negative_loop_columns_compressed_->begin() + chord_constraint_offset_;
+    for(unsigned int j = 0; j < chord_constraint_count_; j++, it++, columns++) {
+      for(size_t c = 0; c < it->size(); c++) {
+        const int variable_index = (*it)[c];
+        SubtractColumn(Column(dhva, variable_index, (*columns)[c]), J_, j * 6,
+                       variable_index - dq_offset_, dq_count_);
+      }
     }
   }
 

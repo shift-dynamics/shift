@@ -122,6 +122,61 @@ private:
   bool Verify(const double t, const std::vector<double>& y, double Ml[],
               double fl[]);
 
+  /*! \name Flexible bodies
+  The elastic coordinates of a flexible body b (body::Flex) are further
+  columns of the joint-space equations. A generalized velocity below b moves
+  b's elastic coordinate m through the influence screw
+  \f$\mathbf{h}_{km}\f$ of the node k (node slot) through which it hangs
+  from b, so in the walk up pcl_dq its entry in that coordinate's row is
+  \f$\mathbf{h}_{km}^T (M^c_j\mathbf{h}_j)\f$. The column of elastic
+  coordinate m holds the momentum \f$M_{be,m} + \sum_k M^c_k
+  \mathbf{h}_{km}\f$, with \f$M^c_k\f$ the inertia accumulated below node
+  slot k, and the elastic-elastic block of b is \f$M_{ee} + \sum_k
+  \mathbf{h}_k^T M^c_k \mathbf{h}_k\f$. The right-hand side of elastic
+  coordinate m is \f$b_{e,m} - M_{be,m}^T \mathbf{a}^q_b + \sum_k
+  \mathbf{h}_{km}^T \mathbf{g}_k\f$, with \f$\mathbf{g}_k\f$ the wrench
+  accumulated below node slot k, and b's bias wrench is added to its own.
+  All quantities are in fixed coordinates, referred to the fixed origin. For
+  a model of rigid bodies these functions do nothing.
+  */
+  ///@{
+  /*! \brief the lookups below; throws for a closed loop through a flexible
+   * body, whose chord Jacobian does not have the elastic columns yet */
+  void SetupElasticLookup();
+  /*! \brief the momenta of the elastic columns, after the accumulated
+   * inertias, before the walk up pcl_dq */
+  void SetElasticMomenta();
+  /*! \brief the mass matrix entries in the rows of elastic coordinates,
+   * after the walk up pcl_dq, which leaves them zero (the screws dhva.h of
+   * elastic coordinates are zero) */
+  void AddElasticMassTerms(bool record_fills);
+  /*! \brief the right-hand sides of the elastic coordinates, after the
+   * wrenches are accumulated */
+  void AddElasticForces();
+  /*! \brief the node slot through which the walk up pcl_dq, at velocity
+   * \p c, enters the elastic coordinates of another body at its parent
+   * velocity \p i; -1 if it does not enter one */
+  int EnteredNodeSlot(int c, int i) const;
+  /*! \brief index in Ml_ (permutation order 3, lower triangle) of the entry
+   * of the generalized velocities \p a and \p b (permutation order 1) */
+  int MassIndex(int a, int b) const;
+
+  bool has_elastic_ = false;
+  /*! per generalized velocity: the index in Context::get_elastic_bodies() of
+   * the body whose elastic coordinate it is, or -1; and that coordinate's
+   * index in the body */
+  std::vector<int> elastic_body_of_dq_;
+  std::vector<int> elastic_mode_of_dq_;
+  /*! per generalized velocity: the compressed joint it belongs to */
+  std::vector<int> entry_of_dq_;
+  /*! per compressed joint: its index in Context::get_node_slots(), or -1 */
+  std::vector<int> slot_of_entry_;
+  /*! per flexible body: its node slots */
+  std::vector<std::vector<int>> slots_of_body_;
+  /*! \f$M^c_k \mathbf{h}_{km}\f$, laid out as topology::DHVA::he */
+  std::vector<ksl_coscrew_t> mhe_;
+  ///@}
+
   double infinity_norm_multiplier_ = 2.0;
   bool infinity_norm_failure_ = false;
 

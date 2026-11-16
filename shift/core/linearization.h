@@ -72,13 +72,16 @@ public:
     return a_;
   }
   /*! \brief names of the states of the linearization: <joint>__dq_<i> for
-   * the displacements and the velocities of the coordinates, then the free
+   * the displacements and the velocities of the coordinates (<body>__eta_<i>
+   * for the elastic coordinates of a flexible body), in the order of the
+   * generalized velocities, then the free
    * body and auxiliary states as <component>__state_<i> */
   const std::vector<std::string>& get_state_names() const {
     return state_names_;
   }
   /*! \brief names of the participants of the modes: the coordinates,
-   * <joint>__dq_<i>, then the free body and auxiliary states */
+   * <joint>__dq_<i> and <body>__eta_<i>, then the free body and auxiliary
+   * states */
   const std::vector<std::string>& get_participant_names() const {
     return participant_names_;
   }

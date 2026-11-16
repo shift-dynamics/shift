@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ksl/vec3.h"
 
@@ -77,6 +78,17 @@ public:
 
 protected:
   virtual void DeclareParameters() override;
+
+  /*! \brief the kinetic energy of the elastic coordinates of the flexible
+   * bodies and of their coupling with the reference frames,
+   * \f$\underline{\mathbf{v}}_r \cdot M_{be}\underline{\dot{\eta}} +
+   * \frac{1}{2}\underline{\dot{\eta}}^T M_{ee}\underline{\dot{\eta}}\f$,
+   * which the momentum \f$M_{bb}\underline{\mathbf{v}}_r\f$ of a frame leaves
+   * out; of the bodies whose compressed entries are in \p entries, or of all
+   * of them when it is nullptr */
+  double ElasticKineticEnergy(const topology::DHVA& dhva,
+                              const std::vector<int>* entries = nullptr) const;
+
   std::string type_; //!< descriptive name of Solver type
   shift::core::integrator::Base* integrator_ = nullptr;
 };

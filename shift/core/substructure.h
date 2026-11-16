@@ -151,6 +151,16 @@ public:
     joint_count_ = count;
   }
 
+  /*! \brief the elastic coordinates of the head's flexible child body that
+   * the loops move (Jacobian::HeadElasticCount), the first of the
+   * substructure's coordinates */
+  void set_head_elastic_count(unsigned int count) {
+    head_elastic_count_ = count;
+  }
+  unsigned int get_head_elastic_count() const {
+    return head_elastic_count_;
+  }
+
   void set_joint_offset(unsigned int offset) {
     joint_offset_ = offset;
   }
@@ -218,6 +228,34 @@ public:
   void
   set_negative_loop_members_compressed(std::vector<std::vector<int>>* members) {
     negative_loop_members_compressed_ = members;
+  }
+
+  /*! \brief the sources of the members' Jacobian columns
+   * (Jacobian::get_positive_loop_columns_compressed) */
+  void set_loop_columns_compressed(
+    const std::vector<std::vector<int>>* positive,
+    const std::vector<std::vector<int>>* negative) {
+    positive_loop_columns_compressed_ = positive;
+    negative_loop_columns_compressed_ = negative;
+  }
+
+  /*! \brief the Jacobian column of generalized velocity \p variable from
+   * its source \p column: the joint's influence coefficient dhva.h, or for
+   * an elastic coordinate (column > -1) the node's dhva.he */
+  static const ksl_screw_t& Column(const topology::DHVA& dhva, int variable,
+                                   int column) {
+    return column < 0 ? dhva.h[variable] : dhva.he[column];
+  }
+
+  /*! \brief subtract \p h from column \p column of rows \p row to \p row
+   * + 5 of the row-major \p A with \p column_count columns: the negative
+   * side of a loop, added to what the positive side wrote, as the elastic
+   * coordinates of the body both sides hang from are on both */
+  static void SubtractColumn(const ksl_screw_t& h, double* A, int row,
+                             int column, int column_count) {
+    for(int m = 0; m < 6; m++) {
+      A[(row + m) * column_count + column] -= h.at[m];
+    }
   }
 
   void Print() const;
@@ -398,6 +436,10 @@ private:
 
   std::vector<std::vector<int>>* positive_loop_members_compressed_ = nullptr;
   std::vector<std::vector<int>>* negative_loop_members_compressed_ = nullptr;
+  const std::vector<std::vector<int>>* positive_loop_columns_compressed_ =
+    nullptr;
+  const std::vector<std::vector<int>>* negative_loop_columns_compressed_ =
+    nullptr;
 
   shift::core::Context* context_ = nullptr;
   unsigned int chord_constraint_offset_ = 0;
@@ -406,6 +448,7 @@ private:
   unsigned int q_count_ = 0;
   unsigned int dq_count_ = 0;
   unsigned int joint_count_ = 0;
+  unsigned int head_elastic_count_ = 0;
   unsigned int joint_offset_ = 0;
   unsigned int q_offset_ = 0;
   unsigned int dq_offset_ = 0;

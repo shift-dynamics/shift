@@ -1,8 +1,11 @@
 #include <assert.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include "shift/core/constraint/chord.h"
 #include "shift/core/context.h"
+#include "shift/core/exception.h"
 #include "shift/core/jacobian.h"
 #include "shift/core/topology.h"
 #include "shift/core/log.h"
@@ -62,10 +65,21 @@ void shift::core::Jacobian::MallocEquations() {
     unsigned int chord_constraint_count = 0;
     for(size_t j = 1; j < substructure_members[i].size(); j++) {
       auto& joint = context_->get_active_joints()[substructure_members[i][j]];
-      q_count += joint->get_q_count();
-      dq_count += joint->get_dq_count();
+      /* the elastic coordinates of a flexible child body follow the
+      joint's, inside the substructure's range */
+      const unsigned int elastic_count =
+        context_->GetElasticCount(substructure_members[i][j]);
+      q_count += joint->get_q_count() + elastic_count;
+      dq_count += joint->get_dq_count() + elastic_count;
       joint_count += (joint->get_q_count() > 0) ? 1 : 0;
     }
+
+    /* the elastic coordinates of a flexible head that its loops leave by
+    nodes, just below the members' */
+    const unsigned int head_elastic_count = HeadElasticCount(i);
+    q_count += head_elastic_count;
+    dq_count += head_elastic_count;
+    substructures_[i].set_head_elastic_count(head_elastic_count);
 
     chord_constraint_count += substructure_indices[i].size();
     substructures_[i].set_q_count(q_count);
@@ -135,11 +149,14 @@ void shift::core::Jacobian::CompressLoopMembers() {
 
   auto& positive_loop_members = context_->get_positive_loop_members();
   auto& negative_loop_members = context_->get_negative_loop_members();
-  auto& active_joints = context_->get_active_joints();
   positive_loop_members_compressed_.clear();
   positive_loop_members_compressed_.resize(chord_constraint_count);
   negative_loop_members_compressed_.clear();
   negative_loop_members_compressed_.resize(chord_constraint_count);
+  positive_loop_columns_compressed_.clear();
+  positive_loop_columns_compressed_.resize(chord_constraint_count);
+  negative_loop_columns_compressed_.clear();
+  negative_loop_columns_compressed_.resize(chord_constraint_count);
   auto& dq_lookup = context_->get_dq_lookup();
   auto& q_lookup = context_->get_q_lookup();
 
@@ -156,16 +173,40 @@ void shift::core::Jacobian::CompressLoopMembers() {
     joints) have a lookup of -1 */
     int dq_offset = -1;
     int q_offset = -1;
+    auto lowest = [](int index, int& offset) {
+      if(index >= 0 && (offset < 0 || index < offset)) {
+        offset = index;
+      }
+    };
+    const auto& bodies = context_->get_active_articulated_bodies();
     for(size_t j = 1; j < substructure_members[i].size(); j++) {
       const int member = substructure_members[i][j];
-      if(dq_lookup[member] >= 0 &&
-         (dq_offset < 0 || dq_lookup[member] < dq_offset)) {
-        dq_offset = dq_lookup[member];
+      lowest(dq_lookup[member], dq_offset);
+      lowest(q_lookup[member], q_offset);
+      /* a flexible body on a rigid joint has elastic coordinates only */
+      if(context_->GetElasticCount(member)) {
+        lowest(bodies[member]->get_elastic_dq_index(), dq_offset);
+        lowest(bodies[member]->get_elastic_q_index(), q_offset);
       }
-      if(q_lookup[member] >= 0 &&
-         (q_offset < 0 || q_lookup[member] < q_offset)) {
-        q_offset = q_lookup[member];
+    }
+    if(substructure.get_head_elastic_count()) {
+      const int head = substructure_members[i][0];
+      const int head_dq = bodies[head]->get_elastic_dq_index();
+      const int head_q = bodies[head]->get_elastic_q_index();
+      /* the head's elastic coordinates must lie just below the members' */
+      if((dq_offset >= 0 &&
+          head_dq + (int)substructure.get_head_elastic_count() != dq_offset) ||
+         (q_offset >= 0 &&
+          head_q + (int)substructure.get_head_elastic_count() != q_offset)) {
+        throw shift::core::Exception(
+          "Jacobian: substructure " + std::to_string(i) +
+          " hangs from nodes of flexible body '" + bodies[head]->get_name() +
+          "', whose elastic coordinates are not next to its members' (more "
+          "than one substructure hanging from the body by nodes is not "
+          "handled yet)");
       }
+      dq_offset = head_dq;
+      q_offset = head_q;
     }
     assert(dq_offset >= 0 && q_offset >= 0);
 
@@ -184,21 +225,36 @@ void shift::core::Jacobian::CompressLoopMembers() {
     for(unsigned int j = 0; j < substructure.get_chord_constraint_count(); 
         j++, k++) {
       
-      for(auto positive_loop_member : positive_loop_members[k]) {
-        unsigned int dq_count = 
-          active_joints[positive_loop_member]->get_dq_count();
-        int dq_offset = dq_lookup[positive_loop_member];
-        for(unsigned int m = 0; m < dq_count; m++) {
-          positive_loop_members_compressed_[k].push_back(dq_offset++);
-        }
-      }
-
-      for(auto negative_loop_member : negative_loop_members[k]) {
-        unsigned int dq_count = 
-          active_joints[negative_loop_member]->get_dq_count();
-        int dq_offset = dq_lookup[negative_loop_member];
-        for(unsigned int m = 0; m < dq_count; m++) {
-          negative_loop_members_compressed_[k].push_back(dq_offset++);
+      CompressLoopSide(k, positive_loop_members[k],
+                       context_->get_chord_constraints()[k]->get_parent_frame(),
+                       positive_loop_members_compressed_[k],
+                       positive_loop_columns_compressed_[k]);
+      CompressLoopSide(k, negative_loop_members[k],
+                       context_->get_chord_constraints()[k]->get_child_frame(),
+                       negative_loop_members_compressed_[k],
+                       negative_loop_columns_compressed_[k]);
+      std::vector<int>* members[2] = {&positive_loop_members_compressed_[k],
+                                      &negative_loop_members_compressed_[k]};
+      std::vector<int>* columns[2] = {&positive_loop_columns_compressed_[k],
+                                      &negative_loop_columns_compressed_[k]};
+      std::vector<int> ancestor_members[2], ancestor_columns[2];
+      AppendAncestorColumns(k, ancestor_members, ancestor_columns);
+      for(int side = 0; side < 2; side++) {
+        members[side]->insert(members[side]->end(),
+                              ancestor_members[side].begin(),
+                              ancestor_members[side].end());
+        columns[side]->insert(columns[side]->end(),
+                              ancestor_columns[side].begin(),
+                              ancestor_columns[side].end());
+        /* every column inside the substructure's range */
+        for(int variable : *members[side]) {
+          if(variable < dq_offset ||
+             variable >= dq_offset + (int)substructure.get_dq_count()) {
+            throw shift::core::Exception(
+              "Jacobian: loop " + std::to_string(k) + " moves velocity " +
+              std::to_string(variable) + ", outside substructure " +
+              std::to_string(i));
+          }
         }
       }
     }
@@ -211,6 +267,8 @@ void shift::core::Jacobian::CompressLoopMembers() {
       &positive_loop_members_compressed_);
     substructure.set_negative_loop_members_compressed(
       &negative_loop_members_compressed_);
+    substructure.set_loop_columns_compressed(&positive_loop_columns_compressed_,
+                                             &negative_loop_columns_compressed_);
     j += substructure.get_chord_constraint_count();
   }
 
@@ -242,6 +300,155 @@ void shift::core::Jacobian::CompressLoopMembers() {
   }
 #endif
 
+}
+
+const shift::core::Frame* shift::core::Jacobian::LoopExitFrame(
+  int member, const std::vector<int>& side, const Frame* end_frame) const {
+  const auto& pcl = context_->get_pcl();
+  const auto& joints = context_->get_active_joints();
+  for(int other : side) {
+    if(pcl[other] == member) {
+      return joints[other]->get_system_parent_frame();
+    }
+  }
+  return end_frame;
+}
+
+void shift::core::Jacobian::CompressLoopSide(int loop,
+                                             const std::vector<int>& side,
+                                             const Frame* end_frame,
+                                             std::vector<int>& members,
+                                             std::vector<int>& columns) const {
+  const auto& joints = context_->get_active_joints();
+  const auto& dq_lookup = context_->get_dq_lookup();
+  const auto& slots = context_->get_node_slots();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  for(int member : side) {
+    int dq_offset = dq_lookup[member];
+    for(unsigned int m = 0; m < joints[member]->get_dq_count(); m++) {
+      members.push_back(dq_offset++);
+      columns.push_back(-1);
+    }
+    /* a flexible child body: its elastic coordinates move the loop by the
+    influence coefficients of the node it leaves the body by (the frame of
+    the next member down this side, or the chord's frame at the end of the
+    side); a frame that is not a node moves with the reference frame, and
+    the columns are zero */
+    const unsigned int elastic_count = context_->GetElasticCount(member);
+    if(!elastic_count) {
+      continue;
+    }
+    const int slot = context_->GetNodeSlot(LoopExitFrame(member, side,
+                                                         end_frame));
+    if(slot < 0) {
+      continue;
+    }
+    if(slots[slot].body != bodies[member]) {
+      throw shift::core::Exception(
+        "Jacobian: loop " + std::to_string(loop) + " leaves flexible body '" +
+        bodies[member]->get_name() + "' by a node of another body");
+    }
+    const int elastic_dq_index = bodies[member]->get_elastic_dq_index();
+    for(unsigned int m = 0; m < elastic_count; m++) {
+      members.push_back(elastic_dq_index + (int)m);
+      columns.push_back(slots[slot].he_offset + (int)m);
+    }
+  }
+}
+
+int shift::core::Jacobian::LoopAncestor(int loop,
+                                        const Frame* exits[2]) const {
+  const auto& pcl = context_->get_pcl();
+  const auto& joints = context_->get_active_joints();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  const auto chord = context_->get_chord_constraints()[loop];
+  const std::vector<int>* sides[2] = {
+    &context_->get_positive_loop_members()[loop],
+    &context_->get_negative_loop_members()[loop]};
+  const Frame* ends[2] = {chord->get_parent_frame(),
+                          chord->get_child_frame()};
+  int ancestor = -2;
+  for(int side = 0; side < 2; side++) {
+    exits[side] = ends[side];
+    int side_ancestor = -1;
+    if(sides[side]->empty()) {
+      /* the chord's frame is on the ancestor itself */
+      const auto body = ends[side]->get_parent_body();
+      for(size_t j = 0; j < bodies.size(); j++) {
+        if(bodies[j] == body) {
+          side_ancestor = (int)j;
+        }
+      }
+    } else {
+      /* the member of the side that hangs from a body off the side */
+      for(int member : *sides[side]) {
+        if(std::find(sides[side]->begin(), sides[side]->end(), pcl[member]) ==
+           sides[side]->end()) {
+          side_ancestor = pcl[member];
+          exits[side] = joints[member]->get_system_parent_frame();
+        }
+      }
+    }
+    if(ancestor == -2) {
+      ancestor = side_ancestor;
+    } else if(ancestor != side_ancestor) {
+      throw shift::core::Exception("Jacobian: the sides of loop " +
+                                   std::to_string(loop) +
+                                   " do not hang from one body");
+    }
+  }
+  return ancestor;
+}
+
+void shift::core::Jacobian::AppendAncestorColumns(
+  int loop, std::vector<int> members[2], std::vector<int> columns[2]) const {
+  const Frame* exits[2];
+  const int ancestor = LoopAncestor(loop, exits);
+  if(ancestor < 0 || !context_->GetElasticCount(ancestor)) {
+    return;
+  }
+  const auto body = context_->get_active_articulated_bodies()[ancestor];
+  const auto& slots = context_->get_node_slots();
+  for(int side = 0; side < 2; side++) {
+    /* a frame that is not a node moves with the reference frame */
+    const int slot = context_->GetNodeSlot(exits[side]);
+    if(slot < 0) {
+      continue;
+    }
+    assert(slots[slot].body == body);
+    for(unsigned int m = 0; m < body->get_elastic_count(); m++) {
+      members[side].push_back(body->get_elastic_dq_index() + (int)m);
+      columns[side].push_back(slots[slot].he_offset + (int)m);
+    }
+  }
+}
+
+unsigned int shift::core::Jacobian::HeadElasticCount(
+  size_t substructure) const {
+  const auto& substructure_members = context_->get_substructure_members();
+  const auto& substructure_indices = context_->get_substructure_indices();
+  const int head = substructure_members[substructure][0];
+  if(head < 0 || !context_->GetElasticCount(head)) {
+    return 0;
+  }
+  /* the loops are ordered by substructure */
+  size_t first = 0;
+  for(size_t i = 0; i < substructure; i++) {
+    first += substructure_indices[i].size();
+  }
+  for(size_t k = first; k < first + substructure_indices[substructure].size();
+      k++) {
+    const Frame* exits[2];
+    if(LoopAncestor((int)k, exits) != head) {
+      continue;
+    }
+    for(const Frame* frame : exits) {
+      if(context_->GetNodeSlot(frame) > -1) {
+        return context_->GetElasticCount(head);
+      }
+    }
+  }
+  return 0;
 }
 
 void shift::core::Jacobian::SetupPO1(const shift::core::topology::DHVA& dhva) {
@@ -397,13 +604,15 @@ void shift::core::Jacobian::SetupConstraintPointers() {
       shift::core::Substructure::Constraint constraint_offset;
       constraint_offset.parent.d = 
         chord_constraint->get_parent_frame()->get_index();
-      constraint_offset.parent.v = 
-        chord_constraint->get_parent_body()->get_va_index();
+      /* a chord frame at a node of a flexible body moves with its node
+      slot */
+      constraint_offset.parent.v =
+        context_->GetFrameVaIndex(chord_constraint->get_parent_frame());
 
       constraint_offset.child.d = 
         chord_constraint->get_child_frame()->get_index();
-      constraint_offset.child.v = 
-        chord_constraint->get_child_body()->get_va_index();
+      constraint_offset.child.v =
+        context_->GetFrameVaIndex(chord_constraint->get_child_frame());
 
       substructure.AppendConstraintOffset(constraint_offset);
     }

@@ -46,6 +46,44 @@ U_j^T\underline{\mathbf{a}}_i\right), \qquad
 \f]
 with \f$\underline{\mathbf{a}}_f = \underline{\mathbf{0}}\f$ for the fixed
 body.
+
+A flexible body (body::Flex) adds its elastic coordinates
+\f$\underline{\eta}_j\f$, which are eliminated inside the body before its
+articulated-body inertia is passed on. Its nodes are entries of the tree with
+no degrees of freedom (topology::NodeSlot), whose accelerations are
+\f$\underline{\mathbf{a}}_k = \underline{\mathbf{a}}_j +
+E_k\underline{\ddot{\eta}}_j\f$, with the columns of \f$E_k\f$ the node's
+influence coefficients DHVA::he. With the children \f$c\f$ on the body's
+frames and its node slots \f$k\f$ collected,
+\f[
+\begin{aligned}
+A_j &= M_{bb} + \sum_c\left(M^A_c - U_c D_c^{-1}U_c^T\right) +
+\sum_k M^A_k, &
+B_j &= M_{be} + \sum_k M^A_k E_k, &
+C_j &= M_{ee} + \sum_k E_k^T M^A_k E_k, \\
+\underline{w}_j &= -\underline{\mathbf{z}}^*_j + \sum_c\left(
+\underline{\mathbf{z}}^{A*}_c + U_c D_c^{-1}\underline{u}_c\right) +
+\sum_k\underline{\mathbf{z}}^{A*}_k, &
+\underline{r}_j &= \underline{f}_e + \underline{b}_e -
+M_{be}^T\underline{\mathbf{a}}^q_j - \sum_k E_k^T\underline{\mathbf{z}}^{A*}_k
+\end{aligned}
+\f]
+the equations of the body are \f$\underline{\mathbf{k}}^*_j =
+A_j\underline{\mathbf{a}}_j + B_j\underline{\ddot{\eta}}_j + \underline{w}_j\f$
+and \f$B_j^T\underline{\mathbf{a}}_j + C_j\underline{\ddot{\eta}}_j =
+\underline{r}_j\f$, where \f$\underline{f}_e\f$ are the working forces of
+the elastic coordinates, \f$\underline{b}_e\f$ their bias forces
+(Context::get_elastic_bias_e) and \f$\underline{\mathbf{z}}^*_j\f$ includes
+the bias wrench of the frame (Context::get_elastic_bias_b). Eliminating
+\f$\underline{\ddot{\eta}}_j\f$,
+\f[
+M^A_j = A_j - B_jC_j^{-1}B_j^T, \qquad
+\underline{\mathbf{z}}^{A*}_j = \underline{w}_j + B_jC_j^{-1}\underline{r}_j,
+\qquad
+\underline{\ddot{\eta}}_j = C_j^{-1}\left(\underline{r}_j -
+B_j^T\underline{\mathbf{a}}_j\right)
+\f]
+and the joint of the body is treated as that of a rigid body.
 */
 class ABA : public ArticulatedBody {
 
@@ -98,7 +136,33 @@ private:
   std::vector<double> u_;      /*!< \f$\underline{u}_j\f$, by dq */
   std::vector<ksl_screw_t> a_; /*!< \f$\underline{\mathbf{a}}_j\f$ */
   std::vector<char> has_children_;
+  /*! whether \f$M^A_j\f$ needs its dense part: a body with children, or a
+   * flexible body, from which the elastic coordinates are eliminated */
+  std::vector<char> dense_;
   std::vector<int> dof_;          /*!< \f$n_j\f$ */
+
+  /*! \brief eliminate the elastic coordinates of flexible body j from
+   * \f$M^A_j\f$ and \f$\underline{\mathbf{z}}^{A*}_j\f$; return false if
+   * \f$C_j\f$ is singular */
+  bool EliminateElastic(int j);
+  /*! \brief add node slot k's \f$M^A_k E_k\f$, \f$E_k^T M^A_k E_k\f$ and
+   * \f$E_k^T\underline{\mathbf{z}}^{A*}_k\f$ to \f$B\f$, \f$C\f$ and
+   * \f$\underline{r}\f$ of its flexible body */
+  void AddNodeSlot(int k);
+
+  /* the flexible bodies, by compressed entry */
+  std::vector<int> elastic_count_; /*!< \f$n_e\f$, 0 for a rigid body */
+  std::vector<int> elastic_dq_;    /*!< index of the first elastic velocity */
+  std::vector<int> c_offset_;      /*!< offset of \f$C_j\f$ in c_ */
+  std::vector<int> slot_he_;   /*!< a node slot's first DHVA::he, else -1 */
+  /*! the flexible body, for its \f$M_{ee}\f$ */
+  std::vector<const shift::core::body::Base*> elastic_body_;
+  /* by elastic velocity */
+  std::vector<ksl_coscrew_t> b_;   /*!< columns of \f$B_j\f$ */
+  std::vector<double> r_;          /*!< \f$\underline{r}_j\f$ */
+  std::vector<double> y_;          /*!< \f$C_j^{-1}\underline{r}_j\f$ */
+  std::vector<ksl_coscrew_t> y_b_; /*!< rows of \f$C_j^{-1}B_j^T\f$ */
+  std::vector<double> c_;          /*!< Cholesky factors of \f$C_j\f$ */
 
   const std::string description_ =
     "Articulated-body algorithm (ABA):\n"

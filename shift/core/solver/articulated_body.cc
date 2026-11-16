@@ -7,6 +7,7 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/log.h"
 
 void shift::core::solver::ArticulatedBody::Initialize() {
   assert(context_);
@@ -37,6 +38,7 @@ void shift::core::solver::ArticulatedBody::Initialize() {
   CheckTrees();
   Setup();
   context_->UpdateDHVA();
+  context_->EvaluateElasticBodies();
 }
 
 bool shift::core::solver::ArticulatedBody::Solve(const double t,
@@ -49,6 +51,7 @@ bool shift::core::solver::ArticulatedBody::Solve(const double t,
 
   context_->UpdateDHVA(q, dq);
   context_->SetForces(t, y, dy);
+  context_->EvaluateElasticBodies(context_->get_dhva(), q, dq);
   if(SolveAccelerations()) {
     return true;
   }
@@ -95,6 +98,14 @@ void shift::core::solver::ArticulatedBody::SetupBodyWrench(int j) {
   for(int r = 0; r < 6; r++) {
     z.at[r] = (has_loads ? body_loads[j].at[r] : 0.0) - ma.at[r] - ad_p.at[r];
   }
+  /* a flexible body's bias wrench on its frame, which the gyroscopic wrench
+  of M_bb above leaves out */
+  const auto& bias_b = context_->get_elastic_bias_b();
+  if(bias_b.size() == body_count_) {
+    for(int r = 0; r < 6; r++) {
+      z.at[r] += bias_b[j].at[r];
+    }
+  }
 }
 
 int shift::core::solver::ArticulatedBody::JointColumns(int j, double H[36]) const {
@@ -134,7 +145,7 @@ shift::core::solver::ArticulatedBody::KineticEnergy(shift::core::topology::DHVA&
   for(size_t j = 0; j < p_.size(); j++) {
     sum += ksl_dot_cs(&p_[j], &dhva.v[j]);
   }
-  return sum / 2.0;
+  return sum / 2.0 + ElasticKineticEnergy(dhva, &bodies_);
 }
 
 void shift::core::solver::ArticulatedBody::InertiaMatrix(const ksl_inertia_t& m,

@@ -350,6 +350,94 @@ public:
    * initialized */
   int GetBodyLoadIndex(const body::Base* body) const;
 
+  /*! \brief index in the load and velocity arrays of the place where a load
+   * at \p frame acts. For a frame of a rigid body this is its body group
+   * (GetBodyLoadIndex); a node of a flexible body will have its own entry,
+   * so that the load reaches the body's elastic coordinates. Force modules
+   * that apply a load at a known frame use this in place of
+   * GetBodyLoadIndex. */
+  int GetFrameLoadIndex(const Frame* frame) const;
+
+  /*! \brief index in node_slots_ of the node slot whose frame is \p frame,
+   * -1 if the frame is not a node of a flexible body */
+  int GetNodeSlot(const Frame* frame) const;
+
+  /*! \brief index of \p frame's velocity and quadratic acceleration in
+   * the DHVA arrays: its node slot's for a node of a flexible body, its
+   * body's otherwise */
+  int GetFrameVaIndex(const Frame* frame) const;
+
+  /*! \brief velocity index of the parent side of \p joint: the node slot
+   * of its parent frame if that is a node of a flexible body, else its
+   * system parent body's. Unlike GetFrameVaIndex, it works for parent frames
+   * whose parent body is not set. */
+  int GetJointParentVaIndex(joint::Base* joint) const;
+
+  /*! \name Mass and bias terms of the flexible bodies
+  The solvers call EvaluateElasticBodies once per evaluation of the
+  equations of motion, after UpdateDHVA with the same \p q and \p dq. For
+  each flexible body it takes the elastic coordinates and their rates from
+  \p q and \p dq and the velocity of the body's reference frame r from
+  \p dhva, transformed to the coordinates of r, and has the body evaluate its
+  mass blocks and bias forces in those coordinates (body::Base::
+  EvaluateElastic). It then makes them available in the form the solvers use
+  for a rigid body:
+
+  - the frame-frame block \f$M_{bb}(\underline{\eta})\f$ replaces the body's
+    entry of get_inertia_vector(), in the coordinates of r as for a rigid
+    body, which the solvers transform with the displacement of r;
+  - the columns of the frame-elastic block \f$M_{be}\f$ and the bias wrench
+    on r are transformed to fixed coordinates, referred to the fixed origin,
+    by the coadjoint of the displacement \f$D_{0r}\f$ of r:
+    \f$[Ad]^*(D_{0r})\,\underline{c}^*_r\f$;
+  - the elastic-elastic block \f$M_{ee}\f$ and the bias forces of the elastic
+    coordinates do not depend on the coordinate system:
+    body::Base::get_mass_ee() and get_elastic_bias_e().
+  */
+  ///@{
+  void EvaluateElasticBodies(const topology::DHVA& dhva, const double* q,
+                             const double* dq);
+  void EvaluateElasticBodies();
+
+  /*! \brief column of \f$M_{be}\f$ for each elastic velocity, in fixed
+   * coordinates, referred to the fixed origin; indexed by the generalized
+   * velocity, zero for the velocities that are not elastic */
+  const std::vector<ksl_coscrew_t>& get_elastic_mass_be() const {
+    return elastic_mass_be_;
+  }
+
+  /*! \brief bias wrench on the reference frame of the child body of each
+   * compressed joint, in fixed coordinates, referred to the fixed origin;
+   * zero for a rigid body */
+  const std::vector<ksl_coscrew_t>& get_elastic_bias_b() const {
+    return elastic_bias_b_;
+  }
+
+  /*! \brief bias forces of the elastic coordinates, indexed by the
+   * generalized velocity, zero for the velocities that are not elastic */
+  const std::vector<double>& get_elastic_bias_e() const {
+    return elastic_bias_e_;
+  }
+
+  /*! \brief indices in get_active_articulated_bodies() of the flexible
+   * bodies */
+  const std::vector<int>& get_elastic_bodies() const {
+    return elastic_bodies_;
+  }
+  ///@}
+
+  /*! \brief the node slots of the flexible bodies (topology::NodeSlot) */
+  const std::vector<topology::NodeSlot>& get_node_slots() const {
+    return node_slots_;
+  }
+
+  /*! \brief number of elastic coordinates of the child body of active
+   * joint \p i (body::Base::get_elastic_count), 0 for a rigid body */
+  unsigned int GetElasticCount(unsigned int i) const;
+
+  /*! \brief whether any active body has elastic coordinates */
+  bool HasElasticBodies() const;
+
   /*! \brief spatial velocity of a body group (see GetBodyLoadIndex) in the
    * fixed frame, referred to its origin; zero for index -1 */
   ksl_screw_t GetBodyVelocity(int load_index) const;
@@ -395,6 +483,13 @@ public:
 
   inline const std::vector<unsigned int>& get_joint_dof_compressed() const {
     return joint_dof_compressed_;
+  }
+
+  /*! \brief number of elastic coordinates of the child body of each
+   * compressed joint, 0 for a rigid body and for a node slot; they follow
+   * the joint's degrees of freedom in the generalized velocities */
+  inline const std::vector<unsigned int>& get_elastic_count_compressed() const {
+    return elastic_count_compressed_;
   }
 
   inline std::vector<double>& get_q_copy() {
@@ -861,6 +956,11 @@ private:
    * matrices, velocities and accelerations. */
   void AllocateRunTimeArrays();
 
+  /*! \brief throw if a joint is attached to a flexible body at a frame that
+   * is not one of its nodes, or if a spherical joint is attached to a
+   * flexible body (not yet supported) */
+  void CheckElasticBodies() const;
+
   /*! \brief set -g for the fixed frame in the array of quadratic
    * accelerations. After updating DHVA, this effectively applies
    * gravitational forces to all bodies without having to explicitly add
@@ -875,6 +975,10 @@ private:
    */
   void InitializeInertia();
 
+  /*! \brief list the flexible bodies, size the arrays of their mass and bias
+   * terms and evaluate them at the current state */
+  void InitializeElasticBodies();
+
   void SetupLookup();
 
   /*! \brief split the compressed spanning tree into the trees of the
@@ -886,6 +990,18 @@ private:
    * not attached by a rigid joint; -1 for the fixed body or a body welded to
    * it */
   int CompressedIndex(int i) const;
+
+  /*! \brief whether active joint \p i is an entry of the compressed tree:
+   * it has coordinates, or its child body is flexible (a flexible body keeps
+   * its own entry on a rigid joint, since its mass matrix cannot be merged
+   * into its parent's) */
+  bool IsTreeEntry(int i) const;
+
+  /*! \brief the entry of the compressed tree that the child body of active
+   * joint \p i moves with: its own if the joint is an entry, else the node
+   * slot that its chain of rigid joints is attached at, or the entry of the
+   * body above; -1 for the fixed body */
+  int EntryOf(int i) const;
 
   /*! \brief set mapping between positions of generalized coordinates in
   q to dq
@@ -942,11 +1058,16 @@ private:
   unsigned int free_state_count_ = 0;
   std::vector<ksl_coscrew_t> free_loads_ = {};
   std::vector<ksl_inertia_t> inertia_; /*!< body fixed spatial inertias */
+  std::vector<int> elastic_bodies_;
+  std::vector<ksl_coscrew_t> elastic_mass_be_;
+  std::vector<ksl_coscrew_t> elastic_bias_b_;
+  std::vector<double> elastic_bias_e_;
   std::vector<int> joint_dof_;
   std::vector<int> joint_lookup_;
   std::vector<int> dq_lookup_;
   std::vector<int> q_lookup_;
   std::vector<unsigned int> joint_dof_compressed_;
+  std::vector<unsigned int> elastic_count_compressed_;
   std::vector<int> dq_lookup_compressed_;
   std::vector<int> pcldq_;
   std::vector<bool> is_rotation_;
@@ -1036,6 +1157,8 @@ private:
 
   std::vector<controller::Base*> active_controllers_ = {};
   std::vector<body::Base*> active_articulated_bodies_ = {};
+  std::vector<topology::NodeSlot> node_slots_ = {}; /*!< node slots of the
+                                                      flexible bodies */
   std::vector<body::Base*> active_free_bodies_ = {};
   StateObserver state_observer_;
   std::vector<collision_geometry::Base*> active_collision_geometry_ = {};

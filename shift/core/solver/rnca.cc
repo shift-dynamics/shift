@@ -3,11 +3,13 @@
 #include <iomanip>
 
 #include "shift/core/context.h"
+#include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/log.h"
 #include "shift/core/solver/rnca.h"
 
 #include "ksl/array.h"
+#include "ksl/inertia.h"
 #include "ksl/print.h"
 
 #ifdef SHIFT_VERIFY_EQUATIONS_
@@ -113,6 +115,8 @@ void shift::core::solver::RNCA::Initialize() {
     delegated_dq_.assign(dq_count_, false);
   }
   delegated_po3_.assign(dq_count_, false);
+
+  SetupElasticLookup();
 
   context_->get_jacobian().RemoveConstraintViolations();
   /* the initial velocities of a model file seldom satisfy the velocity
@@ -252,13 +256,14 @@ shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
 #if SHIFT_WITH_BLAS_
   return cblas_ddot(6 * non_rigid_joint_count_, (double*)(p_.data()), 1,
                     (double*)(dhva.v), 1) /
-         2.0;
+           2.0 +
+         ElasticKineticEnergy(dhva);
 #else
   double sum = 0.0;
   for(size_t i = 0; i < context_->get_non_rigid_joint_count(); i++) {
     sum += ksl_dot_cs(&(p_[i]), &dhva.v[i]);
   }
-  return sum / 2.0;
+  return sum / 2.0 + ElasticKineticEnergy(dhva);
 #endif
 }
 
@@ -1256,6 +1261,7 @@ bool shift::core::solver::RNCA::SetupEquationsAndRecordFills(
   assert(context_);
   auto& jacobian = context_->get_jacobian();
   context_->UpdateDHVA(q, dq);
+  context_->EvaluateElasticBodies(context_->get_dhva(), q, dq);
   jacobian.Save();
   jacobian.SetupPO2();
   jacobian.FactorPO2();
@@ -1303,6 +1309,7 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
   assert(context_);
   auto& jacobian = context_->get_jacobian();
   context_->UpdateDHVA(q, dq);
+  context_->EvaluateElasticBodies(context_->get_dhva(), q, dq);
   jacobian.Save();
   jacobian.SetupPO2();
   jacobian.FactorPO2();
@@ -1511,6 +1518,18 @@ void shift::core::solver::RNCA::SetupRHS() {
     g_[j].m5 += v[j].m4 * p_[j].m3;
   }
 
+  /* the bias wrenches of the flexible bodies, which the gyroscopic wrench
+  of their frame-frame blocks above leaves out */
+  if(has_elastic_) {
+    const auto& bias_b = context_->get_elastic_bias_b();
+    for(int i : context_->get_elastic_bodies()) {
+      const int j = context_->get_active_articulated_bodies()[i]->get_va_index();
+      for(int k = 0; k < 6; k++) {
+        g_[j].at[k] += bias_b[j].at[k];
+      }
+    }
+  }
+
   /* g <- C{-T} * (g + \tilde{v}^T p - m\gamma) (carried out in PO1) */
   for(int j = (int)non_rigid_joint_count - 1; j > -1; j--) {
     int i = pcl_compressed[j];
@@ -1574,6 +1593,7 @@ void shift::core::solver::RNCA::SetupRHS() {
       }
     }
   }
+  AddElasticForces();
 
   const auto& e = jacobian.get_constraints();
   const auto& de = jacobian.get_de();
@@ -1768,6 +1788,8 @@ void shift::core::solver::RNCA::SetupMassMatrix() {
     }
   }
 
+  SetElasticMomenta();
+
   /* use inverse permutation to save terms computed in PO1 order and
   store in PO3 */
   int m_3;
@@ -1809,6 +1831,7 @@ void shift::core::solver::RNCA::SetupMassMatrix() {
       }
     }
   }
+  AddElasticMassTerms(false);
 }
 
 void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
@@ -1901,6 +1924,8 @@ void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
     }
   }
 
+  SetElasticMomenta();
+
   /* use inverse permutation to save terms computed in PO1 order and
   store in PO3 */
   int m_3;
@@ -1946,6 +1971,7 @@ void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
       }
     }
   }
+  AddElasticMassTerms(true);
 }
 
 void shift::core::solver::RNCA::FactorAndSolve() {
@@ -2520,4 +2546,212 @@ bool shift::core::solver::RNCA::Verify(const double t,
 #endif
 
   return verified;
+}
+
+void shift::core::solver::RNCA::SetupElasticLookup() {
+  const auto& elastic_bodies = context_->get_elastic_bodies();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  const auto& slots = context_->get_node_slots();
+  const auto& dq_lookup_compressed = context_->get_dq_lookup_compressed();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& elastic_count_compressed =
+    context_->get_elastic_count_compressed();
+  const size_t entry_count = context_->get_non_rigid_joint_count();
+
+  has_elastic_ = !elastic_bodies.empty();
+  elastic_body_of_dq_.assign(dq_count_, -1);
+  elastic_mode_of_dq_.assign(dq_count_, -1);
+  entry_of_dq_.assign(dq_count_, -1);
+  slot_of_entry_.assign(entry_count, -1);
+  slots_of_body_.assign(elastic_bodies.size(), {});
+  mhe_.clear();
+  if(!has_elastic_) {
+    return;
+  }
+
+  for(size_t k = 0; k < slots.size(); k++) {
+    slot_of_entry_[slots[k].index] = (int)k;
+  }
+  for(size_t j = 0; j < entry_count; j++) {
+    if(slot_of_entry_[j] > -1) {
+      continue;
+    }
+    const unsigned int count =
+      joint_dof_compressed[j] + elastic_count_compressed[j];
+    for(unsigned int k = 0; k < count; k++) {
+      entry_of_dq_[dq_lookup_compressed[j] + k] = (int)j;
+    }
+  }
+  for(size_t e = 0; e < elastic_bodies.size(); e++) {
+    const auto body = bodies[elastic_bodies[e]];
+    const int dq_index = body->get_elastic_dq_index();
+    for(unsigned int m = 0; m < body->get_elastic_count(); m++) {
+      elastic_body_of_dq_[dq_index + m] = (int)e;
+      elastic_mode_of_dq_[dq_index + m] = (int)m;
+    }
+    for(size_t k = 0; k < slots.size(); k++) {
+      if(slots[k].body == body) {
+        slots_of_body_[e].push_back((int)k);
+      }
+    }
+  }
+  mhe_.assign(context_->get_dhva().he.size(),
+              ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+}
+
+int shift::core::solver::RNCA::MassIndex(int a, int b) const {
+  const auto& pv_31 = context_->get_jacobian().get_pv31();
+  const int a_3 = pv_31[a];
+  const int b_3 = pv_31[b];
+  const int high = a_3 > b_3 ? a_3 : b_3;
+  const int low = a_3 > b_3 ? b_3 : a_3;
+  return (high * (high + 1)) / 2 + low;
+}
+
+int shift::core::solver::RNCA::EnteredNodeSlot(int c, int i) const {
+  const int body = elastic_body_of_dq_[i];
+  if(body < 0 || elastic_body_of_dq_[c] == body) {
+    return -1;
+  }
+  /* c is the first velocity of its compressed joint (or the first elastic
+  coordinate of a flexible body on a rigid joint), whose parent in the
+  compressed tree is the node slot it hangs from */
+  const int parent = context_->get_pcl_compressed()[entry_of_dq_[c]];
+  return parent > -1 ? slot_of_entry_[parent] : -1;
+}
+
+void shift::core::solver::RNCA::SetElasticMomenta() {
+  if(!has_elastic_) {
+    return;
+  }
+  const auto& dhva = context_->get_dhva();
+  const auto& slots = context_->get_node_slots();
+  const auto& mass_be = context_->get_elastic_mass_be();
+  const auto& elastic_bodies = context_->get_elastic_bodies();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  const ksl_inertia_t* inertia_p = inertia_p_.data() + 1;
+
+  /* M^c_k h_km, with the inertia accumulated below each node slot */
+  for(const auto& slot : slots) {
+    for(unsigned int m = 0; m < slot.body->get_elastic_count(); m++) {
+      ksl_product_is(&inertia_p[slot.index], &dhva.he[slot.he_offset + m],
+                     &mhe_[slot.he_offset + m]);
+    }
+  }
+  /* the momentum of each elastic column: M_be,m + sum_k M^c_k h_km */
+  for(size_t e = 0; e < elastic_bodies.size(); e++) {
+    const auto body = bodies[elastic_bodies[e]];
+    const int dq_index = body->get_elastic_dq_index();
+    for(unsigned int m = 0; m < body->get_elastic_count(); m++) {
+      ksl_coscrew_t& mh = mh_product_[dq_index + m];
+      mh = mass_be[dq_index + m];
+      for(int k : slots_of_body_[e]) {
+        const ksl_coscrew_t& c = mhe_[slots[k].he_offset + m];
+        for(int r = 0; r < 6; r++) {
+          mh.at[r] += c.at[r];
+        }
+      }
+    }
+  }
+}
+
+void shift::core::solver::RNCA::AddElasticMassTerms(bool record_fills) {
+  if(!has_elastic_) {
+    return;
+  }
+  const auto& dhva = context_->get_dhva();
+  const auto& slots = context_->get_node_slots();
+  const auto& elastic_bodies = context_->get_elastic_bodies();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  const auto& has_mass_dq = context_->get_has_mass_dq();
+  const auto& pcl_dq = context_->get_pcldq();
+
+  auto add = [&](int a, int b, double value) {
+    const int k = MassIndex(a, b);
+    Ml_[k] += value;
+    if(record_fills) {
+      Mlb_[k] = true;
+    }
+  };
+
+  for(int j = (int)dq_count_ - 1; j > -1; j--) {
+    if(!has_mass_dq[j] || delegated_dq_[j]) {
+      continue;
+    }
+    int c = j;
+    int i = pcl_dq[j];
+    const int e = elastic_body_of_dq_[j];
+    if(e > -1) {
+      /* the block of the body's own elastic coordinates, M_ee + sum_k
+      h_k^T M^c_k h_k: the diagonal, then up the chain of its coordinates */
+      const auto body = bodies[elastic_bodies[e]];
+      const int n = (int)body->get_elastic_count();
+      const double* mass_ee = body->get_mass_ee();
+      const int m = elastic_mode_of_dq_[j];
+      auto block = [&](int l) {
+        double value = mass_ee[l * n + m];
+        for(int k : slots_of_body_[e]) {
+          value += ksl_dot_cs(&mhe_[slots[k].he_offset + m],
+                              &dhva.he[slots[k].he_offset + l]);
+        }
+        return value;
+      };
+      add(j, j, block(m));
+      while(i > -1 && elastic_body_of_dq_[i] == e) {
+        add(i, j, block(elastic_mode_of_dq_[i]));
+        c = i;
+        i = pcl_dq[i];
+      }
+    }
+    /* the elastic coordinates of the bodies above, each through the node
+    slot the walk entered it by */
+    int slot = -1;
+    while(i > -1) {
+      if(elastic_body_of_dq_[i] > -1) {
+        if(elastic_body_of_dq_[c] != elastic_body_of_dq_[i]) {
+          slot = EnteredNodeSlot(c, i);
+        }
+        if(slot > -1) {
+          add(i, j,
+              ksl_dot_cs(&mh_product_[j],
+                         &dhva.he[slots[slot].he_offset +
+                                  elastic_mode_of_dq_[i]]));
+        }
+      }
+      c = i;
+      i = pcl_dq[i];
+    }
+  }
+}
+
+void shift::core::solver::RNCA::AddElasticForces() {
+  if(!has_elastic_) {
+    return;
+  }
+  const auto& dhva = context_->get_dhva();
+  const auto& slots = context_->get_node_slots();
+  const auto& elastic_bodies = context_->get_elastic_bodies();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  const auto& mass_be = context_->get_elastic_mass_be();
+  const auto& bias_e = context_->get_elastic_bias_e();
+  const auto& f = context_->get_joint_working_forces();
+  const auto& pv_31 = context_->get_jacobian().get_pv31();
+
+  for(size_t e = 0; e < elastic_bodies.size(); e++) {
+    const auto body = bodies[elastic_bodies[e]];
+    const int j = body->get_va_index();
+    const int dq_index = body->get_elastic_dq_index();
+    for(unsigned int m = 0; m < body->get_elastic_count(); m++) {
+      const int l = dq_index + (int)m;
+      if(delegated_dq_[l]) {
+        continue; /* solved by another solver */
+      }
+      /* b_e - M_be^T aq_b + sum_k h_km^T g_k */
+      double value = f[l] + bias_e[l] - ksl_dot_cs(&mass_be[l], &dhva.aq[j]);
+      for(int k : slots_of_body_[e]) {
+        value += ksl_dot_cs(&g_[slots[k].index], &dhva.he[slots[k].he_offset + m]);
+      }
+      fl_[pv_31[l]] = value;
+    }
+  }
 }
