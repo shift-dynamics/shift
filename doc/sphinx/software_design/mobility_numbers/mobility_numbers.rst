@@ -246,6 +246,15 @@ ratio is checked with each.
   where :math:`m = \sum_i \mu_i` is the mobility of the substructure and
   :math:`\epsilon` is ``epsilon_mobility`` (default 0.01).
 
+  An independent velocity can have a low mobility number and still be
+  integrated accurately: in the Polo R WRC suspension, GECP chooses an
+  independent velocity with :math:`\mu_j / m = 0.013`, and the motion matches
+  a reference integrated at a tighter tolerance as closely as with the
+  infinity norm check. GECP chooses the partition by pivot size, not by
+  mobility. An :math:`\epsilon` above the mobility number it chooses
+  therefore refactors at every check without changing the partition. In
+  the Polo that happens from :math:`\epsilon = 0.03` upward.
+
 Connection to Singular Value Decomposition
 ------------------------------------------
 

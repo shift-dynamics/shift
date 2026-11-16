@@ -52,9 +52,11 @@ static Result Simulate(const std::string& name, double time_span,
   shift::core::Context context;
   context.LoadJSON(Model(name, time_span, solver),
                    std::string(SHIFT_EXAMPLES_DIR) + "/" + name);
-  context.Simulate();
   Result run;
-  run.q = context.get_q();
+  context.set_state_observer(
+    [&run](double, const std::vector<double>& y) { run.q = y; });
+  context.Simulate();
+  run.q.resize(context.get_state_count());
   run.refactors = context.get_jacobian().get_infinity_norm_failures().size();
   return run;
 }
