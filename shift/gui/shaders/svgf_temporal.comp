@@ -49,6 +49,9 @@ layout(rgba16f, binding = 10) uniform readonly image2D previous_albedo;
 layout(rgba16f, binding = 11) uniform writeonly image2D history_illumination;
 layout(rgba32f, binding = 12) uniform writeonly image2D history_moments;
 layout(rgba16f, binding = 13) uniform writeonly image2D history_albedo;
+// the motion of the hit's point of its body since the previous frame, body
+// coordinates (raytrace.comp)
+layout(rgba16f, binding = 14) uniform readonly image2D motion;
 
 float Luminance(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -83,7 +86,9 @@ void main() {
     if(id >= 0) {
       mat4 to_previous =
         instances[id].previous_body_to_world * instances[id].world_to_body;
-      previous_world = (to_previous * vec4(g.xyz, 1.0)).xyz;
+      vec4 body = instances[id].world_to_body * vec4(g.xyz, 1.0);
+      body.xyz -= imageLoad(motion, pixel).xyz;
+      previous_world = (instances[id].previous_body_to_world * body).xyz;
       previous_n = normalize(mat3(to_previous) * n);
     }
 

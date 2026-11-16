@@ -104,6 +104,16 @@ layout(rgba16f, binding = 9) uniform writeonly image2D gbuffer_albedo;
 // which would make moving shadows lag
 layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
 
+// the motion of the vertices of deforming triangles since the previous
+// frame, body coordinates, 3 per triangle: those whose TriangleFaces entry
+// f is -2 or less, at 3 (-f - 2)
+layout(std430, binding = 18) readonly buffer TriangleMotion {
+  vec4 triangle_motion[];
+};
+// the motion of the primary hit's point of its body since the previous
+// frame, body coordinates (0 but on a deforming body), for reprojection
+layout(rgba16f, binding = 19) uniform writeonly image2D gbuffer_motion;
+
 // the lights of the model, sampled like the sun, with shadows
 #define LIGHTS_BINDING 12
 #define IES_BINDING 13
@@ -892,6 +902,7 @@ void main() {
       if(layer == 0) {
         imageStore(gbuffer_position, pixel, vec4(direction, -1.0));
         imageStore(gbuffer_normal, pixel, vec4(0.0));
+        imageStore(gbuffer_motion, pixel, vec4(0.0));
       }
       break;
     }
@@ -910,6 +921,17 @@ void main() {
       imageStore(gbuffer_position, pixel,
                  vec4(s.position, float(hit.instance)));
       imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
+      vec3 motion = vec3(0.0);
+      if(hit.instance >= 0) {
+        int face = triangle_faces[hit.triangle];
+        if(face <= -2) {
+          uint m = 3u * uint(-face - 2);
+          motion = triangle_motion[m].xyz * (1.0 - hit.bary.x - hit.bary.y) +
+                   triangle_motion[m + 1u].xyz * hit.bary.x +
+                   triangle_motion[m + 2u].xyz * hit.bary.y;
+        }
+      }
+      imageStore(gbuffer_motion, pixel, vec4(motion, 0.0));
     }
     origin = PastSurface(origin, direction, hit.t);
   }

@@ -101,7 +101,8 @@ if not is_disabler(shift_gui_dep)
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
-                   'test_light_glow.cc', 'test_flex_playback.cc']
+                   'test_light_glow.cc', 'test_flex_playback.cc',
+                   'test_flex_gpu.cc']
   test_deps += [shift_gui_dep]
 endif
 
@@ -215,6 +216,14 @@ if gpu_found
     message('lavapipe (Mesa\'s software Vulkan driver) not found: no '
             + 'gpu-lavapipe test')
   endif
+endif
+
+# the viewer's compute shaders of flexible bodies on Mesa's software OpenGL
+# (llvmpipe), so that they run without a GPU; skipped without OpenGL 4.3
+if not is_disabler(shift_gui_dep)
+  test('flex-gpu-llvmpipe', shift_test, args: ['--gtest_filter=FlexGpu.*'],
+       env: ['LIBGL_ALWAYS_SOFTWARE=1', '__GLX_VENDOR_LIBRARY_NAME=mesa'],
+       timeout: 300)
 endif
 
 # one meson test per model in examples/ (test_examples.cc discovers the same

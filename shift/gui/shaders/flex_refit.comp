@@ -6,6 +6,7 @@
 // - mode 1: the boxes of the leaves, over their triangles
 // - mode 2: the boxes of the interior nodes of one depth, over their
 //   children (the deepest first, so the children are fitted already)
+// - mode 3: no motion (in a frame after one with motion, without)
 
 layout(local_size_x = 64) in;
 
@@ -22,9 +23,10 @@ struct BvhNode {
 };
 
 layout(std140, binding = 0) uniform Step {
-  // x: first entry of the list (mode 1, 2), y: count, z: mode,
-  // w: the first of the mesh's triangles in Triangles
-  uvec4 step;
+  // x: first entry of the list (mode 1, 2), or of the mesh's triangles in
+  // Motion (mode 0, 3); y: count, z: mode, w: the first of the mesh's
+  // triangles in Triangles
+  uvec4 range;
 } params;
 
 // the vertices drawn, as Vertex: position, normal, uv (8 floats)
@@ -48,6 +50,11 @@ layout(std430, binding = 5) buffer Triangles {
 layout(std430, binding = 6) buffer Nodes {
   BvhNode nodes[];
 };
+// the motion of each vertex of the triangles since they were last written,
+// 3 per triangle, for the denoiser's reprojection (raytrace.comp)
+layout(std430, binding = 7) buffer Motion {
+  vec4 motion[];
+};
 
 vec4 Position(uint v) {
   return vec4(vertices[8u * v], vertices[8u * v + 1u], vertices[8u * v + 2u],
@@ -61,10 +68,15 @@ vec4 Normal(uint v) {
 
 void main() {
   uint k = gl_GlobalInvocationID.x;
-  if(k >= params.step.y) {
+  if(k >= params.range.y) {
     return;
   }
-  uint mode = params.step.z;
+  uint mode = params.range.z;
+  if(mode == 3u) {
+    uint m = 3u * (params.range.x + k);
+    motion[m] = motion[m + 1u] = motion[m + 2u] = vec4(0.0);
+    return;
+  }
   if(mode == 0u) {
     uint t = 3u * order[k];
     uint a = indices[t], b = indices[t + 1u], c = indices[t + 2u];
@@ -75,10 +87,15 @@ void main() {
     triangle.n0 = Normal(a);
     triangle.n1 = Normal(b);
     triangle.n2 = Normal(c);
-    triangles[params.step.w + k] = triangle;
+    RtTriangle before = triangles[params.range.w + k];
+    uint m = 3u * (params.range.x + k);
+    motion[m] = vec4(triangle.v0.xyz - before.v0.xyz, 0.0);
+    motion[m + 1u] = vec4(triangle.v1.xyz - before.v1.xyz, 0.0);
+    motion[m + 2u] = vec4(triangle.v2.xyz - before.v2.xyz, 0.0);
+    triangles[params.range.w + k] = triangle;
     return;
   }
-  uint n = list[params.step.x + k];
+  uint n = list[params.range.x + k];
   BvhNode node = nodes[n];
   vec3 lo = vec3(1e30), hi = vec3(-1e30);
   if(mode == 1u) {

@@ -350,17 +350,6 @@ static const float kNoSun[4] = {0.f, 0.f, 0.f, 0.f};
 static const float kSkyZenith[4] = {0.22f, 0.36f, 0.62f, 0.f};
 static const float kSkyHorizon[4] = {0.62f, 0.68f, 0.74f, 0.f};
 
-static QShader LoadShader(const char* name) {
-  QFile file(QStringLiteral(":/shaders/") + QLatin1String(name));
-  if(!file.open(QIODevice::ReadOnly)) {
-    qFatal("Cannot open shader resource %s", name);
-  }
-  QShader shader = QShader::fromSerialized(file.readAll());
-  if(!shader.isValid()) {
-    qFatal("Invalid shader resource %s", name);
-  }
-  return shader;
-}
 
 /*! Vulkan instance shared by all viewports, created on first use */
 static QVulkanInstance* GetVulkanInstance() {
@@ -1070,6 +1059,8 @@ void shift::gui::Viewport::ReleaseAll() {
     rt_normal_[p].reset();
     rt_position_[p].reset();
   }
+  rt_motion_.reset();
+  rt_triangle_motion_buffer_.reset();
   rt_color_.reset();
   rt_direct_.reset();
   rt_albedo_.reset();
@@ -1093,9 +1084,7 @@ void shift::gui::Viewport::ReleaseAll() {
   instance_buffer_.reset();
   material_ubo_.reset();
   frame_ubo_.reset();
-  flex_refit_pipeline_.reset();
-  flex_normals_pipeline_.reset();
-  flex_deform_pipeline_.reset();
+  flex_gpu_.reset();
   gpu_meshes_.clear();
   pipeline_render_pass_ = nullptr;
   output_size_ = QSize();
@@ -1234,6 +1223,7 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   rt_albedo_ = make_image(QRhiTexture::RGBA16F);
   rt_direct_ = make_image(QRhiTexture::RGBA16F);
   rt_color_ = make_image(QRhiTexture::RGBA16F);
+  rt_motion_ = make_image(QRhiTexture::RGBA16F);
   for(int p = 0; p < 2; p++) {
     rt_position_[p] = make_image(QRhiTexture::RGBA32F);
     rt_normal_[p] = make_image(QRhiTexture::RGBA16F);
@@ -1648,14 +1638,17 @@ void shift::gui::Viewport::CreatePipelines() {
        Binding::bufferLoad(14, compute, rt_triangle_face_buffer_.get()),
        Binding::bufferLoad(15, compute, rt_cad_face_buffer_.get()),
        Binding::bufferLoad(16, compute, rt_cad_segment_buffer_.get()),
-       Binding::bufferLoad(17, compute, rt_cad_trim_index_buffer_.get())});
+       Binding::bufferLoad(17, compute, rt_cad_trim_index_buffer_.get()),
+       Binding::bufferLoad(18, compute, rt_triangle_motion_buffer_.get()),
+       store(19, rt_motion_)});
     svgf_temporal_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_illumination_),
        load(3, rt_albedo_), load(4, rt_position_[p]), load(5, rt_normal_[p]),
        load(6, rt_position_[q]), load(7, rt_normal_[q]),
        load(8, rt_history_illumination_[q]), load(9, rt_history_moments_[q]),
        load(10, rt_history_albedo_[q]), store(11, rt_history_illumination_[p]),
-       store(12, rt_history_moments_[p]), store(13, rt_history_albedo_[p])});
+       store(12, rt_history_moments_[p]), store(13, rt_history_albedo_[p]),
+       load(14, rt_motion_)});
     svgf_variance_bindings_[p] = make_bindings(
       {denoise_uniforms, load(1, rt_position_[p]), load(2, rt_normal_[p]),
        load(3, rt_history_illumination_[p]), load(4, rt_history_moments_[p]),
@@ -1681,7 +1674,7 @@ void shift::gui::Viewport::CreatePipelines() {
        load(3, rt_color_), load(4, rt_taa_[q]), store(5, rt_taa_[p]),
        store(6, rt_output_), load(7, rt_accumulation_),
        load(8, rt_position_[q]), load(9, rt_normal_[p]),
-       load(10, rt_normal_[q])});
+       load(10, rt_normal_[q]), load(11, rt_motion_)});
   }
 
   rt_pipeline_.reset(NewComputePipeline("raytrace.comp.qsb",
@@ -1852,8 +1845,13 @@ static void BuildMeshBvhs(
       f.first_node = roots.back();
       f.node_count = last_node_count;
       f.order.assign(faces.begin(), faces.end());
+      f.motion_base = flex_meshes->empty()
+                        ? 0
+                        : flex_meshes->back().motion_base +
+                            static_cast<int>(flex_meshes->back().order.size());
       for(size_t k = 0; k < faces.size(); k++) {
-        all_faces[size_t(first_triangle) + k] = -1;
+        all_faces[size_t(first_triangle) + k] =
+          -2 - (f.motion_base + static_cast<int32_t>(k));
       }
       flex_meshes->push_back(std::move(f));
     }
@@ -1953,206 +1951,6 @@ void shift::gui::Viewport::UploadParticleUpdates(
   }
 }
 
-/* FlexParams of flex_common.glsl */
-struct FlexParams {
-  uint32_t counts[4];
-  float centroid[4];
-  float translation[4];
-  float rotation[4];
-};
-
-void shift::gui::Viewport::CreateGpuFlex(const SceneMesh& mesh, GpuMesh& gpu,
-                                         QRhiResourceUpdateBatch* batch) {
-  auto flex = std::make_unique<GpuFlex>();
-  const uint32_t vertex_count = uint32_t(mesh.vertices.size());
-  flex->vertex_count = vertex_count;
-  /* the triangles of each vertex */
-  std::vector<uint32_t> offsets(size_t(vertex_count) + 1, 0);
-  for(uint32_t index : mesh.indices) {
-    offsets[size_t(index) + 1]++;
-  }
-  for(size_t v = 0; v < vertex_count; v++) {
-    offsets[v + 1] += offsets[v];
-  }
-  std::vector<uint32_t> triangles(offsets.back());
-  std::vector<uint32_t> next(offsets.begin(), offsets.end() - 1);
-  for(size_t i = 0; i < mesh.indices.size(); i++) {
-    triangles[next[mesh.indices[i]]++] = uint32_t(i / 3);
-  }
-  /* storage buffers of at least 4 bytes, the data given (if any) uploaded */
-  auto storage = [&](QRhiBuffer::Type type, size_t bytes, const void* data) {
-    auto* buffer = rhi_->newBuffer(type, QRhiBuffer::StorageBuffer,
-                                   quint32(std::max<size_t>(bytes, 16)));
-    buffer->create();
-    if(data && bytes > 0) {
-      batch->uploadStaticBuffer(buffer, 0, quint32(bytes), data);
-    }
-    return buffer;
-  };
-  flex->params.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
-                                     QRhiBuffer::UniformBuffer,
-                                     sizeof(FlexParams)));
-  flex->params->create();
-  flex->reference.reset(storage(QRhiBuffer::Immutable,
-                                mesh.vertices.size() * sizeof(Vertex),
-                                mesh.vertices.data()));
-  flex->basis.reset(storage(QRhiBuffer::Immutable,
-                            mesh.flex_basis.size() * sizeof(float),
-                            mesh.flex_basis.data()));
-  flex->coefficients.reset(storage(
-    QRhiBuffer::Static, size_t(mesh.flex_columns) * sizeof(float), nullptr));
-  flex->deformed.reset(storage(QRhiBuffer::Static,
-                               size_t(vertex_count) * 4 * sizeof(float),
-                               nullptr));
-  flex->offsets.reset(storage(QRhiBuffer::Immutable,
-                              offsets.size() * sizeof(uint32_t),
-                              offsets.data()));
-  flex->triangles.reset(storage(QRhiBuffer::Immutable,
-                                triangles.size() * sizeof(uint32_t),
-                                triangles.data()));
-  const auto stage = QRhiShaderResourceBinding::ComputeStage;
-  flex->deform_bindings.reset(rhi_->newShaderResourceBindings());
-  flex->deform_bindings->setBindings(
-    {QRhiShaderResourceBinding::uniformBuffer(0, stage, flex->params.get()),
-     QRhiShaderResourceBinding::bufferLoad(1, stage, flex->reference.get()),
-     QRhiShaderResourceBinding::bufferLoad(2, stage, flex->basis.get()),
-     QRhiShaderResourceBinding::bufferLoad(3, stage, flex->coefficients.get()),
-     QRhiShaderResourceBinding::bufferStore(4, stage, flex->deformed.get())});
-  flex->deform_bindings->create();
-  flex->normal_bindings.reset(rhi_->newShaderResourceBindings());
-  flex->normal_bindings->setBindings(
-    {QRhiShaderResourceBinding::uniformBuffer(0, stage, flex->params.get()),
-     QRhiShaderResourceBinding::bufferLoad(1, stage, flex->reference.get()),
-     QRhiShaderResourceBinding::bufferLoad(4, stage, flex->deformed.get()),
-     QRhiShaderResourceBinding::bufferLoad(5, stage, gpu.indices.get()),
-     QRhiShaderResourceBinding::bufferLoad(6, stage, flex->offsets.get()),
-     QRhiShaderResourceBinding::bufferLoad(7, stage, flex->triangles.get()),
-     QRhiShaderResourceBinding::bufferStore(8, stage, gpu.vertices.get())});
-  flex->normal_bindings->create();
-  if(!flex_deform_pipeline_) {
-    flex_deform_pipeline_.reset(NewComputePipeline(
-      "flex_deform.comp.qsb", flex->deform_bindings.get()));
-    flex_normals_pipeline_.reset(NewComputePipeline(
-      "flex_normals.comp.qsb", flex->normal_bindings.get()));
-  }
-  /* a bound of the deformation (UploadFlexUpdates) */
-  const size_t columns = mesh.flex_columns;
-  flex->reach.assign(columns, 0.f);
-  for(size_t v = 0; v < vertex_count; v++) {
-    const float* x = mesh.vertices[v].position;
-    const ksl_vec3f_t d =
-      ksl_vec3f(x[0] - mesh.flex_centroid.x, x[1] - mesh.flex_centroid.y,
-                x[2] - mesh.flex_centroid.z);
-    flex->centroid_reach =
-      std::max(flex->centroid_reach, ksl_vec3f_l2norm(&d));
-    for(size_t j = 0; j < columns && mesh.flex_basis.size() ==
-                                       3 * columns * vertex_count; j++) {
-      const float* u = mesh.flex_basis.data() + 3 * (v * columns + j);
-      const ksl_vec3f_t shape = ksl_vec3f(u[0], u[1], u[2]);
-      flex->reach[j] = std::max(flex->reach[j], ksl_vec3f_l2norm(&shape));
-    }
-  }
-  flex->bounds_min = mesh.bounds_min;
-  flex->bounds_max = mesh.bounds_max;
-  gpu.flex = std::move(flex);
-}
-
-/* Step of flex_refit.comp */
-struct FlexRefitStep {
-  uint32_t step[4];
-};
-
-void shift::gui::Viewport::CreateRtFlex(const RtFlexMesh& rt, GpuMesh& gpu,
-                                        QRhiResourceUpdateBatch* batch) {
-  GpuFlex& flex = *gpu.flex;
-  /* the depth of each node of the mesh's BVH: the left child follows its
-  node, and both children come after it */
-  const int first = rt.first_node;
-  const int count = rt.node_count;
-  if(first < 0 || first + count > static_cast<int>(rt_nodes_.size()) ||
-     count <= 0) {
-    return;
-  }
-  std::vector<int> depth(size_t(count), 0);
-  int deepest = 0;
-  std::vector<uint32_t> leaves;
-  for(int i = 0; i < count; i++) {
-    const BvhNode& node = rt_nodes_[size_t(first + i)];
-    if(node.triangle_count >= 0) {
-      leaves.push_back(uint32_t(first + i));
-      continue;
-    }
-    for(int child : {first + i + 1, node.right_or_first}) {
-      depth[size_t(child - first)] = depth[size_t(i)] + 1;
-    }
-    deepest = std::max(deepest, depth[size_t(i)]);
-  }
-  /* the list: the leaves, then the interior nodes the deepest first */
-  std::vector<uint32_t> list = leaves;
-  std::vector<FlexRefitStep> steps;
-  const uint32_t first_triangle = uint32_t(rt.first_triangle);
-  steps.push_back({{0, uint32_t(rt.order.size()), 0, first_triangle}});
-  steps.push_back({{0, uint32_t(leaves.size()), 1, first_triangle}});
-  for(int d = deepest; d >= 0; d--) {
-    const uint32_t start = uint32_t(list.size());
-    for(int i = 0; i < count; i++) {
-      if(rt_nodes_[size_t(first + i)].triangle_count < 0 &&
-         depth[size_t(i)] == d) {
-        list.push_back(uint32_t(first + i));
-      }
-    }
-    steps.push_back({{start, uint32_t(list.size()) - start, 2,
-                      first_triangle}});
-  }
-  flex_step_stride_ =
-    quint32(rhi_->ubufAligned(int(sizeof(FlexRefitStep))));
-  flex.steps.reset(rhi_->newBuffer(QRhiBuffer::Dynamic,
-                                   QRhiBuffer::UniformBuffer,
-                                   quint32(steps.size()) * flex_step_stride_));
-  flex.steps->create();
-  flex.step_counts.clear();
-  for(size_t k = 0; k < steps.size(); k++) {
-    batch->updateDynamicBuffer(flex.steps.get(),
-                               quint32(k) * flex_step_stride_,
-                               sizeof(FlexRefitStep), &steps[k]);
-    flex.step_counts.push_back(steps[k].step[1]);
-  }
-  auto storage = [&](const std::vector<uint32_t>& data) {
-    auto* buffer = rhi_->newBuffer(
-      QRhiBuffer::Immutable, QRhiBuffer::StorageBuffer,
-      quint32(std::max<size_t>(data.size() * sizeof(uint32_t), 16)));
-    buffer->create();
-    if(!data.empty()) {
-      batch->uploadStaticBuffer(buffer, 0,
-                                quint32(data.size() * sizeof(uint32_t)),
-                                data.data());
-    }
-    return buffer;
-  };
-  flex.order.reset(
-    storage(std::vector<uint32_t>(rt.order.begin(), rt.order.end())));
-  flex.list.reset(storage(list));
-  const auto stage = QRhiShaderResourceBinding::ComputeStage;
-  flex.refit_bindings.reset(rhi_->newShaderResourceBindings());
-  flex.refit_bindings->setBindings(
-    {QRhiShaderResourceBinding::uniformBufferWithDynamicOffset(
-       0, stage, flex.steps.get(), sizeof(FlexRefitStep)),
-     QRhiShaderResourceBinding::bufferLoad(1, stage, gpu.vertices.get()),
-     QRhiShaderResourceBinding::bufferLoad(2, stage, gpu.indices.get()),
-     QRhiShaderResourceBinding::bufferLoad(3, stage, flex.order.get()),
-     QRhiShaderResourceBinding::bufferLoad(4, stage, flex.list.get()),
-     QRhiShaderResourceBinding::bufferLoadStore(5, stage,
-                                                rt_triangle_buffer_.get()),
-     QRhiShaderResourceBinding::bufferLoadStore(6, stage,
-                                                rt_node_buffer_.get())});
-  flex.refit_bindings->create();
-  if(!flex_refit_pipeline_) {
-    flex_refit_pipeline_.reset(NewComputePipeline(
-      "flex_refit.comp.qsb", flex.refit_bindings.get()));
-  }
-  flex.rt_stale = true;
-}
-
 void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
                                              bool all) {
   simulation_->TakeFlexUpdates(flex_updates_, all);
@@ -2167,39 +1965,12 @@ void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
     if(update.coefficients.size() != mesh.flex_columns) {
       continue;
     }
-    if(gpu.flex) {
-      GpuFlex& flex = *gpu.flex;
-      FlexParams params{};
-      params.counts[0] = flex.vertex_count;
-      params.counts[1] = mesh.flex_columns;
-      for(int c = 0; c < 3; c++) {
-        params.centroid[c] = mesh.flex_centroid.at[c];
-        params.translation[c] = update.translation.at[c];
-        params.rotation[c] = update.rotation.at[c];
-      }
-      batch->updateDynamicBuffer(flex.params.get(), 0, sizeof(params),
-                                 &params);
-      if(!update.coefficients.empty()) {
-        batch->uploadStaticBuffer(
-          flex.coefficients.get(), 0,
-          quint32(update.coefficients.size() * sizeof(float)),
-          update.coefficients.data());
-      }
-      flex.dispatch = true;
-      flex.rt_stale = true;
-      /* a box that holds the deformed mesh: no vertex moves farther than
-      sum |a_j| reach_j + |t| + |theta| centroid_reach */
-      float radius = ksl_vec3f_l2norm(&update.translation) +
-                     ksl_vec3f_l2norm(&update.rotation) * flex.centroid_reach;
-      for(size_t j = 0; j < flex.reach.size(); j++) {
-        radius += std::fabs(update.coefficients[j]) * flex.reach[j];
-      }
-      for(int c = 0; c < 3; c++) {
-        flex.bounds_min.at[c] = mesh.bounds_min.at[c] - radius;
-        flex.bounds_max.at[c] = mesh.bounds_max.at[c] + radius;
-      }
-      if(flex.refit_bindings) {
-        rt_instances_dirty_ = true;
+    gpu.flex_shown = update;
+    gpu.pick_stale = true;
+    if(gpu.flex >= 0 && flex_gpu_) {
+      flex_gpu_->Update(gpu.flex, mesh, update, batch);
+      if(flex_gpu_->is_ray_traced(gpu.flex)) {
+        rt_instances_dirty_ = true; // the instance's box
         rt_frame_ = 0;
       }
       continue;
@@ -2211,71 +1982,6 @@ void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
                                 flex_vertices_.data());
     }
   }
-}
-
-QRhiResourceUpdateBatch*
-shift::gui::Viewport::DeformMeshes(QRhiCommandBuffer* cb,
-                                   QRhiResourceUpdateBatch* batch) {
-  std::vector<GpuFlex*> pending;
-  for(auto& gpu : gpu_meshes_) {
-    if(gpu.flex && gpu.flex->dispatch) {
-      gpu.flex->dispatch = false;
-      pending.push_back(gpu.flex.get());
-    }
-  }
-  const bool deform =
-    !pending.empty() && flex_deform_pipeline_ && flex_normals_pipeline_;
-  if(deform) {
-    // the normals read the positions of the vertices around: a pass of
-    // their own, which QRhi orders after the positions are written
-    cb->beginComputePass(batch);
-    batch = nullptr;
-    cb->setComputePipeline(flex_deform_pipeline_.get());
-    for(GpuFlex* flex : pending) {
-      cb->setShaderResources(flex->deform_bindings.get());
-      cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
-    }
-    cb->endComputePass();
-    cb->beginComputePass();
-    cb->setComputePipeline(flex_normals_pipeline_.get());
-    for(GpuFlex* flex : pending) {
-      cb->setShaderResources(flex->normal_bindings.get());
-      cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
-    }
-    cb->endComputePass();
-  }
-  // the ray tracer's triangles and BVH, while ray tracing: each step in a
-  // pass of its own, after the one whose results it reads
-  std::vector<GpuFlex*> stale;
-  if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_ &&
-     flex_refit_pipeline_) {
-    for(auto& gpu : gpu_meshes_) {
-      if(gpu.flex && gpu.flex->rt_stale && gpu.flex->refit_bindings) {
-        gpu.flex->rt_stale = false;
-        stale.push_back(gpu.flex.get());
-      }
-    }
-  }
-  size_t step_count = 0;
-  for(GpuFlex* flex : stale) {
-    step_count = std::max(step_count, flex->step_counts.size());
-  }
-  for(size_t k = 0; k < step_count; k++) {
-    cb->beginComputePass(batch);
-    batch = nullptr;
-    cb->setComputePipeline(flex_refit_pipeline_.get());
-    for(GpuFlex* flex : stale) {
-      if(k >= flex->step_counts.size() || flex->step_counts[k] == 0) {
-        continue;
-      }
-      const QRhiCommandBuffer::DynamicOffset offset(
-        0, quint32(k) * flex_step_stride_);
-      cb->setShaderResources(flex->refit_bindings.get(), 1, &offset);
-      cb->dispatch(int((flex->step_counts[k] + 63) / 64), 1, 1);
-    }
-    cb->endComputePass();
-  }
-  return batch ? batch : rhi_->nextResourceUpdateBatch();
 }
 
 void shift::gui::Viewport::UploadTerrainUpdates(
@@ -2505,6 +2211,7 @@ void shift::gui::Viewport::ShapeRtTerrain(
 void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   scene_dirty_ = false;
   rt_terrains_.clear();
+  flex_gpu_.reset();
   gpu_meshes_.clear();
   rt_triangles_.clear();
   rt_triangle_faces_.clear();
@@ -2516,6 +2223,7 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   pick_nodes_.clear();
   pick_roots_.clear();
   pick_cad_trims_ = CadTrimTables();
+  pick_flex_.clear();
   pick_built_ = false;
   if(!simulation_) {
     return;
@@ -2523,6 +2231,7 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   const Scene& scene = simulation_->get_scene();
 
   const bool compute = rhi_->isFeatureSupported(QRhi::Compute);
+  flex_gpu_ = std::make_unique<FlexGpu>(rhi_.get());
   for(const auto& mesh : scene.meshes) {
     GpuMesh gpu;
     const quint32 vertex_bytes = quint32(mesh.vertices.size() * sizeof(Vertex));
@@ -2547,7 +2256,8 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     batch->uploadStaticBuffer(gpu.indices.get(), mesh.indices.data());
     gpu.index_count = quint32(mesh.indices.size());
     if(on_gpu) {
-      CreateGpuFlex(mesh, gpu, batch);
+      gpu.flex =
+        flex_gpu_->Add(mesh, gpu.vertices.get(), gpu.indices.get(), batch);
     }
     gpu_meshes_.push_back(std::move(gpu));
   }
@@ -2691,7 +2401,7 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   rt_instance_list_ = RtInstanceList(scene);
   if(ray_tracing_supported_) {
     CadTrimTables trims = MergeCadTrims(scene.cads);
-    std::vector<RtFlexMesh> rt_flex;
+    std::vector<RtFlexMesh>& rt_flex = pick_flex_;
     BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, trims,
                   rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_,
                   &rt_terrains_, &rt_flex);
@@ -2738,6 +2448,20 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
       rhi_->newBuffer(QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
                       quint32(rt_nodes_.size() * sizeof(BvhNode))));
     rt_node_buffer_->create();
+    size_t motion_triangles = 0;
+    for(const auto& flex : rt_flex) {
+      motion_triangles += flex.order.size();
+    }
+    rt_triangle_motion_buffer_.reset(rhi_->newBuffer(
+      QRhiBuffer::Static, QRhiBuffer::StorageBuffer,
+      quint32(std::max<size_t>(3 * motion_triangles * 4 * sizeof(float), 16))));
+    rt_triangle_motion_buffer_->create();
+    if(motion_triangles > 0) {
+      const std::vector<float> zero(12 * motion_triangles, 0.f);
+      batch->uploadStaticBuffer(rt_triangle_motion_buffer_.get(), 0,
+                                quint32(zero.size() * sizeof(float)),
+                                zero.data());
+    }
     const quint32 rt_instance_count =
       quint32(std::max<size_t>(rt_instance_list_.size(), 1));
     rt_instance_buffer_.reset(
@@ -2752,10 +2476,10 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     batch->uploadStaticBuffer(rt_triangle_buffer_.get(), rt_triangles_.data());
     batch->uploadStaticBuffer(rt_node_buffer_.get(), rt_nodes_.data());
     for(const auto& flex : rt_flex) {
-      GpuMesh& gpu = gpu_meshes_[size_t(flex.mesh)];
-      if(gpu.flex) {
-        CreateRtFlex(flex, gpu, batch);
-      }
+      flex_gpu_->AddRayTracing(gpu_meshes_[size_t(flex.mesh)].flex, flex,
+                               rt_nodes_, rt_triangle_buffer_.get(),
+                               rt_node_buffer_.get(),
+                               rt_triangle_motion_buffer_.get(), batch);
     }
     // the GPU copies are all that ray tracing needs from here on; picking
     // keeps the CPU copies
@@ -2799,7 +2523,11 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
     UploadParticleUpdates(batch, gpu_particles_reset_);
     UploadFlexUpdates(batch, gpu_particles_reset_);
     gpu_particles_reset_ = false;
-    batch = DeformMeshes(cb, batch);
+    if(flex_gpu_) {
+      batch = flex_gpu_->Deform(
+        cb, batch,
+        render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_);
+    }
   }
 
   if(render_mode_ == RenderMode::kRayTraced && ray_tracing_supported_) {
@@ -3190,9 +2918,8 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       // a flexible body's: a box that holds its deformation
       if(size_t(instance.mesh_index) < gpu_meshes_.size()) {
         const GpuMesh& gpu = gpu_meshes_[size_t(instance.mesh_index)];
-        if(gpu.flex && gpu.flex->refit_bindings) {
-          bounds_min = gpu.flex->bounds_min;
-          bounds_max = gpu.flex->bounds_max;
+        if(flex_gpu_ && flex_gpu_->is_ray_traced(gpu.flex)) {
+          flex_gpu_->get_bounds(gpu.flex, bounds_min, bounds_max);
         }
       }
       for(const auto& terrain : rt_terrains_) {
@@ -3702,9 +3429,41 @@ void shift::gui::Viewport::BuildPickBvh() {
     pick_cad_trims_ = MergeCadTrims(scene.cads);
     BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, pick_cad_trims_,
                   pick_triangles_, pick_triangle_faces_, pick_nodes_,
-                  pick_roots_);
+                  pick_roots_, nullptr, &pick_flex_);
+    for(auto& gpu : gpu_meshes_) {
+      gpu.pick_stale = true;
+    }
   }
   pick_built_ = true;
+}
+
+void shift::gui::Viewport::DeformPickBvh() {
+  const Scene& scene = simulation_->get_scene();
+  std::vector<Vertex> vertices;
+  for(const auto& flex : pick_flex_) {
+    if(size_t(flex.mesh) >= gpu_meshes_.size() ||
+       size_t(flex.mesh) >= scene.meshes.size()) {
+      continue;
+    }
+    GpuMesh& gpu = gpu_meshes_[size_t(flex.mesh)];
+    const SceneMesh& mesh = scene.meshes[size_t(flex.mesh)];
+    if(!gpu.pick_stale || gpu.flex_shown.coefficients.size() !=
+                            mesh.flex_columns) {
+      continue;
+    }
+    gpu.pick_stale = false;
+    DeformFlexMesh(mesh, gpu.flex_shown, vertices);
+    for(size_t k = 0; k < flex.order.size(); k++) {
+      RtTriangle& triangle = pick_triangles_[size_t(flex.first_triangle) + k];
+      float* positions[3] = {triangle.v0, triangle.v1, triangle.v2};
+      for(int j = 0; j < 3; j++) {
+        const Vertex& v =
+          vertices[mesh.indices[3 * size_t(flex.order[k]) + size_t(j)]];
+        std::copy(v.position, v.position + 3, positions[j]);
+      }
+    }
+    RefitBvh(pick_triangles_, pick_nodes_, flex.first_node, flex.node_count);
+  }
 }
 
 bool shift::gui::Viewport::Pick(const QPointF& pixel, ksl_vec3f_t& point) {
@@ -3714,6 +3473,7 @@ bool shift::gui::Viewport::Pick(const QPointF& pixel, ksl_vec3f_t& point) {
   if(!pick_built_) {
     BuildPickBvh();
   }
+  DeformPickBvh();
   // the ray from the camera through the pixel
   const float w = float(std::max(width(), 1));
   const float h = float(std::max(height(), 1));

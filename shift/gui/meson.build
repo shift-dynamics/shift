@@ -144,6 +144,7 @@ shift_gui_lib = static_library(
   'cad_scene.cc',
   'camera.cc',
   'environment.cc',
+  'flex_gpu.cc',
   'mode_window.cc',
   'playback_slider.cc',
   'scene.cc',

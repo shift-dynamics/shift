@@ -146,6 +146,13 @@ Mechanisms
      - :tree:`examples/slider_crank`
      - a slider-crank, and variants split into two or three kinematic
        substructures
+   * - .. image:: ../images/examples/flex_slider_crank.jpg
+          :width: 220px
+          :alt: flex_slider_crank
+     - :tree:`examples/flex`
+     - a slider-crank whose steel connecting rod is a flexible body
+       (``modal``) made from its STEP solid; its bending drawn 300 times
+       as large
    * - .. image:: ../images/examples/bricard.jpg
           :width: 220px
           :alt: bricard

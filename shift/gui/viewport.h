@@ -3,6 +3,7 @@
 
 #include "shift/gui/bvh.h"
 #include "shift/gui/camera.h"
+#include "shift/gui/flex_gpu.h"
 #include "shift/gui/scene.h"
 
 #include <QPoint>
@@ -49,17 +50,6 @@ struct RtDeformableTerrain {
   std::vector<int32_t> position;
 };
 
-/*! the ray tracer's triangles of a deformable mesh (a flexible body's
- * surface), which the compute shaders write and refit as it deforms */
-struct RtFlexMesh {
-  int mesh = 0; /*!< in Scene::meshes */
-  int first_triangle = 0;
-  int first_node = 0; /*!< its root */
-  int node_count = 0;
-  /*! the mesh's triangle at each place after first_triangle, as the BVH
-   * ordered them */
-  std::vector<int32_t> order;
-};
 
 /*!
 @brief 3D view of a simulation, rendered with Qt RHI (Vulkan)
@@ -253,38 +243,6 @@ protected:
   void wheelEvent(QWheelEvent* event) override;
 
 private:
-  /*! the buffers with which the compute shaders deform a deformable mesh
-   * (FlexUpdate) into its vertex buffer: flex_deform.comp the positions,
-   * then flex_normals.comp the vertices with their normals */
-  struct GpuFlex {
-    std::unique_ptr<QRhiBuffer> params;       /*!< uniform, FlexParams */
-    std::unique_ptr<QRhiBuffer> reference;    /*!< the undeformed vertices */
-    std::unique_ptr<QRhiBuffer> basis;        /*!< SceneMesh::flex_basis */
-    std::unique_ptr<QRhiBuffer> coefficients; /*!< FlexUpdate's */
-    std::unique_ptr<QRhiBuffer> deformed;     /*!< positions, vec4 */
-    std::unique_ptr<QRhiBuffer> offsets;      /*!< triangles of a vertex */
-    std::unique_ptr<QRhiBuffer> triangles;
-    std::unique_ptr<QRhiShaderResourceBindings> deform_bindings;
-    std::unique_ptr<QRhiShaderResourceBindings> normal_bindings;
-    uint32_t vertex_count = 0;
-    bool dispatch = false; /*!< updated since deformed */
-    /*! the farthest any vertex moves in each shape, and the farthest
-     * vertex from SceneMesh::flex_centroid: a bound of the deformation */
-    std::vector<float> reach;
-    float centroid_reach = 0.f;
-    /*! a box that holds the deformed mesh, body coordinates */
-    ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f);
-    ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
-    /*! the ray tracer's (RtFlexMesh), written by flex_refit.comp in
-     * steps: the triangles, the leaves, then the interior nodes by depth,
-     * the deepest first */
-    std::unique_ptr<QRhiBuffer> order;
-    std::unique_ptr<QRhiBuffer> list;
-    std::unique_ptr<QRhiBuffer> steps; /*!< uniform, a Step each */
-    std::unique_ptr<QRhiShaderResourceBindings> refit_bindings;
-    std::vector<uint32_t> step_counts; /*!< the work of each step */
-    bool rt_stale = false; /*!< deformed since its triangles were written */
-  };
   struct GpuMesh {
     std::unique_ptr<QRhiBuffer> vertices;
     std::unique_ptr<QRhiBuffer> indices;
@@ -292,8 +250,13 @@ private:
     /*! range of Scene::instances drawn with this mesh */
     uint32_t first_instance = 0;
     uint32_t instance_count = 0;
-    /*! of a deformable mesh, where the device has compute shaders */
-    std::unique_ptr<GpuFlex> flex;
+    /*! of a deformable mesh, where the device has compute shaders: its
+     * index in flex_gpu_, -1 if none */
+    int flex = -1;
+    /*! of a deformable mesh: its deformation shown, and whether picking's
+     * triangles are of an earlier one */
+    FlexUpdate flex_shown;
+    bool pick_stale = false;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -333,22 +296,10 @@ private:
    * TakeParticleUpdates), or all of them; the buffers grow as needed */
   void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
   /*! \brief the deformation of the deformable meshes (flexible bodies)
-   * that changed, or all: on the GPU, its coefficients, for DeformMeshes;
+   * that changed, or all: on the GPU, its coefficients, for FlexGpu::Deform;
    * otherwise the vertices deformed on the CPU */
   void UploadFlexUpdates(QRhiResourceUpdateBatch* batch, bool all);
-  /*! \brief the buffers and bindings of a deformable mesh for the compute
-   * shaders that deform it */
-  void CreateGpuFlex(const SceneMesh& mesh, GpuMesh& gpu,
-                     QRhiResourceUpdateBatch* batch);
-  /*! \brief the ray tracer's buffers of a deformable mesh's triangles
-   * (after the ray tracer's buffers are made) */
-  void CreateRtFlex(const RtFlexMesh& rt, GpuMesh& gpu,
-                    QRhiResourceUpdateBatch* batch);
-  /*! \brief deform the meshes updated since (UploadFlexUpdates) on the GPU,
-   * in compute passes that take batch; returns the batch for what
-   * follows (batch itself if there was nothing to deform) */
-  QRhiResourceUpdateBatch* DeformMeshes(QRhiCommandBuffer* cb,
-                                        QRhiResourceUpdateBatch* batch);
+
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -449,10 +400,8 @@ private:
 
   // raster
   std::vector<GpuMesh> gpu_meshes_;
-  std::unique_ptr<QRhiComputePipeline> flex_deform_pipeline_;
-  std::unique_ptr<QRhiComputePipeline> flex_normals_pipeline_;
-  std::unique_ptr<QRhiComputePipeline> flex_refit_pipeline_;
-  quint32 flex_step_stride_ = 0; /*!< of GpuFlex::steps, aligned */
+  /*! the deformable meshes' compute shaders (GpuMesh::flex) */
+  std::unique_ptr<FlexGpu> flex_gpu_;
   std::unique_ptr<QRhiBuffer> frame_ubo_;
   std::unique_ptr<QRhiBuffer> material_ubo_; /*!< per mesh */
   std::unique_ptr<QRhiBuffer> lights_ubo_; /*!< LightUniforms */
@@ -580,6 +529,10 @@ private:
   CadTrimTables pick_cad_trims_;
   bool pick_built_ = false;
   void BuildPickBvh();
+  /*! \brief picking's triangles and BVH of the deformable meshes, as
+   * shown (GpuMesh::flex_shown) */
+  void DeformPickBvh();
+  std::vector<RtFlexMesh> pick_flex_; /*!< in pick_triangles_ */
   /*! \brief the nearest point of the scene meshes under a point of the
    * window (logical pixels), false if none */
   bool Pick(const QPointF& pixel, ksl_vec3f_t& point);
@@ -605,6 +558,10 @@ private:
   std::unique_ptr<QRhiTexture> rt_direct_; /*!< sunlight, not denoised */
   std::unique_ptr<QRhiTexture> rt_position_[2]; /*!< xyz, w = instance */
   std::unique_ptr<QRhiTexture> rt_normal_[2];   /*!< xyz, w = distance */
+  /*! the motion of the primary hit's point of its body (deforming bodies) */
+  std::unique_ptr<QRhiTexture> rt_motion_;
+  /*! the motion of the deforming triangles' vertices (RtFlexMesh) */
+  std::unique_ptr<QRhiBuffer> rt_triangle_motion_buffer_;
   std::unique_ptr<QRhiTexture> rt_history_illumination_[2]; /*!< w = length */
   std::unique_ptr<QRhiTexture> rt_history_moments_[2];
   std::unique_ptr<QRhiTexture> rt_history_albedo_[2];

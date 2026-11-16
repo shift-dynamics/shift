@@ -58,6 +58,9 @@ layout(rgba32f, binding = 7) uniform readonly image2D accumulation;
 layout(rgba32f, binding = 8) uniform readonly image2D previous_position;
 layout(rgba16f, binding = 9) uniform readonly image2D normal;
 layout(rgba16f, binding = 10) uniform readonly image2D previous_normal;
+// the motion of the hit's point of its body since the previous frame, body
+// coordinates (raytrace.comp)
+layout(rgba16f, binding = 11) uniform readonly image2D motion;
 
 // while the view changes, an exponential history of ~10 frames; the
 // cumulative mean of a static view starts from it
@@ -151,8 +154,9 @@ void main() {
     vec4 point = id == -1 ? vec4(g.xyz, 0.0) : vec4(g.xyz, 1.0);
     vec4 previous_point = point;
     if(id >= 0) {
-      previous_point = instances[id].previous_body_to_world *
-                       (instances[id].world_to_body * point);
+      vec4 body = instances[id].world_to_body * point;
+      body.xyz -= imageLoad(motion, pixel).xyz;
+      previous_point = instances[id].previous_body_to_world * body;
     }
     // the motion of the hit, independent of the sample's sub-pixel jitter
     vec2 window, previous_window;
