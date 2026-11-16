@@ -298,28 +298,32 @@ Examples and tests
 * :source:`test/dem/test_dem.cc` (the grains alone and against bodies whose
   motion is given: restitution, Hertz's overlap, rolling, momentum, a sphere
   resting on a body's triangles, a moving body pushing a sphere, the GPU
-  against the CPU; with NSC, a rebound with restitution, a stack at rest
-  without overlap under each solver, rolling down a slope and held by
-  rolling resistance, sliding with Coulomb friction, momentum in a
-  collision, grains settling in a box; and on the GPU, APGD and Jacobi
-  against the CPU, alone and with a body of mass, and grains settling the
-  same twice; convex hulls: a cube's mass properties, a rock's hull and its
-  clump, a cube resting flat on the floor and on another cube, momentum in
-  collisions of rocks and a sphere, rocks settling in a box, a cube resting
-  on a body's triangles as on a wall and pushed by a moving body, and the
-  GPU against the CPU, alone and with a body), :source:`test/dem/test_dem_model.cc` (a plate in a model
-  coming to rest on grains, its weight carried by them, with SMC and with
-  NSC on the CPU and the GPU; a wedge, the convex hull of its mesh,
-  splitting a bed of beads, with SMC and NSC; settling and filling from a
-  file; grains of a hull and a clump drawn as a mesh, read from a file) and
-  :source:`test/dem/test_dem_playback.cc` (the grains in the viewer: played
-  back forward and back, Reset repeating the run, Run from the grains
-  shown). The three that take longest, the plate with NSC on the GPU,
-  grains settling in a box with NSC on the GPU and the GPU against the CPU
-  with SMC, run with the benchmark ``contact_heavy`` instead (below).
+  against the CPU; with NSC, a rebound with restitution, rolling down a
+  slope and held by rolling resistance, sliding with Coulomb friction,
+  momentum in a collision; and on the GPU, APGD and Jacobi against the CPU,
+  alone and with a body of mass, and grains settling the same twice; convex
+  hulls: a cube's mass properties, a rock's hull and its clump, a cube
+  resting flat on the floor and on another cube, momentum in collisions of
+  rocks and a sphere, a cube resting on a body's triangles as on a wall and
+  pushed by a moving body, and the GPU against the CPU, alone and with a
+  body), :source:`test/dem/test_dem_model.cc` (a plate in a model resting
+  on a layer of grains for 0.05 s, its weight carried by them; saving the
+  grains and filling from the file; grains of a hull and a clump drawn as a
+  mesh, read from a file) and :source:`test/dem/test_dem_playback.cc` (the
+  grains in the viewer: played back forward and back, Reset repeating the
+  run, Run from the grains shown). These check behavior and take a few
+  seconds in all.
+* The long simulations in these files run with the benchmark ``dem_heavy``
+  instead (``meson test -C build --benchmark dem_heavy``): grains settling
+  in a box, with SMC and NSC on the CPU and with NSC on the GPU; a stack at
+  rest without overlap under each NSC solver; rocks settling in a box; the
+  plate dropped onto the grains and coming to rest on them, with SMC and
+  with NSC on the CPU and the GPU, and the GPU against the CPU with it;
+  settled grains staying at rest; and a wedge, the convex hull of its mesh,
+  splitting a bed of beads, with SMC and NSC.
 * Benchmarks, not run with the tests, each run with
-  ``meson test -C build --benchmark <name>``: ``contact_heavy`` (the
-  longest contact tests, the three above among them), ``dem_speed`` (the GPU solver
+  ``meson test -C build --benchmark <name>``: ``dem_heavy`` (above),
+  ``dem_speed`` (the GPU solver
   alone on up to 885,000 grains), ``dem_rock`` (a rock of 41 kg, the convex
   hull of a lumpy ellipsoid's mesh, thrown into 186,000 beads, 0.3 s),
   ``dem_million`` (a million beads falling into place, 0.05 s) and
