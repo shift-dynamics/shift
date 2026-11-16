@@ -26,13 +26,6 @@ void shift::core::solver::DCA::CheckTrees() {
         "joint '" +
         RootName(tree) + "' has closed loops; use the 'rnca' solver");
     }
-    if(tree.elastic_count > 0) {
-      throw shift::core::Exception(
-        "Solver 'dca' does not handle flexible bodies yet; the tree with "
-        "root joint '" +
-        RootName(tree) + "' has bodies with elastic coordinates (solvers "
-        "'rnca', 'aba' and 'auto' do)");
-    }
   }
   const auto& has_mass = context_->get_has_mass_array();
   const auto& joint_lookup = context_->get_joint_lookup();
@@ -63,6 +56,24 @@ void shift::core::solver::DCA::Setup() {
     }
   }
 
+  /* the flexible bodies and their node slots */
+  const auto& bodies = context_->get_active_articulated_bodies();
+  elastic_count_.assign(body_count_, 0);
+  elastic_dq_.assign(body_count_, -1);
+  slot_he_.assign(body_count_, -1);
+  elastic_body_.assign(body_count_, nullptr);
+  for(int i : context_->get_elastic_bodies()) {
+    const auto body = bodies[i];
+    const int j = body->get_va_index();
+    assert(j > -1 && j < (int)body_count_);
+    elastic_body_[j] = body;
+    elastic_count_[j] = (int)body->get_elastic_count();
+    elastic_dq_[j] = body->get_elastic_dq_index();
+  }
+  for(const auto& slot : context_->get_node_slots()) {
+    slot_he_[slot.index] = slot.he_offset;
+  }
+
   nodes_.clear();
   tops_.clear();
   root_joint_.clear();
@@ -78,6 +89,11 @@ void shift::core::solver::DCA::Setup() {
     node.dof = node.joint > -1
                  ? static_cast<int>(joint_dof_compressed[node.joint])
                  : 0;
+    if(node.body > -1 && elastic_count_[node.body] > 0) {
+      const size_t size = 6 + elastic_count_[node.body];
+      node.mass.assign(size * size, 0.0);
+      node.zeta.assign(size, 0.0);
+    }
   }
 
   {
@@ -119,11 +135,17 @@ int shift::core::solver::DCA::Build(const std::vector<int>& piece) {
     }
   }
 
-  if(piece.size() == 1) {
-    Node leaf;
-    leaf.body = piece[0];
-    leaf.handles = handles;
-    nodes_.push_back(leaf);
+  /* a body alone, or a flexible body with its node slots, is a leaf */
+  bool leaf = true;
+  for(size_t k = 1; k < piece.size(); k++) {
+    leaf = leaf && slot_he_[piece[k]] > -1 && pcl[piece[k]] == piece[0];
+  }
+  if(leaf) {
+    Node node;
+    node.body = piece[0];
+    node.slots.assign(piece.begin() + 1, piece.end());
+    node.handles = handles;
+    nodes_.push_back(node);
     return static_cast<int>(nodes_.size()) - 1;
   }
 
@@ -143,6 +165,9 @@ int shift::core::solver::DCA::Build(const std::vector<int>& piece) {
   int best = total + 1;
   for(size_t k = 1; k < piece.size(); k++) {
     const int x = piece[k];
+    if(slot_he_[x] > -1) {
+      continue; // a node slot stays with its flexible body
+    }
     const int larger = std::max(size[x], total - size[x]);
     if(larger < best) {
       best = larger;
@@ -299,7 +324,172 @@ void shift::core::solver::DCA::Disassemble(const Node& node, const double r[6],
   }
 }
 
+void shift::core::solver::DCA::HandleMap(int j, int x, double* p) const {
+  const int n = elastic_count_[j];
+  std::fill(p, p + 6 * (6 + n), 0.0);
+  for(int c = 0; c < 6; c++) {
+    p[c * 6 + c] = 1.0;
+  }
+  if(x != j) {
+    /* a node slot: P_k^T = [I; E_k^T] */
+    const ksl_screw_t* E = &context_->get_dhva().he[slot_he_[x]];
+    for(int m = 0; m < n; m++) {
+      for(int c = 0; c < 6; c++) {
+        p[(6 + m) * 6 + c] = E[m].at[c];
+      }
+    }
+  }
+}
+
+bool shift::core::solver::DCA::AssembleFlexible(Node& node) {
+  const int j = node.body;
+  const int n = elastic_count_[j];
+  const int size = 6 + n;
+  const int e = elastic_dq_[j];
+  const auto& dhva = context_->get_dhva();
+  const auto& mass_be = context_->get_elastic_mass_be();
+  const auto& bias_e = context_->get_elastic_bias_e();
+  const auto& f = context_->get_joint_working_forces();
+  double* M = node.mass.data();
+  double* zeta = node.zeta.data();
+
+  /* the frame's M_bb, M_be, M_ee, its bias wrench and the elastic forces */
+  std::fill(M, M + size * size, 0.0);
+  double block[36];
+  InertiaMatrix(inertia_[j], block);
+  for(int r = 0; r < 6; r++) {
+    for(int c = 0; c < 6; c++) {
+      M[r * size + c] = block[r * 6 + c];
+    }
+    zeta[r] = z_[j].at[r];
+  }
+  const double* mass_ee = elastic_body_[j]->get_mass_ee();
+  for(int m = 0; m < n; m++) {
+    for(int r = 0; r < 6; r++) {
+      M[r * size + 6 + m] = mass_be[e + m].at[r];
+      M[(6 + m) * size + r] = mass_be[e + m].at[r];
+    }
+    for(int l = 0; l < n; l++) {
+      M[(6 + m) * size + 6 + l] = mass_ee[m * n + l];
+    }
+    zeta[6 + m] =
+      f[e + m] + bias_e[e + m] - ksl_dot_cs(&mass_be[e + m], &dhva.aq[j]);
+  }
+
+  /* what is welded at the node slots: P_k^T M_k P_k and P_k^T z_k */
+  std::vector<double> p(6 * size), mp(6 * size);
+  for(int k : node.slots) {
+    if(inertia_[k].m <= 0.0) {
+      continue;
+    }
+    HandleMap(j, k, p.data());
+    InertiaMatrix(inertia_[k], block);
+    for(int r = 0; r < size; r++) {
+      for(int c = 0; c < 6; c++) {
+        double s = 0.0;
+        for(int d = 0; d < 6; d++) {
+          s += p[r * 6 + d] * block[d * 6 + c];
+        }
+        mp[r * 6 + c] = s;
+      }
+      for(int d = 0; d < 6; d++) {
+        zeta[r] += p[r * 6 + d] * z_[k].at[d];
+      }
+    }
+    for(int r = 0; r < size; r++) {
+      for(int c = 0; c < size; c++) {
+        double s = 0.0;
+        for(int d = 0; d < 6; d++) {
+          s += mp[r * 6 + d] * p[c * 6 + d];
+        }
+        M[r * size + c] += s;
+      }
+    }
+  }
+  if(!CholeskyFactor(size, M)) {
+    SHIFT_ERROR("DCA: the mass matrix of flexible body '" +
+                elastic_body_[j]->get_name() +
+                "' free of its joints (its frame's motion with its elastic "
+                "coordinates) is singular: its shapes repeat a rigid motion "
+                "of its reference frame, which DCA cannot solve (the shapes "
+                "must hold the frame still); use 'aba' or 'rnca'");
+    return true;
+  }
+
+  /* b_m = P_m M^-1 zeta, Psi_mn = P_m M^-1 P_n^T */
+  const int h = static_cast<int>(node.handles.size());
+  std::vector<double> x(size);
+  std::copy(zeta, zeta + size, x.begin());
+  CholeskySolve(size, M, x.data());
+  std::vector<double> maps(6 * size * h), solved(6 * size * h);
+  for(int a = 0; a < h; a++) {
+    double* pa = &maps[6 * size * a];
+    HandleMap(j, node.handles[a], pa);
+    for(int r = 0; r < 6; r++) {
+      double s = 0.0;
+      for(int d = 0; d < size; d++) {
+        s += pa[d * 6 + r] * x[d];
+      }
+      node.bias[6 * a + r] = s;
+    }
+    /* the columns of M^-1 P_a^T */
+    double* xa = &solved[6 * size * a];
+    for(int c = 0; c < 6; c++) {
+      std::vector<double> column(size);
+      for(int d = 0; d < size; d++) {
+        column[d] = pa[d * 6 + c];
+      }
+      CholeskySolve(size, M, column.data());
+      for(int d = 0; d < size; d++) {
+        xa[d * 6 + c] = column[d];
+      }
+    }
+  }
+  for(int a = 0; a < h; a++) {
+    const double* pa = &maps[6 * size * a];
+    for(int b = 0; b < h; b++) {
+      const double* xb = &solved[6 * size * b];
+      double* psi = &node.psi[36 * (a * h + b)];
+      for(int r = 0; r < 6; r++) {
+        for(int c = 0; c < 6; c++) {
+          double s = 0.0;
+          for(int d = 0; d < size; d++) {
+            s += pa[d * 6 + r] * xb[d * 6 + c];
+          }
+          psi[r * 6 + c] = s;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void shift::core::solver::DCA::SolveElastic(const Node& node) {
+  const int j = node.body;
+  const int n = elastic_count_[j];
+  const int size = 6 + n;
+  std::vector<double> x(node.zeta);
+  std::vector<double> p(6 * size);
+  for(size_t a = 0; a < node.handles.size(); a++) {
+    HandleMap(j, node.handles[a], p.data());
+    for(int d = 0; d < size; d++) {
+      for(int c = 0; c < 6; c++) {
+        x[d] += p[d * 6 + c] * node.wrench[6 * a + c];
+      }
+    }
+  }
+  CholeskySolve(size, node.mass.data(), x.data());
+  auto& ddq = context_->get_ddq();
+  const int e = elastic_dq_[j];
+  for(int m = 0; m < n; m++) {
+    ddq[e + m] = x[6 + m];
+  }
+}
+
 bool shift::core::solver::DCA::Assemble(Node& node) {
+  if(node.body > -1 && elastic_count_[node.body] > 0) {
+    return AssembleFlexible(node);
+  }
   if(node.body > -1) {
     double M[36];
     InertiaMatrix(inertia_[node.body], M);
@@ -448,6 +638,11 @@ bool shift::core::solver::DCA::SolveTrees() {
   for(auto it = nodes_.rbegin(); it != nodes_.rend(); it++) {
     Node& node = *it;
     if(node.body > -1) {
+      /* a leaf has the wrenches of its handles: the elastic accelerations
+      of a flexible body follow */
+      if(elastic_count_[node.body] > 0) {
+        SolveElastic(node);
+      }
       continue;
     }
     Node& A = nodes_[node.a];

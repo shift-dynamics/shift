@@ -77,6 +77,38 @@ where \f$\underline{\mathbf{a}}^0_{\beta\alpha}\f$ is the relative
 acceleration across the joint with \f$\underline{\mathbf{k}}^*_j =
 \underline{\mathbf{0}}\f$.
 
+A flexible body (body::Flex) and its node slots (topology::NodeSlot) form one
+leaf, whose handles are the body and the node slots that carry joints to bodies
+outside it. The accelerations of the leaf follow from
+\f$\underline{x} = \{\underline{\mathbf{a}}_j;\ \underline{\ddot{\eta}}_j\}\f$,
+the acceleration of the body's frame and of its elastic coordinates: the frame
+has \f$\underline{\mathbf{a}}_j = P_j\underline{x}\f$, \f$P_j = [I\ 0]\f$,
+and node slot \f$k\f$ has \f$\underline{\mathbf{a}}_k = P_k\underline{x}\f$,
+\f$P_k = [I\ E_k]\f$, the columns of \f$E_k\f$ the node's influence
+coefficients DHVA::he. With the inertia \f$M_k\f$ and the bias wrench
+\f$\underline{\mathbf{z}}^*_k\f$ of what is welded at each node slot, the
+equations of the leaf are \f$\mathcal{M}\underline{x} = \underline{\zeta} +
+\sum_n P_n^T\underline{\mathbf{k}}^*_n\f$, with
+\f[
+\mathcal{M} = \begin{bmatrix}
+M_{bb} + \sum_k M_k & M_{be} + \sum_k M_k E_k \\
+\left(M_{be} + \sum_k M_k E_k\right)^T & M_{ee} + \sum_k E_k^T M_k E_k
+\end{bmatrix}, \qquad
+\underline{\zeta} = \begin{Bmatrix}
+\underline{\mathbf{z}}^*_j + \sum_k\underline{\mathbf{z}}^*_k \\
+\underline{f}_e + \underline{b}_e - M_{be}^T\underline{\mathbf{a}}^q_j +
+\sum_k E_k^T\underline{\mathbf{z}}^*_k
+\end{Bmatrix}
+\f]
+(the terms of solver::ABA), so that \f$\Psi_{mn} = P_m\mathcal{M}^{-1}P_n^T\f$
+and \f$\underline{\mathbf{b}}_m = P_m\mathcal{M}^{-1}\underline{\zeta}\f$.
+Once the wrenches of its handles are known from the disassembly,
+\f$\underline{\ddot{\eta}}_j\f$ is the last part of
+\f$\mathcal{M}^{-1}(\underline{\zeta} + \sum_n
+P_n^T\underline{\mathbf{k}}^*_n)\f$. This is the two-handle form of a
+flexible body in the divide-and-conquer algorithm of Mukherjee and Anderson
+(2007), with any number of handles.
+
 The assembly order is fixed when the solver is initialized: each tree is split
 recursively at the joint that divides it into the two most nearly equal parts,
 so the hierarchy has a depth of about \f$\log_2 n\f$ for a chain of \f$n\f$
@@ -144,6 +176,10 @@ private:
     double q_f[6];              /*!< \f$D^{-1}\underline{f}_j\f$ */
     double beta[6]; /*!< \f$\underline{\mathbf{b}}^B_\beta -
                          \underline{\mathbf{b}}^A_\alpha\f$ */
+    /* a leaf of a flexible body */
+    std::vector<int> slots;    /*!< its node slots */
+    std::vector<double> mass;  /*!< Cholesky factor of \f$\mathcal{M}\f$ */
+    std::vector<double> zeta;  /*!< \f$\underline{\zeta}\f$ */
   };
 
   static bool registered_;
@@ -165,6 +201,24 @@ private:
   void Disassemble(const Node& node, const double r[6], double k[6]);
 
   bool Assemble(Node& node);
+
+  /*! \brief \f$\Psi\f$ and \f$\underline{\mathbf{b}}\f$ of the leaf of a
+   * flexible body and its node slots; return true on failure */
+  bool AssembleFlexible(Node& node);
+
+  /*! \brief \f$P_n^T\f$ of handle x of the leaf of flexible body j, a
+   * \f$(6 + n_e) \times 6\f$ matrix (row-major) */
+  void HandleMap(int j, int x, double* p) const;
+
+  /*! \brief the elastic accelerations of the leaf of a flexible body, from
+   * the wrenches of its handles */
+  void SolveElastic(const Node& node);
+
+  /* by compressed entry */
+  std::vector<int> elastic_count_; /*!< \f$n_e\f$, 0 for a rigid body */
+  std::vector<int> elastic_dq_;    /*!< index of the first elastic velocity */
+  std::vector<int> slot_he_; /*!< a node slot's first DHVA::he, else -1 */
+  std::vector<const shift::core::body::Base*> elastic_body_;
 
   std::vector<Node> nodes_;     /*!< post-order: subassemblies first */
   std::vector<int> tops_;       /*!< the final assembly of each tree */

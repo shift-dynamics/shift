@@ -493,7 +493,8 @@ public:
   static constexpr int kPoints = 3;
   static constexpr int kCount = 4;
 
-  TestFlexRotating() {
+  /* \p nodes makes the frames "tip" and "mid" nodes at points 0 and 1 */
+  explicit TestFlexRotating(bool nodes = false) {
     const ksl_vec3_t positions[kPoints] = {ksl_vec3(1.0, 0.0, 0.0),
                                            ksl_vec3(0.5, 0.2, -0.1),
                                            ksl_vec3(0.2, -0.3, 0.15)};
@@ -525,6 +526,10 @@ public:
       }
     }
     SetModel(p, m, rotary, kCount, shapes, stiffness, {});
+    if(nodes) {
+      SetNode("tip", 0);
+      SetNode("mid", 1);
+    }
     SetInitialElasticState({0.03, -0.02, 0.01, 0.025}, {0.4, -0.3, 0.5, -0.2});
   }
   static std::unique_ptr<shift::core::body::Base> Create() {
@@ -564,7 +569,12 @@ public:
 
 bool TestFlexRotating::registered_ =
   shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
-    "test_flex_rotating", TestFlexRotating::Create);
+    "test_flex_rotating", TestFlexRotating::Create) &&
+  shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
+    "test_flex_rotating_nodes",
+    +[]() -> std::unique_ptr<shift::core::body::Base> {
+      return std::make_unique<TestFlexRotating>(true);
+    });
 
 /* the chain fixed -J1- a -J2- s with the rotating flexible body s, solved
 by \p solver */
@@ -632,16 +642,13 @@ TEST(FlexBody, EnergyIsConservedWithRotatingShapes) {
   EXPECT_GT(std::fabs(y[e] - 0.03), 1e-3);
 }
 
-/* DCA refuses a tree with a flexible body; ABA solves it, and 'auto' gives
-it to ABA, as any tree without loops: both follow RNCA */
+/* ABA and DCA solve a tree with a flexible body, and 'auto' gives it to
+ABA, as any tree without loops: all follow RNCA */
 TEST(FlexBody, SolversRouteFlexibleTrees) {
-  auto dca =
-    FlexParticles::Load(RotatingModel("dca", 0.05), "flex_rotating_dca");
-  EXPECT_THROW(dca->Simulate(), shift::core::Exception);
   auto rnca = FlexParticles::Load(RotatingModel("rnca", 0.05),
                                   "flex_rotating_rnca");
   const std::vector<double> y_rnca = FlexParticles::Run(*rnca);
-  for(const std::string solver : {"aba", "auto"}) {
+  for(const std::string solver : {"aba", "dca", "auto"}) {
     auto context = FlexParticles::Load(RotatingModel(solver, 0.05),
                                        "flex_rotating_" + solver);
     const std::vector<double> y = FlexParticles::Run(*context);
@@ -1020,6 +1027,112 @@ TEST(FlexAba, AccelerationsMatchRnca) {
                 1e-12 * std::fmax(1.0, rnca->KineticEnergy()))
       << name;
   }
+}
+
+
+/* a tree of two rotating flexible bodies with nodes: fixed -J1- a -J2- s;
+c hangs from the node "tip" of s; w is welded at its node "mid", from which
+s2 hangs, and d hangs from the node "tip" of s2. The leaf of s has three
+handles (its frame and both node slots), the slot "mid" a mass and a child */
+static std::string RotatingTreeModel(const std::string& solver,
+                                     double time_span) {
+  const std::string frames = R"([{"name": "root", "T": [0.1, 0.05, 0.0],
+               "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]]},
+     {"name": "tip", "T": [1.0, 0.0, 0.0]},
+     {"name": "mid", "T": [0.5, 0.2, -0.1]}])";
+  std::stringstream ss;
+  ss << std::setprecision(17) << std::showpoint;
+  ss << R"({"model_parameters": {"version": "0.2",
+  "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+            "time": "seconds"},
+  "gravity": [0.0, 0.0, 9.81], "include_directories": ["."],
+  "solvers": [{"type": ")"
+     << solver << R"("}],
+  "integrators": [{"type": "ode113", "time_span": )"
+     << time_span << R"(, "time_step": 0.01, "relative_error": 1e-11,
+                   "absolute_error": 1e-11}]},
+ "assemblies": [{"name": "tree",
+  "bodies": [
+   {"name": "a", "geometry": [], "frames": [{"name": "tip", "T": [1, 0, 0]}],
+    )" << FlexParticles::Inertia(1.0, {0.1, 0.12, 0.08, 0.0, 0.0, 0.0})
+     << R"(},
+   {"name": "s", "type": "test_flex_rotating_nodes", "geometry": [],
+    "frames": )" << frames << R"(},
+   {"name": "c", "geometry": [], )"
+     << FlexParticles::Inertia(0.4, {0.02, 0.03, 0.025, 0.001, 0.0, 0.0})
+     << R"(},
+   {"name": "w", "geometry": [], )"
+     << FlexParticles::Inertia(0.3, {0.01, 0.012, 0.009, 0.0, 0.001, 0.0})
+     << R"(},
+   {"name": "s2", "type": "test_flex_rotating_nodes", "geometry": [],
+    "frames": )" << frames << R"(},
+   {"name": "d", "geometry": [], )"
+     << FlexParticles::Inertia(0.5, {0.03, 0.02, 0.025, 0.0, 0.0, 0.002})
+     << R"(}],
+  "joints": [
+   {"name": "J1", "type": "revolute", "axis": [0, 0, 1],
+    "initial_velocity": 1.5,
+    "parent": [["fixed"], "origin"], "child": [["a"], "origin"]},
+   {"name": "J2", "type": "revolute", "axis": [1, 0, 0],
+    "initial_displacement": 0.3, "initial_velocity": -2.0,
+    "parent": [["a"], "tip"], "child": [["s"], "root"]},
+   {"name": "J3", "type": "revolute", "axis": [0, 1, 0],
+    "initial_displacement": 0.2, "initial_velocity": 0.8,
+    "parent": [["s"], "tip"], "child": [["c"], "origin"]},
+   {"name": "W", "type": "rigid",
+    "parent": [["s"], "mid"], "child": [["w"], "origin"]},
+   {"name": "J4", "type": "revolute", "axis": [0, 0, 1],
+    "initial_displacement": -0.4, "initial_velocity": 1.1,
+    "parent": [["s"], "mid"], "child": [["s2"], "root"]},
+   {"name": "J5", "type": "revolute", "axis": [1, 0, 0],
+    "initial_velocity": -0.7,
+    "parent": [["s2"], "tip"], "child": [["d"], "origin"]}]}]}
+)";
+  return ss.str();
+}
+
+/* on the tree of two flexible bodies with nodes, DCA and ABA give RNCA's
+state derivatives and kinetic energy, and DCA follows RNCA over a run */
+TEST(FlexDca, TreeWithNodesMatchesRnca) {
+  auto rnca = FlexParticles::Load(RotatingTreeModel("rnca", 0.2),
+                                  "dca_tree_rnca");
+  const std::vector<double> dy_rnca = FlexParticles::Derivatives(*rnca);
+  for(const std::string solver : {"dca", "aba"}) {
+    auto context = FlexParticles::Load(RotatingTreeModel(solver, 0.2),
+                                       "dca_tree_" + solver);
+    ExpectDerivativesNear(FlexParticles::Derivatives(*context), dy_rnca,
+                          solver);
+    EXPECT_NEAR(context->KineticEnergy(), rnca->KineticEnergy(),
+                1e-12 * rnca->KineticEnergy())
+      << solver;
+  }
+  auto dca = FlexParticles::Load(RotatingTreeModel("dca", 0.2),
+                                 "dca_tree_dca_run");
+  const std::vector<double> y_rnca = FlexParticles::Run(*rnca);
+  const std::vector<double> y_dca = FlexParticles::Run(*dca);
+  ASSERT_EQ(y_dca.size(), y_rnca.size());
+  for(size_t k = 0; k < y_dca.size(); k++) {
+    EXPECT_NEAR(y_dca[k], y_rnca[k], 1e-8 * std::fmax(1.0, std::fabs(y_rnca[k])))
+      << k;
+  }
+}
+
+/* the particle body's shapes move its points in every direction, which
+repeats the rigid motion of its frame: free of its joint, its mass matrix
+is singular, and DCA reports it rather than solving it */
+TEST(FlexDca, RefusesShapesThatRepeatTheFrameMotion) {
+  auto context = FlexParticles::Load(
+    WithSolver(FlexParticles::Model(true, 0.01), "dca"), "dca_particles");
+  context->get_active_integrators()[0]->Initialize();
+  auto solver = (*context)["model_parameters"]["solvers"][0]
+                  .get_data<shift::core::solver::Base>();
+  solver->Initialize();
+  std::vector<double> y(context->get_state_count() +
+                          context->get_auxiliary_state_count(),
+                        0.0);
+  std::copy(context->get_q().begin(), context->get_q().end(), y.begin());
+  std::vector<double> dy(y.size(), 0.0);
+  EXPECT_TRUE(solver->Solve(0.0, y, dy));
 }
 
 /* under ABA the particle body still moves as its rigid twin */
