@@ -30,6 +30,7 @@ void shift::core::Jacobian::Initialize() {
   if(RemoveConstraintViolations()) {
     SHIFT_ERROR("Error: constraints not satisfied.");
   }
+  MakeVelocitiesConsistent();
 }
 
 void shift::core::Jacobian::Analyze() {
@@ -449,6 +450,13 @@ requires that SetupJacobianPO1 has been called for every substructure.
 @param bool use_tight_tolerance [in] indicates whether to use a tight error
 tolerance for removing constraint violations.
 */
+void shift::core::Jacobian::MakeVelocitiesConsistent() {
+  for(auto& substructure : substructures_) {
+    substructure.MakeVelocitiesConsistent(context_->get_dq());
+  }
+  context_->UpdateDHVA();
+}
+
 void shift::core::Jacobian::RemoveConstraintViolationsFast(bool use_tight_tolerance) {
   for(auto& substructure : substructures_) {
     substructure.RemoveConstraintViolationsFast(use_tight_tolerance);

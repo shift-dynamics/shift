@@ -30,6 +30,7 @@ test_sources = [
   'test_rigid_joint.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',
+  'test_consistent_velocities.cc',
   'test_tree_solvers.cc',
   'test_light.cc',
   'test_beam.cc',
