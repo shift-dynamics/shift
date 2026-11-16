@@ -202,6 +202,15 @@ public:
                        const ksl_screw_t& v_r) const;
   double ElasticEnergy(const double* eta) const;
 
+  /*! \brief \f$K^{\eta}\f$ and \f$C^{\eta}\f$, \f$n_e^2\f$ each,
+   * row-major */
+  const std::vector<double>& get_stiffness() const {
+    return stiffness_;
+  }
+  const std::vector<double>& get_damping() const {
+    return damping_;
+  }
+
 protected:
   /*! the rotational block J of the mass matrix about r's origin, the first
    * moment s, and the columns G_j, for \p eta */
