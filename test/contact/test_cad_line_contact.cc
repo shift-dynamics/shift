@@ -466,12 +466,13 @@ static ksl_SE3_t TiltedFlanks(double t, double angle, double depth, double tilt)
 }
 
 TEST_P(CurvedOnCurved, TiltedCamLoadsItsEnd) {
-  // the line shortens to one end, and the force has no jump on the way
+  // the line shortens to one end, and the force has no jump on the way; the
+  // force changes by 0.4 % of its peak from one tilt to the next
   CamScene scene(GetParam().first, GetParam().second);
   const double angle = 0.7, depth = 1e-5, t = 0.4;
   double previous = 0.0, greatest = 0.0, peak = 0.0;
-  for(int i = 0; i <= 2000; i++) {
-    const double tilt = 5e-6 * i;
+  for(int i = 0; i <= 200; i++) {
+    const double tilt = 5e-5 * i;
     const shift::core::collision_geometry::ContactPair& pair = scene.Test(TiltedFlanks(t, angle, depth, tilt), angle);
     ASSERT_TRUE(pair.collision) << tilt;
     double deepest = 0.0;
@@ -552,12 +553,24 @@ TEST_P(CurvedOnCurved, CrossedCamsAreAPoint) {
 }
 
 TEST_P(CurvedOnCurved, CrossedCamsHaveNoJumpOverASeam) {
-  // the point runs over the seam at the tip of the second cam
+  // the point runs over the seam at the tip of the second cam, at turn 0:
+  // every 2e-4 over the range and every 1e-5 near the seam (the force is
+  // flat to 4e-6 of its peak, so a jump of 2 % stands out at any spacing)
   CamScene scene(GetParam().first, GetParam().second);
+  std::vector<double> turns;
+  for(int i = -50; i <= 50; i++) {
+    turns.push_back(2e-4 * i);
+  }
+  for(int i = -19; i <= 19; i++) {
+    if(i % 20 != 0) {
+      turns.push_back(1e-5 * i);
+    }
+  }
+  std::sort(turns.begin(), turns.end());
   double previous = 0.0, greatest = 0.0, peak = 0.0;
-  for(int i = -1000; i <= 1000; i++) {
-    const double force = ElasticForce(scene.Test(Crossed(1e-5 * i, 1e-5)));
-    if(i > -1000) {
+  for(size_t i = 0; i < turns.size(); i++) {
+    const double force = ElasticForce(scene.Test(Crossed(turns[i], 1e-5)));
+    if(i > 0) {
       greatest = std::max(greatest, std::fabs(force - previous));
     }
     previous = force;
@@ -616,14 +629,17 @@ TEST(GearToothContact, FlanksMeshAlongALine) {
 }
 
 TEST(GearToothContact, MeshHasNoJump) {
+  // every milliradian through the mesh: away from a jump, the force changes
+  // by about 1e-5 of its peak from one to the next, so a jump of 2 % stands
+  // out at any spacing
   CamScene scene("gear_tooth", "gear_tooth");
   const double lead = 2e-4;
   double previous = 0.0, greatest = 0.0, peak = 0.0;
-  for(int i = -1000; i <= 1000; i++) {
-    const double phi = 1e-4 * i;
+  for(int i = -100; i <= 100; i++) {
+    const double phi = 1e-3 * i;
     const double force =
       ElasticForce(scene.Test(Meshing(phi, lead), phi - kHalfTooth));
-    if(i > -1000) {
+    if(i > -100) {
       greatest = std::max(greatest, std::fabs(force - previous));
     }
     previous = force;

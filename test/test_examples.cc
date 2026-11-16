@@ -6,11 +6,17 @@
  * replaced by '_'), e.g. Examples/Model.Simulates/bricard_bricard_json.
  * test/meson.build registers one meson test per model so a crash in one model
  * does not hide the others.
+ *
+ * The regular suite only checks that each model loads and runs: meson sets
+ * SHIFT_TEST_TIME_SPAN, and a model then runs for that many seconds (at least
+ * three of its output intervals) instead of its whole time span. The
+ * benchmarks leave it unset and run the models in full.
  */
 #include "gtest/gtest.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -18,6 +24,7 @@
 #include "shift/config.h"
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
+#include "shift/core/integrator/base.h"
 
 
 namespace fs = std::filesystem;
@@ -72,6 +79,13 @@ TEST_P(Model, Simulates) {
   try {
     shift::core::Context context;
     context.LoadJSON(json_file);
+    if(const char* cap = std::getenv("SHIFT_TEST_TIME_SPAN")) {
+      auto integrator = context["model_parameters"]["integrators"][0]
+                          .get_data<shift::core::integrator::Base>();
+      const double span = std::max(std::atof(cap),
+                                   3.0 * integrator->get_time_step());
+      integrator->set_time_span(std::min(integrator->get_time_span(), span));
+    }
     context.Simulate();
   } catch(const shift::core::Exception& e) {
     FAIL() << json_file << ": " << e.what() << "\n" << e.backtrace();

@@ -133,11 +133,20 @@ heavy_sph_tests = [
 ]
 
 # everything except the per-model cases, which are registered one by one
-# below, the speed benchmarks and the heavy tests
-test('shift-test', shift_test,
-     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
-            + ':'.join(heavy_contact_tests + heavy_sph_tests)],
-     timeout: 3600)
+# below, the speed benchmarks and the heavy tests, split into shards that
+# meson runs in parallel (gtest's sharding: shard k runs every
+# shift_test_shards-th test from the k-th); each shard has its own temporary
+# directory (main.cc)
+shift_test_shards = 24
+foreach k : range(shift_test_shards)
+  test('shift-test-@0@'.format(k), shift_test,
+       args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
+              + ':'.join(heavy_contact_tests + heavy_sph_tests)],
+       env: ['GTEST_TOTAL_SHARDS=@0@'.format(shift_test_shards),
+             'GTEST_SHARD_INDEX=@0@'.format(k)],
+       suite: 'unit',
+       timeout: 3600)
+endforeach
 
 benchmark('contact_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
@@ -265,6 +274,7 @@ foreach model_path : example_models
       model,
       shift_test,
       args: args,
+      env: ['SHIFT_TEST_TIME_SPAN=0.1'],
       suite: 'examples',
       should_fail: known_failures.has_key(model),
       timeout: 600,

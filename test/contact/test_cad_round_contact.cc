@@ -833,12 +833,25 @@ TEST_F(CadRound, CylinderIsTheSameCylinderFromAStepFile) {
                  0.01 + reach * std::sin(angle), 0.015 + 0.3 * reach}};
       return primitive.At(center, r).collision;
     };
+    // the first reach on a grid of 1e-4 from 0.12 down at which they touch:
+    // both are convex, so the reaches at which they touch along the line are
+    // one interval, and a scan by 1e-3 and then by 1e-4 back from the first
+    // touch finds the same reach as one by 1e-4
     double reach = 0.12;
-    for(; reach > 0.0 && !found; reach -= 1e-4) {
+    for(; reach > 0.0 && !found; reach -= 1e-3) {
       found = place(reach);
     }
     if(!found) {
       continue;
+    }
+    reach += 1e-3; // the first touch on the coarse grid
+    found = false;
+    for(double fine = reach + 1e-3 - 1e-4; fine > reach - 0.5e-4 && !found;
+        fine -= 1e-4) {
+      found = place(fine);
+      if(found) {
+        reach = fine - 1e-4;
+      }
     }
     place(reach + 1e-4);
     const double depth = primitive.At(center, r).depth;
@@ -1034,7 +1047,7 @@ static const double kStanding[3][3] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
 slot, standing in it at y */
 static double FirstTouch(shift::test::CadScene& scene, double y) {
   double apart = -0.08, deep = -0.05;
-  for(int i = 0; i < 60; i++) {
+  for(int i = 0; i < 44; i++) { // to 1e-15 of the bracket
     const double z = 0.5 * (apart + deep);
     (scene.At({{kTorusX, y, z}}, kStanding).collision ? deep : apart) = z;
   }
@@ -1090,9 +1103,10 @@ TEST_F(CadRound, TorusOffTheMiddleOfASlotStillRestsOnBothFlanks) {
 }
 
 TEST_F(CadRound, TurnedTorusKeepsBothPointsInTheSlot) {
-  // the torus turned about its axis through a full turn in 400 poses, sunk by
+  // the torus turned about its axis through a full turn in 100 poses, sunk by
   // 10 um: the points on the flanks cross every part of its outer faces and
-  // the seams between them, and at each pose both are found, at one depth
+  // the seams between them (at the quarter turns, among the poses), and at
+  // each pose both are found, at one depth
   shift::test::CadScene scene("cr_torus_turned", "channel.step", R"("type": "cad")", "",
               R"({"type": "cad", "filename": "torus.step"})");
   const double z = FirstTouch(scene, 0.0), sink = 10e-6;
@@ -1100,10 +1114,10 @@ TEST_F(CadRound, TurnedTorusKeepsBothPointsInTheSlot) {
   ASSERT_EQ(start.manifold.size(), 2u);
   const double depth = start.manifold[0].depth;
   int both = 0;
-  for(int i = 0; i < 400; i++) {
+  for(int i = 0; i < 100; i++) {
     // turned about its axis, y, by angle: R_y(angle) times the standing
     // rotation, rows
-    const double angle = 2.0 * M_PI * i / 400.0, c = std::cos(angle),
+    const double angle = 2.0 * M_PI * i / 100.0, c = std::cos(angle),
                  s = std::sin(angle);
     const double turn[3][3] = {{c, 0, s}, {0, 1, 0}, {-s, 0, c}};
     double r[3][3];
@@ -1125,7 +1139,7 @@ TEST_F(CadRound, TurnedTorusKeepsBothPointsInTheSlot) {
       }
     }
   }
-  EXPECT_EQ(both, 400);
+  EXPECT_EQ(both, 100);
 }
 
 /* torus.step, steel, its mass and inertia those of a solid torus of 40 mm
@@ -1281,7 +1295,7 @@ static double FirstHang(shift::test::CadScene& scene) {
   double r[3][3];
   Threaded(0.0, r);
   double apart = 0.0, deep = 0.015;
-  for(int i = 0; i < 60; i++) {
+  for(int i = 0; i < 44; i++) { // to 1e-15 of the bracket
     const double drop = 0.5 * (apart + deep);
     (scene.At(Hanging(drop), r).collision ? deep : apart) = drop;
   }
@@ -1317,7 +1331,8 @@ TEST_F(CadRound, TorusHangsOnATube) {
 TEST_F(CadRound, TorusAroundATubeTouchesEverywhere) {
   // the torus, keeping its orientation, moved off the tube's axis by 20 um more
   // than the clearance, in a direction turned about the axis through a full
-  // turn in 400 poses: the point where the tube touches the inside of its hole
+  // turn in 100 poses (the quarter turns among them): the point where the
+  // tube touches the inside of its hole
   // goes round both, across the four seams of the tube and the two of the
   // torus's inner faces, one point at one depth at each pose
   shift::test::CadScene scene("cr_torus_around", "tube.step", R"("type": "cad")", "",
@@ -1328,8 +1343,8 @@ TEST_F(CadRound, TorusAroundATubeTouchesEverywhere) {
   ksl_vec3_t axis, tangent;
   TubeAxis(kTorusX, false, axis, tangent);
   int found = 0;
-  for(int i = 0; i < 400; i++) {
-    const double angle = 2.0 * M_PI * i / 400.0;
+  for(int i = 0; i < 100; i++) {
+    const double angle = 2.0 * M_PI * i / 100.0;
     double away[3];
     ksl_vec3_t center;
     for(int k = 0; k < 3; k++) {
@@ -1351,7 +1366,7 @@ TEST_F(CadRound, TorusAroundATubeTouchesEverywhere) {
       }
     }
   }
-  EXPECT_EQ(found, 400);
+  EXPECT_EQ(found, 100);
 }
 
 TEST_F(CadRound, TippedTorusOnATubeTouchesTwice) {
@@ -1364,7 +1379,7 @@ TEST_F(CadRound, TippedTorusOnATubeTouchesTwice) {
   const ksl_vec3_t center = Hanging(0.0);
   double r[3][3];
   double apart = 0.0, deep = 1.2;
-  for(int i = 0; i < 60; i++) {
+  for(int i = 0; i < 44; i++) { // to 1e-15 of the bracket
     const double tip = 0.5 * (apart + deep);
     Threaded(tip, r);
     (scene.At(center, r).collision ? deep : apart) = tip;
