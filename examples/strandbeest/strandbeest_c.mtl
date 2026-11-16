@@ -1,0 +1,8 @@
+# bone: the color, roughness and normal maps of make_bone_textures.py
+newmtl bone
+Kd 1.0 1.0 1.0
+Pm 0.0
+Pr 1.0
+map_Kd bone_base_color.png
+map_Pr bone_roughness.png
+norm -bm 0.8 bone_normal.png

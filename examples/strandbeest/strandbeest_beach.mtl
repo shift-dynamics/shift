@@ -1,0 +1,7 @@
+# sand of the viewer's textures
+newmtl sand
+Kd 1.0 1.0 1.0
+Pm 0.0
+Pr 0.9
+map_Kd qrc:/textures/dry_sand.jpg
+norm -bm 0.6 qrc:/textures/dry_sand_normal.jpg
