@@ -46,7 +46,7 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
                   'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
-                  'axes.frag']
+                  'axes.frag', 'flex_deform.comp', 'flex_normals.comp']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,
@@ -55,7 +55,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
     depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
                         'shaders/surfaces.glsl',
                         'shaders/fluid_common.glsl',
-                        'shaders/hex_tiling.glsl'),
+                        'shaders/hex_tiling.glsl',
+                        'shaders/flex_common.glsl'),
   )
 endforeach
 

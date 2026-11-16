@@ -232,9 +232,11 @@ private:
   void AddFlexViews();
   /*! \brief show the elastic coordinates of the state y (from q) */
   void ShowElastic(const double* y);
-  /*! \brief the vertices of a view now: the elastic coordinates shown (or
-   * the preview) times the shapes */
-  void FlexVertices(const FlexView& view, std::vector<Vertex>& vertices) const;
+  /*! \brief the deformation of a view now (FlexUpdate): the elastic
+   * coordinates shown, or the preview, as coefficients of the mesh's
+   * shapes. The mesh's basis is the elastic coordinates' shapes, then the
+   * fixed-interface modes computed (for the preview) */
+  void FlexCoefficients(const FlexView& view, FlexUpdate& update) const;
   /*! an SPH soil drawn as Scene::particles[particles] */
   struct SphView {
     shift::core::terrain::Sph* sph = nullptr;

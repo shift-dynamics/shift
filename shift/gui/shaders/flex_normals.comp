@@ -1,0 +1,56 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// the vertices drawn of a flexible body's mesh surface: the deformed
+// positions (flex_deform.comp), with area weighted normals of the deformed
+// triangles, as shift::gui::ComputeNormals
+
+layout(local_size_x = 64) in;
+
+#include "flex_common.glsl"
+
+layout(std430, binding = 4) readonly buffer Deformed {
+  vec4 deformed[];
+};
+layout(std430, binding = 5) readonly buffer Indices {
+  uint indices[];
+};
+// the triangles of vertex v are triangles[offsets[v]] to
+// triangles[offsets[v + 1] - 1]
+layout(std430, binding = 6) readonly buffer Offsets {
+  uint offsets[];
+};
+layout(std430, binding = 7) readonly buffer Triangles {
+  uint triangles[];
+};
+// the vertex buffer drawn, as Vertex
+layout(std430, binding = 8) writeonly buffer Vertices {
+  float vertices[];
+};
+
+void main() {
+  uint v = gl_GlobalInvocationID.x;
+  if(v >= params.counts.x) {
+    return;
+  }
+  vec3 n = vec3(0.0);
+  for(uint k = offsets[v]; k < offsets[v + 1u]; k++) {
+    uint t = 3u * triangles[k];
+    vec3 p0 = deformed[indices[t]].xyz;
+    vec3 p1 = deformed[indices[t + 1u]].xyz;
+    vec3 p2 = deformed[indices[t + 2u]].xyz;
+    n += cross(p1 - p0, p2 - p0);
+  }
+  float length_n = length(n);
+  if(length_n > 0.0) {
+    n /= length_n;
+  }
+  vec3 x = deformed[v].xyz;
+  vertices[8u * v] = x.x;
+  vertices[8u * v + 1u] = x.y;
+  vertices[8u * v + 2u] = x.z;
+  vertices[8u * v + 3u] = n.x;
+  vertices[8u * v + 4u] = n.y;
+  vertices[8u * v + 5u] = n.z;
+  vertices[8u * v + 6u] = reference[8u * v + 6u];
+  vertices[8u * v + 7u] = reference[8u * v + 7u];
+}

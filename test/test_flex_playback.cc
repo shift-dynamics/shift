@@ -45,19 +45,28 @@ static std::string WritePlate() {
   return path;
 }
 
-/* the largest distance between the vertices of two updates */
-static double LargestMove(const shift::gui::FlexUpdate& a,
-                          const shift::gui::FlexUpdate& b) {
+/* the largest distance between the vertices of two surfaces */
+static double LargestMove(const std::vector<shift::gui::Vertex>& a,
+                          const std::vector<shift::gui::Vertex>& b) {
   double largest = 0.0;
-  for(size_t v = 0; v < a.vertices.size(); v++) {
+  for(size_t v = 0; v < a.size(); v++) {
     double d2 = 0.0;
     for(int c = 0; c < 3; c++) {
-      const double d = a.vertices[v].position[c] - b.vertices[v].position[c];
+      const double d = a[v].position[c] - b[v].position[c];
       d2 += d * d;
     }
     largest = std::max(largest, std::sqrt(d2));
   }
   return largest;
+}
+
+/* the surface an update draws */
+static std::vector<shift::gui::Vertex>
+Deformed(const shift::gui::Scene& scene,
+         const shift::gui::FlexUpdate& update) {
+  std::vector<shift::gui::Vertex> vertices;
+  shift::gui::DeformFlexMesh(scene.meshes[update.mesh], update, vertices);
+  return vertices;
 }
 
 TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
@@ -83,9 +92,13 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
   ASSERT_GE(deformable, 0);
   EXPECT_FALSE(scene.meshes[deformable].indices.empty());
 
-  /* the scene keeps the undeformed surface */
-  shift::gui::FlexUpdate undeformed;
-  undeformed.vertices = scene.meshes[deformable].vertices;
+  /* the scene keeps the undeformed surface, and the shapes of each vertex:
+  the elastic coordinates', then the two modes computed */
+  const shift::gui::SceneMesh& mesh = scene.meshes[deformable];
+  const std::vector<shift::gui::Vertex>& undeformed = mesh.vertices;
+  const unsigned int elastic = 2; /* the pin holds the plate: no static modes */
+  EXPECT_EQ(mesh.flex_columns, elastic + 2u);
+  EXPECT_EQ(mesh.flex_basis.size(), 3 * mesh.flex_columns * undeformed.size());
 
   /* the initial deformation as computed; then its part that is not a rigid
   motion of the body (the difference from scale 0) 1000 times as large */
@@ -93,19 +106,21 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
   simulation.TakeFlexUpdates(updates, true);
   ASSERT_EQ(updates.size(), 1u);
   EXPECT_EQ(updates[0].mesh, deformable);
-  const shift::gui::FlexUpdate deformed = updates[0];
+  ASSERT_EQ(updates[0].coefficients.size(), mesh.flex_columns);
+  const std::vector<shift::gui::Vertex> deformed = Deformed(scene, updates[0]);
   EXPECT_GT(LargestMove(deformed, undeformed), 0.0);
   simulation.set_deformation_scale(0.0);
   simulation.TakeFlexUpdates(updates);
   ASSERT_EQ(updates.size(), 1u);
-  const shift::gui::FlexUpdate rigid = updates[0];
+  const std::vector<shift::gui::Vertex> rigid = Deformed(scene, updates[0]);
   const double move = LargestMove(deformed, rigid);
   EXPECT_GT(move, 0.0);
   simulation.set_deformation_scale(1000.0);
   simulation.TakeFlexUpdates(updates);
   ASSERT_EQ(updates.size(), 1u);
   /* the vertices are floats */
-  EXPECT_NEAR(LargestMove(updates[0], rigid) / move, 1000.0, 0.1);
+  EXPECT_NEAR(LargestMove(Deformed(scene, updates[0]), rigid) / move, 1000.0,
+              0.1);
   /* nothing changed: nothing to upload */
   simulation.TakeFlexUpdates(updates);
   EXPECT_TRUE(updates.empty());
@@ -115,14 +130,14 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
   simulation.PreviewShape(body, 1, 1, 0.005);
   simulation.TakeFlexUpdates(updates);
   ASSERT_EQ(updates.size(), 1u);
-  const double preview = LargestMove(updates[0], undeformed);
+  const double preview = LargestMove(Deformed(scene, updates[0]), undeformed);
   EXPECT_LE(preview, 0.005 * (1.0 + 1e-5));
   EXPECT_GT(preview, 0.004);
   simulation.ClearShapePreview();
   simulation.set_deformation_scale(1.0);
   simulation.TakeFlexUpdates(updates);
   ASSERT_EQ(updates.size(), 1u);
-  EXPECT_LT(LargestMove(updates[0], deformed), 1e-9);
+  EXPECT_LT(LargestMove(Deformed(scene, updates[0]), deformed), 1e-9);
 }
 
 #endif

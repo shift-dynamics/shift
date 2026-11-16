@@ -211,3 +211,73 @@ float shift::gui::SurfaceNoiseLevel(int surface, double coverage) {
   std::nth_element(samples.begin(), samples.begin() + k, samples.end());
   return samples[k];
 }
+
+void shift::gui::ComputeNormals(std::vector<Vertex>& vertices,
+                                const std::vector<uint32_t>& indices) {
+  for(auto& vertex : vertices) {
+    std::fill(vertex.normal, vertex.normal + 3, 0.f);
+  }
+  for(size_t i = 0; i + 2 < indices.size(); i += 3) {
+    shift::gui::Vertex* v[3] = {&vertices[indices[i]],
+                                &vertices[indices[i + 1]],
+                                &vertices[indices[i + 2]]};
+    ksl_vec3f_t p[3];
+    for(int k = 0; k < 3; k++) {
+      p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
+                       v[k]->position[2]);
+    }
+    ksl_vec3f_t e1, e2, n;
+    ksl_subtract_vvf(&p[1], &p[0], &e1);
+    ksl_subtract_vvf(&p[2], &p[0], &e2);
+    ksl_cross_vvf(&e1, &e2, &n);
+    for(auto vertex : v) {
+      for(int k = 0; k < 3; k++) {
+        vertex->normal[k] += n.at[k];
+      }
+    }
+  }
+  /* divided by the length, however small the triangles; a vertex of no
+  area keeps its zero normal */
+  for(auto& vertex : vertices) {
+    ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
+                              vertex.normal[2]);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(length > 0.f) {
+      ksl_vec3f_scale(&n, 1.f / length);
+    }
+    for(int k = 0; k < 3; k++) {
+      vertex.normal[k] = n.at[k];
+    }
+  }
+}
+
+void shift::gui::DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
+                                std::vector<Vertex>& vertices) {
+  vertices = mesh.vertices;
+  const size_t columns = mesh.flex_columns;
+  if(update.coefficients.size() != columns ||
+     mesh.flex_basis.size() != 3 * columns * vertices.size()) {
+    return;
+  }
+  for(size_t v = 0; v < vertices.size(); v++) {
+    const ksl_vec3f_t x0 = ksl_vec3f(vertices[v].position[0],
+                                     vertices[v].position[1],
+                                     vertices[v].position[2]);
+    ksl_vec3f_t d, x;
+    ksl_subtract_vvf(&x0, &mesh.flex_centroid, &d);
+    ksl_cross_vvf(&update.rotation, &d, &x);
+    ksl_add_vvf(&x, &update.translation, &x);
+    ksl_add_vvf(&x, &x0, &x);
+    const float* s = mesh.flex_basis.data() + 3 * columns * v;
+    for(size_t j = 0; j < columns; j++) {
+      const float a = update.coefficients[j];
+      for(int c = 0; c < 3; c++) {
+        x.at[c] += a * s[3 * j + c];
+      }
+    }
+    for(int c = 0; c < 3; c++) {
+      vertices[v].position[c] = x.at[c];
+    }
+  }
+  ComputeNormals(vertices, mesh.indices);
+}

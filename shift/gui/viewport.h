@@ -241,6 +241,22 @@ protected:
   void wheelEvent(QWheelEvent* event) override;
 
 private:
+  /*! the buffers with which the compute shaders deform a deformable mesh
+   * (FlexUpdate) into its vertex buffer: flex_deform.comp the positions,
+   * then flex_normals.comp the vertices with their normals */
+  struct GpuFlex {
+    std::unique_ptr<QRhiBuffer> params;       /*!< uniform, FlexParams */
+    std::unique_ptr<QRhiBuffer> reference;    /*!< the undeformed vertices */
+    std::unique_ptr<QRhiBuffer> basis;        /*!< SceneMesh::flex_basis */
+    std::unique_ptr<QRhiBuffer> coefficients; /*!< FlexUpdate's */
+    std::unique_ptr<QRhiBuffer> deformed;     /*!< positions, vec4 */
+    std::unique_ptr<QRhiBuffer> offsets;      /*!< triangles of a vertex */
+    std::unique_ptr<QRhiBuffer> triangles;
+    std::unique_ptr<QRhiShaderResourceBindings> deform_bindings;
+    std::unique_ptr<QRhiShaderResourceBindings> normal_bindings;
+    uint32_t vertex_count = 0;
+    bool dispatch = false; /*!< updated since deformed */
+  };
   struct GpuMesh {
     std::unique_ptr<QRhiBuffer> vertices;
     std::unique_ptr<QRhiBuffer> indices;
@@ -248,6 +264,8 @@ private:
     /*! range of Scene::instances drawn with this mesh */
     uint32_t first_instance = 0;
     uint32_t instance_count = 0;
+    /*! of a deformable mesh, where the device has compute shaders */
+    std::unique_ptr<GpuFlex> flex;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -286,9 +304,19 @@ private:
   /*! \brief upload the particles that changed (Simulation::
    * TakeParticleUpdates), or all of them; the buffers grow as needed */
   void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
-  /*! \brief the vertices of the deformable meshes (flexible bodies) that
-   * changed, or all */
+  /*! \brief the deformation of the deformable meshes (flexible bodies)
+   * that changed, or all: on the GPU, its coefficients, for DeformMeshes;
+   * otherwise the vertices deformed on the CPU */
   void UploadFlexUpdates(QRhiResourceUpdateBatch* batch, bool all);
+  /*! \brief the buffers and bindings of a deformable mesh for the compute
+   * shaders that deform it */
+  void CreateGpuFlex(const SceneMesh& mesh, GpuMesh& gpu,
+                     QRhiResourceUpdateBatch* batch);
+  /*! \brief deform the meshes updated since (UploadFlexUpdates) on the GPU,
+   * in compute passes that take batch; returns the batch for what
+   * follows (batch itself if there was nothing to deform) */
+  QRhiResourceUpdateBatch* DeformMeshes(QRhiCommandBuffer* cb,
+                                        QRhiResourceUpdateBatch* batch);
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -389,6 +417,8 @@ private:
 
   // raster
   std::vector<GpuMesh> gpu_meshes_;
+  std::unique_ptr<QRhiComputePipeline> flex_deform_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> flex_normals_pipeline_;
   std::unique_ptr<QRhiBuffer> frame_ubo_;
   std::unique_ptr<QRhiBuffer> material_ubo_; /*!< per mesh */
   std::unique_ptr<QRhiBuffer> lights_ubo_; /*!< LightUniforms */
@@ -435,6 +465,7 @@ private:
   std::vector<ParticleUpdate> particle_updates_; /*!< reused each frame */
   bool gpu_particles_reset_ = false; /*!< all to upload, see UploadScene */
   std::vector<FlexUpdate> flex_updates_; /*!< reused each frame */
+  std::vector<Vertex> flex_vertices_; /*!< deformed on the CPU, reused */
   std::unique_ptr<QRhiGraphicsPipeline> particle_pipeline_;
   // their surface (set_particle_surface): the depth of the spheres in
   // fluid_depth_[0], blurred level by level from one into the other, ending

@@ -1,0 +1,40 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// the deformed position of each vertex of a flexible body's mesh surface:
+// x0 + sum_j a_j s_j + t + theta x (x0 - c), see shift::gui::FlexUpdate
+
+layout(local_size_x = 64) in;
+
+#include "flex_common.glsl"
+
+// the displacement of each vertex in each shape: 3 (v columns + j) + c
+layout(std430, binding = 2) readonly buffer Basis {
+  float basis[];
+};
+layout(std430, binding = 3) readonly buffer Coefficients {
+  float coefficients[];
+};
+layout(std430, binding = 4) writeonly buffer Deformed {
+  vec4 deformed[];
+};
+
+void main() {
+  uint v = gl_GlobalInvocationID.x;
+  if(v >= params.counts.x) {
+    return;
+  }
+  vec3 x0 = vec3(reference[8u * v], reference[8u * v + 1u],
+                       reference[8u * v + 2u]);
+  vec3 x = x0 + params.translation.xyz +
+           cross(params.rotation.xyz, x0 - params.center.xyz);
+  uint columns = params.counts.y;
+  uint base = 3u * v * columns;
+  for(uint j = 0u; j < columns; j++) {
+    float a = coefficients[j];
+    if(a != 0.0) {
+      uint s = base + 3u * j;
+      x += a * vec3(basis[s], basis[s + 1u], basis[s + 2u]);
+    }
+  }
+  deformed[v] = vec4(x, 0.0);
+}

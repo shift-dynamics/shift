@@ -59,48 +59,8 @@ static void EmptyBox(ksl_vec3f_t& box_min, ksl_vec3f_t& box_max) {
   box_max = ksl_vec3f(-1e30f, -1e30f, -1e30f);
 }
 
-/*! area weighted vertex normals, for meshes imported without normals */
-static void ComputeNormals(std::vector<shift::gui::Vertex>& vertices,
-                           const std::vector<uint32_t>& indices) {
-  for(auto& vertex : vertices) {
-    std::fill(vertex.normal, vertex.normal + 3, 0.f);
-  }
-  for(size_t i = 0; i + 2 < indices.size(); i += 3) {
-    shift::gui::Vertex* v[3] = {&vertices[indices[i]],
-                                &vertices[indices[i + 1]],
-                                &vertices[indices[i + 2]]};
-    ksl_vec3f_t p[3];
-    for(int k = 0; k < 3; k++) {
-      p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
-                       v[k]->position[2]);
-    }
-    ksl_vec3f_t e1, e2, n;
-    ksl_subtract_vvf(&p[1], &p[0], &e1);
-    ksl_subtract_vvf(&p[2], &p[0], &e2);
-    ksl_cross_vvf(&e1, &e2, &n);
-    for(auto vertex : v) {
-      for(int k = 0; k < 3; k++) {
-        vertex->normal[k] += n.at[k];
-      }
-    }
-  }
-  /* divided by the length, however small the triangles; a vertex of no
-  area keeps its zero normal */
-  for(auto& vertex : vertices) {
-    ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
-                              vertex.normal[2]);
-    const float length = ksl_vec3f_l2norm(&n);
-    if(length > 0.f) {
-      ksl_vec3f_scale(&n, 1.f / length);
-    }
-    for(int k = 0; k < 3; k++) {
-      vertex.normal[k] = n.at[k];
-    }
-  }
-}
-
-static void ComputeNormals(shift::gui::SceneMesh& mesh) {
-  ComputeNormals(mesh.vertices, mesh.indices);
+static void ComputeMeshNormals(shift::gui::SceneMesh& mesh) {
+  shift::gui::ComputeNormals(mesh.vertices, mesh.indices);
 }
 
 static shift::gui::SceneMesh
@@ -135,7 +95,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   }
   mesh.indices.assign(data.faces.begin(), data.faces.end());
   if(!has_normals) {
-    ComputeNormals(mesh);
+    ComputeMeshNormals(mesh);
   }
 
   if(data.material_index >= 0 &&
@@ -1223,8 +1183,36 @@ void shift::gui::Simulation::AddFlexViews() {
                      &view.rigid_translation[j]);
       ksl_product_drv(&S_inverse, &moment, &view.rigid_rotation[j]);
     }
-    FlexVertices(view, mesh.vertices);
-    ComputeNormals(mesh);
+    /* the undeformed surface, and the basis: the shapes of the elastic
+    coordinates, then the fixed-interface modes computed */
+    const size_t computed = flex->get_frequencies().size();
+    const auto& computed_shapes = flex->get_computed_shapes();
+    mesh.flex_columns = static_cast<uint32_t>(n + computed);
+    mesh.flex_centroid = ksl_vec3f(float(view.centroid.x),
+                                   float(view.centroid.y),
+                                   float(view.centroid.z));
+    mesh.vertices.resize(view.vertex_point.size());
+    mesh.flex_basis.reserve(3 * mesh.flex_columns * mesh.vertices.size());
+    for(size_t v = 0; v < mesh.vertices.size(); v++) {
+      const size_t p = size_t(view.vertex_point[v]);
+      Vertex& vertex = mesh.vertices[v];
+      for(int c = 0; c < 3; c++) {
+        vertex.position[c] = float(positions[p].at[c]);
+      }
+      vertex.uv[0] = vertex.uv[1] = 0.f;
+      for(size_t j = 0; j < n; j++) {
+        for(int c = 0; c < 3; c++) {
+          mesh.flex_basis.push_back(float(shapes[p * n + j].lin.at[c]));
+        }
+      }
+      for(size_t k = 0; k < computed; k++) {
+        for(int c = 0; c < 3; c++) {
+          mesh.flex_basis.push_back(
+            float(computed_shapes[3 * (p * computed + k) + c]));
+        }
+      }
+    }
+    ComputeMeshNormals(mesh);
     EmptyBox(mesh.bounds_min, mesh.bounds_max);
     for(const Vertex& v : mesh.vertices) {
       for(int c = 0; c < 3; c++) {
@@ -1293,75 +1281,58 @@ void shift::gui::Simulation::ClearShapePreview() {
   preview_view_ = -1;
 }
 
-void shift::gui::Simulation::FlexVertices(const FlexView& view,
-                                          std::vector<Vertex>& vertices) const {
+void shift::gui::Simulation::FlexCoefficients(const FlexView& view,
+                                              FlexUpdate& update) const {
   const shift::core::body::Flex& flex = *view.flex;
-  const auto& positions = flex.get_positions();
-  const auto& shapes = flex.get_shapes();
   const size_t n = flex.get_elastic_count();
+  const size_t computed = flex.get_frequencies().size();
+  update.mesh = view.mesh;
+  update.coefficients.assign(n + computed, 0.f);
+  update.translation = ksl_vec3f(0.f, 0.f, 0.f);
+  update.rotation = ksl_vec3f(0.f, 0.f, 0.f);
   const bool preview =
     preview_view_ >= 0 && &flex_views_[preview_view_] == &view;
-  /* a preview's shape, and the factor that makes its largest displacement
-  the amplitude */
-  const size_t computed = flex.get_frequencies().size();
-  auto shape = [&](int point, double u[3]) {
-    if(preview_kind_ == 1) {
-      const double* s = flex.get_computed_shapes().data() +
-                        3 * (size_t(point) * computed + preview_coordinate_);
-      std::copy(s, s + 3, u);
-    } else {
-      const ksl_vec3_t& s = shapes[size_t(point) * n + preview_coordinate_].lin;
-      u[0] = s.x;
-      u[1] = s.y;
-      u[2] = s.z;
-    }
-  };
-  double factor = 0.0;
   if(preview) {
+    /* the shape previewed, its largest displacement the amplitude */
+    const size_t column =
+      preview_kind_ == 1 ? n + size_t(preview_coordinate_)
+                         : size_t(preview_coordinate_);
+    if(column >= n + computed) {
+      return;
+    }
     double largest = 0.0;
     for(unsigned int p = 0; p < flex.get_mesh_node_count(); p++) {
-      double u[3];
-      shape(int(p), u);
-      largest = std::max(largest, std::sqrt(u[0] * u[0] + u[1] * u[1] +
-                                            u[2] * u[2]));
-    }
-    factor = largest > 0.0 ? preview_amplitude_ / largest : 0.0;
-  }
-  vertices.resize(view.vertex_point.size());
-  for(size_t v = 0; v < vertices.size(); v++) {
-    const int p = view.vertex_point[v];
-    double x[3] = {positions[p].x, positions[p].y, positions[p].z};
-    if(preview) {
-      double u[3];
-      shape(p, u);
-      for(int c = 0; c < 3; c++) {
-        x[c] += factor * u[c];
+      ksl_vec3_t u;
+      if(column >= n) {
+        const double* s = flex.get_computed_shapes().data() +
+                          3 * (size_t(p) * computed + (column - n));
+        u = ksl_vec3(s[0], s[1], s[2]);
+      } else {
+        u = flex.get_shapes()[size_t(p) * n + column].lin;
       }
-    } else {
-      /* x0 + u + (scale - 1) (u - rigid part of u) */
-      ksl_vec3_t d;
-      ksl_subtract_vv(&positions[p], &view.centroid, &d);
-      for(size_t j = 0; j < n; j++) {
-        const ksl_vec3_t& s = shapes[size_t(p) * n + j].lin;
-        ksl_vec3_t rigid;
-        ksl_cross_vv(&view.rigid_rotation[j], &d, &rigid);
-        ksl_add_vv(&rigid, &view.rigid_translation[j], &rigid);
-        const double eta = view.eta[j];
-        for(int c = 0; c < 3; c++) {
-          x[c] += eta * (deformation_scale_ * s.at[c] +
-                         (1.0 - deformation_scale_) * rigid.at[c]);
-        }
-      }
+      largest = std::max(largest, ksl_vec3_l2norm(&u));
     }
-    Vertex& vertex = vertices[v];
-    for(int c = 0; c < 3; c++) {
-      vertex.position[c] = float(x[c]);
-    }
-    vertex.uv[0] = vertex.uv[1] = 0.f;
+    update.coefficients[column] =
+      float(largest > 0.0 ? preview_amplitude_ / largest : 0.0);
+    return;
   }
-  if(size_t(view.mesh) < scene_.meshes.size()) {
-    ComputeNormals(vertices, scene_.meshes[view.mesh].indices);
+  /* u + (scale - 1) (u - rigid part of u), u = sum eta_j s_j */
+  ksl_vec3_t translation = ksl_vec3(0.0, 0.0, 0.0);
+  ksl_vec3_t rotation = ksl_vec3(0.0, 0.0, 0.0);
+  const double rigid = 1.0 - deformation_scale_;
+  for(size_t j = 0; j < n; j++) {
+    const double eta = view.eta[j];
+    update.coefficients[j] = float(deformation_scale_ * eta);
+    ksl_vec3_t t, r;
+    ksl_product_av(rigid * eta, &view.rigid_translation[j], &t);
+    ksl_product_av(rigid * eta, &view.rigid_rotation[j], &r);
+    ksl_add_vv(&translation, &t, &translation);
+    ksl_add_vv(&rotation, &r, &rotation);
   }
+  update.translation = ksl_vec3f(float(translation.x), float(translation.y),
+                                 float(translation.z));
+  update.rotation =
+    ksl_vec3f(float(rotation.x), float(rotation.y), float(rotation.z));
 }
 
 void shift::gui::Simulation::TakeFlexUpdates(std::vector<FlexUpdate>& updates,
@@ -1373,8 +1344,7 @@ void shift::gui::Simulation::TakeFlexUpdates(std::vector<FlexUpdate>& updates,
     }
     view.changed = false;
     FlexUpdate update;
-    update.mesh = view.mesh;
-    FlexVertices(view, update.vertices);
+    FlexCoefficients(view, update);
     updates.push_back(std::move(update));
   }
 }

@@ -90,9 +90,16 @@ struct SceneMesh {
    * this mesh otherwise and by the ray tracer */
   int terrain = -1;
   /*! the surface of a flexible body's finite element mesh: its vertices
-   * move with the deformation shown (Simulation::TakeFlexUpdates); the ray
-   * tracer draws it undeformed */
+   * (undeformed here) move with the deformation shown, see FlexUpdate and
+   * DeformFlexMesh; the ray tracer draws it undeformed */
   bool deformable = false;
+  /*! of a deformable mesh: the displacement of each vertex in each of
+   * flex_columns shapes, x, y, z, the shapes of a vertex together
+   * (3 (v flex_columns + j) + c) */
+  std::vector<float> flex_basis;
+  uint32_t flex_columns = 0;
+  /*! of a deformable mesh: the point FlexUpdate::rotation turns about */
+  ksl_vec3f_t flex_centroid = ksl_vec3f(0.f, 0.f, 0.f);
 };
 
 /*! \brief an elevation map terrain for the tessellation shaders: its
@@ -247,12 +254,31 @@ struct ParticleUpdate {
   std::vector<float> centers; /*!< x, y, z in the world, then 0, each */
 };
 
-/*! \brief the vertices of a deformable mesh (SceneMesh::deformable) at
- * the time shown, in its body's origin coordinates */
+/*! \brief the deformation of a deformable mesh (SceneMesh::deformable)
+ * at the time shown, in its body's origin coordinates: each vertex x0
+ * moves to
+ * \f[ x_0 + \sum_j a_j \underline{s}_j + \underline{t} +
+ *     \underline{\theta} \times (x_0 - \underline{c}) \f]
+ * with a the coefficients, s the vertex's shapes (SceneMesh::flex_basis),
+ * t the translation, theta the rotation and c SceneMesh::flex_centroid;
+ * the normals follow the deformed triangles. Only these are uploaded as
+ * the mesh deforms; the viewport deforms it on the GPU */
 struct FlexUpdate {
   int mesh = 0; /*!< in Scene::meshes */
-  std::vector<Vertex> vertices;
+  std::vector<float> coefficients; /*!< SceneMesh::flex_columns of them */
+  ksl_vec3f_t translation = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t rotation = ksl_vec3f(0.f, 0.f, 0.f);
 };
+
+/*! \brief the vertices of a deformable mesh deformed as update says, on
+ * the CPU (as the viewport's compute shaders do; where it has none) */
+void DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
+                    std::vector<Vertex>& vertices);
+
+/*! \brief area weighted vertex normals of a triangle mesh; a vertex of no
+ * area gets a zero normal */
+void ComputeNormals(std::vector<Vertex>& vertices,
+                    const std::vector<uint32_t>& indices);
 
 /*! \brief world space bounding box of the scene meshes in the given poses */
 void SceneBounds(const Scene& scene, const Poses& poses, ksl_vec3f_t& box_min,
