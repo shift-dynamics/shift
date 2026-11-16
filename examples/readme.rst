@@ -19,6 +19,7 @@ Mechanisms and robots
 * `Slider crank <slider_crank>`_
 * `Bricard's mechanism <bricard>`_
 * `Klann linkage and walker <klann_linkage>`_
+* `Strandbeest <strandbeest>`_
 * `Sarrus linkage <sarrus>`_
 * `Bicycle caliper brake <brake>`_
 * `Screw and gear joints <joints>`_
