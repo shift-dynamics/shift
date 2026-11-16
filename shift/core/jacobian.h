@@ -37,10 +37,9 @@ public:
     INFINITY_NORM_B = 1,
     PIVOT_RATIO = 2,
     NEWTON_RAPHSON = 4,
-    MOBILITY_ORDER = 8,
-    MOBILITY_EPSILON = 16,
+    MOBILITY_EPSILON = 8,
     /*! the checks whose failure refactors the Jacobian */
-    REFACTOR = INFINITY_NORM_B | PIVOT_RATIO | MOBILITY_ORDER | MOBILITY_EPSILON
+    REFACTOR = INFINITY_NORM_B | PIVOT_RATIO | MOBILITY_EPSILON
   };
   
   struct InfinityNormFailure {

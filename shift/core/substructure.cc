@@ -39,7 +39,6 @@ void shift::core::Substructure::set_context(shift::core::Context* context) {
 
 void shift::core::Substructure::SetupPO1(
   const shift::core::topology::DHVA& dhva) {
-  mobility_order_.clear();
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
   /* j is local loop index */
   auto it =
@@ -951,7 +950,6 @@ void shift::core::Substructure::SetupPO1Specified(
 void shift::core::Substructure::SetupPO1Specified(
   const shift::core::topology::DHVA& dhva, const std::vector<int>& dq_indices) {
 
-  mobility_order_.clear();
   memset(J_, 0, dq_count_ * constraint_equation_count_ * sizeof(double));
 
   /* j is local loop index */
@@ -1043,32 +1041,14 @@ unsigned int shift::core::Substructure::CheckCondition(
     /* a substructure without B (rank 0, or no mobility) has no partition to
     choose */
     const std::vector<double>& mobility = RunTimeMobility();
-    if(criterion == Refactor::MOBILITY_EPSILON) {
-      /* the independent velocities are columns rank_ and after in PO2 */
-      const double total = dq_count_ - rank_;
-      for(unsigned int k = rank_; k < dq_count_; k++) {
-        if(mobility[pc_12_[k]] / total < epsilon_mobility) {
-          SHIFT_DEBUG("Mobility epsilon check failed with value " +
-                      std::to_string(mobility[pc_12_[k]] / total));
-          return_value |= shift::core::Jacobian::Failure::MOBILITY_EPSILON;
-          break;
-        }
-      }
-    } else if(mobility_order_.empty()) {
-      mobility_order_.resize(dq_count_);
-      for(unsigned int i = 0; i < dq_count_; i++) {
-        mobility_order_[i] = i;
-      }
-      std::stable_sort(mobility_order_.begin(), mobility_order_.end(),
-                       [&](int a, int b) { return mobility[a] > mobility[b]; });
-    } else {
-      for(unsigned int i = 0; i + 1 < dq_count_; i++) {
-        if(mobility[mobility_order_[i + 1]] >
-           mobility[mobility_order_[i]] + kMobilityTie) {
-          SHIFT_DEBUG("Mobility order check failed");
-          return_value |= shift::core::Jacobian::Failure::MOBILITY_ORDER;
-          break;
-        }
+    /* the independent velocities are columns rank_ and after in PO2 */
+    const double total = dq_count_ - rank_;
+    for(unsigned int k = rank_; k < dq_count_; k++) {
+      if(mobility[pc_12_[k]] / total < epsilon_mobility) {
+        SHIFT_DEBUG("Mobility epsilon check failed with value " +
+                    std::to_string(mobility[pc_12_[k]] / total));
+        return_value |= shift::core::Jacobian::Failure::MOBILITY_EPSILON;
+        break;
       }
     }
   }

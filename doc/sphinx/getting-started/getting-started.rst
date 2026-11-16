@@ -46,7 +46,7 @@ Step by step:
    ``rnca`` is the solver; ``infinity_norm_multiplier`` sets how far the
    partition of the coordinates may degrade before it is chosen again (see
    :ref:`about`). ``refactor_criterion`` can instead check the mobility
-   numbers (``"mobility_order"`` or ``"mobility_epsilon"``, see
+   numbers (``"mobility_epsilon"``, see
    :doc:`../software_design/mobility_numbers/mobility_numbers`).
 #. ``integrators`` chooses the time integration. ``ode113`` is a variable
    step, variable order Adams–Bashforth–Moulton method that keeps the error

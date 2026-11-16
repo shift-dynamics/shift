@@ -64,10 +64,8 @@ void shift::core::solver::RNCA::DeclareParameters() {
     "refactor_criterion", &refactor_criterion_name_,
     "What reapplies Gaussian elimination with complete row and column "
     "pivoting (GECP): \"infinity_norm\", the infinity norm of B reaching "
-    "infinity_norm_multiplier times its value at the last GECP; "
-    "\"mobility_order\", the order of the mobility numbers changing from "
-    "their order after the last GECP; \"mobility_epsilon\", the mobility "
-    "number of an independent velocity divided by the mobility falling below "
+    "infinity_norm_multiplier times its value at the last GECP, or "
+    "\"mobility_epsilon\", the mobility number of an independent velocity divided by the mobility falling below "
     "epsilon_mobility. The pivot ratio is checked whichever is chosen -- "
     "default: \"infinity_norm\".",
     false);
@@ -85,15 +83,12 @@ void shift::core::solver::RNCA::Initialize() {
 
   if(refactor_criterion_name_ == "infinity_norm") {
     refactor_criterion_ = Substructure::Refactor::INFINITY_NORM;
-  } else if(refactor_criterion_name_ == "mobility_order") {
-    refactor_criterion_ = Substructure::Refactor::MOBILITY_ORDER;
   } else if(refactor_criterion_name_ == "mobility_epsilon") {
     refactor_criterion_ = Substructure::Refactor::MOBILITY_EPSILON;
   } else {
     throw shift::core::Exception(
       "Unknown refactor_criterion \"" + refactor_criterion_name_ +
-      "\"; expected \"infinity_norm\", \"mobility_order\" or "
-      "\"mobility_epsilon\"");
+      "\"; expected \"infinity_norm\" or \"mobility_epsilon\"");
   }
 
   q_count_ = context_->get_q_count();
@@ -1360,9 +1355,6 @@ bool shift::core::solver::RNCA::SetupEquations(const double t,
       }
       if(failure & shift::core::Jacobian::Failure::PIVOT_RATIO) {
         ss << "(pivot ratio check) ";
-      }
-      if(failure & shift::core::Jacobian::Failure::MOBILITY_ORDER) {
-        ss << "(mobility order check) ";
       }
       if(failure & shift::core::Jacobian::Failure::MOBILITY_EPSILON) {
         ss << "(mobility epsilon check) ";

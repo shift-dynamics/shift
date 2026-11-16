@@ -560,7 +560,6 @@ unsigned int shift::core::Jacobian::CheckCondition(
   }
 
   if(failure & (shift::core::Jacobian::Failure::INFINITY_NORM_B |
-                shift::core::Jacobian::Failure::MOBILITY_ORDER |
                 shift::core::Jacobian::Failure::MOBILITY_EPSILON)) {
     infinity_norm_failures_.push_back({time, substructure_failure_indices});
     iterations_since_last_infinity_norm_failure_ = 0;

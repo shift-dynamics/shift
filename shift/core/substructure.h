@@ -40,18 +40,10 @@ public:
     /*! the infinity norm of B exceeds a multiple of its value at the last
      * factorization */
     INFINITY_NORM,
-    /*! the order of the mobility numbers changes from their order when
-     * first evaluated after the last factorization */
-    MOBILITY_ORDER,
     /*! \f$m_j / M\f$ of an independent velocity \f$j\f$ falls below
      * epsilon_mobility */
     MOBILITY_EPSILON
   };
-
-  /*! \brief differences of mobility numbers smaller than this are ties, so
-   * that velocities whose mobility numbers are equal (by symmetry, say) do
-   * not change order through rounding */
-  static constexpr double kMobilityTie = 1e-6;
 
   struct Constraint {
     struct {
@@ -426,10 +418,6 @@ private:
   space, dq_count_ by dq_count_ - rank_ */
   std::vector<double> run_time_null_space_;
   std::vector<double> run_time_mobility_;
-  /* the velocities (local, PO1) in decreasing order of their mobility
-  numbers when first evaluated after the last factorization; empty until
-  then */
-  std::vector<int> mobility_order_;
 
   double epsilon_rank_determination_ = 1e-9;
   double epsilon_pivot_ratio_ = 1e-8;

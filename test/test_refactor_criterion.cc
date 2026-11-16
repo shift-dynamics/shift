@@ -1,6 +1,6 @@
 /* The criteria by which the RNCA solver refactors the Jacobian
-(refactor_criterion): the infinity norm of B, the order of the mobility
-numbers, and the mobility numbers of the independent velocities falling below
+(refactor_criterion): the infinity norm of B, and the mobility numbers of the
+independent velocities, divided by the mobility, falling below
 epsilon_mobility */
 
 #include <gtest/gtest.h>
@@ -61,32 +61,18 @@ static Result Simulate(const std::string& name, double time_span,
   return run;
 }
 
-/* every criterion simulates the same motion: refactoring changes the
+/* both criteria simulate the same motion: refactoring changes the
 partition, not the solution */
 TEST(RefactorCriterion, SameMotion) {
   for(const std::string name :
-      {"slider_crank/slider_crank.json", "klann_linkage/klann_linkage.json"}) {
-    const Result norm = Simulate(name, 4.0, Solver("infinity_norm"));
-    for(const std::string criterion : {"mobility_order", "mobility_epsilon"}) {
-      const Result run = Simulate(name, 4.0, Solver(criterion, 0.01));
-      ASSERT_EQ(run.q.size(), norm.q.size());
-      for(size_t i = 0; i < run.q.size(); i++) {
-        EXPECT_NEAR(run.q[i], norm.q[i], 1e-2)
-          << name << " " << criterion << " q[" << i << "]";
-      }
-    }
-  }
-}
-
-/* the order of the mobility numbers changes as the mechanisms move, so they
-are refactored, but not at every check */
-TEST(RefactorCriterion, MobilityOrder) {
-  for(const std::string name :
       {"slider_crank/slider_crank.json", "klann_linkage/klann_linkage.json",
        "bricard/bricard.json"}) {
-    const Result order = Simulate(name, 30.0, Solver("mobility_order"));
-    EXPECT_GT(order.refactors, 0u) << name;
-    EXPECT_LT(order.refactors, 500u) << name;
+    const Result norm = Simulate(name, 4.0, Solver("infinity_norm"));
+    const Result run = Simulate(name, 4.0, Solver("mobility_epsilon", 0.1));
+    ASSERT_EQ(run.q.size(), norm.q.size());
+    for(size_t i = 0; i < run.q.size(); i++) {
+      EXPECT_NEAR(run.q[i], norm.q[i], 1e-2) << name << " q[" << i << "]";
+    }
   }
 }
 
@@ -106,7 +92,7 @@ mobility of the substructure */
 TEST(RefactorCriterion, MobilityNumbers) {
   shift::core::Context context;
   const std::string name = "klann_linkage/klann_linkage.json";
-  context.LoadJSON(Model(name, 0.5, Solver("mobility_order")),
+  context.LoadJSON(Model(name, 0.5, Solver("mobility_epsilon")),
                    std::string(SHIFT_EXAMPLES_DIR) + "/" + name);
   context.Simulate();
   int checked = 0;

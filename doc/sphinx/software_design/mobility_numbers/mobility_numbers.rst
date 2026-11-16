@@ -233,10 +233,6 @@ ratio is checked with each.
 
 * ``"infinity_norm"`` (the default): the infinity norm of :math:`B` reaches
   ``infinity_norm_multiplier`` times its value at the last GECP.
-* ``"mobility_order"``: the order of the mobility numbers :math:`\mu_i`
-  changes from their order when first evaluated after the last GECP.
-  Differences smaller than :math:`10^{-6}` (equal by symmetry, as in the
-  Bricard and Sarrus linkages) are ties and do not change the order.
 * ``"mobility_epsilon"``: an independent velocity :math:`j` has
 
   .. math::
