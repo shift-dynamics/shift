@@ -46,8 +46,10 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
                   'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
-                  'axes.frag', 'flex_deform.comp', 'flex_normals.comp',
-                  'flex_refit.comp']
+                  'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
+                  'mesh_points.vert', 'mesh_points.frag',
+                  'flex_deform.comp', 'flex_normals.comp', 'flex_refit.comp',
+                  'flex_field.comp']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,
@@ -93,9 +95,19 @@ foreach shader : ['cad.vert', 'cad.tesc', 'cad.tese', 'cad_triangulate.comp']
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '-o', '@OUTPUT@', '@INPUT@'],
-    depend_files: files('shaders/cad_common.glsl', 'shaders/cad_uniforms.glsl'),
+    depend_files: files('shaders/cad_common.glsl', 'shaders/cad_uniforms.glsl',
+                        'shaders/flex_field.glsl'),
   )
 endforeach
+# the ray tracer's triangles of a flexible body's CAD, deformed; with GLSL
+# for the GPU test on OpenGL
+shader_bundles += custom_target(
+  'flex_cad_comp_qsb',
+  input: 'shaders/flex_cad.comp',
+  output: 'flex_cad.comp.qsb',
+  command: [qsb, '--glsl', '430', '-o', '@OUTPUT@', '@INPUT@'],
+  depend_files: files('shaders/cad_common.glsl', 'shaders/flex_field.glsl'),
+)
 shader_bundles += custom_target(
   'cad_frag_qsb',
   input: 'shaders/mesh.frag',
@@ -148,6 +160,7 @@ shift_gui_lib = static_library(
   'mode_window.cc',
   'playback_slider.cc',
   'scene.cc',
+  'color_map.cc',
   'settings.cc',
   'simulation.cc',
   'video_encoder.cc',

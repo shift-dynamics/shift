@@ -1,0 +1,48 @@
+#version 450
+// the displacement of each sample of a flexible body's CAD surface
+// (SceneCad::sample_points, body coordinates):
+// sum_j a_j s_j + t + theta x (x0 - c), as the vertices of its mesh
+// (flex_deform.comp) and shift::gui::FlexCadField on the CPU
+
+layout(local_size_x = 64) in;
+
+layout(std140, binding = 0) uniform FlexParams {
+  uvec4 counts;      // x = samples, y = shapes per sample (columns)
+  vec4 center;       // the point the rotation turns about (centroid)
+  vec4 translation;  // the rigid correction (FlexUpdate)
+  vec4 rotation;
+} params;
+
+layout(std430, binding = 1) readonly buffer Points {
+  vec4 points[];
+};
+// the displacement of each sample in each shape: 3 (k columns + j) + c
+layout(std430, binding = 2) readonly buffer Basis {
+  float basis[];
+};
+layout(std430, binding = 3) readonly buffer Coefficients {
+  float coefficients[];
+};
+layout(std430, binding = 4) writeonly buffer Field {
+  vec4 field[];
+};
+
+void main() {
+  uint k = gl_GlobalInvocationID.x;
+  if(k >= params.counts.x) {
+    return;
+  }
+  vec3 x0 = points[k].xyz;
+  vec3 u = params.translation.xyz +
+           cross(params.rotation.xyz, x0 - params.center.xyz);
+  uint columns = params.counts.y;
+  uint base = 3u * k * columns;
+  for(uint j = 0u; j < columns; j++) {
+    float a = coefficients[j];
+    if(a != 0.0) {
+      uint s = base + 3u * j;
+      u += a * vec3(basis[s], basis[s + 1u], basis[s + 2u]);
+    }
+  }
+  field[k] = vec4(u, 0.0);
+}

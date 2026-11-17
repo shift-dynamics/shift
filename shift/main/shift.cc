@@ -79,6 +79,10 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
       return false;
     }
   }
+  request.flex_mesh_surface = parser.isSet("mesh-surface");
+  request.flex_mesh_edges = parser.isSet("mesh-edges");
+  request.flex_constrained_nodes = parser.isSet("constrained-nodes");
+  request.flex_stresses = parser.isSet("stresses");
   request.hide_floor = parser.isSet("no-floor");
   request.bilinear_terrain = parser.isSet("no-smooth-terrain");
   request.particle_spheres = parser.isSet("particle-spheres");
@@ -119,6 +123,18 @@ int main(int argc, char* argv[]) {
      "with --image: draw the deformation of flexible bodies this many times "
      "as large",
      "factor"},
+    {"mesh-surface",
+     "with --image: draw flexible bodies by the surface of their finite "
+     "element mesh, not their CAD"},
+    {"mesh-edges",
+     "with --image: draw the edges of the finite elements of flexible "
+     "bodies"},
+    {"stresses",
+     "with --image: draw the von Mises stress on flexible bodies' mesh "
+     "surfaces, in the color map and range of Edit > Settings"},
+    {"constrained-nodes",
+     "with --image: draw as points the nodes of flexible bodies that their "
+     "joints' attachments tie to their frames"},
     {"no-smooth-terrain",
      "with --image: draw deformable terrain bilinearly between its nodes, as "
      "the soil models see it"},

@@ -5,6 +5,7 @@
 #include <rhi/qshader.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -18,18 +19,21 @@ namespace gui {
 QShader LoadShader(const char* name);
 
 /*! the ray tracer's triangles of a deformable mesh (a flexible body's
- * surface), which the compute shaders write and refit as it deforms */
+ * surface) or of a flexible body's CAD, which the compute shaders write and
+ * refit as it deforms */
 struct RtFlexMesh {
-  int mesh = 0; /*!< in Scene::meshes */
+  int mesh = 0; /*!< in Scene::meshes; a CAD's: the mesh it follows */
+  int cad = -1; /*!< a flexible body's CAD's: in Scene::cads */
   int first_triangle = 0;
   int first_node = 0; /*!< its root */
   int node_count = 0;
-  /*! the mesh's triangle at each place after first_triangle, as the BVH
-   * ordered them */
+  /*! the mesh's (or the CAD's, as TriangulateCad made them) triangle at
+   * each place after first_triangle, as the BVH ordered them */
   std::vector<int32_t> order;
-  /*! the first of its triangles' entries in the motion buffer; its
-   * triangles' faces (the ray tracer's triangle faces) are -2 - the
-   * entry */
+  /*! the first of its triangles' entries in the motion buffer; a mesh's
+   * triangles' faces (the ray tracer's triangle faces) are -2 - the entry,
+   * a CAD's keep their faces and its instances give the motion's offset
+   * from the triangle (RtInstance::variation) */
   int motion_base = 0;
 };
 
@@ -43,10 +47,13 @@ is. Deform then writes, in compute passes:
 - flex_deform.comp: the deformed positions;
 - flex_normals.comp: the vertex buffer drawn, with the area weighted normals
   of the deformed triangles (as DeformFlexMesh on the CPU);
+- flex_field.comp: the displacement of the samples of the CADs that follow
+  the mesh (AddCad), which cad.tese and flex_cad.comp interpolate;
 - flex_refit.comp, while ray tracing: the ray tracer's triangles of the mesh
   in its BVH's order and the motion of their vertices since they were last
   written (for the denoiser's reprojection), then the BVH's boxes, the
-  leaves and then the interior nodes depth by depth, the deepest first.
+  leaves and then the interior nodes depth by depth, the deepest first; a
+  CAD's triangles are written by flex_cad.comp instead.
 
 Each pass after the first reads what the one before wrote: QRhi orders the
 passes.
@@ -58,29 +65,69 @@ public:
   FlexGpu(const FlexGpu&) = delete;
   FlexGpu& operator=(const FlexGpu&) = delete;
 
+  /*! \brief how the compute pipelines are made (QRhiComputePipeline::
+   * create by default): the viewport queues them for a worker thread */
+  void set_pipeline_creator(
+    std::function<bool(QRhiComputePipeline*)> creator) {
+    creator_ = std::move(creator);
+  }
+
   /*! \brief a deformable mesh drawn from vertices (VertexBuffer and
    * StorageBuffer, Vertex) and indices (IndexBuffer and StorageBuffer);
    * returns its index here */
   int Add(const SceneMesh& mesh, QRhiBuffer* vertices, QRhiBuffer* indices,
           QRhiResourceUpdateBatch* batch);
 
-  /*! \brief the ray tracer's triangles of mesh index (Add), in triangles
-   * (RtTriangle) and their BVH in bvh (BvhNode; nodes as uploaded), and
-   * the motion of the vertices of the deforming triangles (3 vec4 each) */
+  /*! \brief a flexible body's CAD (SceneCad::flex_mesh), deformed with
+   * the mesh mesh_index (Add): the displacement of its samples is written
+   * each time the mesh deforms, for cad.tese and the ray tracer's
+   * triangles (flex_field.glsl); returns its index here, -1 without
+   * samples */
+  int AddCad(int mesh_index, const SceneCad& cad,
+             QRhiResourceUpdateBatch* batch);
+
+  /*! \brief the CAD's buffers and its triangles as cad_triangulate.comp
+   * made them (undeformed, in its order), for the ray tracer's triangles of
+   * a CAD (AddRayTracing) */
+  struct CadSource {
+    const SceneCad* cad = nullptr;
+    const std::vector<RtTriangle>* triangles = nullptr;
+    QRhiBuffer* faces = nullptr;
+    QRhiBuffer* curves = nullptr;
+    QRhiBuffer* patches = nullptr;
+    QRhiBuffer* points = nullptr;
+    QRhiBuffer* knots = nullptr;
+  };
+
+  /*! \brief the ray tracer's triangles of mesh or CAD index (Add, AddCad;
+   * a CAD's with its source), in triangles (RtTriangle) and their BVH in
+   * bvh (BvhNode; nodes as uploaded), and the motion of the vertices of the
+   * deforming triangles (3 vec4 each) */
   void AddRayTracing(int index, const RtFlexMesh& rt,
                      const std::vector<BvhNode>& nodes, QRhiBuffer* triangles,
                      QRhiBuffer* bvh, QRhiBuffer* motion,
-                     QRhiResourceUpdateBatch* batch);
+                     QRhiResourceUpdateBatch* batch,
+                     const CadSource* source = nullptr);
 
-  /*! \brief the deformation of mesh index now; it is deformed by the
-   * next Deform */
+  /*! \brief of CAD index (AddCad): the grids of its samples and their
+   * displacements (flex_field.glsl) */
+  QRhiBuffer* get_cad_grids(int index) const;
+  QRhiBuffer* get_cad_field(int index) const;
+
+  /*! \brief the deformation of mesh index now; it and the CADs that
+   * follow it are deformed by the next Deform */
   void Update(int index, const SceneMesh& mesh, const FlexUpdate& update,
               QRhiResourceUpdateBatch* batch);
 
-  /*! \brief whether mesh index has the ray tracer's triangles */
+  /*! \brief the largest von Mises stress on mesh index as it was last
+   * deformed with its stress drawn (FlexUpdate::stress), once read back
+   * from the GPU (a frame or so later) */
+  float get_stress_maximum(int index) const;
+
+  /*! \brief whether mesh or CAD index has the ray tracer's triangles */
   bool is_ray_traced(int index) const;
 
-  /*! \brief a box that holds mesh index as last updated, body
+  /*! \brief a box that holds mesh or CAD index as last updated, body
    * coordinates: its undeformed box grown by a bound of the deformation,
    * sum |a_j| max |s_j| + |t| + |theta| max |x0 - c| */
   void get_bounds(int index, ksl_vec3f_t& bounds_min,
@@ -107,7 +154,10 @@ private:
   std::unique_ptr<QRhiComputePipeline> deform_pipeline_;
   std::unique_ptr<QRhiComputePipeline> normals_pipeline_;
   std::unique_ptr<QRhiComputePipeline> refit_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> field_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> cad_pipeline_;
   quint32 step_stride_ = 0; /*!< of the refit's steps, aligned */
+  std::function<bool(QRhiComputePipeline*)> creator_;
 };
 
 } // namespace gui

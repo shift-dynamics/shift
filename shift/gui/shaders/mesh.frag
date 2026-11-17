@@ -50,6 +50,10 @@ layout(std140, binding = 0) uniform Frame {
   vec4 sky_zenith;
   vec4 sky_horizon;
   vec4 floor_params;
+  mat4 floor_frame;
+  // the colors of the stress drawn on flexible bodies, sRGB, at 16 even
+  // steps from 0 to 1 (Viewport::set_color_map)
+  vec4 color_map[16];
 } frame;
 
 layout(std140, binding = 1) uniform Material {
@@ -59,7 +63,9 @@ layout(std140, binding = 1) uniform Material {
                       // w = 1 / texture scale
   ivec4 layers;       // base color, metallic roughness, normal; -1: none;
                       // w = holes used
-  vec4 variation;     // x = 1: vary the tiles of triplanar textures
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures;
+                      // w = 1: a flexible body's stress, its color map at
+                      // uv.x
   ivec4 surface_layers; // base color and normal of surfaces 0 and 1
   vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
                       // level, w = 1 / patch size
@@ -301,6 +307,14 @@ void main() {
   nb *= side;
 
   vec3 albedo = mesh.albedo.rgb;
+#if !defined(CAD) && !defined(FLUID)
+  if(mesh.variation.w > 0.5) {
+    float t = clamp(uv.x, 0.0, 1.0) * 15.0;
+    int k = min(int(t), 14);
+    albedo = SrgbToLinear(mix(frame.color_map[k].rgb,
+                              frame.color_map[k + 1].rgb, t - float(k)));
+  }
+#endif
 #ifdef CAD
   vec4 face_color = faces[cad_face.x].color;
   if(face_color.w > 0.5) {

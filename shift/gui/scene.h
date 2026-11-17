@@ -91,14 +91,26 @@ struct SceneMesh {
   int terrain = -1;
   /*! the surface of a flexible body's finite element mesh: its vertices
    * (undeformed here) move with the deformation shown, see FlexUpdate and
-   * DeformFlexMesh, drawn and ray traced deformed (picking takes it
-   * undeformed) */
+   * DeformFlexMesh, drawn, ray traced and picked deformed */
   bool deformable = false;
+  /*! of a deformable mesh: the edges of its elements on the surface, pairs
+   * of vertices, each 6-node triangle's sides as two lines through its
+   * midside nodes, each edge once (Viewport::set_flex_mesh_edges) */
+  std::vector<uint32_t> edge_indices;
+  /*! of a deformable mesh: a vertex at each node an attachment ties to its
+   * frame (body::Flex::get_attachment_nodes) that lies on the surface,
+   * drawn as points (Viewport::set_flex_constrained_nodes) */
+  std::vector<uint32_t> constrained_vertices;
   /*! of a deformable mesh: the displacement of each vertex in each of
    * flex_columns shapes, x, y, z, the shapes of a vertex together
    * (3 (v flex_columns + j) + c) */
   std::vector<float> flex_basis;
   uint32_t flex_columns = 0;
+  /*! of a deformable mesh: the stress at each vertex in each of the
+   * flex_columns shapes (body::Flex::get_surface_stresses), sigma_xx,
+   * sigma_yy, sigma_zz, tau_xy, tau_yz, tau_zx at 6 (v flex_columns + j) +
+   * c; empty if the body has none */
+  std::vector<float> flex_stress_basis;
   /*! of a deformable mesh: the point FlexUpdate::rotation turns about */
   ksl_vec3f_t flex_centroid = ksl_vec3f(0.f, 0.f, 0.f);
 };
@@ -269,12 +281,47 @@ struct FlexUpdate {
   std::vector<float> coefficients; /*!< SceneMesh::flex_columns of them */
   ksl_vec3f_t translation = ksl_vec3f(0.f, 0.f, 0.f);
   ksl_vec3f_t rotation = ksl_vec3f(0.f, 0.f, 0.f);
+  /*! the stress drawn (SceneMesh::flex_stress_basis): none, or the von
+   * Mises stress of the deformation of stress_coefficients (as the
+   * coefficients, but not magnified by the deformation scale), mapped to
+   * [0, 1] over the range (FlexStressRange) in each vertex's uv[0] */
+  enum class Stress { kNone, kRange, kAutomatic };
+  Stress stress = Stress::kNone;
+  std::vector<float> stress_coefficients;
+  /*! with kRange: the stress mapped to 0 and to 1; with kAutomatic, from 0
+   * to the largest stress on the mesh */
+  float stress_range[2] = {0.f, 1.f};
 };
 
+/*! \brief the von Mises stress of a vertex of a deformable mesh: \f$
+ * \sqrt{\frac{1}{2}((\sigma_{xx} - \sigma_{yy})^2 + (\sigma_{yy} -
+ * \sigma_{zz})^2 + (\sigma_{zz} - \sigma_{xx})^2) + 3 (\tau_{xy}^2 +
+ * \tau_{yz}^2 + \tau_{zx}^2)} \f$ with \f$\underline{\sigma} = \sum_j a_j
+ * \underline{\sigma}_j\f$ (as flex_deform.comp) */
+float FlexVonMises(const SceneMesh& mesh, const FlexUpdate& update,
+                   size_t vertex);
+
 /*! \brief the vertices of a deformable mesh deformed as update says, on
- * the CPU (as the viewport's compute shaders do; where it has none) */
-void DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
-                    std::vector<Vertex>& vertices);
+ * the CPU (as the viewport's compute shaders do; where it has none), with
+ * the stress drawn in uv[0]; returns the largest von Mises stress on the
+ * mesh (0 if update draws none) */
+float DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
+                     std::vector<Vertex>& vertices);
+
+/*! \brief the displacement of each sample of a flexible body's CAD
+ * (SceneCad::flex_mesh) deformed as update says (of its mesh), body
+ * coordinates: x, y, z, 0 per sample, as flex_field.comp */
+void FlexCadField(const SceneCad& cad, const SceneMesh& mesh,
+                  const FlexUpdate& update, std::vector<float>& field);
+
+/*! \brief values (4 per sample of cad: the field, or the sample points)
+ * at (u, v) of a patch, Catmull-Rom over its grid of samples (the end
+ * intervals extended linearly), and their derivatives along u and v, as
+ * flex_field.glsl */
+ksl_vec3f_t FlexCadInterpolate(const SceneCad& cad,
+                               const std::vector<float>& values, int patch,
+                               float u, float v, ksl_vec3f_t* along_u,
+                               ksl_vec3f_t* along_v);
 
 /*! \brief area weighted vertex normals of a triangle mesh; a vertex of no
  * area gets a zero normal */

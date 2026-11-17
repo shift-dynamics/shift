@@ -9,8 +9,11 @@
 #include <QPoint>
 #include <QWindow>
 
+#include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <thread>
 #include <vector>
 
 class QRhi;
@@ -199,6 +202,40 @@ public:
   float get_frame_axes_scale() const {
     return frame_axes_scale_;
   }
+  /*! \brief whether each flexible body built from a mesh, by index into
+   * the poses, is drawn by its finite element mesh's surface rather than
+   * its CAD; bodies past its end are drawn by their CAD. A body's CAD is
+   * drawn only where the device deforms it on the GPU (tessellation and
+   * compute shaders), and its mesh's surface otherwise. */
+  void set_flex_mesh_surfaces(std::vector<bool> mesh_surface);
+  const std::vector<bool>& get_flex_mesh_surfaces() const {
+    return flex_mesh_surfaces_;
+  }
+  /*! \brief whether the edges of the finite elements of each flexible body,
+   * by index into the poses, are drawn over its surface, mesh or CAD, as
+   * lines (SceneMesh::edge_indices); none by default. Drawn in raster mode
+   * only. */
+  void set_flex_mesh_edges(std::vector<bool> edges);
+  const std::vector<bool>& get_flex_mesh_edges() const {
+    return flex_mesh_edges_;
+  }
+  /*! \brief the colors of the stress drawn on flexible bodies, sRGB, at
+   * kColorMapSamples even steps from 0 to 1 (ColorMapSamples) */
+  static constexpr int kColorMapSamples = 16;
+  void set_color_map(const std::vector<ksl_vec3f_t>& colors);
+  /*! \brief the largest von Mises stress drawn on the flexible bodies (by
+   * index into the poses) whose stress is drawn, as last deformed; 0 if
+   * none */
+  float get_flex_stress_maximum() const;
+
+  /*! \brief whether the nodes each flexible body's attachments tie to its
+   * frames (the joints' spiders), by index into the poses, are drawn as
+   * points over its surface (SceneMesh::constrained_vertices); none by
+   * default. Drawn in raster mode only. */
+  void set_flex_constrained_nodes(std::vector<bool> nodes);
+  const std::vector<bool>& get_flex_constrained_nodes() const {
+    return flex_constrained_nodes_;
+  }
 
   /*! \brief frames rendered since the previous call */
   int TakeFrameCount();
@@ -233,6 +270,12 @@ public:
     return ray_tracing_supported_;
   }
 
+signals:
+  /*! \brief the pipelines (the shaders compiled by the driver) are being
+   * made on a worker thread, and the view is not drawn until they are
+   * (compiling true), or they are made (false) */
+  void CompilingPipelines(bool compiling);
+
 protected:
   bool event(QEvent* event) override;
   void exposeEvent(QExposeEvent* event) override;
@@ -256,7 +299,20 @@ private:
     /*! of a deformable mesh: its deformation shown, and whether picking's
      * triangles are of an earlier one */
     FlexUpdate flex_shown;
+    /*! the largest stress drawn as last deformed on the CPU (DeformFlexMesh) */
+    float stress_maximum = 0.f;
     bool pick_stale = false;
+    /*! a flexible body's mesh whose CAD can be drawn in its place,
+     * deformed (GpuCad::flex), see set_flex_mesh_surfaces */
+    bool has_cad = false;
+    /*! of a deformable mesh: the edges of its elements (SceneMesh::
+     * edge_indices), drawn with vertices */
+    std::unique_ptr<QRhiBuffer> edge_indices;
+    uint32_t edge_index_count = 0;
+    /*! of a deformable mesh: its constrained nodes (SceneMesh::
+     * constrained_vertices), drawn with vertices */
+    std::unique_ptr<QRhiBuffer> point_indices;
+    uint32_t point_index_count = 0;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -283,7 +339,33 @@ private:
     std::unique_ptr<QRhiBuffer> instances; /*!< poses times the scale */
     std::unique_ptr<QRhiShaderResourceBindings> bindings;
     int cad_index = 0; /*!< in Scene::cads */
+    /*! a flexible body's CAD (SceneCad::flex_mesh): its index in
+     * flex_gpu_, which writes the displacement of its samples */
+    int flex = -1;
   };
+  /*! the grids of the samples of a CAD that does not deform: one, of scale
+   * 0 (flex_field.glsl) */
+  std::unique_ptr<QRhiBuffer> cad_rigid_grids_;
+  /*! \brief whether CAD c (Scene::cads) is drawn: a flexible body's only
+   * when it deforms on the GPU */
+  bool is_cad_drawn(int c) const;
+  /*! \brief the instances of ray tracing and picking (RtInstanceList) of
+   * what can be drawn: the CADs not drawn left out; is_instance_drawn
+   * tells which are drawn now */
+  std::vector<SceneInstance> DrawnInstances() const;
+  /*! \brief per CAD the mesh it deforms with where it is drawn deformed,
+   * else -1 */
+  std::vector<int> CadFlexMeshes() const;
+  /*! \brief whether body, a flexible body's, is drawn by its mesh's
+   * surface (set_flex_mesh_surfaces) */
+  bool is_flex_mesh_surface(int body) const {
+    return body >= 0 && body < static_cast<int>(flex_mesh_surfaces_.size()) &&
+           flex_mesh_surfaces_[size_t(body)];
+  }
+  /*! \brief whether an instance of ray tracing (mesh_index past the
+   * meshes: a CAD's) is drawn now: its body shown, and of a flexible body
+   * the surface chosen, its mesh's or its CAD's */
+  bool is_instance_drawn(const SceneInstance& instance) const;
 
   /*! the particles of an SPH soil (SceneParticles): their centres, one
    * instance each */
@@ -351,6 +433,47 @@ private:
   /*! \brief compute pipeline of a shader, laid out as bindings */
   QRhiComputePipeline* NewComputePipeline(const char* shader,
                                           QRhiShaderResourceBindings* bindings);
+
+  /*! @name Pipelines made on a worker thread
+
+  The driver compiles a pipeline's shaders when it is made, which for the
+  long shaders (the CAD's tessellation, the ray tracer) can take seconds
+  when its cache of compiled shaders misses. Where the window renders with
+  Vulkan, CreatePipeline only queues a pipeline; the frame that queued any
+  is submitted without drawing, and then a worker thread makes them while
+  the GUI thread does not use the device at all: RenderFrame draws nothing
+  until they are made, and whatever else uses the device (ReleaseAll,
+  ReleaseRhi, BeginOffscreen) waits for them first. Offscreen and with
+  other backends, pipelines are made at once. */
+  /*! @{ */
+  /*! \brief make a pipeline (create), now or queued; failed is called (on
+   * the GUI thread) if it cannot be made. Returns false if it was made now
+   * and could not be. */
+  bool CreatePipeline(QRhiGraphicsPipeline* pipeline,
+                      std::function<void()> failed = {});
+  bool CreatePipeline(QRhiComputePipeline* pipeline,
+                      std::function<void()> failed = {});
+  bool CreatePipeline(std::function<bool()> create,
+                      std::function<void()> failed);
+  /*! \brief make the pipelines queued on a worker thread */
+  void StartPipelineCompile();
+  /*! \brief once the worker has made them (or waiting for it, wait): join
+   * it and report the pipelines that failed; true if none are being made */
+  bool FinishPipelineCompile(bool wait);
+  struct PendingPipeline {
+    std::function<bool()> create;
+    std::function<void()> failed;
+    bool ok = false;
+  };
+  std::vector<PendingPipeline> pending_pipelines_;
+  std::thread pipeline_thread_;
+  std::atomic<bool> pipelines_made_{false};
+  /*! the CAD triangulation's (TriangulateCad), and the bindings it is laid
+   * out with */
+  std::unique_ptr<QRhiComputePipeline> cad_triangulate_pipeline_;
+  std::unique_ptr<QRhiShaderResourceBindings> cad_triangulate_layout_;
+  std::vector<std::unique_ptr<QRhiBuffer>> cad_triangulate_dummies_;
+  /*! @} */
 
   Simulation* simulation_ = nullptr;
   Poses poses_;
@@ -424,6 +547,16 @@ private:
   uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
   uint32_t axes_frame_instance_count_ = 0;
   std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
+  std::vector<bool> flex_mesh_surfaces_; /*!< see set_flex_mesh_surfaces */
+  std::vector<bool> flex_mesh_edges_; /*!< see set_flex_mesh_edges */
+  /*! see set_flex_constrained_nodes */
+  std::vector<bool> flex_constrained_nodes_;
+  /*! set_color_map: sRGB, kColorMapSamples */
+  std::vector<ksl_vec3f_t> color_map_;
+  /*! the points of the constrained nodes (mesh_points.vert) */
+  std::unique_ptr<QRhiGraphicsPipeline> points_pipeline_;
+  /*! the lines of the edges of flexible bodies' elements (mesh_edges.vert) */
+  std::unique_ptr<QRhiGraphicsPipeline> edges_pipeline_;
   /*! \brief whether the meshes of body are drawn */
   bool is_body_shown(int body) const {
     return body >= static_cast<int>(hidden_bodies_.size()) ||

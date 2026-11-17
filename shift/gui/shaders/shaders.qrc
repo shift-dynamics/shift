@@ -16,6 +16,8 @@
     <file>flex_deform.comp.qsb</file>
     <file>flex_normals.comp.qsb</file>
     <file>flex_refit.comp.qsb</file>
+    <file>flex_field.comp.qsb</file>
+    <file>flex_cad.comp.qsb</file>
     <file>svgf_temporal.comp.qsb</file>
     <file>svgf_variance.comp.qsb</file>
     <file>svgf_atrous.comp.qsb</file>
@@ -31,5 +33,9 @@
     <file>cad_triangulate.comp.qsb</file>
     <file>axes.vert.qsb</file>
     <file>axes.frag.qsb</file>
+    <file>mesh_edges.vert.qsb</file>
+    <file>mesh_edges.frag.qsb</file>
+    <file>mesh_points.vert.qsb</file>
+    <file>mesh_points.frag.qsb</file>
   </qresource>
 </RCC>

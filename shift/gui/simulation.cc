@@ -63,6 +63,194 @@ static void ComputeMeshNormals(shift::gui::SceneMesh& mesh) {
   shift::gui::ComputeNormals(mesh.vertices, mesh.indices);
 }
 
+/* the closest point of triangle a, b, c to p, as barycentric coordinates
+(Ericson, Real-Time Collision Detection, 5.1.5) */
+static void ClosestOnTriangle(const ksl_vec3_t& p, const ksl_vec3_t& a,
+                              const ksl_vec3_t& b, const ksl_vec3_t& c,
+                              double l[3]) {
+  ksl_vec3_t ab, ac, ap, bp, cp;
+  ksl_subtract_vv(&b, &a, &ab);
+  ksl_subtract_vv(&c, &a, &ac);
+  ksl_subtract_vv(&p, &a, &ap);
+  const double d1 = ksl_dot_vv(&ab, &ap), d2 = ksl_dot_vv(&ac, &ap);
+  auto set = [&](double x, double y, double z) {
+    l[0] = x;
+    l[1] = y;
+    l[2] = z;
+  };
+  if(d1 <= 0.0 && d2 <= 0.0) {
+    return set(1.0, 0.0, 0.0);
+  }
+  ksl_subtract_vv(&p, &b, &bp);
+  const double d3 = ksl_dot_vv(&ab, &bp), d4 = ksl_dot_vv(&ac, &bp);
+  if(d3 >= 0.0 && d4 <= d3) {
+    return set(0.0, 1.0, 0.0);
+  }
+  const double vc = d1 * d4 - d3 * d2;
+  if(vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+    const double t = d1 / (d1 - d3);
+    return set(1.0 - t, t, 0.0);
+  }
+  ksl_subtract_vv(&p, &c, &cp);
+  const double d5 = ksl_dot_vv(&ab, &cp), d6 = ksl_dot_vv(&ac, &cp);
+  if(d6 >= 0.0 && d5 <= d6) {
+    return set(0.0, 0.0, 1.0);
+  }
+  const double vb = d5 * d2 - d1 * d6;
+  if(vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
+    const double t = d2 / (d2 - d6);
+    return set(1.0 - t, 0.0, t);
+  }
+  const double va = d3 * d6 - d5 * d4;
+  if(va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
+    const double t = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+    return set(0.0, 1.0 - t, t);
+  }
+  const double denominator = 1.0 / (va + vb + vc);
+  const double y = vb * denominator, z = vc * denominator;
+  set(1.0 - y - z, y, z);
+}
+
+/* half the mean length of the edges of the boundary triangles of a flexible
+body's mesh: the spacing of its nodes on the surface */
+static double FlexNodeSpacing(const shift::core::body::Flex& flex) {
+  const auto& positions = flex.get_positions();
+  double sum = 0.0;
+  size_t count = 0;
+  for(const auto& t : flex.get_mesh_boundary()) {
+    for(int e = 0; e < 3; e++) {
+      ksl_vec3_t d;
+      ksl_subtract_vv(&positions[size_t(t[e])],
+                      &positions[size_t(t[(e + 1) % 3])], &d);
+      sum += ksl_vec3_l2norm(&d);
+      count++;
+    }
+  }
+  return count > 0 ? 0.5 * sum / double(count) : 0.0;
+}
+
+/* the shapes of a flexible body (the elastic coordinates', then the
+fixed-interface modes computed, as SceneMesh::flex_basis) at the samples of
+its CAD: those of the closest point of the mesh's surface, from the
+quadratic shape functions of its boundary triangle, nearest the closest
+node of the surface */
+static void FlexSampleBasis(const shift::core::body::Flex& flex,
+                            shift::gui::SceneCad& cad) {
+  const auto& positions = flex.get_positions();
+  const auto& shapes = flex.get_shapes();
+  const auto& computed_shapes = flex.get_computed_shapes();
+  const size_t n = flex.get_elastic_count();
+  const size_t computed = flex.get_frequencies().size();
+  const size_t columns = n + computed;
+  const auto& boundary = flex.get_mesh_boundary();
+  const size_t samples = cad.sample_points.size() / 4;
+  cad.sample_basis.assign(3 * columns * samples, 0.f);
+  if(boundary.empty() || samples == 0) {
+    return;
+  }
+  /* the boundary triangles of each surface node, and the nodes in cells of
+  a grid */
+  std::map<int, std::vector<size_t>> triangles_of;
+  for(size_t k = 0; k < boundary.size(); k++) {
+    for(int node : boundary[k]) {
+      triangles_of[node].push_back(k);
+    }
+  }
+  const double cell = std::max(2.0 * FlexNodeSpacing(flex), 1e-9);
+  auto key = [&](const ksl_vec3_t& x) {
+    return std::array<int64_t, 3>{int64_t(std::floor(x.x / cell)),
+                                  int64_t(std::floor(x.y / cell)),
+                                  int64_t(std::floor(x.z / cell))};
+  };
+  std::map<std::array<int64_t, 3>, std::vector<int>> cells;
+  for(const auto& [node, list] : triangles_of) {
+    cells[key(positions[size_t(node)])].push_back(node);
+  }
+  for(size_t k = 0; k < samples; k++) {
+    const float* x = cad.sample_points.data() + 4 * k;
+    const ksl_vec3_t p = ksl_vec3(x[0], x[1], x[2]);
+    /* the nearest surface node, the search growing ring by ring */
+    const auto center = key(p);
+    int nearest = -1;
+    double best = 1e300;
+    int last_ring = 64;
+    for(int ring = 0; ring <= last_ring; ring++) {
+      for(int64_t i = -ring; i <= ring; i++) {
+        for(int64_t j = -ring; j <= ring; j++) {
+          for(int64_t m = -ring; m <= ring; m++) {
+            if(std::max({std::abs(i), std::abs(j), std::abs(m)}) != ring) {
+              continue;
+            }
+            auto it = cells.find({center[0] + i, center[1] + j,
+                                  center[2] + m});
+            if(it == cells.end()) {
+              continue;
+            }
+            for(int node : it->second) {
+              ksl_vec3_t d;
+              ksl_subtract_vv(&positions[size_t(node)], &p, &d);
+              const double distance = ksl_dot_vv(&d, &d);
+              if(distance < best) {
+                best = distance;
+                nearest = node;
+              }
+            }
+          }
+        }
+      }
+      /* a node found in this ring may be farther than one in the next */
+      if(nearest >= 0 && last_ring == 64) {
+        last_ring = ring + 1;
+      }
+    }
+    if(nearest < 0) {
+      continue;
+    }
+    /* the closest point of the triangles of that node */
+    double best_distance = 1e300;
+    size_t triangle = 0;
+    double l[3] = {1.0, 0.0, 0.0};
+    for(size_t t : triangles_of[nearest]) {
+      const auto& tri = boundary[t];
+      double b[3];
+      ClosestOnTriangle(p, positions[size_t(tri[0])], positions[size_t(tri[1])],
+                        positions[size_t(tri[2])], b);
+      ksl_vec3_t q = ksl_vec3(0.0, 0.0, 0.0);
+      for(int c = 0; c < 3; c++) {
+        ksl_axpy_vv(b[c], &positions[size_t(tri[c])], &q);
+      }
+      ksl_vec3_t d;
+      ksl_subtract_vv(&q, &p, &d);
+      const double distance = ksl_dot_vv(&d, &d);
+      if(distance < best_distance) {
+        best_distance = distance;
+        triangle = t;
+        std::copy(b, b + 3, l);
+      }
+    }
+    /* quadratic triangle: corners l_i (2 l_i - 1), mid-sides 4 l_i l_j
+    (3 between 0 and 1, 4 between 1 and 2, 5 between 2 and 0) */
+    const double N[6] = {l[0] * (2.0 * l[0] - 1.0), l[1] * (2.0 * l[1] - 1.0),
+                         l[2] * (2.0 * l[2] - 1.0), 4.0 * l[0] * l[1],
+                         4.0 * l[1] * l[2], 4.0 * l[2] * l[0]};
+    float* basis = cad.sample_basis.data() + 3 * columns * k;
+    for(int a = 0; a < 6; a++) {
+      const size_t node = size_t(boundary[triangle][a]);
+      for(size_t j = 0; j < n; j++) {
+        for(int c = 0; c < 3; c++) {
+          basis[3 * j + c] += float(N[a] * shapes[node * n + j].lin.at[c]);
+        }
+      }
+      for(size_t m = 0; m < computed; m++) {
+        for(int c = 0; c < 3; c++) {
+          basis[3 * (n + m) + c] +=
+            float(N[a] * computed_shapes[3 * (node * computed + m) + c]);
+        }
+      }
+    }
+  }
+}
+
 static shift::gui::SceneMesh
 MakeSceneMesh(const shift::gui::MeshData& data,
               const std::vector<shift::gui::MaterialData>& materials,
@@ -552,9 +740,10 @@ shift::gui::Simulation::~Simulation() {
   RemoveLogDirectory();
 }
 
-void shift::gui::Simulation::Load(const std::string& filename) {
+void shift::gui::Simulation::Unload() {
   JoinWorker();
   scm_views_.clear();
+  sph_views_.clear();
   dem_views_.clear();
   grain_records_ = 0;
   flex_views_.clear();
@@ -564,16 +753,26 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   light_sources_.clear();
   scene_ = Scene();
   ClearResults();
+}
+
+void shift::gui::Simulation::Load(const std::string& filename) {
+  Unload();
   RemoveLogDirectory();
   filename_ = filename;
   std::string extension = std::filesystem::path(filename).extension().string();
   for(char& c : extension) {
     c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   }
-  if(extension == ".h5" || extension == ".hdf5") {
-    LoadLog(filename);
-  } else {
-    LoadModel(filename, {});
+  try {
+    if(extension == ".h5" || extension == ".hdf5") {
+      LoadLog(filename);
+    } else {
+      LoadModel(filename, {});
+    }
+  } catch(...) {
+    // e.g. stopped by the load observer once the context was made
+    Unload();
+    throw;
   }
 }
 
@@ -583,17 +782,14 @@ void shift::gui::Simulation::Reload(const Json::Value& model) {
   }
   // a copy: LoadModel sets it
   const std::string path = model_path_;
-  JoinWorker();
-  scm_views_.clear();
-  flex_views_.clear();
-  preview_view_ = -1;
-  context_.reset();
-  bodies_.clear();
-  light_sources_.clear();
-  scene_ = Scene();
-  ClearResults();
+  Unload();
   // a log's files stay where they were taken out to
-  LoadModel(path, file_map_, &model);
+  try {
+    LoadModel(path, file_map_, &model);
+  } catch(...) {
+    Unload();
+    throw;
+  }
 }
 
 void shift::gui::Simulation::LoadModel(
@@ -603,11 +799,13 @@ void shift::gui::Simulation::LoadModel(
   file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
+  context->set_load_observer(load_observer_);
   if(model) {
     context->LoadJSON(*model, path);
   } else {
     context->LoadJSON(path);
   }
+  context->set_load_observer(nullptr);
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by
@@ -632,6 +830,7 @@ void shift::gui::Simulation::LoadModel(
   std::map<const shift::core::geometry::Base*, std::vector<int>>
     geometry_meshes; // for the lights that geometries glow with
   for(size_t i = 0; i < bodies_.size(); i++) {
+    ReportLoad("Preparing the meshes for drawing", int(i), int(bodies_.size()));
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
       if(!mesh || !mesh->is_active()) {
@@ -661,6 +860,7 @@ void shift::gui::Simulation::LoadModel(
       scene_.instances.push_back({static_cast<int>(m), body});
     }
   }
+  ReportLoad("Preparing the flexible bodies for drawing");
   AddFlexViews();
   /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset),
   scale, color and opacity, drawn once per body */
@@ -674,10 +874,38 @@ void shift::gui::Simulation::LoadModel(
       if(!cad || !cad->is_active() || !cad->get_asset()) {
         continue;
       }
-      /* a flexible body's meshed solid is drawn by its mesh (AddFlexViews) */
+      /* a flexible body's meshed solid: a CAD of its own, deformed as its
+      mesh (AddFlexViews), sampled at about the spacing of the mesh's
+      nodes */
       auto flex = dynamic_cast<const shift::core::body::Flex*>(bodies_[i]);
       if(flex && flex->builds_model() &&
          flex->get_fe_geometry() == cad->get_name()) {
+        const FlexView* view = nullptr;
+        for(const auto& v : flex_views_) {
+          if(v.body == static_cast<int>(i)) {
+            view = &v;
+          }
+        }
+        if(!view) {
+          continue;
+        }
+        ReportLoad("Flexible body '" + flex->get_name() +
+                   "': sampling its CAD for drawing deformed");
+        SceneCad scene_cad = MakeSceneCad(cad->get_asset()->model,
+                                          cad->get_asset()->bodies,
+                                          cad->get_scale());
+        const auto& color = cad->get_color();
+        if(color.size() == 3) {
+          scene_cad.albedo =
+            ksl_vec3f(float(color[0]), float(color[1]), float(color[2]));
+        }
+        scene_cad.opacity = float(cad->get_opacity());
+        SampleCadPatches(cad->get_asset()->model, cad->get_asset()->bodies,
+                         FlexNodeSpacing(*flex), scene_cad);
+        FlexSampleBasis(*flex, scene_cad);
+        scene_cad.flex_mesh = view->mesh;
+        scene_cad.bodies.push_back(static_cast<int>(i));
+        scene_.cads.push_back(std::move(scene_cad));
         continue;
       }
       const auto key = std::make_tuple(cad->get_asset(), cad->get_scale(),
@@ -1143,6 +1371,36 @@ void shift::gui::Simulation::AddFlexViews() {
         }
       }
     }
+    /* the sides of the elements, corner to midside node to corner: each
+    once, by its nodes, though the faces either side have vertices of their
+    own */
+    static const int kSides[6][2] = {{0, 3}, {3, 1}, {1, 4},
+                                     {4, 2}, {2, 5}, {5, 0}};
+    /* a vertex at each node the attachments tie to their frames, on the
+    surface (one of the faces' vertices at it) */
+    std::map<int, uint32_t> vertex_at_point;
+    for(const auto& [key, v] : vertex_of) {
+      vertex_at_point.emplace(key.first, v);
+    }
+    std::set<uint32_t> constrained;
+    for(const auto& nodes : flex->get_attachment_nodes()) {
+      for(int node : nodes) {
+        auto it = vertex_at_point.find(node);
+        if(it != vertex_at_point.end() && constrained.insert(it->second).second) {
+          mesh.constrained_vertices.push_back(it->second);
+        }
+      }
+    }
+    std::set<std::pair<int, int>> sides;
+    for(size_t k = 0; k < boundary.size(); k++) {
+      for(const auto& side : kSides) {
+        const int a = boundary[k][side[0]], b = boundary[k][side[1]];
+        if(sides.insert(std::minmax(a, b)).second) {
+          mesh.edge_indices.push_back(vertex(a, faces[k]));
+          mesh.edge_indices.push_back(vertex(b, faces[k]));
+        }
+      }
+    }
     /* the rigid part of each shape: t = mean of u, theta = S^-1 sum
     d x u, S = sum (|d|^2 I - d d^T), d the node from the centroid */
     const auto& positions = flex->get_positions();
@@ -1150,10 +1408,9 @@ void shift::gui::Simulation::AddFlexViews() {
     const size_t nodes = flex->get_mesh_node_count();
     const size_t n = flex->get_elastic_count();
     for(size_t p = 0; p < nodes; p++) {
-      ksl_add_vv(&view.centroid, &positions[p], &view.centroid);
+      ksl_axpy_vv(1.0, &positions[p], &view.centroid);
     }
-    ksl_product_av(1.0 / double(std::max<size_t>(nodes, 1)), &view.centroid,
-                   &view.centroid);
+    ksl_vec3_scale(&view.centroid, 1.0 / double(std::max<size_t>(nodes, 1)));
     ksl_mat3x3_t S = {};
     for(size_t p = 0; p < nodes; p++) {
       ksl_vec3_t d;
@@ -1176,11 +1433,10 @@ void shift::gui::Simulation::AddFlexViews() {
         ksl_vec3_t d, dxu;
         ksl_subtract_vv(&positions[p], &view.centroid, &d);
         ksl_cross_vv(&d, &u, &dxu);
-        ksl_add_vv(&moment, &dxu, &moment);
-        ksl_add_vv(&view.rigid_translation[j], &u, &view.rigid_translation[j]);
+        ksl_axpy_vv(1.0, &dxu, &moment);
+        ksl_axpy_vv(1.0, &u, &view.rigid_translation[j]);
       }
-      ksl_product_av(1.0 / double(nodes), &view.rigid_translation[j],
-                     &view.rigid_translation[j]);
+      ksl_vec3_scale(&view.rigid_translation[j], 1.0 / double(nodes));
       ksl_product_drv(&S_inverse, &moment, &view.rigid_rotation[j]);
     }
     /* the undeformed surface, and the basis: the shapes of the elastic
@@ -1209,6 +1465,28 @@ void shift::gui::Simulation::AddFlexViews() {
         for(int c = 0; c < 3; c++) {
           mesh.flex_basis.push_back(
             float(computed_shapes[3 * (p * computed + k) + c]));
+        }
+      }
+    }
+    /* the stress of each vertex in each shape, from its node's */
+    const auto& surface_nodes = flex->get_surface_nodes();
+    const auto& surface_stresses = flex->get_surface_stresses();
+    const size_t columns = mesh.flex_columns;
+    if(!surface_nodes.empty() &&
+       surface_stresses.size() == 6 * columns * surface_nodes.size()) {
+      mesh.flex_stress_basis.reserve(6 * columns * mesh.vertices.size());
+      for(size_t v = 0; v < mesh.vertices.size(); v++) {
+        const int p = view.vertex_point[v];
+        auto it =
+          std::lower_bound(surface_nodes.begin(), surface_nodes.end(), p);
+        if(it == surface_nodes.end() || *it != p) {
+          mesh.flex_stress_basis.clear();
+          break;
+        }
+        const double* s = surface_stresses.data() +
+                          6 * columns * size_t(it - surface_nodes.begin());
+        for(size_t k = 0; k < 6 * columns; k++) {
+          mesh.flex_stress_basis.push_back(float(s[k]));
         }
       }
     }
@@ -1247,6 +1525,27 @@ void shift::gui::Simulation::ShowElastic(const double* y) {
       }
     }
   }
+}
+
+void shift::gui::Simulation::set_flex_stresses(std::vector<bool> bodies,
+                                               bool automatic, double low,
+                                               double high) {
+  stress_bodies_ = std::move(bodies);
+  stress_automatic_ = automatic;
+  stress_range_[0] = low;
+  stress_range_[1] = high;
+  for(auto& view : flex_views_) {
+    view.changed = true;
+  }
+}
+
+bool shift::gui::Simulation::has_flex_stresses(int body) const {
+  for(const auto& view : flex_views_) {
+    if(view.body == body) {
+      return !scene_.meshes[size_t(view.mesh)].flex_stress_basis.empty();
+    }
+  }
+  return false;
 }
 
 void shift::gui::Simulation::set_deformation_scale(double scale) {
@@ -1292,6 +1591,18 @@ void shift::gui::Simulation::FlexCoefficients(const FlexView& view,
   update.rotation = ksl_vec3f(0.f, 0.f, 0.f);
   const bool preview =
     preview_view_ >= 0 && &flex_views_[preview_view_] == &view;
+  /* the stress: of the elastic coordinates, or of the shape previewed (its
+  coefficients set below), not magnified */
+  update.stress_coefficients.assign(n + computed, 0.f);
+  const bool stress =
+    size_t(view.body) < stress_bodies_.size() &&
+    stress_bodies_[size_t(view.body)] &&
+    !scene_.meshes[size_t(view.mesh)].flex_stress_basis.empty();
+  update.stress = !stress              ? FlexUpdate::Stress::kNone
+                  : stress_automatic_ ? FlexUpdate::Stress::kAutomatic
+                                      : FlexUpdate::Stress::kRange;
+  update.stress_range[0] = float(stress_range_[0]);
+  update.stress_range[1] = float(stress_range_[1]);
   if(preview) {
     /* the shape previewed, its largest displacement the amplitude */
     const size_t column =
@@ -1314,6 +1625,7 @@ void shift::gui::Simulation::FlexCoefficients(const FlexView& view,
     }
     update.coefficients[column] =
       float(largest > 0.0 ? preview_amplitude_ / largest : 0.0);
+    update.stress_coefficients[column] = update.coefficients[column];
     return;
   }
   /* u + (scale - 1) (u - rigid part of u), u = sum eta_j s_j */
@@ -1323,11 +1635,12 @@ void shift::gui::Simulation::FlexCoefficients(const FlexView& view,
   for(size_t j = 0; j < n; j++) {
     const double eta = view.eta[j];
     update.coefficients[j] = float(deformation_scale_ * eta);
+    update.stress_coefficients[j] = float(eta);
     ksl_vec3_t t, r;
     ksl_product_av(rigid * eta, &view.rigid_translation[j], &t);
     ksl_product_av(rigid * eta, &view.rigid_rotation[j], &r);
-    ksl_add_vv(&translation, &t, &translation);
-    ksl_add_vv(&rotation, &r, &rotation);
+    ksl_axpy_vv(1.0, &t, &translation);
+    ksl_axpy_vv(1.0, &r, &rotation);
   }
   update.translation = ksl_vec3f(float(translation.x), float(translation.y),
                                  float(translation.z));
@@ -1754,6 +2067,7 @@ static hsize_t Rows(const H5::DataSet& dataset) {
 }
 
 void shift::gui::Simulation::LoadLog(const std::string& filename) {
+  ReportLoad("Unpacking the log");
   std::string error_prefix = "Log " + filename + ": ";
   H5::Exception::dontPrint();
   try {
@@ -1857,6 +2171,7 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
     LoadModel(model_file.string(), std::move(file_map));
 
     /* the rows: q, dq and the states of free bodies */
+    ReportLoad("Reading the results");
     std::vector<double> times(Rows(file.openDataSet("/time")));
     file.openDataSet("/time").read(times.data(), H5::PredType::NATIVE_DOUBLE);
     const size_t rows = times.size();

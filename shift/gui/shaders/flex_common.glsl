@@ -4,6 +4,9 @@ layout(std140, binding = 0) uniform FlexParams {
   vec4 center;       // the point the rotation turns about (centroid)
   vec4 translation;  // the rigid correction (FlexUpdate)
   vec4 rotation;
+  // the stress drawn (FlexUpdate::stress): x = 0 none, 1 over the range
+  // y to z, 2 from 0 to the largest on the mesh
+  vec4 stress;
 } params;
 
 // the undeformed vertices, as Vertex: position, normal, uv (8 floats)

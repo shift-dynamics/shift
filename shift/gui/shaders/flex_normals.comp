@@ -22,6 +22,10 @@ layout(std430, binding = 6) readonly buffer Offsets {
 layout(std430, binding = 7) readonly buffer Triangles {
   uint triangles[];
 };
+// the largest von Mises stress on the mesh (flex_deform.comp)
+layout(std430, binding = 10) readonly buffer Maximum {
+  uint maximum;
+};
 // the vertex buffer drawn, as Vertex
 layout(std430, binding = 8) writeonly buffer Vertices {
   float vertices[];
@@ -51,6 +55,15 @@ void main() {
   vertices[8u * v + 3u] = n.x;
   vertices[8u * v + 4u] = n.y;
   vertices[8u * v + 5u] = n.z;
-  vertices[8u * v + 6u] = reference[8u * v + 6u];
+  // the stress drawn, mapped to [0, 1] over its range, in place of u
+  float u = reference[8u * v + 6u];
+  if(params.stress.x > 0.5) {
+    bool automatic = params.stress.x > 1.5;
+    float low = automatic ? 0.0 : params.stress.y;
+    float high = automatic ? uintBitsToFloat(maximum) : params.stress.z;
+    u = high > low ? clamp((deformed[v].w - low) / (high - low), 0.0, 1.0)
+                   : 0.0;
+  }
+  vertices[8u * v + 6u] = u;
   vertices[8u * v + 7u] = reference[8u * v + 7u];
 }

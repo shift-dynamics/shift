@@ -7,14 +7,18 @@
 
 #include <string>
 
+#include "shift/gui/color_map.h"
+
 namespace shift {
 namespace gui {
 
 /*!
 @brief The viewer's settings, kept from one session to the next
 
-They are the length of the arrows of the coordinate frames and the
-thickness and color of the lines of the joint axes. They are read from and written to a JSON file,
+They are the length of the arrows of the coordinate frames, the
+thickness and color of the lines of the joint axes, and the color map and
+range of the stress drawn on flexible bodies. They are read from and
+written to a JSON file,
 ~/.shift/settings.json (get_default_path). Keys the file has that this
 version does not know are kept when it is written again.
 */
@@ -64,10 +68,44 @@ public:
     joint_thickness_ = thickness;
   }
 
+  /*! \brief the color map of the stress drawn on flexible bodies (a key of
+   * ColorMaps), "stress_color_map" in the file */
+  const std::string& get_stress_color_map() const {
+    return stress_color_map_;
+  }
+  void set_stress_color_map(const std::string& key) {
+    stress_color_map_ = key;
+  }
+  /*! \brief whether the color map spans 0 to the largest stress on each
+   * body as drawn ("stress_range": "automatic", the default), or from
+   * get_stress_minimum to get_stress_maximum ("fixed"); in the units of
+   * stress of the model (Pa in SI units), "stress_minimum" and
+   * "stress_maximum" in the file */
+  bool is_stress_range_automatic() const {
+    return stress_range_automatic_;
+  }
+  void set_stress_range_automatic(bool automatic) {
+    stress_range_automatic_ = automatic;
+  }
+  double get_stress_minimum() const {
+    return stress_minimum_;
+  }
+  double get_stress_maximum() const {
+    return stress_maximum_;
+  }
+  void set_stress_range(double minimum, double maximum) {
+    stress_minimum_ = minimum;
+    stress_maximum_ = maximum;
+  }
+
 private:
   double frame_scale_ = kDefaultFrameScale;
   QColor joint_color_ = get_default_joint_color();
   double joint_thickness_ = kDefaultJointThickness;
+  std::string stress_color_map_ = DefaultColorMap();
+  bool stress_range_automatic_ = true;
+  double stress_minimum_ = 0.0;
+  double stress_maximum_ = 250e6;
   Json::Value json_ = Json::Value(Json::objectValue); /*!< the file as read */
 };
 

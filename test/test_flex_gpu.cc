@@ -5,7 +5,10 @@ initial elastic coordinates. The vertex buffer they write is DeformFlexMesh's
 surface; the ray tracer's triangles are its triangles in the BVH's order,
 their motion the change since they were last written, and the BVH's boxes
 those of the triangles under them. A frame without a new deformation zeroes
-the motion. Skipped where there is no OpenGL 4.3 device. */
+the motion. The plate's CAD deforms with the mesh: the displacement of its
+samples is FlexCadField's, and its ray tracer's triangles move from the
+undeformed ones by the displacement interpolated at their corners. Skipped
+where there is no OpenGL 4.3 device. */
 
 #include <gtest/gtest.h>
 
@@ -14,6 +17,7 @@ the motion. Skipped where there is no OpenGL 4.3 device. */
 #include <QSurfaceFormat>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -74,6 +78,25 @@ static std::vector<T> Values(const QRhiReadbackResult& result) {
   return values;
 }
 
+/* an OpenGL 4.3 device with compute shaders, or none */
+static std::unique_ptr<QRhi> MakeComputeRhi(
+  std::unique_ptr<QOffscreenSurface>& surface) {
+  EnsureGuiApplication();
+  QSurfaceFormat format;
+  format.setVersion(4, 3);
+  format.setProfile(QSurfaceFormat::CoreProfile);
+  surface.reset(QRhiGles2InitParams::newFallbackSurface(format));
+  QRhiGles2InitParams params;
+  params.format = format;
+  params.fallbackSurface = surface.get();
+  std::unique_ptr<QRhi> rhi(QRhi::create(QRhi::OpenGLES2, &params));
+  if(!rhi || !rhi->isFeatureSupported(QRhi::Compute) ||
+     !rhi->isFeatureSupported(QRhi::ReadBackNonUniformBuffer)) {
+    return nullptr;
+  }
+  return rhi;
+}
+
 TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
   EnsureGuiApplication();
   QSurfaceFormat format;
@@ -107,12 +130,22 @@ TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
   ASSERT_GE(index, 0);
   const shift::gui::SceneMesh& mesh = scene.meshes[size_t(index)];
   simulation.set_deformation_scale(1000.0);
+  /* its stress drawn too, from 0 to the largest */
+  ASSERT_EQ(simulation.get_flex_bodies().size(), 1u);
+  const int body = simulation.get_flex_bodies()[0];
+  ASSERT_TRUE(simulation.has_flex_stresses(body));
+  std::vector<bool> stressed(simulation.get_bodies().size(), false);
+  stressed[size_t(body)] = true;
+  simulation.set_flex_stresses(stressed, true, 0.0, 0.0);
   std::vector<shift::gui::FlexUpdate> updates;
   simulation.TakeFlexUpdates(updates, true);
   ASSERT_EQ(updates.size(), 1u);
   const shift::gui::FlexUpdate& update = updates[0];
+  EXPECT_EQ(update.stress, shift::gui::FlexUpdate::Stress::kAutomatic);
   std::vector<shift::gui::Vertex> expected;
-  shift::gui::DeformFlexMesh(mesh, update, expected);
+  const float largest_stress =
+    shift::gui::DeformFlexMesh(mesh, update, expected);
+  EXPECT_GT(largest_stress, 0.f);
 
   /* the ray tracer's triangles of the undeformed mesh and their BVH */
   std::vector<shift::gui::RtTriangle> triangles(mesh.indices.size() / 3);
@@ -199,12 +232,19 @@ TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
     for(int c = 0; c < 3; c++) {
       EXPECT_NEAR(drawn[v].position[c], expected[v].position[c], 1e-6);
       EXPECT_NEAR(drawn[v].normal[c], expected[v].normal[c], 1e-4);
+      /* the stress mapped over its range */
+      if(c == 0) {
+        EXPECT_NEAR(drawn[v].uv[0], expected[v].uv[0], 1e-4);
+      }
       largest_move = std::max(largest_move,
                               double(std::fabs(expected[v].position[c] -
                                                mesh.vertices[v].position[c])));
     }
   }
   EXPECT_GT(largest_move, 1e-3); /* a deformation the test sees */
+  /* the largest stress, read back for the legend */
+  EXPECT_NEAR(flex.get_stress_maximum(id), largest_stress,
+              1e-5 * largest_stress);
 
   /* the ray tracer's triangles, their motion and the boxes */
   const auto written = Values<shift::gui::RtTriangle>(read_triangles);
@@ -280,6 +320,224 @@ TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
             0.f);
   EXPECT_EQ(*std::min_element(still.begin(), still.begin() + motion_floats),
             0.f);
+}
+
+TEST(FlexGpu, DeformsTheCadSurface) {
+  std::unique_ptr<QOffscreenSurface> surface;
+  std::unique_ptr<QRhi> rhi = MakeComputeRhi(surface);
+  if(!rhi) {
+    GTEST_SKIP() << "no OpenGL 4.3 device with compute shaders";
+  }
+  const std::string path = WriteGpuPlate();
+  shift::gui::Simulation simulation;
+  const std::string cache = testing::TempDir() + "/flex_gpu.test__plate.fe.h5";
+  std::remove(cache.c_str());
+  simulation.Load(path);
+  std::remove(path.c_str());
+  std::remove(cache.c_str());
+  const shift::gui::Scene& scene = simulation.get_scene();
+  ASSERT_EQ(scene.cads.size(), 1u);
+  const shift::gui::SceneCad& cad = scene.cads[0];
+  ASSERT_GE(cad.flex_mesh, 0);
+  const shift::gui::SceneMesh& mesh = scene.meshes[size_t(cad.flex_mesh)];
+  simulation.set_deformation_scale(1000.0);
+  std::vector<shift::gui::FlexUpdate> updates;
+  simulation.TakeFlexUpdates(updates, true);
+  ASSERT_EQ(updates.size(), 1u);
+  const shift::gui::FlexUpdate& update = updates[0];
+  shift::gui::FlexUpdate rest = update;
+  std::fill(rest.coefficients.begin(), rest.coefficients.end(), 0.f);
+  rest.translation = rest.rotation = ksl_vec3f(0.f, 0.f, 0.f);
+
+  /* the triangles of the patches' grids as cad_triangulate.comp makes them:
+  the (u, v) of their corners (their points are written by the GPU) */
+  std::vector<shift::gui::RtTriangle> triangles;
+  auto lerp = [](float a, float b, int i, int n) {
+    return i == n ? b : a + (b - a) * float(i) / float(n);
+  };
+  for(size_t p = 0; p < cad.patches.size(); p++) {
+    const float* r = cad.patches[p].uv;
+    const int nu = cad.grids[2 * p], nv = cad.grids[2 * p + 1];
+    for(int j = 0; j < nv; j++) {
+      for(int i = 0; i < nu; i++) {
+        const float u[4] = {lerp(r[0], r[2], i, nu), lerp(r[0], r[2], i + 1, nu),
+                            lerp(r[0], r[2], i + 1, nu),
+                            lerp(r[0], r[2], i, nu)};
+        const float v[4] = {lerp(r[1], r[3], j, nv), lerp(r[1], r[3], j, nv),
+                            lerp(r[1], r[3], j + 1, nv),
+                            lerp(r[1], r[3], j + 1, nv)};
+        for(const auto& corners : {std::array<int, 3>{0, 1, 2},
+                                   std::array<int, 3>{0, 2, 3}}) {
+          shift::gui::RtTriangle t{};
+          float* positions[3] = {t.v0, t.v1, t.v2};
+          float* normals[3] = {t.n0, t.n1, t.n2};
+          for(int c = 0; c < 3; c++) {
+            positions[c][3] = u[corners[size_t(c)]];
+            normals[c][3] = v[corners[size_t(c)]];
+          }
+          triangles.push_back(t);
+        }
+      }
+    }
+    ASSERT_EQ(triangles.size(), size_t(cad.first_triangles[p + 1]));
+  }
+  /* a BVH over them (its boxes are refitted) */
+  shift::gui::RtFlexMesh rt;
+  rt.mesh = cad.flex_mesh;
+  rt.cad = 0;
+  rt.order.resize(triangles.size());
+  for(size_t t = 0; t < triangles.size(); t++) {
+    rt.order[t] = static_cast<int32_t>(t);
+  }
+  std::vector<shift::gui::RtTriangle> sorted = triangles;
+  for(size_t k = 0; k < sorted.size(); k++) {
+    /* boxes from points spread by (u, v), refitted after */
+    sorted[k].v0[0] = sorted[k].v0[3];
+    sorted[k].v1[0] = sorted[k].v1[3];
+    sorted[k].v2[0] = sorted[k].v2[3];
+  }
+  const std::vector<shift::gui::BvhNode> nodes =
+    shift::gui::BuildBvh(sorted, &rt.order);
+  ASSERT_FALSE(nodes.empty());
+  rt.node_count = static_cast<int>(nodes.size());
+
+  auto make = [&](QRhiBuffer::UsageFlags usage, size_t bytes,
+                  const void* data, QRhiResourceUpdateBatch* batch) {
+    QRhiBuffer* buffer = rhi->newBuffer(QRhiBuffer::Static, usage,
+                                        quint32(std::max<size_t>(bytes, 16)));
+    buffer->create();
+    if(data && bytes > 0) {
+      batch->uploadStaticBuffer(buffer, 0, quint32(bytes), data);
+    }
+    return std::unique_ptr<QRhiBuffer>(buffer);
+  };
+  const auto storage = QRhiBuffer::StorageBuffer;
+  QRhiCommandBuffer* cb = nullptr;
+  ASSERT_EQ(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+  QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
+  auto vertices = make(QRhiBuffer::VertexBuffer | storage,
+                       mesh.vertices.size() * sizeof(shift::gui::Vertex),
+                       mesh.vertices.data(), batch);
+  auto indices = make(QRhiBuffer::IndexBuffer | storage,
+                      mesh.indices.size() * sizeof(uint32_t),
+                      mesh.indices.data(), batch);
+  auto faces = make(storage, cad.faces.size() * sizeof(shift::gui::CadGpuFace),
+                    cad.faces.data(), batch);
+  auto curves =
+    make(storage, cad.curves.size() * sizeof(shift::gui::CadGpuCurve),
+         cad.curves.data(), batch);
+  auto patches =
+    make(storage, cad.patches.size() * sizeof(shift::gui::CadGpuPatch),
+         cad.patches.data(), batch);
+  auto points = make(storage, cad.points.size() * sizeof(float),
+                     cad.points.data(), batch);
+  auto knots = make(storage, cad.knots.size() * sizeof(float),
+                    cad.knots.data(), batch);
+  auto triangle_buffer =
+    make(storage, sorted.size() * sizeof(shift::gui::RtTriangle), sorted.data(),
+         batch);
+  auto node_buffer = make(storage, nodes.size() * sizeof(shift::gui::BvhNode),
+                          nodes.data(), batch);
+  const size_t motion_floats = 12 * sorted.size();
+  const std::vector<float> zero(motion_floats, 0.f);
+  auto motion_buffer =
+    make(storage, motion_floats * sizeof(float), zero.data(), batch);
+
+  shift::gui::FlexGpu flex(rhi.get());
+  const int mesh_id = flex.Add(mesh, vertices.get(), indices.get(), batch);
+  const int id = flex.AddCad(mesh_id, cad, batch);
+  ASSERT_GE(id, 0);
+  shift::gui::FlexGpu::CadSource source;
+  source.cad = &cad;
+  source.triangles = &triangles;
+  source.faces = faces.get();
+  source.curves = curves.get();
+  source.patches = patches.get();
+  source.points = points.get();
+  source.knots = knots.get();
+  flex.AddRayTracing(id, rt, nodes, triangle_buffer.get(), node_buffer.get(),
+                     motion_buffer.get(), batch, &source);
+  EXPECT_TRUE(flex.is_ray_traced(id));
+
+  /* undeformed, then deformed */
+  QRhiReadbackResult read_rest, read_field, read_triangles, read_nodes,
+    read_motion;
+  flex.Update(mesh_id, mesh, rest, batch);
+  batch = flex.Deform(cb, batch, true);
+  batch->readBackBuffer(triangle_buffer.get(), 0, triangle_buffer->size(),
+                        &read_rest);
+  cb->resourceUpdate(batch);
+  ASSERT_EQ(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+  ASSERT_EQ(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+  batch = rhi->nextResourceUpdateBatch();
+  flex.Update(mesh_id, mesh, update, batch);
+  batch = flex.Deform(cb, batch, true);
+  QRhiBuffer* field_buffer = flex.get_cad_field(id);
+  batch->readBackBuffer(field_buffer, 0, field_buffer->size(), &read_field);
+  batch->readBackBuffer(triangle_buffer.get(), 0, triangle_buffer->size(),
+                        &read_triangles);
+  batch->readBackBuffer(node_buffer.get(), 0, node_buffer->size(),
+                        &read_nodes);
+  batch->readBackBuffer(motion_buffer.get(), 0, motion_buffer->size(),
+                        &read_motion);
+  cb->resourceUpdate(batch);
+  ASSERT_EQ(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+
+  /* the samples' displacement: FlexCadField's */
+  std::vector<float> expected_field;
+  shift::gui::FlexCadField(cad, mesh, update, expected_field);
+  const auto field = Values<float>(read_field);
+  ASSERT_GE(field.size(), expected_field.size());
+  float largest = 0.f;
+  for(size_t i = 0; i < expected_field.size(); i++) {
+    EXPECT_NEAR(field[i], expected_field[i], 1e-6f) << "sample " << i / 4;
+    largest = std::max(largest, std::fabs(expected_field[i]));
+  }
+  EXPECT_GT(largest, 1e-3f); /* a deformation the test sees */
+
+  /* the triangles: moved from the undeformed by the displacement at their
+  corners, their motion that move */
+  const auto undeformed = Values<shift::gui::RtTriangle>(read_rest);
+  const auto deformed = Values<shift::gui::RtTriangle>(read_triangles);
+  const auto motion = Values<float>(read_motion);
+  ASSERT_GE(deformed.size(), sorted.size());
+  ASSERT_GE(motion.size(), motion_floats);
+  for(size_t k = 0; k < sorted.size(); k++) {
+    const size_t t = size_t(rt.order[k]);
+    int patch = 0;
+    while(size_t(cad.first_triangles[size_t(patch) + 1]) <= t) {
+      patch++;
+    }
+    const float* before[3] = {undeformed[k].v0, undeformed[k].v1,
+                              undeformed[k].v2};
+    const float* after[3] = {deformed[k].v0, deformed[k].v1, deformed[k].v2};
+    const float* uv_v[3] = {deformed[k].n0, deformed[k].n1, deformed[k].n2};
+    for(int j = 0; j < 3; j++) {
+      const ksl_vec3f_t d = shift::gui::FlexCadInterpolate(
+        cad, expected_field, patch, after[j][3], uv_v[j][3], nullptr, nullptr);
+      EXPECT_EQ(after[j][3], before[j][3]);
+      for(int c = 0; c < 3; c++) {
+        EXPECT_NEAR(after[j][c] - before[j][c], d.at[c], 2e-6f)
+          << "triangle " << k << " corner " << j;
+        EXPECT_NEAR(motion[12 * k + 4 * j + size_t(c)],
+                    after[j][c] - before[j][c], 1e-7f);
+      }
+    }
+  }
+  /* the root's box holds them, as does the instance's */
+  const auto fitted = Values<shift::gui::BvhNode>(read_nodes);
+  ksl_vec3f_t box_min, box_max;
+  flex.get_bounds(id, box_min, box_max);
+  for(size_t k = 0; k < sorted.size(); k++) {
+    for(const float* p : {deformed[k].v0, deformed[k].v1, deformed[k].v2}) {
+      for(int c = 0; c < 3; c++) {
+        EXPECT_LE(fitted[0].box_min[c], p[c]);
+        EXPECT_GE(fitted[0].box_max[c], p[c]);
+        EXPECT_LE(box_min.at[c], p[c]);
+        EXPECT_GE(box_max.at[c], p[c]);
+      }
+    }
+  }
 }
 
 #endif

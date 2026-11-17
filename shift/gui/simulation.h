@@ -12,6 +12,7 @@
 #include <condition_variable>
 #include <map>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -98,6 +99,17 @@ public:
    * as they were for the model loaded last. Throws on failure, leaving no
    * model loaded. */
   void Reload(const Json::Value& model);
+
+  /*! \brief told what is being done while Load or Reload runs, by the
+   * model's context (Context::set_load_observer, of the same type) and
+   * while the scene is made from it; it may throw to stop the load, which
+   * they pass on, leaving no model loaded. Called on the thread that
+   * loads. */
+  using LoadObserver =
+    std::function<void(const std::string& stage, int done, int total)>;
+  void set_load_observer(LoadObserver observer) {
+    load_observer_ = std::move(observer);
+  }
 
   bool is_loaded() const {
     return context_ != nullptr;
@@ -193,6 +205,13 @@ public:
    * computed); the part of it that is a rigid motion of the body is drawn
    * as computed, see FlexView */
   void set_deformation_scale(double scale);
+  /*! \brief the flexible bodies (by index into get_bodies) whose von Mises
+   * stress is drawn (FlexUpdate::stress), and its range: from 0 to the
+   * largest on each body (automatic), or from low to high */
+  void set_flex_stresses(std::vector<bool> bodies, bool automatic,
+                         double low, double high);
+  /*! \brief whether a flexible body has stresses to draw */
+  bool has_flex_stresses(int body) const;
   double get_deformation_scale() const {
     return deformation_scale_;
   }
@@ -330,6 +349,16 @@ private:
                  const Json::Value* model = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
+  /*! \brief no model loaded: the context, the scene and the results
+   * dropped */
+  void Unload();
+  /*! \brief tell the load observer, if any, what is being done */
+  void ReportLoad(const std::string& stage, int done = 0, int total = 0) {
+    if(load_observer_) {
+      load_observer_(stage, done, total);
+    }
+  }
+  LoadObserver load_observer_;
   void RemoveLogDirectory();
   void JoinWorker();
   void Work();
@@ -341,6 +370,9 @@ private:
 
   std::vector<FlexView> flex_views_;
   double deformation_scale_ = 1.0;
+  std::vector<bool> stress_bodies_; /*!< set_flex_stresses */
+  bool stress_automatic_ = true;
+  double stress_range_[2] = {0.0, 1.0};
   /* the shape previewed: view (-1 for none), kind, coordinate, amplitude */
   int preview_view_ = -1;
   int preview_kind_ = 0;

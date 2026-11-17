@@ -923,9 +923,15 @@ void main() {
       imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
       vec3 motion = vec3(0.0);
       if(hit.instance >= 0) {
+        // a flexible body's mesh: the motion's entry in its face; its CAD:
+        // offset from the triangle by its instance's variation.y
         int face = triangle_faces[hit.triangle];
-        if(face <= -2) {
-          uint m = 3u * uint(-face - 2);
+        vec4 variation = instances[hit.instance].variation;
+        int entry = face <= -2 ? -face - 2
+                    : variation.z > 0.5 ? hit.triangle + int(variation.y)
+                                        : -1;
+        if(entry >= 0) {
+          uint m = 3u * uint(entry);
           motion = triangle_motion[m].xyz * (1.0 - hit.bary.x - hit.bary.y) +
                    triangle_motion[m + 1u].xyz * hit.bary.x +
                    triangle_motion[m + 2u].xyz * hit.bary.y;

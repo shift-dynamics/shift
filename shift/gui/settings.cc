@@ -65,6 +65,29 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
       return false;
     }
   }
+  // the stress drawn: an unknown color map is the default's
+  std::string color_map = DefaultColorMap();
+  if(json["stress_color_map"].isString()) {
+    const std::string key = json["stress_color_map"].asString();
+    for(const ColorMap& map : ColorMaps()) {
+      if(key == map.key) {
+        color_map = key;
+      }
+    }
+  }
+  const bool automatic = !(json["stress_range"].isString() &&
+                           json["stress_range"].asString() == "fixed");
+  double stress_minimum = 0.0, stress_maximum = 250e6;
+  if(json["stress_minimum"].isNumeric()) {
+    stress_minimum = json["stress_minimum"].asDouble();
+  }
+  if(json["stress_maximum"].isNumeric()) {
+    stress_maximum = json["stress_maximum"].asDouble();
+  }
+  stress_color_map_ = color_map;
+  stress_range_automatic_ = automatic;
+  stress_minimum_ = stress_minimum;
+  stress_maximum_ = stress_maximum;
   frame_scale_ = frame_scale;
   joint_color_ = joint_color;
   joint_thickness_ = joint_thickness;
@@ -85,6 +108,10 @@ bool shift::gui::Settings::Save(const std::string& path,
   json["frame_scale"] = frame_scale_;
   json["joint_color"] = joint_color_.name(QColor::HexRgb).toStdString();
   json["joint_thickness"] = joint_thickness_;
+  json["stress_color_map"] = stress_color_map_;
+  json["stress_range"] = stress_range_automatic_ ? "automatic" : "fixed";
+  json["stress_minimum"] = stress_minimum_;
+  json["stress_maximum"] = stress_maximum_;
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  ";
   std::ofstream file(path);
