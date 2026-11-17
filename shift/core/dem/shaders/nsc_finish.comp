@@ -1,0 +1,58 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 10: each sphere's contacts keep their impulses for the next
+// step, and a contact with a body adds the opposite of its impulse, about
+// the body's origin, to the sphere's impulse on the body; the impulses by
+// option, as in nsc_velocities.comp
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) readonly buffer ContactStart { uint contact_start[]; };
+layout(std430, binding = 1) readonly buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 2) readonly buffer Impulse { vec4 impulse_of[]; };
+layout(std430, binding = 3) buffer History { vec4 history[]; };
+layout(std430, binding = 4) buffer WallHistory { vec4 wall_history[]; };
+layout(std430, binding = 5) buffer TriangleHistory { vec4 triangle_history[]; };
+layout(std430, binding = 6) buffer BodyImpulse { float body_impulse[]; };
+layout(std430, binding = 7) readonly buffer Control { NscControl control; };
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if(s >= spheres) {
+    return;
+  }
+  const uint end = min(contact_start[s + 1u], control.count);
+  for(uint c = contact_start[s]; c < end; c++) {
+    const uint r = 9u * c;
+    vec3 g = impulse_of[2u * c].xyz, rho = impulse_of[2u * c + 1u].xyz;
+    if(option == 0u) {
+      g = contacts[r + 8u].z * g;
+      rho = contacts[r + 8u].w * rho;
+    }
+    const vec3 p = g.x * contacts[r].xyz + g.y * contacts[r + 1u].xyz +
+                   g.z * contacts[r + 2u].xyz;
+    const uint kept = floatBitsToUint(contacts[r + 7u].w);
+    const uint kind = kept >> 30, slot = kept & 0x3fffffffu;
+    if(kind == kKeptPair) {
+      history[slot] = vec4(p, 0.0);
+    } else if(kind == kKeptWall) {
+      wall_history[slot] = vec4(p, 0.0);
+    } else {
+      triangle_history[slot] = vec4(p, 0.0);
+    }
+    const uint body = floatBitsToUint(contacts[r + 5u].w);
+    if(body != kNone) {
+      const vec3 moment = cross(contacts[r + 4u].xyz, -p) - rho;
+      const float values[6] = float[6](-p.x, -p.y, -p.z, moment.x, moment.y,
+                                       moment.z);
+      for(uint k = 0u; k < 6u; k++) {
+        const uint index = (k * bodies + body) * spheres + s;
+        body_impulse[index] = body_impulse[index] + values[k];
+      }
+    }
+  }
+}

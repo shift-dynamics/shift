@@ -2,6 +2,11 @@
   <qresource prefix="/shaders">
     <file>mesh.vert.qsb</file>
     <file>mesh.frag.qsb</file>
+    <file>particle.vert.qsb</file>
+    <file>fluid_depth.vert.qsb</file>
+    <file>fluid_depth.frag.qsb</file>
+    <file>fluid_blur.frag.qsb</file>
+    <file>fluid.frag.qsb</file>
     <file>fullscreen.vert.qsb</file>
     <file>sky.frag.qsb</file>
     <file>floor.vert.qsb</file>

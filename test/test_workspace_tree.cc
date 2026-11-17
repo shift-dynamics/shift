@@ -12,7 +12,6 @@ parameters panel lists every parameter of the selected object */
 #include <QApplication>
 #include <QColor>
 #include <QDoubleSpinBox>
-#include <QVector4D>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPushButton>
@@ -457,7 +456,7 @@ TEST(WorkspaceTree, EyeShowsTheAxesOfFrames) {
   ASSERT_EQ(FramesShown(workspace), 1u);
   const auto& shown = workspace.get_viewport()->get_frame_axes().front();
   EXPECT_EQ(shown.body_index, 0);
-  EXPECT_FLOAT_EQ(shown.frame(0, 3), 0.15f);
+  EXPECT_FLOAT_EQ(shown.frame.t.x, 0.15f);
   EXPECT_EQ(Eye(fixed_frames), Child(fixed_frames, "origin") ? 2 : 1);
 
   // a folder shows all of its frames, then hides them
@@ -531,19 +530,20 @@ TEST(WorkspaceTree, EyeShowsJointAxesAndHidesBodies) {
   viewport->get_poses(poses);
   ASSERT_FALSE(poses.bodies.empty());
   auto world = [&](const shift::gui::Viewport::JointAxis& axis) {
-    const QMatrix4x4 pose = poses.bodies[axis.body_index] * axis.line;
-    return std::make_pair(pose.column(3).toVector3D(),
-                          pose.column(2).toVector3D());
+    ksl_SE3f_t pose;
+    ksl_product_ddf(&poses.bodies[axis.body_index], &axis.line, &pose);
+    return std::make_pair(pose.t, pose.R.v2);
   };
   const auto [bearing_point, bearing_axis] =
     world(viewport->get_joint_axes()[0]);
   const auto [gear_point, gear_axis] = world(viewport->get_joint_axes()[1]);
-  EXPECT_NEAR(std::fabs(QVector3D::dotProduct(bearing_axis, gear_axis)), 1.f,
-              1e-5f);
-  EXPECT_NEAR((bearing_point - gear_point).length(), 0.f, 1e-5f);
+  EXPECT_NEAR(std::fabs(ksl_dot_vvf(&bearing_axis, &gear_axis)), 1.f, 1e-5f);
+  ksl_vec3f_t apart;
+  ksl_subtract_vvf(&bearing_point, &gear_point, &apart);
+  EXPECT_NEAR(ksl_vec3f_l2norm(&apart), 0.f, 1e-5f);
 
   // the joint color, purple
-  EXPECT_NEAR(viewport->get_joint_color().x(), 0xa0 / 255.f, 1e-6f);
+  EXPECT_NEAR(viewport->get_joint_color().x, 0xa0 / 255.f, 1e-6f);
 
   // hiding a body; then all of them with their folder, and back
   QTreeWidgetItem* body = FindItem(tree, "gear_a");
@@ -567,16 +567,18 @@ TEST(WorkspaceTree, EyeShowsJointAxesAndHidesBodies) {
 }
 
 /* the world direction of the arrow of joint axis i, +z of its line */
-static QVector3D ArrowDirection(shift::gui::Workspace& workspace, size_t i) {
+static ksl_vec3f_t ArrowDirection(shift::gui::Workspace& workspace,
+                                  size_t i) {
   auto* viewport = const_cast<shift::gui::Viewport*>(workspace.get_viewport());
   viewport->UpdatePoses();
   shift::gui::Poses poses;
   viewport->get_poses(poses);
   const auto& axis = viewport->get_joint_axes().at(i);
-  return (poses.bodies.at(axis.body_index) * axis.line)
-    .column(2)
-    .toVector3D()
-    .normalized();
+  ksl_SE3f_t pose;
+  ksl_product_ddf(&poses.bodies.at(axis.body_index), &axis.line, &pose);
+  ksl_vec3f_t z = pose.R.v2;
+  ksl_vec3f_normalize(&z);
+  return z;
 }
 
 TEST(WorkspaceTree, JointArrowPointsAlongTheGivenAxis) {
@@ -594,14 +596,14 @@ TEST(WorkspaceTree, JointArrowPointsAlongTheGivenAxis) {
   ASSERT_TRUE(bearing);
   ClickEye(tree, bearing);
   ASSERT_EQ(workspace.get_viewport()->get_joint_axes().size(), 1u);
-  const QVector3D given = ArrowDirection(workspace, 0);
+  const ksl_vec3f_t given = ArrowDirection(workspace, 0);
 
   // the axis the file gives, reversed: the arrow turns around
   tree->setCurrentItem(bearing);
   EditParameter(parameters, "axis", "[0, 0, -1]");
   ASSERT_EQ(workspace.get_viewport()->get_joint_axes().size(), 1u);
-  EXPECT_NEAR(QVector3D::dotProduct(ArrowDirection(workspace, 0), given),
-              -1.f, 1e-5f);
+  const ksl_vec3f_t reversed = ArrowDirection(workspace, 0);
+  EXPECT_NEAR(ksl_dot_vvf(&reversed, &given), -1.f, 1e-5f);
 }
 
 TEST(WorkspaceTree, SettingsPersist) {
@@ -726,8 +728,10 @@ TEST(WorkspaceTree, SettingsPersist) {
     shift::gui::Workspace workspace;
     EXPECT_EQ(workspace.get_settings().get_frame_scale(), 1.5);
     EXPECT_EQ(workspace.get_viewport()->get_frame_axes_scale(), 1.5f);
-    EXPECT_EQ(workspace.get_viewport()->get_joint_color(),
-              QVector3D(1.f, 0.f, 0.f));
+    const ksl_vec3f_t color = workspace.get_viewport()->get_joint_color();
+    EXPECT_EQ(color.x, 1.f);
+    EXPECT_EQ(color.y, 0.f);
+    EXPECT_EQ(color.z, 0.f);
     EXPECT_EQ(workspace.get_viewport()->get_joint_thickness(), 0.03f);
   }
   qputenv("HOME", home);

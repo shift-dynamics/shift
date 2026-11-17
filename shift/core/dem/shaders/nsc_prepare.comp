@@ -1,0 +1,88 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// NSC pass 3: each contact's step sizes, eta over the mean of its diagonal
+// of the Delassus operator and eta_r over that of its rolling, and their
+// square roots; and its impulse to start from, that of the step before in
+// the cone: with option 0 scaled for APGD, x = gamma / sqrt(eta) projected,
+// with option 1 as it is (Jacobi), the rolling impulse 0
+
+#include "dem_common.glsl"
+#include "nsc_common.glsl"
+
+layout(std430, binding = 0) buffer Contacts { vec4 contacts[]; };
+layout(std430, binding = 1) readonly buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 2) readonly buffer GrainAnchor { ivec4 grain_anchor[]; };
+layout(std430, binding = 3) readonly buffer TemplateMass { vec4 template_mass[]; };
+layout(std430, binding = 4) readonly buffer BodyInfo { vec4 body_info[]; };
+layout(std430, binding = 5) readonly buffer History { vec4 history[]; };
+layout(std430, binding = 6) readonly buffer WallHistory { vec4 wall_history[]; };
+layout(std430, binding = 7) readonly buffer TriangleHistory { vec4 triangle_history[]; };
+layout(std430, binding = 8) writeonly buffer Impulse { vec4 impulse[]; };
+layout(std430, binding = 9) readonly buffer Control { NscControl control; };
+layout(std430, binding = 10) readonly buffer GrainContacts { uint grain_contacts[]; };
+layout(std430, binding = 11) readonly buffer BodyContacts { uint body_contacts[]; };
+
+void main() {
+  const uint c = gl_GlobalInvocationID.x;
+  if(c >= control.count) {
+    return;
+  }
+  const uint r = 9u * c;
+  const vec3 n = contacts[r].xyz, t1 = contacts[r + 1u].xyz,
+             t2 = contacts[r + 2u].xyz;
+  const float mu = contacts[r + 1u].w, rolling_mu = contacts[r + 2u].w;
+  const uint a = floatBitsToUint(contacts[r + 3u].w),
+             b = floatBitsToUint(contacts[r + 4u].w),
+             body = floatBitsToUint(contacts[r + 5u].w),
+             kept = floatBitsToUint(contacts[r + 7u].w);
+  const vec4 ma = template_mass[uint(grain_anchor[a].w)];
+  const vec4 qa = grain_quaternion[a];
+  /* with mass splitting, each grain's and body's share n times as large,
+  for its n contacts */
+  const bool split = splitting != 0u;
+  const float share_a = split ? float(grain_contacts[a]) : 1.0;
+  float diagonal =
+    share_a * Delassus(qa, ma.x, ma.yzw, contacts[r + 3u].xyz, n, t1, t2);
+  float rolling = share_a * RollingDelassus(qa, ma.yzw, t1, t2);
+  if(b != kNone) {
+    const vec4 mb = template_mass[uint(grain_anchor[b].w)];
+    const vec4 qb = grain_quaternion[b];
+    const float share_b = split ? float(grain_contacts[b]) : 1.0;
+    diagonal +=
+      share_b * Delassus(qb, mb.x, mb.yzw, contacts[r + 4u].xyz, n, t1, t2);
+    rolling += share_b * RollingDelassus(qb, mb.yzw, t1, t2);
+  } else if(body != kNone) {
+    const uint info = 5u * (substep * bodies + body);
+    const float mass = body_info[info].x;
+    if(mass > 0.0) {
+      const float share = split ? float(body_contacts[body]) : 1.0;
+      const vec3 r0 = body_info[info + 1u].xyz, r1 = body_info[info + 2u].xyz,
+                 r2 = body_info[info + 3u].xyz;
+      diagonal += share * BodyDelassus(mass, r0, r1, r2, contacts[r + 5u].xyz,
+                                       n, t1, t2);
+      rolling += share * (dot(t1, Times(r0, r1, r2, t1)) +
+                          dot(t2, Times(r0, r1, r2, t2)));
+    }
+  }
+  const float eta = 3.0 / diagonal, eta_r = 2.0 / rolling;
+  const float s = sqrt(eta), sr = sqrt(eta_r);
+  contacts[r + 8u] = vec4(eta, eta_r, s, sr);
+  /* the impulse of the step before */
+  const uint kind = kept >> 30, slot = kept & 0x3fffffffu;
+  const vec3 before = kind == kKeptPair   ? history[slot].xyz
+                      : kind == kKeptWall ? wall_history[slot].xyz
+                                          : triangle_history[slot].xyz;
+  const vec3 gamma = ProjectOnCone(mu, vec3(dot(before, n), dot(before, t1),
+                                            dot(before, t2)));
+  if(option == 0u) {
+    const vec3 z = ProjectOnCone(mu, gamma / s);
+    /* the rolling part, 0, stays 0 in its disk */
+    impulse[2u * c] = vec4(z, 0.0);
+  } else {
+    impulse[2u * c] = vec4(gamma, 0.0);
+  }
+  impulse[2u * c + 1u] = vec4(0.0);
+}

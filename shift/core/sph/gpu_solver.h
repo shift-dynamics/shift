@@ -30,6 +30,11 @@ public:
   /*! \brief n substeps of dt, run in submissions of up to 64 */
   void Steps(float dt, long n) override;
   void GetState(State& state) override;
+  /*! \brief by a round trip through the host: for occasional removals */
+  void RemoveParticles(const std::vector<uint32_t>& ids) override;
+  size_t size() const override {
+    return count_;
+  }
   void ClearImpulses() override;
   void GetImpulses(std::vector<std::array<double, 6>>& impulses) override;
 

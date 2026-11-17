@@ -5,7 +5,8 @@ layout(local_size_x = 128) in;
 
 // SPH pass 5: the markers' stresses, from the particles around them (Adami
 // et al. 2012): sigma_w = (sum sigma_f W - I g . sum rho_f (x_w - x_f) W) /
-// sum W
+// sum W, its mean stress no more than the weighted apex of the particles'
+// cones (no tension in cohesionless soil)
 
 #include "sph_common.glsl"
 
@@ -14,6 +15,8 @@ layout(std430, binding = 1) readonly buffer Density { float density[]; };
 layout(std430, binding = 2) buffer Stress { vec4 stress[]; };
 layout(std430, binding = 3) readonly buffer Kind { uint kind[]; };
 layout(std430, binding = 4) readonly buffer Start { uint start[]; };
+// per material: density, G, K, c, then alpha_phi, k_c, alpha_psi, 0
+layout(std430, binding = 5) readonly buffer Materials { vec4 materials[]; };
 
 void main() {
   const uint i = gl_GlobalInvocationID.x;
@@ -21,7 +24,8 @@ void main() {
     return;
   }
   const vec3 xi = position[i].xyz;
-  float weight = 0.0, head = 0.0;
+  float weight = 0.0, head = 0.0, apex = 0.0;
+  bool cone = true;
   float sigma[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   uint hashes[27];
   const int cells = NeighborCells(xi, hashes);
@@ -48,6 +52,12 @@ void main() {
       sigma[5] += s1.y * w;
       head += density[j] *
               (gravity.x * dx + gravity.y * dy + gravity.z * dz) * w;
+      const vec4 m1 = materials[2 * kind[j] + 1];
+      if(m1.x > 0.0) {
+        apex += m1.y / m1.x / 3.0 * w;
+      } else {
+        cone = false;
+      }
     }
   }
   vec4 out0 = vec4(0.0), out1 = vec4(0.0);
@@ -56,6 +66,12 @@ void main() {
                 sigma[1] / weight - head / weight,
                 sigma[2] / weight - head / weight, sigma[3] / weight);
     out1 = vec4(sigma[4] / weight, sigma[5] / weight, 0.0, 0.0);
+    const float excess = (out0.x + out0.y + out0.z) / 3.0 - apex / weight;
+    if(cone && excess > 0.0) {
+      out0.x -= excess;
+      out0.y -= excess;
+      out0.z -= excess;
+    }
   }
   stress[2 * i] = out0;
   stress[2 * i + 1] = out1;

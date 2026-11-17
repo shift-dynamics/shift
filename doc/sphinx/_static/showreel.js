@@ -9,6 +9,9 @@
               "time (model by VTX, CC-BY-NC-SA-4.0)"},
     {src: "_static/klann_walker.webm",
      caption: "A walker on eight Klann legs, driven by one controller"},
+    {src: "_static/strandbeest.webm",
+     caption: "A Strandbeest on twelve Jansen legs walking along a beach, " +
+              "driven by one crankshaft"},
     {src: "_static/bricard.webm",
      caption: "Bricard's mechanism, a paradoxical linkage"},
     {src: "_static/track_frame.webm",

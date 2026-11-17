@@ -48,6 +48,7 @@ abiflexx_d4_1300    abiflexx_d4_1300/abiflexx_d4_1300.json       0.5
 kuka_iiwa           kuka_lbr_iiwa_14_r820/kuka_iiwa.json         0    --view 40,20
 excavator_simple    excavator/excavator_simple.json              0
 excavator           excavator/excavator.json                     0    --view 120,20
+excavator_drive     excavator/excavator_drive.json               0    --view 210,20
 bushing             force_modules/bushing.json                   2    --view 35,15
 rubber_mount        force_modules/rubber_mount.json              0.2  --view 35,20
 beam                force_modules/beam.json                      0.5  --view 75,12
@@ -66,4 +67,5 @@ cad_parts           cad/cad_parts.json                           0
 track_loop          cad/track_loop.json                          0    --view 30,25
 track_frame         cad/track_frame.json                         0    --view 30,25
 cube                scripting/cube.json                          0
+dem_grain_shapes    dem/grain_shapes.json                        0.2  --view 0,25 --frame 0,0,-0.004,0.009 --size 960x400
 LIST

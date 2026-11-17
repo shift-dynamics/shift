@@ -1,9 +1,12 @@
-/* The BVH over instance boxes used by the ray tracer (gui/bvh.h): every
-instance is in exactly one leaf, nodes enclose their children, and a ray
-query over the tree finds the same boxes as testing all of them */
+/* The BVHs used by the ray tracer (gui/bvh.h). Over instance boxes: every
+instance is in exactly one leaf, nodes enclose their children, a ray query
+over the tree finds the same boxes as testing all of them, and the tree is
+shallow enough for the ray tracer's stacks. Over triangles: no leaf is deeper
+than the limit, kBvhMaxDepth by default */
 #include "gtest/gtest.h"
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <set>
 #include <vector>
@@ -118,6 +121,81 @@ TEST_F(InstanceBvh, RayQueriesMatchBruteForce) {
       }
     }
     EXPECT_EQ(found, expected) << "ray " << ray;
+  }
+}
+
+/* the deepest level of a leaf, the root at 0 */
+static int MaxDepth(const std::vector<BvhNode>& nodes) {
+  int deepest = 0;
+  std::vector<std::pair<int, int>> stack = {{0, 0}}; // node, depth
+  while(!stack.empty()) {
+    const auto [index, depth] = stack.back();
+    stack.pop_back();
+    deepest = std::max(deepest, depth);
+    if(nodes[index].triangle_count < 0) {
+      stack.push_back({index + 1, depth + 1});
+      stack.push_back({nodes[index].right_or_first, depth + 1});
+    }
+  }
+  return deepest;
+}
+
+/* the ray tracer's stacks hold one node per level (raytrace.comp) */
+TEST_F(InstanceBvh, DepthIsLogarithmic) {
+  // a median split: ceil(log2(5000)) = 13 levels below the root
+  EXPECT_LE(MaxDepth(nodes_), 13);
+}
+
+/* triangles whose sizes and spacing grow geometrically along x, so that the
+surface area heuristic splits off a few of the largest at a time: 21 levels
+deep unlimited, cut at a limit of 8. The leaves at the limit hold all their
+triangles. */
+TEST(TriangleBvh, DepthIsLimited) {
+  constexpr int kCount = 400;
+  constexpr int kLimit = 8;
+  std::vector<shift::gui::RtTriangle> triangles(kCount);
+  for(int i = 0; i < kCount; i++) {
+    const float x = std::pow(1.07f, float(i));
+    const float h = 0.1f * x;
+    shift::gui::RtTriangle& t = triangles[i];
+    t = shift::gui::RtTriangle{};
+    t.v0[0] = x;
+    t.v1[0] = x + h;
+    t.v2[0] = x;
+    t.v2[1] = h;
+    t.v0[3] = float(i); // the triangle's index, carried through the sort
+  }
+  std::vector<shift::gui::RtTriangle> unlimited = triangles;
+  EXPECT_GT(MaxDepth(shift::gui::BuildBvh(unlimited, nullptr, 1000)), kLimit);
+  const std::vector<BvhNode> nodes =
+    shift::gui::BuildBvh(triangles, nullptr, kLimit);
+  ASSERT_FALSE(nodes.empty());
+  EXPECT_EQ(MaxDepth(nodes), kLimit);
+
+  // every triangle in one leaf, inside its box, and children inside parents
+  std::multiset<int> leaves;
+  for(size_t i = 0; i < nodes.size(); i++) {
+    const BvhNode& node = nodes[i];
+    if(node.triangle_count < 0) {
+      ASSERT_LT(size_t(node.right_or_first), nodes.size());
+      EXPECT_TRUE(Contains(node, nodes[i + 1]));
+      EXPECT_TRUE(Contains(node, nodes[node.right_or_first]));
+      continue;
+    }
+    for(int j = 0; j < node.triangle_count; j++) {
+      const shift::gui::RtTriangle& t = triangles[node.right_or_first + j];
+      leaves.insert(int(t.v0[3]));
+      for(const float* v : {t.v0, t.v1, t.v2}) {
+        for(int k = 0; k < 3; k++) {
+          EXPECT_GE(v[k], node.box_min[k]);
+          EXPECT_LE(v[k], node.box_max[k]);
+        }
+      }
+    }
+  }
+  ASSERT_EQ(leaves.size(), size_t(kCount));
+  for(int i = 0; i < kCount; i++) {
+    EXPECT_EQ(leaves.count(i), 1u) << i;
   }
 }
 

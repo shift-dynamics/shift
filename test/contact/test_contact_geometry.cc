@@ -480,6 +480,216 @@ TEST(ContactGeometry, HullEllipsoidSmooth) {
   EXPECT_GT(tested, 10);
 }
 
+/* a sphere against a cylinder of radius 0.2 and half length 0.3 along z:
+on its side, over an end, beyond a rim and inside, the depth in closed form
+(see shift::core::collision_geometry::CylinderSphereContact) */
+TEST(ContactGeometry, SphereOnCylinder) {
+  auto shape = Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.2, 0.3));
+  auto& cylinder = static_cast<shift::core::collision_geometry::Cylinder&>(*shape);
+  auto sphere = Make<shift::core::collision_geometry::Sphere>(EllipsoidPoints(0.05, 0.05, 0.05));
+  auto& ball = static_cast<shift::core::collision_geometry::Sphere&>(*sphere);
+  const double rs = ball.get_radius();
+  // the fitted sphere's center off its body origin
+  ball.UpdatePose(Pose(V(0, 0, 0)));
+  const ksl_vec3_t offset = ball.get_center();
+  const ksl_SE3_t pose = Pose(V(0.1, -0.2, 0.3), V(0.6, 0.0, 0.8), 0.7);
+  cylinder.UpdatePose(pose);
+  // in the frame of the fitted cylinder, of radius r and half length h
+  const ksl_SE3_t frame = cylinder.get_d_absolute();
+  const double r = cylinder.get_radius(), h = cylinder.get_half_length();
+  struct Case {
+    ksl_vec3_t center;
+    double depth;
+    ksl_vec3_t normal;
+  };
+  const double k = 1.0 / std::sqrt(2.0);
+  const Case cases[] = {
+    {V(r + 0.03, 0.0, 0.1), rs - 0.03, V(1, 0, 0)},                 // side
+    {V(0.0, -r - 0.02, -0.25), rs - 0.02, V(0, -1, 0)},             // side
+    {V(0.05, 0.05, h + 0.03), rs - 0.03, V(0, 0, 1)},               // end
+    {V(r + 0.01, 0.0, h + 0.01), rs - 0.01 * std::sqrt(2.0), V(k, 0, k)}, // rim
+    {V(0.0, r - 0.03, 0.0), rs + 0.03, V(0, 1, 0)},                 // inside
+    {V(0.0, 0.05, -h + 0.02), rs + 0.02, V(0, 0, -1)},              // inside
+    {V(r + 0.1, 0.0, 0.0), 0.0, V(1, 0, 0)},                        // clear
+  };
+  for(const Case& t : cases) {
+    ksl_vec3_t center;
+    ksl_product_dv(&frame, &t.center, &center);
+    center = V(center.x - offset.x, center.y - offset.y, center.z - offset.z);
+    const shift::core::collision_geometry::ContactPair p =
+      Collide(cylinder, pose, *sphere, Pose(center));
+    ASSERT_EQ(p.collision, t.depth > 0.0);
+    if(!p.collision) {
+      continue;
+    }
+    EXPECT_TRUE(p.depth_converged);
+    EXPECT_NEAR(p.depth, t.depth, 1e-12);
+    ksl_vec3_t n;
+    for(int i = 0; i < 3; i++) {
+      n.at[i] = frame.R.v[0].at[i] * t.normal.x + frame.R.v[1].at[i] * t.normal.y +
+                frame.R.v[2].at[i] * t.normal.z;
+    }
+    EXPECT_NEAR(Dot(p.normal, n), 1.0, 1e-12);
+    // the sphere the other way round: the normal reversed
+    const shift::core::collision_geometry::ContactPair q =
+      Collide(*sphere, Pose(center), cylinder, pose);
+    EXPECT_NEAR(q.depth, t.depth, 1e-12);
+    EXPECT_NEAR(Dot(q.normal, n), -1.0, 1e-12);
+  }
+}
+
+/* random overlapping poses of hulls and cylinders: the exact contact (see
+shift::core::collision_geometry::CylinderHullContact) is d at its normal, a
+minimum of d, and no deeper than the brute force least d */
+TEST(ContactGeometry, HullCylinderGlobalDepth) {
+  const ksl_vec3_t shapes[] = {V(0.2, 0.3, 0), V(0.35, 0.03, 0),
+                               V(0.05, 0.4, 0)}; // radius, half length
+  std::vector<std::unique_ptr<shift::core::collision_geometry::Base>> hulls;
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(BoxPoints(0.3, 0.2, 0.1)));
+  hulls.push_back(Make<shift::core::collision_geometry::Box>(BoxPoints(0.25, 0.15, 0.05)));
+  hulls.push_back(Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(60, 3)));
+  std::mt19937 random(19);
+  std::uniform_real_distribution<double> unit(-1.0, 1.0);
+  int tested = 0;
+  for(auto& hull : hulls) {
+    for(const auto& sb : shapes) {
+      auto cylinder = Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(sb.x, sb.y));
+      for(int trial = 0; trial < 15; trial++) {
+        ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
+        ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+        for(auto* axis : {&axis_a, &axis_b}) {
+          const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
+          *axis = V(k * axis->x, k * axis->y, k * axis->z);
+        }
+        const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
+        const ksl_SE3_t pose_b =
+          Pose(V(0.35 * unit(random), 0.35 * unit(random), 0.35 * unit(random)),
+               axis_b, 3.0 * unit(random));
+        const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *cylinder, pose_b);
+        ksl_vec3_t n;
+        const double depth = BruteForceDepth(*hull, *cylinder, n);
+        if(std::fabs(depth) < 1e-6) {
+          continue; // touching: either answer
+        }
+        ASSERT_EQ(p.collision, depth > 0.0) << "trial " << trial;
+        if(!p.collision) {
+          continue;
+        }
+        tested++;
+        auto d = [&](const ksl_vec3_t& m) {
+          return Extent(*hull, m) + Extent(*cylinder, V(-m.x, -m.y, -m.z));
+        };
+        EXPECT_NEAR(p.depth, d(p.normal), 1e-10) << "trial " << trial;
+        EXPECT_LE(p.depth, depth + 1e-10) << "trial " << trial;
+        for(int k = 0; k < 3; k++) {
+          for(double tilt : {1e-4, -1e-4}) {
+            ksl_vec3_t m = p.normal;
+            m.at[k] += tilt;
+            const double l = std::sqrt(Dot(m, m));
+            m = V(m.x / l, m.y / l, m.z / l);
+            EXPECT_GE(d(m), p.depth - 1e-12) << "trial " << trial;
+          }
+          EXPECT_NEAR(p.point_a.at[k] - p.point_b.at[k],
+                      p.depth * p.normal.at[k], 1e-12)
+            << "trial " << trial;
+        }
+        // the points are on the shapes: their extremes along the normal
+        EXPECT_NEAR(Dot(p.point_a, p.normal), Extent(*hull, p.normal), 1e-10);
+        EXPECT_NEAR(Dot(p.point_b, p.normal),
+                    -Extent(*cylinder, V(-p.normal.x, -p.normal.y, -p.normal.z)),
+                    1e-10);
+      }
+    }
+  }
+  EXPECT_GT(tested, 50);
+}
+
+/* the contact of a hull and a cylinder is a function of their poses only:
+the same from any start near it, and continuous in the poses to the
+precision of the arithmetic */
+TEST(ContactGeometry, HullCylinderSmooth) {
+  auto hull = Make<shift::core::collision_geometry::ConvexHull>(IrregularPoints(60, 5));
+  auto cylinder = Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.15, 0.25));
+  auto& hh = static_cast<shift::core::collision_geometry::ConvexHull&>(*hull);
+  auto& cc = static_cast<shift::core::collision_geometry::Cylinder&>(*cylinder);
+  std::mt19937 random(23);
+  std::uniform_real_distribution<double> unit(-1.0, 1.0);
+  int tested = 0;
+  for(int trial = 0; trial < 40; trial++) {
+    ksl_vec3_t axis = V(unit(random), unit(random), unit(random));
+    const double k = 1.0 / std::sqrt(Dot(axis, axis));
+    axis = V(k * axis.x, k * axis.y, k * axis.z);
+    const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis, 3.0 * unit(random));
+    const ksl_SE3_t pose_b =
+      Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
+           V(0, 0, 1), 3.0 * unit(random));
+    const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *cylinder, pose_b);
+    if(!p.collision || p.depth < 1e-3) {
+      continue;
+    }
+    tested++;
+    // from starts 0.05 radians off the normal, the same contact
+    for(int s = 0; s < 3; s++) {
+      ksl_vec3_t start = p.normal;
+      start.at[s] += 0.05;
+      shift::core::collision_geometry::AnalyticContact c;
+      int hint = 0;
+      ASSERT_TRUE(shift::core::collision_geometry::CylinderHullContact(hh, cc, start, true, hint, c)) << trial;
+      EXPECT_NEAR(c.depth, p.depth, 1e-14) << trial;
+      for(int i = 0; i < 3; i++) {
+        EXPECT_NEAR(c.normal.at[i], p.normal.at[i], 1e-14) << trial;
+      }
+    }
+    // moved by 1e-8, the depth, the normal and the points move by about as
+    // little
+    const shift::core::collision_geometry::ContactPair q =
+      Collide(*hull, pose_a, *cylinder, Moved(pose_b, V(0.6, 0.0, 0.8), 1e-8));
+    ASSERT_TRUE(q.collision);
+    EXPECT_NEAR(q.depth, p.depth, 1e-7) << trial;
+    for(int i = 0; i < 3; i++) {
+      EXPECT_NEAR(q.normal.at[i], p.normal.at[i], 1e-6) << trial;
+    }
+  }
+  EXPECT_GT(tested, 10);
+}
+
+/* a cylinder pressed by its end against the face of a box beside its rim,
+as a flange against the side of a track link's rail: the normal is the
+face's, the depth exact, and as the cylinder tilts by small angles either
+way the depth changes in proportion, without a jump */
+TEST(ContactGeometry, CylinderEndOnBoxFace) {
+  auto shape = Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.15, 0.3));
+  auto& cylinder = static_cast<shift::core::collision_geometry::Cylinder&>(*shape);
+  auto box = Make<shift::core::collision_geometry::Box>(BoxPoints(0.1, 0.02, 0.04));
+  cylinder.UpdatePose(Pose(V(0, 0, 0)));
+  const ksl_SE3_t frame = cylinder.get_d_absolute(); // the fit's
+  const double h = cylinder.get_half_length();
+  // the box over the end, from 0.08 to 0.28 off the axis, its lower face
+  // 1e-4 into the cylinder
+  const ksl_vec3_t local = V(0.18, 0.0, h + 0.04 - 1e-4);
+  ksl_vec3_t center;
+  ksl_product_dv(&frame, &local, &center);
+  ksl_SE3_t pose_box = frame;
+  pose_box.t = center;
+  auto tilted = [&](double tilt) {
+    return Pose(V(0, 0, 0), frame.R.v[1], tilt); // about the fit's y
+  };
+  const shift::core::collision_geometry::ContactPair flat =
+    Collide(*box, pose_box, cylinder, tilted(0.0));
+  ASSERT_TRUE(flat.collision);
+  EXPECT_NEAR(flat.depth, 1e-4, 1e-12);
+  EXPECT_NEAR(Dot(flat.normal, frame.R.v[2]), -1.0, 1e-12);
+  for(double tilt : {1e-7, 1e-6, 1e-5, -1e-7, -1e-6, -1e-5}) {
+    const shift::core::collision_geometry::ContactPair p =
+      Collide(*box, pose_box, cylinder, tilted(tilt));
+    ASSERT_TRUE(p.collision) << tilt;
+    // the deepest point moves by the tilt times its distance from the axis,
+    // at most the radius
+    EXPECT_NEAR(p.depth, flat.depth, 0.16 * std::fabs(tilt)) << tilt;
+    EXPECT_GT(Dot(p.normal, flat.normal), 1.0 - std::fabs(tilt)) << tilt;
+  }
+}
+
 /* random overlapping hull pairs: from EPA's normal, the exact contact (see
 shift::core::collision_geometry::ConvexHullPairContact) is the minimum EPA found, d at its normal exactly, and
 a minimum of d */
@@ -784,9 +994,9 @@ TEST(ContactGeometry, ManifoldBoxOnBox) {
 }
 
 /* every pairing of the shape types at random overlapping poses: those with
-a closed form (sphere, ellipsoid, hull and box among themselves) and the
-cylinder and the capsule, whose pairs with anything but a plane are GJK and
-EPA */
+a closed form (sphere, ellipsoid, hull and box among themselves, and the
+cylinder with a sphere, a hull or a box) and the others with the cylinder and
+the capsule, whose pairs with anything but a plane are GJK and EPA */
 static const int kPairTypes = 6;
 
 class ContactGeometryPairs : public testing::TestWithParam<int> {

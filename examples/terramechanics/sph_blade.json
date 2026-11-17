@@ -1,0 +1,57 @@
+{
+  "comment": "A blade, 2 cm thick, 30 cm wide and 10 cm tall, on a slide, cutting 5 cm into a pit of dry sand, 1 by 0.4 by 0.2 m, modelled by SPH (a region of type sph in a terrain of type scm). It starts at 0.5 m/s and, heavy, hardly slows: the soil heaps in front of it and spills over the end of the pit, whose walls are no higher than its surface, onto the SCM ground, where the soil that lands is added to its nodes and erodes to its angle of repose. The soil_contact force module carries the soil's load on the blade. x forward, y right, z down.",
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0, 0, 9.81],
+    "include_directories": [".", "../force_modules/meshes"],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 2.0, "time_step": 0.01}]
+  },
+  "frames": [
+    // the terrain frame: its z = 0 is the surface of the ground
+    {"name": "terrain", "T": [0, 0, 0]},
+    // the blade's centre at the start, 5 cm into the soil, near the start
+    // of the pit
+    {"name": "start", "T": [0.1, 0.2, 0.0]}
+  ],
+  "terrain": [
+    {"type": "scm", "name": "ground", "parent": [["fixed"], "terrain"],
+     "x": [-0.5, 2.0], "y": [-0.5, 0.9], "spacing": 0.02,
+     // dry sand
+     "soil": {"sinkage_exponent": 1.1, "cohesive_modulus": 990,
+              "frictional_modulus": 1528000, "cohesion": 1040,
+              "friction_angle": 0.5236, "shear_modulus_k": 0.025,
+              "unit_weight": 15700},
+     // the soil that lands from the pit erodes to its angle of repose
+     "bulldozing": {"enable": true},
+     "regions": [
+       {"type": "sph", "name": "pit", "x": [0, 1], "y": [0, 0.4],
+        "depth": 0.2, "spacing": 0.02, "wall_height": 0,
+        // the elastic properties SPH needs, softened (E = 2 MPa) so that
+        // the substeps are longer; no cohesion
+        "soil": {"cohesion": 0, "youngs_modulus": 2e6, "poisson_ratio": 0.3}}
+     ]}
+  ],
+  "assemblies": [
+    {"name": "machine",
+     "force_modules": [{"type": "soil_contact", "name": "soil",
+                        "bodies": ["blade"]}],
+     "bodies": [
+       {"name": "blade", "center_of_mass": [0, 0, 0],
+        "geometry": [{"type": "mesh", "filename": ["box_black.obj"],
+                      "scale": [0.02, 0.3, 0.1]}],
+        "collision_geometry": [{"name": "blade", "type": "box",
+                                "half_extents": [0.01, 0.15, 0.05],
+                                "contact": false}],
+        "inertia": {"mass": 2000, "Ixx": 20, "Iyy": 20, "Izz": 20,
+                    "Ixy": 0, "Iyz": 0, "Izx": 0}}
+     ],
+     "joints": [
+       {"name": "slide", "type": "prismatic",
+        "parent": [["fixed"], "start"], "child": [["blade"], "origin"],
+        "axis": [1, 0, 0], "initial_velocity": 0.5}
+     ]}
+  ]
+}

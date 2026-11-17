@@ -29,35 +29,66 @@ static void Hammersley(int i, int n, float& u, float& v) {
 }
 
 /*! orthonormal basis (t, b, n) */
-static void Basis(const QVector3D& n, QVector3D& t, QVector3D& b) {
-  const QVector3D a =
-    std::fabs(n.x()) < 0.9f ? QVector3D(1, 0, 0) : QVector3D(0, 1, 0);
-  t = QVector3D::crossProduct(a, n).normalized();
-  b = QVector3D::crossProduct(n, t);
+static void Basis(const ksl_vec3f_t& n, ksl_vec3f_t& t, ksl_vec3f_t& b) {
+  const ksl_vec3f_t a = std::fabs(n.x) < 0.9f ? ksl_vec3f(1.f, 0.f, 0.f)
+                                              : ksl_vec3f(0.f, 1.f, 0.f);
+  ksl_cross_vvf(&a, &n, &t);
+  ksl_vec3f_normalize(&t);
+  ksl_cross_vvf(&n, &t, &b);
+}
+
+/*! the unit direction t x + b y + n z of the basis of n */
+static ksl_vec3f_t InBasis(const ksl_vec3f_t& n, float x, float y, float z) {
+  ksl_vec3f_t t, b;
+  Basis(n, t, b);
+  ksl_vec3f_t d;
+  ksl_product_avf(z, &n, &d);
+  ksl_axpy_vvf(x, &t, &d);
+  ksl_axpy_vvf(y, &b, &d);
+  ksl_vec3f_normalize(&d);
+  return d;
 }
 
 /*! GGX distributed half vector about n, alpha = roughness^2 */
-static QVector3D SampleGgx(float u, float v, float alpha, const QVector3D& n) {
+static ksl_vec3f_t SampleGgx(float u, float v, float alpha,
+                             const ksl_vec3f_t& n) {
   const float phi = 2.f * kPi * u;
   const float cos_theta =
     std::sqrt((1.f - v) / (1.f + (alpha * alpha - 1.f) * v));
   const float sin_theta = std::sqrt(std::max(1.f - cos_theta * cos_theta, 0.f));
-  QVector3D t, b;
-  Basis(n, t, b);
-  return (t * (sin_theta * std::cos(phi)) + b * (sin_theta * std::sin(phi)) +
-          n * cos_theta)
-    .normalized();
+  return InBasis(n, sin_theta * std::cos(phi), sin_theta * std::sin(phi),
+                 cos_theta);
 }
 
 /*! cosine distributed direction about n */
-static QVector3D SampleCosine(float u, float v, const QVector3D& n) {
+static ksl_vec3f_t SampleCosine(float u, float v, const ksl_vec3f_t& n) {
   const float phi = 2.f * kPi * u;
   const float r = std::sqrt(v);
-  QVector3D t, b;
-  Basis(n, t, b);
-  return (t * (r * std::cos(phi)) + b * (r * std::sin(phi)) +
-          n * std::sqrt(std::max(1.f - v, 0.f)))
-    .normalized();
+  return InBasis(n, r * std::cos(phi), r * std::sin(phi),
+                 std::sqrt(std::max(1.f - v, 0.f)));
+}
+
+/*! the direction 2 (a.h) h - a, a reflected about h */
+static ksl_vec3f_t Reflected(const ksl_vec3f_t& a, const ksl_vec3f_t& h) {
+  ksl_vec3f_t l;
+  ksl_product_avf(2.f * ksl_dot_vvf(&a, &h), &h, &l);
+  ksl_nxpy_vvf(&a, &l);
+  return l;
+}
+
+/*! a (1 - t) + b t */
+static ksl_vec3f_t Mix(const ksl_vec3f_t& a, const ksl_vec3f_t& b, float t) {
+  ksl_vec3f_t m;
+  ksl_product_avf(1.f - t, &a, &m);
+  ksl_axpy_vvf(t, &b, &m);
+  return m;
+}
+
+/*! k v */
+static ksl_vec3f_t Scaled(const ksl_vec3f_t& v, float k) {
+  ksl_vec3f_t s;
+  ksl_vec3f_scaled(&v, k, &s);
+  return s;
 }
 
 /*! Smith-Schlick visibility term with the image based lighting remapping
@@ -68,28 +99,30 @@ static float GeometrySmithIbl(float n_dot_v, float n_dot_l, float roughness) {
          (n_dot_l * (1.f - k) + k);
 }
 
-static void Store(std::vector<float>& table, const QVector3D& value, float w = 1.f) {
-  table.push_back(value.x());
-  table.push_back(value.y());
-  table.push_back(value.z());
+static void Store(std::vector<float>& table, const ksl_vec3f_t& value,
+                  float w = 1.f) {
+  table.push_back(value.x);
+  table.push_back(value.y);
+  table.push_back(value.z);
   table.push_back(w);
 }
 
 
-QVector3D shift::gui::EquirectDirection(float u, float v) {
+ksl_vec3f_t shift::gui::EquirectDirection(float u, float v) {
   const float azimuth = (u - 0.5f) * 2.f * kPi;
   const float altitude = (0.5f - v) * kPi;
   const float c = std::cos(altitude);
-  return QVector3D(c * std::cos(azimuth), c * std::sin(azimuth),
+  return ksl_vec3f(c * std::cos(azimuth), c * std::sin(azimuth),
                    -std::sin(altitude));
 }
 
-void shift::gui::EquirectCoordinates(const QVector3D& d, float& u, float& v) {
-  u = std::atan2(d.y(), d.x()) / (2.f * kPi) + 0.5f;
-  v = 0.5f - std::asin(std::clamp(-d.z(), -1.f, 1.f)) / kPi;
+void shift::gui::EquirectCoordinates(const ksl_vec3f_t& d, float& u,
+                                     float& v) {
+  u = std::atan2(d.y, d.x) / (2.f * kPi) + 0.5f;
+  v = 0.5f - std::asin(std::clamp(-d.z, -1.f, 1.f)) / kPi;
 }
 
-QVector3D shift::gui::SkyMap::Sample(const QVector3D& d) const {
+ksl_vec3f_t shift::gui::SkyMap::Sample(const ksl_vec3f_t& d) const {
   float u, v;
   EquirectCoordinates(d, u, v);
   const float x = u * width - 0.5f;
@@ -103,8 +136,8 @@ QVector3D shift::gui::SkyMap::Sample(const QVector3D& d) const {
     i = ((i % width) + width) % width;
     return texels[static_cast<size_t>(j) * width + i];
   };
-  return (at(x0, y0) * (1.f - fx) + at(x0 + 1, y0) * fx) * (1.f - fy) +
-         (at(x0, y1) * (1.f - fx) + at(x0 + 1, y1) * fx) * fy;
+  return Mix(Mix(at(x0, y0), at(x0 + 1, y0), fx),
+             Mix(at(x0, y1), at(x0 + 1, y1), fx), fy);
 }
 
 shift::gui::SkyMap shift::gui::SkyMap::Downsampled(int factor) const {
@@ -112,37 +145,37 @@ shift::gui::SkyMap shift::gui::SkyMap::Downsampled(int factor) const {
   small.width = width / factor;
   small.height = height / factor;
   small.texels.assign(static_cast<size_t>(small.width) * small.height,
-                      QVector3D());
+                      ksl_vec3f(0.f, 0.f, 0.f));
   for(int j = 0; j < small.height; j++) {
     for(int i = 0; i < small.width; i++) {
-      QVector3D sum;
+      ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
       float weight = 0.f;
       for(int b = 0; b < factor; b++) {
         // texels near the poles cover less of the sphere
         const int row = j * factor + b;
         const float w = std::cos((0.5f - (row + 0.5f) / height) * kPi);
         for(int a = 0; a < factor; a++) {
-          sum += texels[static_cast<size_t>(row) * width + i * factor + a] * w;
+          ksl_axpy_vvf(
+            w, &texels[static_cast<size_t>(row) * width + i * factor + a],
+            &sum);
           weight += w;
         }
       }
       small.texels[static_cast<size_t>(j) * small.width + i] =
-        weight > 0.f ? sum / weight : QVector3D();
+        weight > 0.f ? Scaled(sum, 1.f / weight) : ksl_vec3f(0.f, 0.f, 0.f);
     }
   }
   return small;
 }
 
 /* the gradient sky, the viewer's own */
-static QVector3D GradientRadiance(const shift::gui::SceneEnvironment& e,
-                                  const QVector3D& d) {
-  const float altitude = -d.z(); // +z is down
+static ksl_vec3f_t GradientRadiance(const shift::gui::SceneEnvironment& e,
+                                    const ksl_vec3f_t& d) {
+  const float altitude = -d.z; // +z is down
   if(altitude >= 0.f) {
-    const float t = std::sqrt(altitude);
-    return e.horizon * (1.f - t) + e.zenith * t;
+    return Mix(e.horizon, e.zenith, std::sqrt(altitude));
   }
-  const float t = std::clamp(-altitude * 4.f, 0.f, 1.f);
-  return e.horizon * (1.f - t) + e.ground * t;
+  return Mix(e.horizon, e.ground, std::clamp(-altitude * 4.f, 0.f, 1.f));
 }
 
 /* the Perez distribution of the luminance or a chromaticity of the sky, for
@@ -190,53 +223,55 @@ static void PreethamYxy(float cos_theta, float gamma, float cos_gamma,
       Perez(cc, 1.f, theta_s, cos_s);
 }
 
-static QVector3D YxyToLinearRgb(float big_y, float x, float y) {
+static ksl_vec3f_t YxyToLinearRgb(float big_y, float x, float y) {
   const float big_x = x * big_y / y;
   const float big_z = (1.f - x - y) * big_y / y;
-  return QVector3D(3.2406f * big_x - 1.5372f * big_y - 0.4986f * big_z,
+  return ksl_vec3f(3.2406f * big_x - 1.5372f * big_y - 0.4986f * big_z,
                    -0.9689f * big_x + 1.8758f * big_y + 0.0415f * big_z,
                    0.0557f * big_x - 0.2040f * big_y + 1.0570f * big_z);
 }
 
 /* the zenith angle of the sun in the model: at least a little above the
 horizon, where the model holds */
-static float SunZenithAngle(const QVector3D& sun) {
-  return std::min(std::acos(std::clamp(-sun.z(), -1.f, 1.f)),
+static float SunZenithAngle(const ksl_vec3f_t& sun) {
+  return std::min(std::acos(std::clamp(-sun.z, -1.f, 1.f)),
                   kPi / 2.f - 0.02f);
 }
 
-QVector3D shift::gui::PreethamRadiance(const QVector3D& d,
-                                       const QVector3D& sun, float turbidity) {
+ksl_vec3f_t shift::gui::PreethamRadiance(const ksl_vec3f_t& d,
+                                         const ksl_vec3f_t& sun,
+                                         float turbidity) {
   // the luminance of the default gradient sky's zenith, reached by the
   // zenith of a sky of turbidity 3 for the default sun (57 degrees high)
   static const float scale = [] {
     float big_y, x, y;
     const float theta_s = SunZenithAngle(SceneEnvironment().sun_direction);
     PreethamYxy(1.f, theta_s, std::cos(theta_s), theta_s, 3.f, big_y, x, y);
-    const QVector3D zenith = SceneEnvironment().zenith;
-    const float luminance = 0.2126f * zenith.x() + 0.7152f * zenith.y() +
-                            0.0722f * zenith.z();
+    const ksl_vec3f_t zenith = SceneEnvironment().zenith;
+    const float luminance =
+      0.2126f * zenith.x + 0.7152f * zenith.y + 0.0722f * zenith.z;
     return luminance / big_y;
   }();
-  const float cos_theta = std::max(-d.z(), 0.f);
-  const float cos_gamma = std::clamp(QVector3D::dotProduct(d, sun), -1.f, 1.f);
+  const float cos_theta = std::max(-d.z, 0.f);
+  const float cos_gamma = std::clamp(ksl_dot_vvf(&d, &sun), -1.f, 1.f);
   const float gamma = std::acos(cos_gamma);
   float big_y, x, y;
   PreethamYxy(cos_theta, gamma, cos_gamma, SunZenithAngle(sun), turbidity,
               big_y, x, y);
-  const QVector3D rgb = YxyToLinearRgb(big_y * scale, x, y);
-  return QVector3D(std::max(rgb.x(), 0.f), std::max(rgb.y(), 0.f),
-                   std::max(rgb.z(), 0.f));
+  const ksl_vec3f_t rgb = YxyToLinearRgb(big_y * scale, x, y);
+  return ksl_vec3f(std::max(rgb.x, 0.f), std::max(rgb.y, 0.f),
+                   std::max(rgb.z, 0.f));
 }
 
 float shift::gui::AngstromBeta(float turbidity) {
   return std::max(0.04608366f * turbidity - 0.04586026f, 0.f);
 }
 
-QVector3D shift::gui::SunlightColor(const QVector3D& sun, float turbidity) {
-  const float elevation = std::asin(std::clamp(-sun.z(), -1.f, 1.f));
+ksl_vec3f_t shift::gui::SunlightColor(const ksl_vec3f_t& sun,
+                                      float turbidity) {
+  const float elevation = std::asin(std::clamp(-sun.z, -1.f, 1.f));
   if(elevation <= 0.f) {
-    return QVector3D();
+    return ksl_vec3f(0.f, 0.f, 0.f);
   }
   // optical depths at 680, 550 and 440 nm: Rayleigh scattering, and the
   // aerosols of the turbidity (Angstrom's law, Preetham et al. 1999)
@@ -252,19 +287,19 @@ QVector3D shift::gui::SunlightColor(const QVector3D& sun, float turbidity) {
       const float aerosol = beta * std::pow(lambda[i], -1.3f);
       t[i] = std::exp(-(rayleigh + aerosol) * air_mass);
     }
-    return QVector3D(t[0], t[1], t[2]);
+    return ksl_vec3f(t[0], t[1], t[2]);
   };
   // the air mass of Kasten and Young (1989)
   const float degrees = elevation * 180.f / kPi;
   const float air_mass =
     1.f / (std::sin(elevation) +
            0.50572f * std::pow(degrees + 6.07995f, -1.6364f));
-  const QVector3D overhead = transmittance(1.f);
-  const QVector3D through = transmittance(air_mass);
-  const QVector3D white = SceneEnvironment().sun_color;
-  return QVector3D(white.x() * through.x() / overhead.x(),
-                   white.y() * through.y() / overhead.y(),
-                   white.z() * through.z() / overhead.z());
+  const ksl_vec3f_t overhead = transmittance(1.f);
+  const ksl_vec3f_t through = transmittance(air_mass);
+  const ksl_vec3f_t white = SceneEnvironment().sun_color;
+  return ksl_vec3f(white.x * through.x / overhead.x,
+                   white.y * through.y / overhead.y,
+                   white.z * through.z / overhead.z);
 }
 
 bool shift::gui::LoadSkyImage(const std::string& path, float rotation,
@@ -291,12 +326,12 @@ bool shift::gui::LoadSkyImage(const std::string& path, float rotation,
     map.width = EnvironmentTables::kRadianceWidth;
     map.height = EnvironmentTables::kRadianceHeight;
     map.texels.assign(static_cast<size_t>(map.width) * map.height,
-                      QVector3D());
+                      ksl_vec3f(0.f, 0.f, 0.f));
     auto texel = [&](int i, int j) {
       i = ((i % width) + width) % width;
       j = std::clamp(j, 0, height - 1);
       const Imf::Rgba& p = pixels[j][i];
-      return QVector3D(std::max(float(p.r), 0.f), std::max(float(p.g), 0.f),
+      return ksl_vec3f(std::max(float(p.r), 0.f), std::max(float(p.g), 0.f),
                        std::max(float(p.b), 0.f));
     };
     // box filter the source over each texel of the map
@@ -310,14 +345,15 @@ bool shift::gui::LoadSkyImage(const std::string& path, float rotation,
         const float y = v * height - 0.5f * step_y;
         const int x0 = static_cast<int>(std::floor(x));
         const int y0 = static_cast<int>(std::floor(y));
-        QVector3D sum;
+        ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
         for(int b = 0; b < step_y; b++) {
           for(int a = 0; a < step_x; a++) {
-            sum += texel(x0 + a, y0 + b);
+            const ksl_vec3f_t t = texel(x0 + a, y0 + b);
+            ksl_xpy_vvf(&t, &sum);
           }
         }
         map.texels[static_cast<size_t>(j) * map.width + i] =
-          sum / float(step_x * step_y);
+          Scaled(sum, 1.f / float(step_x * step_y));
       }
     }
   } catch(const std::exception& e) {
@@ -340,7 +376,7 @@ shift::gui::SkyMap shift::gui::BuildSkyMap(const SceneEnvironment& e,
     std::string message;
     if(LoadSkyImage(e.image_path, e.image_rotation, map, message)) {
       for(auto& t : map.texels) {
-        t *= e.sky_intensity;
+        ksl_vec3f_scale(&t, e.sky_intensity);
       }
       return map;
     }
@@ -356,29 +392,30 @@ shift::gui::SkyMap shift::gui::BuildSkyMap(const SceneEnvironment& e,
   // gradient sky does
   for(int j = 0; j < map.height; j++) {
     for(int i = 0; i < map.width; i++) {
-      const QVector3D d =
+      const ksl_vec3f_t d =
         EquirectDirection((i + 0.5f) / map.width, (j + 0.5f) / map.height);
-      QVector3D radiance;
+      ksl_vec3f_t radiance;
       if(!physical) {
         radiance = GradientRadiance(e, d);
-      } else if(d.z() <= 0.f) {
+      } else if(d.z <= 0.f) {
         radiance = PreethamRadiance(d, e.sun_direction, e.turbidity);
       } else {
-        const QVector3D level(d.x(), d.y(), 0.f);
-        const QVector3D horizon = PreethamRadiance(
-          level.normalized(), e.sun_direction, e.turbidity);
-        const float t = std::clamp(d.z() * 4.f, 0.f, 1.f);
-        radiance = horizon * (1.f - t) + e.ground * t;
+        ksl_vec3f_t level = ksl_vec3f(d.x, d.y, 0.f);
+        ksl_vec3f_normalize(&level);
+        const ksl_vec3f_t horizon =
+          PreethamRadiance(level, e.sun_direction, e.turbidity);
+        radiance =
+          Mix(horizon, e.ground, std::clamp(d.z * 4.f, 0.f, 1.f));
       }
       map.texels[static_cast<size_t>(j) * map.width + i] =
-        radiance * e.sky_intensity;
+        Scaled(radiance, e.sky_intensity);
     }
   }
   return map;
 }
 
 static void StoreMap(std::vector<float>& table, const shift::gui::SkyMap& map) {
-  for(const QVector3D& t : map.texels) {
+  for(const ksl_vec3f_t& t : map.texels) {
     Store(table, t);
   }
 }
@@ -402,23 +439,24 @@ shift::gui::ComputeEnvironmentTables(const SkyMap& sky) {
       roughness < 0.3f ? sky : (roughness < 0.6f ? medium : small);
     for(int j = 0; j < Tables::kSpecularHeight; j++) {
       for(int i = 0; i < Tables::kSpecularWidth; i++) {
-        const QVector3D n = EquirectDirection(
+        const ksl_vec3f_t n = EquirectDirection(
           (i + 0.5f) / Tables::kSpecularWidth,
           (j + 0.5f) / Tables::kSpecularHeight);
-        QVector3D sum;
+        ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
         float weight = 0.f;
         for(int k = 0; k < sample_count; k++) {
           float u, v;
           Hammersley(k, sample_count, u, v);
-          const QVector3D h = SampleGgx(u, v, alpha, n);
-          const QVector3D l = 2.f * QVector3D::dotProduct(n, h) * h - n;
-          const float n_dot_l = QVector3D::dotProduct(n, l);
+          const ksl_vec3f_t l = Reflected(n, SampleGgx(u, v, alpha, n));
+          const float n_dot_l = ksl_dot_vvf(&n, &l);
           if(n_dot_l > 0.f) {
-            sum += source.Sample(l) * n_dot_l;
+            const ksl_vec3f_t radiance = source.Sample(l);
+            ksl_axpy_vvf(n_dot_l, &radiance, &sum);
             weight += n_dot_l;
           }
         }
-        Store(tables.specular, weight > 0.f ? sum / weight : source.Sample(n));
+        Store(tables.specular,
+              weight > 0.f ? Scaled(sum, 1.f / weight) : source.Sample(n));
       }
     }
   }
@@ -426,39 +464,41 @@ shift::gui::ComputeEnvironmentTables(const SkyMap& sky) {
   // cosine weighted mean radiance, so that diffuse = albedo * irradiance
   for(int j = 0; j < Tables::kIrradianceHeight; j++) {
     for(int i = 0; i < Tables::kIrradianceWidth; i++) {
-      const QVector3D n =
+      const ksl_vec3f_t n =
         EquirectDirection((i + 0.5f) / Tables::kIrradianceWidth,
                           (j + 0.5f) / Tables::kIrradianceHeight);
-      QVector3D sum;
+      ksl_vec3f_t sum = ksl_vec3f(0.f, 0.f, 0.f);
       const int count = 512;
       for(int k = 0; k < count; k++) {
         float u, v;
         Hammersley(k, count, u, v);
-        sum += small.Sample(SampleCosine(u, v, n));
+        const ksl_vec3f_t radiance = small.Sample(SampleCosine(u, v, n));
+        ksl_xpy_vvf(&radiance, &sum);
       }
-      Store(tables.irradiance, sum / count);
+      Store(tables.irradiance, Scaled(sum, 1.f / count));
     }
   }
 
   // scale and bias to F0 of the directional albedo of the specular lobe
   const int brdf_count = Tables::kBrdfCount;
-  const QVector3D n(0.f, 0.f, 1.f);
+  const ksl_vec3f_t n = ksl_vec3f(0.f, 0.f, 1.f);
   for(int j = 0; j < brdf_count; j++) {
     const float roughness = (j + 0.5f) / brdf_count;
     const float alpha = roughness * roughness;
     for(int i = 0; i < brdf_count; i++) {
       const float n_dot_v = (i + 0.5f) / brdf_count;
-      const QVector3D view(std::sqrt(1.f - n_dot_v * n_dot_v), 0.f, n_dot_v);
+      const ksl_vec3f_t view =
+        ksl_vec3f(std::sqrt(1.f - n_dot_v * n_dot_v), 0.f, n_dot_v);
       float scale = 0.f;
       float bias = 0.f;
       for(int k = 0; k < kSampleCount; k++) {
         float u, v;
         Hammersley(k, kSampleCount, u, v);
-        const QVector3D h = SampleGgx(u, v, alpha, n);
-        const float v_dot_h = QVector3D::dotProduct(view, h);
-        const QVector3D l = 2.f * v_dot_h * h - view;
-        const float n_dot_l = l.z();
-        const float n_dot_h = h.z();
+        const ksl_vec3f_t h = SampleGgx(u, v, alpha, n);
+        const float v_dot_h = ksl_dot_vvf(&view, &h);
+        const ksl_vec3f_t l = Reflected(view, h);
+        const float n_dot_l = l.z;
+        const float n_dot_h = h.z;
         if(n_dot_l > 0.f && v_dot_h > 0.f) {
           const float g = GeometrySmithIbl(n_dot_v, n_dot_l, roughness);
           const float g_visible = g * v_dot_h / (n_dot_h * n_dot_v);
@@ -468,19 +508,21 @@ shift::gui::ComputeEnvironmentTables(const SkyMap& sky) {
         }
       }
       Store(tables.brdf,
-            QVector3D(scale / kSampleCount, bias / kSampleCount, 0.f));
+            ksl_vec3f(scale / kSampleCount, bias / kSampleCount, 0.f));
     }
   }
 
   // the zenith, and the mean radiance just above the horizon
-  tables.zenith = sky.Sample(QVector3D(0.f, 0.f, -1.f));
-  QVector3D horizon;
+  tables.zenith = sky.Sample(ksl_vec3f(0.f, 0.f, -1.f));
+  ksl_vec3f_t horizon = ksl_vec3f(0.f, 0.f, 0.f);
   const int around = 64;
   for(int k = 0; k < around; k++) {
     const float a = 2.f * kPi * k / around;
-    horizon += sky.Sample(
-      QVector3D(std::cos(a), std::sin(a), -0.02f).normalized());
+    ksl_vec3f_t d = ksl_vec3f(std::cos(a), std::sin(a), -0.02f);
+    ksl_vec3f_normalize(&d);
+    const ksl_vec3f_t radiance = sky.Sample(d);
+    ksl_xpy_vvf(&radiance, &horizon);
   }
-  tables.horizon = horizon / around;
+  tables.horizon = Scaled(horizon, 1.f / around);
   return tables;
 }

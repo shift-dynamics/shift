@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 #include "ksl/vec3.h"
 #include "shift/core/body/base.h"
@@ -13,6 +14,7 @@
 #include "shift/core/model_parameters.h"
 #include "shift/core/sph/cpu_solver.h"
 #include "shift/core/sph/gpu_solver.h"
+#include "shift/core/terrain/scm.h"
 
 bool shift::core::terrain::Sph::registered_ =
   shift::core::Factory<shift::core::terrain::Base>::get()->RegisterModule(
@@ -59,6 +61,16 @@ void shift::core::terrain::Sph::DeclareParameters() {
                    "height of the walls above the surface (m); default "
                    "depth",
                    false);
+  DeclareParameter("substeps_per_step", &substeps_per_step_,
+                   "the longest integration step, in stable substeps of "
+                   "the soil; default 1. The soil's force on the bodies is "
+                   "a step behind them, which puts energy into a light "
+                   "body on it when the step is longer",
+                   false);
+  DeclareParameter("landing_interval", &landing_interval_,
+                   "time between the checks for particles that have landed "
+                   "outside the extent (s); default 0.01",
+                   false);
   DeclareParameter("device", &device_,
                    "\"gpu\" (default) or \"cpu\" (single threaded, for small "
                    "soils)",
@@ -98,6 +110,14 @@ void shift::core::terrain::Sph::Load() {
     SHIFT_WARNING(prefix + "marker_layers is less than the support of the "
                            "kernel: particles near the floor and walls see "
                            "too few markers");
+  }
+  if(!(landing_interval_ > 0.0)) {
+    throw shift::core::Exception(prefix + "landing_interval must be "
+                                          "positive");
+  }
+  if(substeps_per_step_ < 1) {
+    throw shift::core::Exception(prefix + "substeps_per_step must be at "
+                                          "least 1");
   }
   if(device_ != "gpu" && device_ != "cpu") {
     throw shift::core::Exception(prefix + "device must be \"gpu\" or "
@@ -229,12 +249,51 @@ void shift::core::terrain::Sph::Load() {
   }
   SHIFT_INFO(prefix + std::to_string(particle_count_) + " particles, " +
              std::to_string(state_.size() - particle_count_) + " markers");
-  solver_.reset();
-  device_ptr_.reset();
-  started_ = false;
-  time_ = last_time_ = pending_ = 0.0;
+  initial_state_ = state_;
+  initial_particle_count_ = particle_count_;
   step_ = shift::core::sph::StableStep(settings_, materials_);
+  Restart();
+}
+
+void shift::core::terrain::Sph::Restart() {
+  state_ = initial_state_;
+  particle_count_ = initial_particle_count_;
+  solver_.reset();
+  started_ = false;
+  time_ = last_time_ = next_landing_ = 0.0;
+  landed_volume_ = lost_volume_ = 0.0;
+  displaced_count_ = 0;
+  for(ksl_coscrew_t& load : body_loads_) {
+    load = ksl_coscrew_t{};
+  }
+  for(ksl_coscrew_t& impulse : body_impulses_) {
+    impulse = ksl_coscrew_t{};
+  }
   UpdateSurface();
+}
+
+double shift::core::terrain::Sph::FloorZ(double x, double y) const {
+  const long i = std::clamp(
+    static_cast<long>(std::floor((x - origin_[0]) / spacing_)), 0L,
+    columns_x_ - 1);
+  const long j = std::clamp(
+    static_cast<long>(std::floor((y - origin_[1]) / spacing_)), 0L,
+    columns_y_ - 1);
+  return floor_[size_t(j) * columns_x_ + i];
+}
+
+ksl_SE3_t shift::core::terrain::Sph::get_particle_frame() const {
+  ksl_SE3_t frame = get_pose();
+  for(int a = 0; a < 3; a++) {
+    for(int k = 0; k < 3; k++) {
+      frame.t.at[k] += frame.R.v[a].at[k] * origin_[a];
+    }
+  }
+  return frame;
+}
+
+double shift::core::terrain::Sph::StepLimit() const {
+  return substeps_per_step_ * step_;
 }
 
 void shift::core::terrain::Sph::SetBodies(
@@ -444,6 +503,65 @@ void shift::core::terrain::Sph::SampleBodies(shift::core::sph::State& state) {
   }
 }
 
+void shift::core::terrain::Sph::DisplaceSoil(shift::core::sph::State& state) {
+  const ksl_SE3_t frame = get_particle_frame();
+  std::vector<uint32_t> ids;
+  for(size_t b = 0; b < bodies_.size(); b++) {
+    for(collision_geometry::Base* geometry : body_geometry_[b]) {
+      /* its box along the axes of the particles' frame */
+      double lo[3], hi[3];
+      for(int a = 0; a < 3; a++) {
+        for(int side = 0; side < 2; side++) {
+          const double sign = side == 0 ? -1.0 : 1.0;
+          const ksl_vec3_t direction = {{sign * frame.R.v[a].x,
+                                         sign * frame.R.v[a].y,
+                                         sign * frame.R.v[a].z}};
+          ksl_vec3_t local, global;
+          int hint = 0;
+          geometry->Support(direction, local, global, hint);
+          const ksl_vec3_t r = {{global.x - frame.t.x, global.y - frame.t.y,
+                                 global.z - frame.t.z}};
+          (side == 0 ? lo : hi)[a] = ksl_dot_vv(&frame.R.v[a], &r);
+        }
+      }
+      for(size_t k = 0; k < state.size(); k++) {
+        if(state.kind[k] & shift::core::sph::State::kMarker) {
+          continue;
+        }
+        const std::array<float, 4>& p = state.position[k];
+        bool in_box = true;
+        for(int a = 0; a < 3; a++) {
+          in_box = in_box && p[a] >= lo[a] && p[a] <= hi[a];
+        }
+        if(!in_box) {
+          continue;
+        }
+        ksl_vec3_t point = frame.t;
+        for(int a = 0; a < 3; a++) {
+          for(int m = 0; m < 3; m++) {
+            point.at[m] += frame.R.v[a].at[m] * p[a];
+          }
+        }
+        double t;
+        ksl_vec3_t normal;
+        if(geometry->RayCast(point, frame.R.v2, 1e-9 * spacing_, t, normal) &&
+           t <= 0.0) {
+          ids.push_back(state.id[k]);
+        }
+      }
+    }
+  }
+  std::sort(ids.begin(), ids.end());
+  ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+  if(!ids.empty()) {
+    state.RemoveParticles(ids);
+    particle_count_ -= ids.size();
+    displaced_count_ = ids.size();
+    SHIFT_INFO("Terrain " + get_name() + ": " + std::to_string(ids.size()) +
+               " particles inside the bodies taken out");
+  }
+}
+
 void shift::core::terrain::Sph::BodyPoses(
   std::vector<shift::core::sph::BodyPose>& poses) {
   const ksl_SE3_t& d = get_pose();
@@ -485,6 +603,7 @@ void shift::core::terrain::Sph::Start() {
   /* the particles and walls, and the bodies' markers */
   shift::core::sph::State state = state_;
   SampleBodies(state);
+  DisplaceSoil(state);
   if(!bodies_.empty()) {
     SHIFT_INFO("Terrain " + get_name() + ": " +
                std::to_string(state.size() - state_.size()) +
@@ -508,37 +627,91 @@ void shift::core::terrain::Sph::AcceptStep() {
     Start();
     started_ = true;
     time_ = last_time_ = t;
+    next_landing_ = t + landing_interval_;
     solver_->set_time(t);
-    pending_ = 0.0;
     return;
   }
   if(!(t > last_time_)) {
     return;
   }
-  pending_ += t - last_time_;
-  /* whole substeps; the rest waits for the next step. The bodies' markers
-  follow them from the last accepted step to this one */
+  /* to t in equal substeps no longer than the stable step; the bodies'
+  markers follow them from the last accepted step to this one */
+  const double duration = t - last_time_;
   std::vector<shift::core::sph::BodyPose> poses;
   if(!bodies_.empty()) {
     BodyPoses(poses);
     solver_->SetBodyPaths(last_poses_, poses, last_time_, t);
+    solver_->ClearImpulses();
   }
-  last_time_ = t;
-  const long n = static_cast<long>(std::floor(pending_ / step_ + 1e-9));
-  if(n > 0) {
-    if(!bodies_.empty()) {
-      solver_->ClearImpulses();
-    }
-    solver_->Steps(static_cast<float>(step_), n);
-    pending_ = std::max(0.0, pending_ - n * step_);
-    time_ = solver_->get_time();
-    if(!bodies_.empty()) {
-      UpdateBodyLoads(n * step_);
-    }
-  }
+  const long n =
+    std::max(1L, static_cast<long>(std::ceil(duration / step_ - 1e-9)));
+  solver_->Steps(static_cast<float>(duration / n), n);
+  /* the float substeps sum to about duration; the time is t */
+  solver_->set_time(t);
+  time_ = last_time_ = t;
   if(!bodies_.empty()) {
+    UpdateBodyLoads(duration);
     last_poses_.swap(poses);
   }
+  if(t >= next_landing_) {
+    next_landing_ = t + landing_interval_;
+    Land();
+  }
+}
+
+/*!
+The particles are read back to find them; for the soil of an excavator's
+pit, a few times a second, that is a small part of the work
+*/
+void shift::core::terrain::Sph::Land() {
+  shift::core::sph::State state;
+  solver_->GetState(state);
+  Basic* holder = dynamic_cast<Basic*>(get_parent_terrain());
+  Scm* scm = dynamic_cast<Scm*>(holder);
+  std::vector<uint32_t> ids;
+  double lost = 0.0;
+  for(size_t k = 0; k < state.size(); k++) {
+    if(state.kind[k] & shift::core::sph::State::kMarker) {
+      continue;
+    }
+    const std::array<float, 4>& p = state.position[k];
+    const double x = origin_[0] + p[0], y = origin_[1] + p[1];
+    const double z = origin_[2] + p[2];
+    if(Contains(x, y)) {
+      continue;
+    }
+    double z_x, z_y, surface;
+    if(holder) {
+      const Base* region = holder->RegionAt(x, y);
+      if(region && region != this) {
+        continue;
+      }
+      surface = holder->SurfaceZ(x, y, z_x, z_y);
+    } else {
+      surface = LocalZ(x, y, z_x, z_y);
+    }
+    if(!(z >= surface)) {
+      continue;
+    }
+    ids.push_back(state.id[k]);
+    const double volume = p[3] / materials_[state.kind[k]].density;
+    if(scm && scm->Deposit(x, y, volume)) {
+      landed_volume_ += volume;
+    } else {
+      lost += volume;
+    }
+  }
+  if(ids.empty()) {
+    return;
+  }
+  if(lost > 0.0 && lost_volume_ == 0.0) {
+    SHIFT_WARNING("Terrain " + get_name() + ": particles left the soil where "
+                  "no SCM terrain takes them; their volume is lost "
+                  "(get_lost_volume)");
+  }
+  lost_volume_ += lost;
+  solver_->RemoveParticles(ids);
+  particle_count_ -= ids.size();
 }
 
 /*!

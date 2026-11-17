@@ -72,6 +72,27 @@ static ksl_vec3_t Inertial(double x, double y, double z) {
   return {{0.5 + x, -0.25 + y, 0.1 + z}};
 }
 
+/* a float TIFF of width by height samples, x fastest */
+static void WriteTiff(const std::string& path, int width, int height,
+                      const std::vector<float>& values) {
+  TIFF* tiff = TIFFOpen(path.c_str(), "w");
+  ASSERT_NE(tiff, nullptr);
+  TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
+  TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1);
+  TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 32);
+  TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+  TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+  TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+  TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, 1);
+  for(int r = 0; r < height; r++) {
+    std::vector<float> row(values.begin() + size_t(r) * width,
+                           values.begin() + size_t(r + 1) * width);
+    TIFFWriteScanline(tiff, row.data(), r, 0);
+  }
+  TIFFClose(tiff);
+}
+
 /* a float TIFF of width by height samples, all value */
 static void WriteLevelTiff(const std::string& path, int width, int height,
                            float value) {
@@ -308,9 +329,11 @@ TEST(SphTerrain, StaysAtRestOnTheGpu) {
 }
 
 /* a plate of mass on a vertical slide, its bottom a few millimetres above SPH
-soil at rest (on the GPU), on soil_contact */
+soil at rest, on soil_contact; on the GPU of the context, or with device
+"cpu" on the CPU */
 static void LoadPlateOnSoil(shift::core::Context& context, double mass,
-                            double time_span) {
+                            double time_span,
+                            const std::string& device = "gpu") {
   const std::string path = testing::TempDir() + "/sph_plate.json";
   std::ostringstream model;
   model.precision(17);
@@ -327,7 +350,7 @@ static void LoadPlateOnSoil(shift::core::Context& context, double mass,
   "frames": [{"name": "terrain", "T": [0, 0, 0]}],
   "terrain": [{"type": "sph", "name": "pit", "parent": [["fixed"], "terrain"],
                "x": [0, 0.3], "y": [0, 0.3], "depth": 0.1, "spacing": 0.02,
-               )" << kSand << R"(}],
+               "device": ")" << device << R"(", )" << kSand << R"(}],
   "assemblies": [{"name": "a",
     "force_modules": [{"type": "soil_contact", "name": "soil",
                        "bodies": ["plate"]}],
@@ -356,30 +379,16 @@ static void LoadPlateOnSoil(shift::core::Context& context, double mass,
   }
 }
 
-/* the plate lands on the soil and settles on it: at the end the soil carries
-its weight and it is at rest, a little sunk in; it never bounces higher than
-it started (the coupling adds no energy) */
-TEST(SphTerrain, PlateSettlesOnTheSoil) {
-  if(!shift::core::gpu::Device::is_built()) {
-    GTEST_SKIP() << "built without Vulkan";
-  }
-  const double mass = 2.0;
-  shift::core::Context context;
-  LoadPlateOnSoil(context, mass, 0.4);
-  try {
-    context.GetGpuDevice();
-  } catch(const shift::core::Exception& e) {
-    if(std::getenv("SHIFT_GPU_REQUIRED")) {
-      FAIL() << e.what();
-    }
-    GTEST_SKIP() << "no GPU device: " << e.what();
-  }
-  context.Simulate();
+/* the plate of LoadPlateOnSoil after time_span: the soil carries its
+weight and it is at rest on the surface; the soil's impulse on it over the
+run is that of the weight but for its momentum at the end (the load of one
+step is that of a few substeps, noisy, but its mean carries the plate) */
+static void ExpectPlateCarried(shift::core::Context& context, double mass,
+                               double time_span) {
   shift::core::terrain::Sph* sph = GetSph(context);
   ASSERT_NE(sph, nullptr);
   /* 6 by 6 by 2: half a spacing inside the plate's faces */
   EXPECT_EQ(sph->get_body_marker_count(0), 72u);
-  const ksl_coscrew_t& load = sph->get_body_load(0);
   shift::core::body::Base* plate = nullptr;
   for(auto body : context.get_active_articulated_bodies()) {
     if(body->get_name() == "plate") {
@@ -392,20 +401,128 @@ TEST(SphTerrain, PlateSettlesOnTheSoil) {
     context.GetBodyVelocity(context.GetBodyLoadIndex(plate));
   /* the bottom of the plate, from the surface of the soil at rest (z down) */
   const double bottom = z - 0.005;
-  std::printf("load %.4g N (weight %.4g N), bottom %.3g mm, speed %.3g "
-              "mm/s\n",
-              load.lin.z, mass * 9.81, 1e3 * bottom, 1e3 * velocity.lin.z);
-  /* the load of one step is that of a few substeps, noisy, but its mean
-  carries the plate: over the run, the impulse of the soil is that of the
-  weight but for the plate's momentum at the end */
   const ksl_coscrew_t& impulse = sph->get_body_impulse(0);
-  const double expected = mass * 9.81 * 0.4 - mass * velocity.lin.z;
-  std::printf("impulse %.4g N s, of the weight %.4g N s\n", -impulse.lin.z,
-              expected);
+  const double expected = mass * 9.81 * time_span - mass * velocity.lin.z;
+  std::printf("bottom %.3g mm, speed %.3g mm/s; impulse %.4g N s, of the "
+              "weight %.4g N s\n",
+              1e3 * bottom, 1e3 * velocity.lin.z, -impulse.lin.z, expected);
   EXPECT_NEAR(-impulse.lin.z, expected, 0.03 * expected);
   EXPECT_LT(std::abs(impulse.lin.x), 0.01 * expected);
   EXPECT_LT(std::abs(impulse.lin.y), 0.01 * expected);
   EXPECT_LT(std::abs(velocity.lin.z), 0.05);
   /* on the surface, within half a spacing */
   EXPECT_NEAR(bottom, 0.0, 0.01);
+}
+
+/* the plate on the soil for 0.05 s, on the CPU: a short run of the soil
+through the context and soil_contact, carrying a body (1.6 s in a release
+build; SphTerrain.PlateSettlesOnTheSoil is the long run, on the GPU) */
+TEST(SphTerrain, PlateRestsOnTheSoil) {
+  const double mass = 2.0, time_span = 0.05;
+  shift::core::Context context;
+  LoadPlateOnSoil(context, mass, time_span, "cpu");
+  context.Simulate();
+  ExpectPlateCarried(context, mass, time_span);
+}
+
+/* the plate lands on the soil and settles on it, on the GPU, for 0.4 s: at
+the end the soil carries its weight and it is at rest, a little sunk in
+(the benchmark sph_heavy) */
+TEST(SphTerrain, PlateSettlesOnTheSoil) {
+  if(!shift::core::gpu::Device::is_built()) {
+    GTEST_SKIP() << "built without Vulkan";
+  }
+  const double mass = 2.0, time_span = 0.4;
+  shift::core::Context context;
+  LoadPlateOnSoil(context, mass, time_span);
+  try {
+    context.GetGpuDevice();
+  } catch(const shift::core::Exception& e) {
+    if(std::getenv("SHIFT_GPU_REQUIRED")) {
+      FAIL() << e.what();
+    }
+    GTEST_SKIP() << "no GPU device: " << e.what();
+  }
+  context.Simulate();
+  ExpectPlateCarried(context, mass, time_span);
+}
+
+/* a blade pushes the soil of an SPH region of an SCM terrain, whose walls
+are no higher than its surface, over its end: the soil spills onto the SCM
+terrain and lands there. The volume of the particles that left the soil is
+the volume added to the SCM nodes (their levels over the area of a node),
+and none is lost on the grid */
+TEST(SphTerrain, SpilledSoilLandsOnTheScm) {
+  const std::string path = testing::TempDir() + "/sph_spill.json";
+  {
+    /* the terrain frame at the origin; the pit x 0 to 0.2, y 0 to 0.1; the
+    blade, 2 by 8 by 6 cm, 3 cm into the soil, inside the pit's width, from x = 0.03 at 0.8 m/s
+    along x, heavy, so that the soil hardly slows it; it stops short of the
+    end of the pit, so that it presses no SCM nodes itself */
+    std::ofstream file(path);
+    file << R"({
+  "model_parameters": {
+    "version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0.0, 0.0, 9.81],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.2,
+                     "time_step": 0.01}]
+  },
+  "frames": [{"name": "terrain", "T": [0, 0, 0]}],
+  "terrain": [)" << Scm(R"({"type": "sph", "name": "pit", "x": [0, 0.2],
+                      "y": [0, 0.1], "depth": 0.06, "spacing": 0.02,
+                      "wall_height": 0, "landing_interval": 0.005,
+                      "device": "cpu",
+                      "soil": {"youngs_modulus": 2e6, "poisson_ratio": 0.3,
+                               "unit_weight": 15700}})")
+         << R"(],
+  "assemblies": [{"name": "a",
+    "force_modules": [{"type": "soil_contact", "name": "soil",
+                       "bodies": ["blade"]}],
+    "bodies": [{"name": "blade", "center_of_mass": [0.03, 0.05, 0],
+                "collision_geometry": [{"name": "blade", "type": "box",
+                  "half_extents": [0.01, 0.04, 0.03], "contact": false,
+                  "pose": {"T": [0.03, 0.05, 0]}}],
+                "inertia": {"mass": 1000, "Ixx": 1, "Iyy": 1, "Izz": 1,
+                            "Ixy": 0, "Iyz": 0, "Izx": 0}}],
+    "joints": [{"name": "slide", "type": "prismatic",
+                "parent": [["fixed"], "origin"],
+                "child": [["blade"], "origin"], "axis": [1, 0, 0],
+                "initial_velocity": 0.8}]
+  }]
+})";
+  }
+  shift::core::Context context;
+  context.LoadJSON(path);
+  std::remove(path.c_str());
+  auto* scm =
+    dynamic_cast<shift::core::terrain::Scm*>(context.get_active_terrain()[0]);
+  ASSERT_NE(scm, nullptr);
+  auto* sph = dynamic_cast<shift::core::terrain::Sph*>(scm->get_regions()[0]);
+  ASSERT_NE(sph, nullptr);
+  const size_t start = sph->get_particle_count();
+  context.Simulate();
+  const size_t end = sph->get_particle_count();
+  const double s = 0.02;
+  const size_t left_count = start - end - sph->get_displaced_count();
+  const double left = double(left_count) * s * s * s;
+  std::vector<float> levels;
+  scm->GetLevels(levels);
+  double deposited = 0.0;
+  for(size_t k = 0; k < levels.size(); k++) {
+    deposited -= double(levels[k]) * scm->get_spacing() * scm->get_spacing();
+  }
+  std::printf("%zu of %zu particles left the soil (%zu displaced by the "
+              "blade): %.4g m^3; landed %.4g, lost %.4g, on the nodes %.4g "
+              "m^3\n",
+              left_count, start, sph->get_displaced_count(), left, sph->get_landed_volume(),
+              sph->get_lost_volume(), deposited);
+  EXPECT_GT(sph->get_displaced_count(), 0u);
+  EXPECT_GE(left_count, 3u);
+  EXPECT_NEAR(sph->get_landed_volume() + sph->get_lost_volume(), left,
+              1e-6 * left);
+  EXPECT_EQ(sph->get_lost_volume(), 0.0);
+  EXPECT_NEAR(deposited, sph->get_landed_volume(), 1e-6 * left);
 }

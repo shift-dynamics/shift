@@ -22,6 +22,10 @@ public:
 
   void Step(float dt) override;
   void GetState(State& state) override;
+  void RemoveParticles(const std::vector<uint32_t>& ids) override;
+  size_t size() const override {
+    return state_.size();
+  }
   void ClearImpulses() override;
   void GetImpulses(std::vector<std::array<double, 6>>& impulses) override;
 

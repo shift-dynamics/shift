@@ -45,6 +45,10 @@ struct shift::core::gpu::Device::Impl {
   uint32_t family = 0;
   VkQueue queue = VK_NULL_HANDLE;
   VkCommandPool pool = VK_NULL_HANDLE;
+  /* the fence of every submission, reset after each: creating and
+  destroying one per submission costs about 0.2 ms each on NVIDIA's driver,
+  more than a substep of a small soil */
+  VkFence fence = VK_NULL_HANDLE;
   PFN_vkCmdPushDescriptorSetKHR push_descriptor_set = nullptr;
   std::string name;
 
@@ -148,10 +152,6 @@ struct shift::core::gpu::Device::Impl {
   }
 
   void Submit(VkCommandBuffer commands) const {
-    VkFenceCreateInfo fence_info{};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    VkFence fence;
-    Check(vkCreateFence(device, &fence_info, nullptr, &fence), "vkCreateFence");
     VkSubmitInfo submit{};
     submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit.commandBufferCount = 1;
@@ -159,8 +159,10 @@ struct shift::core::gpu::Device::Impl {
     VkResult result = vkQueueSubmit(queue, 1, &submit, fence);
     if(result == VK_SUCCESS) {
       result = vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+      if(result == VK_SUCCESS) {
+        result = vkResetFences(device, 1, &fence);
+      }
     }
-    vkDestroyFence(device, fence, nullptr);
     Check(result, "running the commands");
   }
 
@@ -168,6 +170,9 @@ struct shift::core::gpu::Device::Impl {
     if(device) {
       vkDeviceWaitIdle(device);
       DestroyStaging();
+      if(fence) {
+        vkDestroyFence(device, fence, nullptr);
+      }
       if(pool) {
         vkDestroyCommandPool(device, pool, nullptr);
       }
@@ -391,6 +396,9 @@ shift::core::gpu::Device::Device(const DeviceOptions& options)
     pool.queueFamilyIndex = d.family;
     Check(vkCreateCommandPool(d.device, &pool, nullptr, &d.pool),
           "vkCreateCommandPool");
+    VkFenceCreateInfo fence{};
+    fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    Check(vkCreateFence(d.device, &fence, nullptr, &d.fence), "vkCreateFence");
   } catch(...) {
     d.Destroy();
     throw;
@@ -454,7 +462,8 @@ shift::core::gpu::Buffer::Buffer(Device& device, size_t size)
   impl_->device->CreateBuffer(size,
                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                               impl_->buffer, impl_->memory);
 }
@@ -635,15 +644,16 @@ struct shift::core::gpu::Commands::Impl {
     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
     barrier.srcAccessMask =
       VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
-                            VK_ACCESS_SHADER_WRITE_BIT |
-                            VK_ACCESS_TRANSFER_READ_BIT |
-                            VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask =
+      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT |
+      VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
     vkCmdPipelineBarrier(
       commands,
       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-      1, &barrier, 0, nullptr, 0, nullptr);
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT |
+        VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+      0, 1, &barrier, 0, nullptr, 0, nullptr);
   }
 };
 
@@ -668,6 +678,48 @@ shift::core::gpu::Commands::~Commands() {
                        &impl_->commands);
 }
 
+/* check the buffers and push constants of a dispatch of kernel, then bind
+the kernel, its buffers and its push constants after the writes before */
+static VkCommandBuffer BindDispatch(
+  shift::core::gpu::Commands::Impl& impl,
+  const shift::core::gpu::Kernel& kernel,
+  const std::vector<const shift::core::gpu::Buffer*>& buffers,
+  const void* push_constants, size_t size) {
+  const shift::core::gpu::Kernel::Impl& k = kernel.impl();
+  if(int(buffers.size()) != k.buffer_count || size != k.push_constant_size ||
+     (size && !push_constants)) {
+    throw shift::core::Exception(
+      "GPU: a dispatch needs the kernel's " + std::to_string(k.buffer_count) +
+      " buffers and " + std::to_string(k.push_constant_size) +
+      " bytes of push constants");
+  }
+  impl.Begin();
+  impl.Barrier();
+  VkCommandBuffer commands = impl.commands;
+  vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_COMPUTE, k.pipeline);
+  std::vector<VkDescriptorBufferInfo> infos(buffers.size());
+  std::vector<VkWriteDescriptorSet> writes(buffers.size());
+  for(size_t b = 0; b < buffers.size(); b++) {
+    infos[b] = {buffers[b]->impl().buffer, 0, VK_WHOLE_SIZE};
+    writes[b] = VkWriteDescriptorSet{};
+    writes[b].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[b].dstBinding = uint32_t(b);
+    writes[b].descriptorCount = 1;
+    writes[b].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    writes[b].pBufferInfo = &infos[b];
+  }
+  if(!writes.empty()) {
+    impl.device->push_descriptor_set(commands, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                     k.layout, 0, uint32_t(writes.size()),
+                                     writes.data());
+  }
+  if(size) {
+    vkCmdPushConstants(commands, k.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       uint32_t(size), push_constants);
+  }
+  return commands;
+}
+
 void shift::core::gpu::Commands::Dispatch(
   const Kernel& kernel, const std::vector<const Buffer*>& buffers,
   const void* push_constants, size_t size, uint32_t groups_x,
@@ -683,31 +735,24 @@ void shift::core::gpu::Commands::Dispatch(
   if(groups_x == 0 || groups_y == 0 || groups_z == 0) {
     return;
   }
-  impl_->Begin();
-  impl_->Barrier();
-  VkCommandBuffer commands = impl_->commands;
-  vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_COMPUTE, k.pipeline);
-  std::vector<VkDescriptorBufferInfo> infos(buffers.size());
-  std::vector<VkWriteDescriptorSet> writes(buffers.size());
-  for(size_t b = 0; b < buffers.size(); b++) {
-    infos[b] = {buffers[b]->impl().buffer, 0, VK_WHOLE_SIZE};
-    writes[b] = VkWriteDescriptorSet{};
-    writes[b].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[b].dstBinding = uint32_t(b);
-    writes[b].descriptorCount = 1;
-    writes[b].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    writes[b].pBufferInfo = &infos[b];
-  }
-  if(!writes.empty()) {
-    impl_->device->push_descriptor_set(commands, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                       k.layout, 0, uint32_t(writes.size()),
-                                       writes.data());
-  }
-  if(size) {
-    vkCmdPushConstants(commands, k.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                       uint32_t(size), push_constants);
-  }
+  VkCommandBuffer commands =
+    BindDispatch(*impl_, kernel, buffers, push_constants, size);
   vkCmdDispatch(commands, groups_x, groups_y, groups_z);
+}
+
+void shift::core::gpu::Commands::DispatchIndirect(
+  const Kernel& kernel, const std::vector<const Buffer*>& buffers,
+  const void* push_constants, size_t size, const Buffer& groups,
+  size_t offset) {
+  CheckRange(offset, 12, groups.get_size(), "indirect dispatch");
+  if(offset % 4) {
+    throw shift::core::Exception(
+      "GPU: the workgroup counts of an indirect dispatch must be at a "
+      "multiple of 4 bytes");
+  }
+  VkCommandBuffer commands =
+    BindDispatch(*impl_, kernel, buffers, push_constants, size);
+  vkCmdDispatchIndirect(commands, groups.impl().buffer, offset);
 }
 
 void shift::core::gpu::Commands::Fill(const Buffer& buffer, uint32_t value,
@@ -736,6 +781,27 @@ void shift::core::gpu::Commands::Copy(const Buffer& source,
   VkBufferCopy copy{source_offset, destination_offset, size};
   vkCmdCopyBuffer(impl_->commands, source.impl().buffer,
                   destination.impl().buffer, 1, &copy);
+}
+
+void shift::core::gpu::Commands::Update(const Buffer& buffer,
+                                        const void* data, size_t size,
+                                        size_t offset) {
+  CheckRange(offset, size, buffer.get_size(), "update");
+  if(offset % 4 || size % 4) {
+    throw shift::core::Exception(
+      "GPU: an update must be of whole 32-bit words");
+  }
+  if(size == 0) {
+    return;
+  }
+  impl_->Begin();
+  impl_->Barrier();
+  const size_t piece = 65536;
+  const char* bytes = static_cast<const char*>(data);
+  for(size_t done = 0; done < size; done += piece) {
+    vkCmdUpdateBuffer(impl_->commands, buffer.impl().buffer, offset + done,
+                      std::min(piece, size - done), bytes + done);
+  }
 }
 
 void shift::core::gpu::Commands::Submit() {
@@ -820,10 +886,15 @@ void shift::core::gpu::Commands::Dispatch(const Kernel&,
                                           const std::vector<const Buffer*>&,
                                           const void*, size_t, uint32_t,
                                           uint32_t, uint32_t) {}
+void shift::core::gpu::Commands::DispatchIndirect(
+  const Kernel&, const std::vector<const Buffer*>&, const void*, size_t,
+  const Buffer&, size_t) {}
 void shift::core::gpu::Commands::Fill(const Buffer&, uint32_t, size_t,
                                       size_t) {}
 void shift::core::gpu::Commands::Copy(const Buffer&, const Buffer&, size_t,
                                       size_t, size_t) {}
+void shift::core::gpu::Commands::Update(const Buffer&, const void*, size_t,
+                                        size_t) {}
 void shift::core::gpu::Commands::Submit() {}
 
 #endif

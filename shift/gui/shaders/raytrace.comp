@@ -43,7 +43,8 @@ struct Instance {
   vec4 box_min;       // world space bounds
   vec4 box_max;
   vec4 albedo;        // w = normal map scale
-  vec4 material;      // x = metallic, y = roughness, z = triplanar,
+  vec4 material;      // x = metallic, y = roughness, z = triplanar (2:
+                      // hex-tiled too),
                       // w = 1 / texture scale
   ivec4 offsets;      // x = root node, y = base color, z = metallic
                       // roughness, w = normal texture layer; -1: none
@@ -332,28 +333,18 @@ vec3 FloorAlbedo(vec2 p, float spacing) {
 // ---------------------------------------------------------------------------
 // intersection
 
-bool BoxHit(vec3 origin, vec3 inverse_direction, vec3 box_min, vec3 box_max,
-            float t_max) {
+// the distance along a ray to where it enters a box, 0 from inside, or
+// kInfinity if it misses the box before t_max
+float BoxDistance(vec3 origin, vec3 inverse_direction, vec3 box_min,
+                  vec3 box_max, float t_max) {
   vec3 t0 = (box_min - origin) * inverse_direction;
   vec3 t1 = (box_max - origin) * inverse_direction;
   vec3 near = min(t0, t1);
   vec3 far = max(t0, t1);
   float t_near = max(max(near.x, near.y), near.z);
   float t_far = min(min(far.x, far.y), far.z);
-  return t_far >= max(t_near, 0.0) && t_near < t_max;
-}
-
-// where a ray enters a box before t_max, kNoBox if it misses it
-const float kNoBox = 3.0e38;
-float BoxNear(vec3 origin, vec3 inverse_direction, vec3 box_min, vec3 box_max,
-              float t_max) {
-  vec3 t0 = (box_min - origin) * inverse_direction;
-  vec3 t1 = (box_max - origin) * inverse_direction;
-  vec3 near = min(t0, t1);
-  vec3 far = max(t0, t1);
-  float t_near = max(max(max(near.x, near.y), near.z), 0.0);
-  float t_far = min(min(far.x, far.y), far.z);
-  return t_far >= t_near && t_near < t_max ? t_near : kNoBox;
+  return t_far >= max(t_near, 0.0) && t_near < t_max ? max(t_near, 0.0)
+                                                      : kInfinity;
 }
 
 bool TriangleHit(vec3 origin, vec3 direction, vec3 v0, vec3 v1, vec3 v2,
@@ -444,13 +435,6 @@ bool AcceptHit(int i, int k, float t, vec2 bary, bool any_hit, bool coarse) {
         return false;
       }
     } else {
-#ifdef OMM_EMULATE // TEMP
-      float micro = LayerTexel(color_layer, uv, float(OMM_EMULATE)).a; // TEMP
-      if(!any_hit && micro <= 1.0 / 512.0) { // TEMP
-        return false; // TEMP
-      } // TEMP
-      if(any_hit || micro < 1.0 - 1.0 / 512.0) { // TEMP
-#endif // TEMP
       float scale = length(instances[i].body_to_world[0].xyz);
       float lod = CoarseLod(k, t, scale, ray_spread);
       float alpha = LayerTexel(color_layer, uv, lod).a;
@@ -482,9 +466,6 @@ bool AcceptHit(int i, int k, float t, vec2 bary, bool any_hit, bool coarse) {
           }
         }
       }
-#ifdef OMM_EMULATE // TEMP
-      } // TEMP
-#endif // TEMP
     }
   }
   // a CAD face's triangle sticking out of its trims
@@ -508,46 +489,58 @@ bool AcceptHit(int i, int k, float t, vec2 bary, bool any_hit, bool coarse) {
 bool TraceBvh(vec3 origin, vec3 direction, float t_max, bool any_hit,
               bool coarse, inout Hit hit) {
   vec3 inverse_world_direction = 1.0 / direction;
-  int stack[64];
-  int instance_stack[64];
+  // nodes and the distances to their boxes; nearer child first, a stack
+  // holds at most one deferred node per level, so 32 covers kBvhMaxDepth of
+  // gui/bvh.h (31), and the instances' median split BVH up to 2^31 instances
+  int stack[32];
+  float distance[32];
+  int instance_stack[32];
+  float instance_distance[32];
   int isp = 0;
   if(u.control.x > 0) {
-    instance_stack[isp++] = 0;
+    BvhNode root = instance_nodes[0];
+    float d_root = BoxDistance(origin, inverse_world_direction, root.box_min,
+                               root.box_max, hit.t);
+    if(d_root < kInfinity) {
+      instance_stack[0] = 0;
+      instance_distance[isp++] = d_root;
+    }
   }
 
   while(isp > 0) {
-    int instance_node_index = instance_stack[--isp];
-    BvhNode instance_node = instance_nodes[instance_node_index];
-    // a leaf's box is the box of its instance
-    if(!BoxHit(origin, inverse_world_direction, instance_node.box_min,
-               instance_node.box_max, hit.t)) {
+    --isp;
+    if(instance_distance[isp] >= hit.t) {
       continue;
     }
+    int instance_node_index = instance_stack[isp];
+    BvhNode instance_node = instance_nodes[instance_node_index];
+    // a leaf's box, tested as it was pushed, is the box of its instance
     if(instance_node.triangle_count < 0) {
-      if(isp < 62) {
-        // the nearer child on top, as in the mesh's tree below
-        int left = instance_node_index + 1;
-        int right = instance_node.right_or_first;
-        float t_left =
-          BoxNear(origin, inverse_world_direction, instance_nodes[left].box_min,
-                  instance_nodes[left].box_max, hit.t);
-        float t_right = BoxNear(origin, inverse_world_direction,
-                                instance_nodes[right].box_min,
-                                instance_nodes[right].box_max, hit.t);
-        if(t_left > t_right) {
-          int swap_index = left;
-          left = right;
-          right = swap_index;
-          float swap_t = t_left;
-          t_left = t_right;
-          t_right = swap_t;
-        }
-        if(t_right < kNoBox) {
-          instance_stack[isp++] = right;
-        }
-        if(t_left < kNoBox) {
-          instance_stack[isp++] = left;
-        }
+      // the children, the farther pushed first so that the nearer is
+      // visited first, and only those the ray enters before the closest hit
+      int near = instance_node_index + 1;
+      int far = instance_node.right_or_first;
+      BvhNode near_node = instance_nodes[near];
+      BvhNode far_node = instance_nodes[far];
+      float d_near = BoxDistance(origin, inverse_world_direction,
+                                 near_node.box_min, near_node.box_max, hit.t);
+      float d_far = BoxDistance(origin, inverse_world_direction,
+                                far_node.box_min, far_node.box_max, hit.t);
+      if(d_far < d_near) {
+        int k = near;
+        near = far;
+        far = k;
+        float d_swap = d_near;
+        d_near = d_far;
+        d_far = d_swap;
+      }
+      if(d_far < kInfinity && isp < 32) {
+        instance_stack[isp] = far;
+        instance_distance[isp++] = d_far;
+      }
+      if(d_near < kInfinity && isp < 32) {
+        instance_stack[isp] = near;
+        instance_distance[isp++] = d_near;
       }
       continue;
     }
@@ -578,13 +571,22 @@ bool TraceBvh(vec3 origin, vec3 direction, float t_max, bool any_hit,
         }
       }
     }
-    stack[sp++] = root;
+    {
+      BvhNode root_node = nodes[root];
+      float d_root = BoxDistance(o, inverse_d, root_node.box_min,
+                                 root_node.box_max, hit.t);
+      if(d_root < kInfinity) {
+        stack[0] = root;
+        distance[sp++] = d_root;
+      }
+    }
     while(sp > 0) {
-      int index = stack[--sp];
-      BvhNode node = nodes[index];
-      if(!BoxHit(o, inverse_d, node.box_min, node.box_max, hit.t)) {
+      --sp;
+      if(distance[sp] >= hit.t) {
         continue;
       }
+      int index = stack[sp];
+      BvhNode node = nodes[index];
       if(node.triangle_count >= 0) {
         for(int j = 0; j < node.triangle_count; j++) {
           int k = node.right_or_first + j;
@@ -606,28 +608,31 @@ bool TraceBvh(vec3 origin, vec3 direction, float t_max, bool any_hit,
             }
           }
         }
-      } else if(sp < 62) {
-        // the children the ray meets, the nearer on top: a closest hit
-        // found in it then culls the farther
-        int left = index + 1;
-        int right = node.right_or_first;
-        float t_left = BoxNear(o, inverse_d, nodes[left].box_min,
-                               nodes[left].box_max, hit.t);
-        float t_right = BoxNear(o, inverse_d, nodes[right].box_min,
-                                nodes[right].box_max, hit.t);
-        if(t_left > t_right) {
-          int swap_index = left;
-          left = right;
-          right = swap_index;
-          float swap_t = t_left;
-          t_left = t_right;
-          t_right = swap_t;
+      } else {
+        // as for the instances' BVH: nearer child first
+        int near = index + 1;
+        int far = node.right_or_first;
+        BvhNode near_node = nodes[near];
+        BvhNode far_node = nodes[far];
+        float d_near = BoxDistance(o, inverse_d, near_node.box_min,
+                                   near_node.box_max, hit.t);
+        float d_far = BoxDistance(o, inverse_d, far_node.box_min,
+                                  far_node.box_max, hit.t);
+        if(d_far < d_near) {
+          int k = near;
+          near = far;
+          far = k;
+          float d_swap = d_near;
+          d_near = d_far;
+          d_far = d_swap;
         }
-        if(t_right < kNoBox) {
-          stack[sp++] = right;
+        if(d_far < kInfinity && sp < 32) {
+          stack[sp] = far;
+          distance[sp++] = d_far;
         }
-        if(t_left < kNoBox) {
-          stack[sp++] = left;
+        if(d_near < kInfinity && sp < 32) {
+          stack[sp] = near;
+          distance[sp++] = d_near;
         }
       }
     }
@@ -773,6 +778,14 @@ vec3 SrgbToLinear(vec3 c) {
 vec4 SampleLayer(int layer, vec2 p, float lod) {
   return LayerTexel(layer, p, lod);
 }
+
+// the level of detail of the hex-tiled lookups (hex_tiling.glsl), which
+// have no gradients here
+float hex_lod = 0.0;
+vec4 HexLookup(int layer, vec2 st, vec2 dx, vec2 dy) {
+  return textureLod(textures, vec3(st, float(layer)), hex_lod);
+}
+#include "hex_tiling.glsl"
 
 // one plane of a triplanar projection, q in texture tiles, its tiles
 // shifted at random if vary
@@ -940,6 +953,10 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
               : u.texture_params.y *
                   sqrt(abs(uv_det) / max(length(face), 1e-20));
   float lod = log2(max(hit.t * u.texture_params.x * texels_per_length, 1.0));
+  // terrains: hex-tiled, as in mesh.frag
+  bool hex = instance.material.z > 1.5;
+  hex_lod = lod;
+  HexPlanes hex_planes = HexPlanesSetup(p, w, vec3(0.0), vec3(0.0));
 
   s.albedo = instance.albedo.rgb;
   int cad_face = triangle_faces[hit.triangle];
@@ -1020,8 +1037,10 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
     }
   }
   if(ground_map < 0 && instance.offsets.y >= 0) {
-    vec4 t = triplanar ? SampleTriplanar(instance.offsets.y, p, w, lod, vary)
-                       : SampleLayer(instance.offsets.y, uv, lod);
+    vec4 t = hex ? HexPlanesColor(hex_planes, instance.offsets.y)
+             : triplanar
+               ? SampleTriplanar(instance.offsets.y, p, w, lod, vary)
+               : SampleLayer(instance.offsets.y, uv, lod);
     below_brightness = dot(t.rgb, vec3(0.333));
     s.albedo *= SrgbToLinear(t.rgb);
   }
@@ -1029,15 +1048,19 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
     s.albedo *= MacroBrightness(body_position.xy);
   }
   if(ground_map < 0 && instance.offsets.z >= 0) {
-    vec4 t = triplanar ? SampleTriplanar(instance.offsets.z, p, w, lod, vary)
-                       : SampleLayer(instance.offsets.z, uv, lod);
+    vec4 t = hex ? HexPlanesSample(hex_planes, instance.offsets.z)
+             : triplanar
+               ? SampleTriplanar(instance.offsets.z, p, w, lod, vary)
+               : SampleLayer(instance.offsets.z, uv, lod);
     s.roughness *= t.g;
     s.metallic *= t.b;
   }
   if(ground_map < 0 && instance.offsets.w >= 0) {
     if(triplanar) {
-      nb = side * TriplanarNormal(instance.offsets.w, p, side * nb, w,
-                                  instance.albedo.w, lod, vary);
+      nb = side * (hex ? HexPlanesNormal(hex_planes, instance.offsets.w,
+                                         side * nb, instance.albedo.w)
+                       : TriplanarNormal(instance.offsets.w, p, side * nb, w,
+                                         instance.albedo.w, lod, vary));
     } else if(abs(uv_det) > 1e-20) {
       // tangent frame of the triangle from its texture coordinates
       vec3 tangent = (e1 * d2.y - e2 * d1.y) / uv_det;

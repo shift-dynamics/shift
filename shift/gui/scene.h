@@ -3,20 +3,28 @@
 
 #include "shift/gui/environment.h"
 #include <QImage>
-#include <QMatrix4x4>
-#include <QVector3D>
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "shift/gui/bvh.h"
+#include "ksl/SE3.h"
+#include "ksl/vec3.h"
 #include "shift/gui/cad_scene.h"
 #include "shift/gui/mesh_data.h"
 
 namespace shift {
 namespace gui {
+
+/*! \brief the identity transform */
+inline ksl_SE3f_t Identity() {
+  ksl_SE3f_t d;
+  ksl_SE3f_setIdentity(&d);
+  return d;
+}
 
 struct Vertex {
   float position[3];
@@ -82,7 +90,7 @@ float SurfaceNoiseLevel(int surface, double coverage);
 struct SceneMesh {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
-  QVector3D albedo{0.6f, 0.6f, 0.6f};
+  ksl_vec3f_t albedo = ksl_vec3f(0.6f, 0.6f, 0.6f);
   float roughness = 0.6f;
   float metallic = 0.f;
   float opacity = 1.f; /*!< 0 lets all light through, 1 none */
@@ -104,9 +112,14 @@ struct SceneMesh {
   /*! triplanar: textures drawn over the mesh's own in patches
    * (shift::core::terrain::SurfaceTexture), at most two */
   std::vector<SceneSurface> surfaces;
+  bool hex_tiling = false; /*!< triplanar, each plane hex-tiled (terrains) */
+  /*! of a terrain: rectangles x0, y0, x1, y1 of its frame (its uv) not
+   * drawn, where regions of it are drawn as surfaces of their own; the
+   * raster shader takes the first 4 (MaterialUniforms) */
+  std::vector<std::array<float, 4>> holes;
 
-  QVector3D bounds_min;
-  QVector3D bounds_max;
+  ksl_vec3f_t bounds_min = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
 
   /*! the light (Scene::lights) the mesh glows with, -1 if none
    * (shift::core::light::Base::get_glow): its color times the light's
@@ -153,7 +166,19 @@ struct SceneTerrain {
    * triangle pairs along each side of a cell, so that the ray tracer can
    * draw the smooth surface (Viewport::ShapeRtTerrain) */
   int mesh_subdivisions = 1;
-  QMatrix4x4 pose; /*!< terrain frame to world */
+  ksl_SE3f_t pose = Identity(); /*!< terrain frame to world */
+};
+
+/*! \brief the particles of an SPH soil (shift::core::terrain::Sph), each
+ * drawn as an instance of a sphere mesh (SceneMesh, without instances of
+ * its own) at its centre, or as one surface over spheres of radius
+ * (Viewport::set_particle_surface), with the sphere's material; their
+ * centres change with the time shown (see
+ * Simulation::TakeParticleUpdates). Raster only: the ray tracer does not
+ * draw them. */
+struct SceneParticles {
+  int mesh_index = -1; /*!< the sphere, about the origin, in world units */
+  float radius = 0.f;
 };
 
 /*! \brief a material of the ground (shift::core::environment::
@@ -166,7 +191,7 @@ struct SceneGroundMaterial {
   float texture_scale = 1.f; /*!< tile size (m) */
   float normal_scale = 1.f;
   float height_scale = 0.f;       /*!< m, depth of the height map's relief */
-  QVector3D color{1.f, 1.f, 1.f}; /*!< linear factor of the texture */
+  ksl_vec3f_t color = ksl_vec3f(1.f, 1.f, 1.f); /*!< linear factor of the texture */
   float roughness = 0.9f;         /*!< factor of the roughness map */
   std::string label;              /*!< what cameras label its pixels */
 };
@@ -175,7 +200,7 @@ struct SceneGroundMaterial {
  * (shift::core::terrain::MaterialMap): the material of each sample, and
  * the width over which neighbors blend */
 struct SceneMaterialMap {
-  QMatrix4x4 world_to_map; /*!< world to the terrain frame */
+  ksl_SE3f_t world_to_map = Identity(); /*!< world to the terrain frame */
   int width = 0;           /*!< samples along x */
   int height = 0;          /*!< samples along y */
   float x_scale = 1.f;     /*!< spacing of the samples (m) */
@@ -193,13 +218,14 @@ struct SceneLight {
   enum Type { kPoint = 0, kSpot = 1, kDirectional = 2, kIes = 3 };
   Type type = kPoint;
   int body_index = 0;
-  QMatrix4x4 frame; /*!< light frame with respect to the body origin */
-  QVector3D ambient;  /*!< Ka */
-  QVector3D diffuse;  /*!< Kd */
-  QVector3D specular; /*!< Ks */
+  ksl_SE3f_t frame = Identity(); /*!< light frame with respect to the body
+                                    origin */
+  ksl_vec3f_t ambient = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Ka */
+  ksl_vec3f_t diffuse = ksl_vec3f(0.f, 0.f, 0.f);  /*!< Kd */
+  ksl_vec3f_t specular = ksl_vec3f(0.f, 0.f, 0.f); /*!< Ks */
   float intensity = 1.f; /*!< factor of diffuse and specular at the start;
                           * Poses::lights at the time shown */
-  QVector3D attenuation{1.f, 0.f, 0.f}; /*!< c, l, q */
+  ksl_vec3f_t attenuation = ksl_vec3f(1.f, 0.f, 0.f); /*!< c, l, q */
   float cone_angle = 0.f;       /*!< spot: half angle (rad) */
   float inner_cone_angle = 0.f; /*!< spot: half angle of full light */
   int ies_profile = -1;         /*!< IES: index in Scene::ies_profiles */
@@ -209,9 +235,16 @@ struct SceneLight {
 struct SceneInstance {
   int mesh_index = 0; /*!< in Scene::meshes */
   int body_index = 0;
-  /*! the mesh in the body's coordinates: a rotation and translation and a
-   * uniform scale (scenery placed over a fixed body) */
-  QMatrix4x4 placement;
+  /*! the mesh in the body's coordinates, scaled by scale about its origin
+   * and then placed (scenery placed over a fixed body) */
+  ksl_SE3f_t placement = Identity();
+  float scale = 1.f;
+  /*! whether the mesh is placed other than at the body's origin */
+  bool is_placed() const {
+    return scale != 1.f || placement.t.x != 0.f || placement.t.y != 0.f ||
+           placement.t.z != 0.f || placement.R.at[0][0] != 1.f ||
+           placement.R.at[1][1] != 1.f || placement.R.at[2][2] != 1.f;
+  }
 };
 
 /*! \brief renderable content of a model, in shift world coordinates (+z
@@ -229,6 +262,10 @@ struct Scene {
   /*! grouped by mesh: the instances of a mesh are contiguous */
   std::vector<SceneInstance> instances;
   int body_count = 0;
+  /*! the grains of the DEM (shift::core::force_module::Dem): their poses
+   * follow the bodies' in Poses::bodies, from body_count, and each is drawn
+   * as an instance of the mesh of its shape */
+  int grain_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
   /*! the texture images larger than kTextureSize, all kLargeTextureSize
@@ -240,6 +277,8 @@ struct Scene {
   std::vector<SceneMaterialMap> material_maps;
   static constexpr int kMaxMaterialMaps = 8;
   static constexpr int kMaxGroundMaterials = 64;
+
+  std::vector<SceneParticles> particles;
   /*! CAD geometry, tessellated from its exact surfaces where the device
    * can; not drawn otherwise, nor ray traced */
   std::vector<SceneCad> cads;
@@ -341,10 +380,11 @@ private:
 };
 
 /*! \brief body origin poses with respect to the inertial frame at one
- * output time */
+ * output time, then those of the grains (Scene::grain_count): the poses of
+ * their principal axes at their centers of mass */
 struct Poses {
   double time = 0.0;
-  std::vector<QMatrix4x4> bodies;
+  std::vector<ksl_SE3f_t> bodies;
   /*! the intensity of each of Scene::lights at the time (a controller may
    * change it, as a brake lamp); empty: SceneLight::intensity */
   std::vector<float> lights;
@@ -362,9 +402,15 @@ struct TerrainUpdate {
   std::vector<float> z; /*!< width * height, x fastest */
 };
 
+/*! \brief the particles of an SPH soil (SceneParticles) at the time shown */
+struct ParticleUpdate {
+  int particles = 0;         /*!< in Scene::particles */
+  std::vector<float> centers; /*!< x, y, z in the world, then 0, each */
+};
+
 /*! \brief world space bounding box of the scene meshes in the given poses */
-void SceneBounds(const Scene& scene, const Poses& poses, QVector3D& box_min,
-                 QVector3D& box_max);
+void SceneBounds(const Scene& scene, const Poses& poses, ksl_vec3f_t& box_min,
+                 ksl_vec3f_t& box_max);
 
 } // namespace gui
 } // namespace shift

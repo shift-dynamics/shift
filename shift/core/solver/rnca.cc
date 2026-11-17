@@ -115,6 +115,9 @@ void shift::core::solver::RNCA::Initialize() {
   delegated_po3_.assign(dq_count_, false);
 
   context_->get_jacobian().RemoveConstraintViolations();
+  /* the initial velocities of a model file seldom satisfy the velocity
+  constraints (a rate given to a crank and none to the rest of its loop) */
+  context_->get_jacobian().MakeVelocitiesConsistent();
   context_->get_jacobian().Analyze();
   context_->UpdateDHVA();
   context_->EvaluateConstraints();

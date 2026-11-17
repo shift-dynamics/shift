@@ -57,7 +57,12 @@ This builds ``build/shift/main/shift-cli``, the viewer
 ``build/shift/main/shift`` when Qt 6 is found, and the test suite
 ``build/test/shift-test``. ``meson test`` runs the unit tests and simulates
 every model in ``examples/``, except for a few long collision models that
-are kept as benchmarks (``meson test -C build --benchmark``).
+are kept as benchmarks (``meson test -C build --benchmark``). So are the
+contact tests that take longest, a dozen of 15 s to 2 minutes each in a
+release build, and the long runs of the DEM and of the SPH soil: run them
+with ``meson test -C build --benchmark contact_heavy``, ``--benchmark
+dem_heavy`` and ``--benchmark sph_heavy``
+(they are listed in :source:`test/meson.build`).
 
 ``build/`` is a debug build (``-O0``, with asserts). For simulation work,
 keep an optimized build next to it, which is 4–8 times faster:

@@ -269,6 +269,22 @@ public:
   unsigned int RemoveConstraintViolations();
   unsigned int RemoveConstraintViolationsRunTime(double* q, const double* dq);
   unsigned int RemoveConstraintViolationsFast(bool);
+  /*! \brief make the rates of the substructure satisfy J dq = 0, after the
+  coordinates have been assembled (RemoveConstraintViolations).
+
+  The rates of the coordinates that are given nonzero rates are kept, if
+  those coordinates can be independent and their rates are compatible with
+  the constraints, and the dependent rates are set to -B dq_i; otherwise the
+  rates are replaced by their orthogonal projection Z Z^T dq onto the null
+  space of J, the consistent rates nearest to them. Rates that already
+  satisfy the constraints are left unchanged. Leaves the Jacobian factored
+  with complete pivoting, as RemoveConstraintViolations does.
+
+  \param dq [in,out] the global array of generalized velocities
+  \return true if the rates were changed */
+  bool MakeVelocitiesConsistent(double* dq);
+  /*! \brief the largest entry of J dq for the global rate array dq */
+  double VelocityResidual(const double* dq) const;
   void PrintError(double initial_error, double final_error, double* q_copy);
   void IncrementSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                     int specified_coordinate_index,

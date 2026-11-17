@@ -113,7 +113,7 @@ shift::core::sph::GpuSolver::GpuSolver(gpu::Device& device,
   gather_ = std::make_unique<gpu::Kernel>(device, kGather, sizeof(kGather), 13,
                                           constants);
   markers_ = std::make_unique<gpu::Kernel>(device, kMarkers, sizeof(kMarkers),
-                                           5, constants);
+                                           6, constants);
   rates_ =
     std::make_unique<gpu::Kernel>(device, kRates, sizeof(kRates), 9, constants);
   momentum_ = std::make_unique<gpu::Kernel>(device, kMomentum,
@@ -198,7 +198,7 @@ void shift::core::sph::GpuSolver::Record(float dt, uint32_t substep) {
   /* the markers, the rates, the motion */
   commands.Dispatch(*markers_,
                     {b_.position.get(), b_.density.get(), b_.stress.get(),
-                     b_.kind.get(), start_.get()},
+                     b_.kind.get(), start_.get(), materials_buffer_.get()},
                     p, size, Groups(count_));
   commands.Dispatch(*rates_,
                     {b_.position.get(), b_.velocity.get(), b_.density.get(),
@@ -272,8 +272,9 @@ void shift::core::sph::GpuSolver::Steps(float dt, long n) {
 }
 
 void shift::core::sph::GpuSolver::ClearImpulses() {
+  /* recorded, and run with the next submission (of Steps or GetImpulses),
+  before it */
   commands_->Fill(*impulse_, 0u);
-  commands_->Submit();
 }
 
 void shift::core::sph::GpuSolver::GetImpulses(
@@ -291,6 +292,29 @@ void shift::core::sph::GpuSolver::GetImpulses(
       impulses[b][k] = sums[k * bodies_ + b];
     }
   }
+}
+
+void shift::core::sph::GpuSolver::RemoveParticles(
+  const std::vector<uint32_t>& ids) {
+  if(ids.empty()) {
+    return;
+  }
+  State state;
+  GetState(state);
+  state.RemoveParticles(ids);
+  if(state.size() == 0) {
+    throw shift::core::Exception("SPH: no particles or markers left");
+  }
+  /* the buffers keep their size, and the hash table its: the grid only
+  gets sparser */
+  count_ = static_cast<uint32_t>(state.size());
+  const size_t n = count_;
+  a_.position->Upload(state.position.data(), n * 16);
+  a_.velocity->Upload(state.velocity.data(), n * 16);
+  a_.density->Upload(state.density.data(), n * 4);
+  a_.stress->Upload(state.stress.data(), n * 32);
+  a_.id->Upload(state.id.data(), n * 4);
+  a_.kind->Upload(state.kind.data(), n * 4);
 }
 
 void shift::core::sph::GpuSolver::GetState(State& state) {

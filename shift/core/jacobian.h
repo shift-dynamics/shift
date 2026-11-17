@@ -136,6 +136,11 @@ public:
   void SetupSubstructurePointers();
   unsigned int RemoveConstraintViolations();
   void RemoveConstraintViolationsFast(bool);
+  /*! \brief make the generalized velocities satisfy the velocity constraints
+   * of every substructure (Substructure::MakeVelocitiesConsistent) and update
+   * the velocities of DHVA; call after RemoveConstraintViolations. Called at
+   * load (Initialize) and by solver::RNCA::Initialize */
+  void MakeVelocitiesConsistent();
 
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value

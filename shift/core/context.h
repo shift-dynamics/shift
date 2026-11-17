@@ -114,6 +114,10 @@ public:
    * (see gpu::Device) */
   std::shared_ptr<gpu::Device> GetGpuDevice();
 
+  /*! \brief the longest step the integrators may take: the smallest
+   * terrain::Base::StepLimit of the active terrains and their regions,
+   * infinite if none limits it; read when an integrator starts */
+  double GetStepLimit() const;
   /*! \brief the active terrains, see terrain::Base::Query */
   const std::vector<terrain::Base*>& get_active_terrain() const {
     return active_terrain_;
@@ -636,7 +640,8 @@ public:
    * accepted state y (the state of the last evaluation of the equations of
    * motion of the step): history that the forces depend on changes here
    * only, e.g. the contact normals the penetration depths stay near and
-   * the deformation of the terrain (terrain::Base::AcceptStep) */
+   * the deformation of the terrain (terrain::Base::AcceptStep) and the
+   * models of force modules (force_module::Base::AcceptStep) */
   void AcceptStep(const std::vector<double>& y);
 
   /*! \brief pairs of collision geometry found in contact by the most recent

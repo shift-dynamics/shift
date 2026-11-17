@@ -14,9 +14,8 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
-#include <QMatrix4x4>
 #include <QSize>
-#include <QVector3D>
+#include "ksl/vec3.h"
 
 class QAction;
 class QCheckBox;
@@ -116,13 +115,15 @@ public:
                                 * it (a model with a terrain hides it) */
     bool bilinear_terrain = false; /*!< View > Smooth deformable terrain
                                       off */
+    bool particle_spheres = false; /*!< View > Soil surface off */
     QString follow_body;       /*!< if given, the camera is placed at the
                                 * start and follows this body to time */
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
     bool set_frame = false;    /*!< frame this sphere, not the whole scene */
-    QVector3D frame_center;    /*!< of the sphere, inertial frame */
+    ksl_vec3f_t frame_center =
+      ksl_vec3f(0.f, 0.f, 0.f); /*!< of the sphere, inertial frame */
     float frame_radius = 1.f;  /*!< of the sphere */
   };
 
@@ -376,7 +377,8 @@ private:
     QTreeWidgetItem* item = nullptr;
     QString path;       /*!< see PathKey */
     int body_index = 0; /*!< of the simulation: of the frame, or the body */
-    QMatrix4x4 frame;   /*!< a frame, with respect to the body origin */
+    ksl_SE3f_t frame = Identity(); /*!< a frame, with respect to the body
+                                      origin */
     std::vector<Viewport::JointAxis> lines; /*!< a joint */
   };
   std::vector<EyeItem> eye_items_;
@@ -479,6 +481,7 @@ private:
   QAction* floor_action_ = nullptr; /*!< View > Floor */
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
+  QAction* particle_surface_action_ = nullptr;
   QLabel* status_label_ = nullptr;
   QLabel* time_label_ = nullptr;
   QLabel* rate_label_ = nullptr;

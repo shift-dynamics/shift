@@ -1,0 +1,58 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 128) in;
+
+// DEM pass 8: each grain's motion from the forces on its spheres, summed in
+// order (symplectic Euler; Euler's equations in the principal axes, with
+// the gyroscopic term; the quaternion by the exponential of the rotation)
+
+#include "dem_common.glsl"
+
+layout(std430, binding = 0) buffer GrainAnchor { ivec4 grain_anchor[]; };
+layout(std430, binding = 1) buffer GrainOffset { vec4 grain_offset[]; };
+layout(std430, binding = 2) buffer GrainVelocity { vec4 grain_velocity[]; };
+layout(std430, binding = 3) buffer GrainOmega { vec4 grain_omega[]; };
+layout(std430, binding = 4) buffer GrainQuaternion { vec4 grain_quaternion[]; };
+layout(std430, binding = 5) readonly buffer FirstSphere { uint first_sphere[]; };
+layout(std430, binding = 6) readonly buffer TemplateMass { vec4 template_mass[]; };
+layout(std430, binding = 7) readonly buffer TemplateSpheres { uvec4 template_spheres[]; };
+layout(std430, binding = 8) readonly buffer SphereForce { vec4 sphere_force[]; };
+layout(std430, binding = 9) readonly buffer SphereTorque { vec4 sphere_torque[]; };
+
+void main() {
+  const uint g = gl_GlobalInvocationID.x;
+  if(g >= grains) {
+    return;
+  }
+  ivec4 a = grain_anchor[g];
+  const uint t = uint(a.w);
+  const vec4 mass = template_mass[t];
+  const uint first = first_sphere[g], count = template_spheres[t].y;
+  vec3 force = vec3(0.0), torque = vec3(0.0);
+  for(uint k = 0u; k < count; k++) {
+    force = force + sphere_force[first + k].xyz;
+    torque = torque + sphere_torque[first + k].xyz;
+  }
+  vec4 q = grain_quaternion[g];
+  const vec3 v = grain_velocity[g].xyz + dt * (force / mass.x + gravity.xyz);
+  vec3 w = grain_omega[g].xyz;
+  const vec3 moment = RotateBack(q, torque);
+  w = w + dt * (moment - cross(w, mass.yzw * w)) / mass.yzw;
+  /* the position, and its anchor */
+  vec3 x = grain_offset[g].xyz + dt * v;
+  const vec3 cells = floor(x / cell);
+  a.xyz = a.xyz + ivec3(cells);
+  x = x - cells * cell;
+  /* the orientation */
+  const float speed = length(w);
+  const float half_angle = 0.5 * dt * speed;
+  const float scale = speed > 0.0 ? sin(half_angle) / speed : 0.5 * dt;
+  q = QuaternionProduct(q, vec4(scale * w, cos(half_angle)));
+  q = q / length(q);
+  grain_anchor[g] = a;
+  grain_offset[g] = vec4(x, 0.0);
+  grain_velocity[g] = vec4(v, 0.0);
+  grain_omega[g] = vec4(w, 0.0);
+  grain_quaternion[g] = q;
+}

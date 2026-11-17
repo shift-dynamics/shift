@@ -103,9 +103,14 @@ public:
    * beside sharp ruts, rather than bilinearly between them as the physics
    * does, which shows the facets of the grid (default true) */
   void set_smooth_terrain(bool smooth);
+  /*! \brief draw the particles of SPH soils as one surface over them, as
+   * the soil looks, rather than as spheres (default true). The surface is
+   * found in screen space: the depths of the spheres seen, smoothed by a
+   * bilateral filter, are shaded as a surface. */
+  void set_particle_surface(bool surface);
   /*! \brief place the floor: a point on it and its normal, up (out of the
    * solid), in the inertial frame */
-  void set_floor(const QVector3D& point, const QVector3D& normal);
+  void set_floor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
 
   /*! \brief place a level floor at height z (+z down) that only marks the
    * ground: it is lowered whenever a pose shown reaches below it, so the
@@ -117,7 +122,7 @@ public:
   void FrameScene();
 
   /*! \brief frame a sphere of the scene, to look closely at a part of it */
-  void FrameSphere(const QVector3D& center, float radius);
+  void FrameSphere(const ksl_vec3f_t& center, float radius);
   /*! \brief look from azimuth and elevation (radians, see Camera) and frame
    * the camera on the current poses */
   void set_view(float azimuth, float elevation);
@@ -136,7 +141,7 @@ public:
    * shown if they reach below it */
   void LowerFloorBelowModel();
   /*! \brief move the floor, see set_floor */
-  void PlaceFloor(const QVector3D& point, const QVector3D& normal);
+  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
 
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
@@ -147,7 +152,8 @@ public:
    * green and z blue (set_frame_axes) */
   struct FrameAxes {
     int body_index = 0;  /*!< into the poses */
-    QMatrix4x4 frame;    /*!< frame with respect to the body origin */
+    ksl_SE3f_t frame = Identity(); /*!< frame with respect to the body
+                                      origin */
   };
   /*! \brief the coordinate frames to draw, none by default. They are drawn
    * over the model, so that frames inside a body show, in both render
@@ -166,7 +172,7 @@ public:
     int body_index = 0; /*!< into the poses */
     /*! the line with respect to the body origin: through its origin along
      * its z axis, the arrow pointing to +z */
-    QMatrix4x4 line;
+    ksl_SE3f_t line = Identity();
   };
   /*! \brief the joint axes to draw, none by default; drawn over the model
    * as the frames */
@@ -175,8 +181,8 @@ public:
     return joint_axes_;
   }
   /*! \brief the color of the joint axes (sRGB as shown) */
-  void set_joint_color(const QVector3D& color);
-  const QVector3D& get_joint_color() const {
+  void set_joint_color(const ksl_vec3f_t& color);
+  const ksl_vec3f_t& get_joint_color() const {
     return joint_color_;
   }
   /*! \brief the diameter of the lines of the joint axes (m) */
@@ -304,6 +310,16 @@ private:
     int cad_index = 0; /*!< in Scene::cads */
   };
 
+  /*! the particles of an SPH soil (SceneParticles): their centres, one
+   * instance each */
+  struct GpuParticles {
+    std::unique_ptr<QRhiBuffer> centers;
+    uint32_t count = 0;
+    int particles_index = 0; /*!< in Scene::particles */
+  };
+  /*! \brief upload the particles that changed (Simulation::
+   * TakeParticleUpdates), or all of them; the buffers grow as needed */
+  void UploadParticleUpdates(QRhiResourceUpdateBatch* batch, bool all);
   /*! \brief upload the rectangles of the deformable terrains that changed
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
@@ -337,7 +353,7 @@ private:
   void RenderRaster(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   void RenderRayTraced(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch* batch);
   /*! \brief the frame the camera holds its transform to */
-  QMatrix4x4 FollowFrame(int body, FollowMode mode) const;
+  ksl_SE3f_t FollowFrame(int body, FollowMode mode) const;
   /*! \brief upload the instances (body poses, and the poses of the previous
    * frame for reprojection); returns true if a body moved */
   bool UploadInstances(QRhiResourceUpdateBatch* batch, int instance_count);
@@ -367,11 +383,12 @@ private:
   Camera camera_;
   int follow_body_ = -1;        /*!< see set_follow_body */
   FollowMode follow_mode_ = FollowMode::kBody;
-  QMatrix4x4 follow_offset_;    /*!< the motion of the camera in the frame
+  ksl_SE3f_t follow_offset_ = Identity();    /*!< the motion of the camera in the frame
                                  * followed, see FollowFrame */
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   bool smooth_terrain_ = true;
+  bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
   bool rt_terrain_smooth_ = true;
   bool scene_dirty_ = false;
@@ -379,11 +396,11 @@ private:
   int frame_count_ = 0;
 
   // environment, in world coordinates
-  QVector3D sun_direction_;
-  QVector3D floor_origin_{0.f, 0.f, 0.f};
-  QVector3D floor_u_{1.f, 0.f, 0.f};
-  QVector3D floor_v_{0.f, -1.f, 0.f};
-  QVector3D floor_normal_{0.f, 0.f, -1.f}; // up, +z is down
+  ksl_vec3f_t sun_direction_ = ksl_vec3f(0.f, 0.f, -1.f);
+  ksl_vec3f_t floor_origin_ = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t floor_u_ = ksl_vec3f(1.f, 0.f, 0.f);
+  ksl_vec3f_t floor_v_ = ksl_vec3f(0.f, -1.f, 0.f);
+  ksl_vec3f_t floor_normal_ = ksl_vec3f(0.f, 0.f, -1.f); // up, +z is down
   bool floor_below_model_ = false; /*!< see set_floor_below_model */
   float floor_spacing_ = 1.f;
   float floor_extent_ = 100.f;
@@ -428,7 +445,7 @@ private:
   std::vector<FrameAxes> frame_axes_;
   float frame_axes_scale_ = 0.25f;
   std::vector<JointAxis> joint_axes_;
-  QVector3D joint_color_{0.63f, 0.25f, 0.88f};
+  ksl_vec3f_t joint_color_ = ksl_vec3f(0.63f, 0.25f, 0.88f);
   float joint_thickness_ = 0.0075f;
   float lod_tolerance_ = SceneMeshLod::kPixelError; /*!< set_lod_tolerance */
   float render_scale_ = 1.f;                         /*!< set_render_scale */
@@ -458,6 +475,37 @@ private:
   std::vector<GpuTerrain> gpu_terrains_;
   std::vector<TerrainUpdate> terrain_updates_; /*!< reused each frame */
   std::unique_ptr<QRhiGraphicsPipeline> terrain_pipeline_;
+  // the particles of SPH soils, instances of a sphere
+  std::vector<GpuParticles> gpu_particles_;
+  std::vector<ParticleUpdate> particle_updates_; /*!< reused each frame */
+  bool gpu_particles_reset_ = false; /*!< all to upload, see UploadScene */
+  std::unique_ptr<QRhiGraphicsPipeline> particle_pipeline_;
+  // their surface (set_particle_surface): the depth of the spheres in
+  // fluid_depth_[0], blurred level by level from one into the other, ending
+  // in [0], shaded in the render target by fluid_pipeline_
+  std::unique_ptr<QRhiBuffer> fluid_ubo_; /*!< FluidUniforms */
+  /*! the stride of each level of the blur, fluid_level_stride_ apart */
+  std::unique_ptr<QRhiBuffer> fluid_level_ubo_;
+  quint32 fluid_level_stride_ = 0;
+  std::unique_ptr<QRhiTexture> fluid_depth_[2]; /*!< R32F, 0: none */
+  std::unique_ptr<QRhiRenderBuffer> fluid_depth_stencil_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_sphere_target_; /*!< [0] */
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_sphere_render_pass_;
+  std::unique_ptr<QRhiTextureRenderTarget> fluid_blur_target_[2];
+  std::unique_ptr<QRhiRenderPassDescriptor> fluid_blur_render_pass_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_sphere_bindings_;
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_blur_bindings_[2];
+  std::unique_ptr<QRhiShaderResourceBindings> fluid_bindings_;
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_sphere_pipeline_;
+  /*! the blur from fluid_depth_[k] */
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_blur_pipeline_[2];
+  std::unique_ptr<QRhiGraphicsPipeline> fluid_pipeline_;
+  /*! \brief the textures and targets of the surface, at output_size_ */
+  void CreateFluidTargets();
+  /*! \brief the passes of the surface before the render pass: the spheres'
+   * depth and its blur; returns false if there are no particles to draw */
+  bool RenderFluidDepth(QRhiCommandBuffer* cb, QRhiResourceUpdateBatch*& batch,
+                        const QMatrix4x4& view_projection, float aspect);
 
   // CAD geometry, tessellated on the GPU from its exact surfaces
   std::vector<GpuCad> gpu_cads_;
@@ -479,8 +527,8 @@ private:
   /*! the environment drawn: the scene's, with the sun's and the fog's
    * colors resolved */
   SceneEnvironment environment_;
-  QVector3D sky_zenith_;  //!< radiance of the sky overhead
-  QVector3D sky_horizon_; //!< mean radiance of the sky at the horizon
+  ksl_vec3f_t sky_zenith_ = ksl_vec3f(0.f, 0.f, 0.f);  //!< radiance of the sky overhead
+  ksl_vec3f_t sky_horizon_ = ksl_vec3f(0.f, 0.f, 0.f); //!< mean radiance of the sky at the horizon
   /*! \brief the sun's direction (w: intensity) and color for the frame,
    * given whether the model's lights are on */
   void SunUniforms(bool lights_on, float direction[4], float color[4]) const;
@@ -554,7 +602,7 @@ private:
   void BuildPickBvh();
   /*! \brief the nearest point of the scene meshes under a point of the
    * window (logical pixels), false if none */
-  bool Pick(const QPointF& pixel, QVector3D& point);
+  bool Pick(const QPointF& pixel, ksl_vec3f_t& point);
   std::unique_ptr<QRhiBuffer> rt_ubo_;
   std::unique_ptr<QRhiBuffer> rt_triangle_buffer_;
   std::unique_ptr<QRhiBuffer> rt_triangle_face_buffer_;
@@ -624,7 +672,7 @@ private:
    * resize, floor toggled, switching to ray tracing) */
   bool rt_history_valid_ = false;
   QMatrix4x4 rt_previous_view_projection_;
-  std::vector<QMatrix4x4> rt_previous_poses_; /*!< per instance */
+  std::vector<ksl_SE3f_t> rt_previous_poses_; /*!< per instance */
   /*! the last upload had a previous pose different from the current one, so
    * the instances must be uploaded again with previous = current */
   bool rt_instances_moving_ = false;

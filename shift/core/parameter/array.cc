@@ -3,6 +3,7 @@
 #include "shift/core/environment/scenery.h"
 #include "shift/core/environment/surface_material.h"
 #include "shift/core/force_module/contact.h"
+#include "shift/core/force_module/dem.h"
 #include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
 #include "shift/core/logger/base.h"
@@ -19,6 +20,20 @@ template class shift::core::parameter::Array<
   shift::core::force_module::ContactMaterial>;
 template class shift::core::parameter::Array<
   shift::core::force_module::ContactMaterialPair>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemMaterial>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemMaterialPair>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemSphere>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemGrain>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemFill>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemWall>;
+template class shift::core::parameter::Array<
+  shift::core::force_module::DemBody>;
 template class shift::core::parameter::Array<
   shift::core::force_module::PowertrainAxle>;
 template class shift::core::parameter::Array<

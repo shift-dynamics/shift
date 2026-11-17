@@ -62,6 +62,14 @@ Force modules, sensors and controllers
      - :doc:`../force-modules/hydraulic-cylinder`: a 30 t excavator with
        four cylinders, starting held, through a dig cycle; CSV and HDF5
        logs of the cylinders' pressures and forces
+   * - .. image:: ../images/examples/excavator_drive.jpg
+          :width: 220px
+          :alt: excavator_drive
+     - :source:`examples/excavator/excavator_drive.json`
+     - :doc:`../force-modules/soil`, :ref:`controllers`: the excavator on
+       tracks of 46 STEP links each, driven forward, turned on the spot and
+       stopped over dry sand by PID speed control of the sprockets (a
+       benchmark: it is not run in the regular tests)
    * - .. image:: ../images/examples/vehicle_control.jpg
           :width: 220px
           :alt: vehicle_control
@@ -234,6 +242,12 @@ Geometry and terrain
        five track rollers and a carrier roller, on a float joint and held up
        only by the track on soft, damped ground, so the sprocket drives it
        along (a benchmark)
+   * - .. image:: ../images/examples/dem_grain_shapes.jpg
+          :width: 220px
+          :alt: dem_grain_shapes
+     - :source:`examples/dem/grain_shapes.json`
+     - :doc:`../force-modules/dem`: the three kinds of grain, a sphere, a
+       clump of spheres and a convex hull, settling on a floor
    * - .. image:: ../images/examples/cube.jpg
           :width: 220px
           :alt: cube

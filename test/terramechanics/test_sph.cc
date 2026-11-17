@@ -432,3 +432,47 @@ TEST(Sph, BodyPressesIntoTheSoil) {
   EXPECT_LT(std::abs(moment_x), 1e-3 * std::abs(j[2]) * s);
   EXPECT_LT(std::abs(moment_y), 1e-3 * std::abs(j[2]) * s);
 }
+
+/* a plate held still just above the soil, its bottom markers two spacings
+above the top particles, inside the support of the kernel: the soil does not
+pull it down (the markers' stresses, extrapolated with the head of the soil
+above them, are clamped to no tension) */
+TEST(Sph, BodyAboveTheSoilFeelsNoPull) {
+  const float s = 0.02f;
+  const shift::core::sph::Material sand = Sand();
+  shift::core::sph::State state;
+  AddFloor(state, 0.16f, s, 3, sand);
+  AddBlock(state, 8, 8, 5, s, sand);
+  for(int k = 0; k < 2; k++) {
+    for(int j = 0; j < 4; j++) {
+      for(int i = 0; i < 4; i++) {
+        state.AddBodyMarker({(i - 1.5f) * s, (j - 1.5f) * s, (k - 0.5f) * s},
+                            0, sand, s);
+      }
+    }
+  }
+  const shift::core::sph::Settings settings = Settings(s);
+  const float dt = shift::core::sph::StableStep(settings, {sand});
+  const long n = 50;
+  const double duration = n * double(dt);
+  /* the top particles at z = -0.1 + s / 2, the bottom markers at the origin
+  - s / 2 */
+  shift::core::sph::BodyPose pose;
+  pose.t = {0.0, 0.0, -0.1 - 1.0 * s};
+  shift::core::sph::CpuSolver cpu(settings, {sand}, state);
+  cpu.SetBodyPaths({pose}, {pose}, 0.0, duration);
+  cpu.Steps(dt, n);
+  std::vector<std::array<double, 6>> impulse;
+  cpu.GetImpulses(impulse);
+  ASSERT_EQ(impulse.size(), 1u);
+  /* the weight of the soil under the plate, 4 by 4 columns of 5, over the
+  run, as a scale */
+  const double weight = 16 * 5 * double(sand.density) * s * s * s * 9.81;
+  std::printf("impulse %.3g N s, of the soil's weight under the plate %.3g "
+              "N s\n",
+              impulse[0][2], weight * duration);
+  /* unclamped, the pull is about a tenth of that weight; what is left is a
+  small push, the soil's surface settling under the markers */
+  EXPECT_LT(impulse[0][2], 1e-4 * weight * duration);
+  EXPECT_LT(std::abs(impulse[0][2]), 0.02 * weight * duration);
+}

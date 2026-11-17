@@ -151,6 +151,7 @@ again after each Submit
 */
 class Commands {
 public:
+  struct Impl;
   explicit Commands(Device& device);
   ~Commands();
   Commands(const Commands&) = delete;
@@ -162,6 +163,14 @@ public:
   void Dispatch(const Kernel& kernel, const std::vector<const Buffer*>& buffers,
                 const void* push_constants, size_t size, uint32_t groups_x,
                 uint32_t groups_y = 1, uint32_t groups_z = 1);
+  /*! \brief run kernel as Dispatch does, over the numbers of workgroups
+   * along x, y and z that the three 32-bit words of groups at offset hold
+   * when the dispatch runs, so that a kernel before it can choose them; 0
+   * along any runs nothing */
+  void DispatchIndirect(const Kernel& kernel,
+                        const std::vector<const Buffer*>& buffers,
+                        const void* push_constants, size_t size,
+                        const Buffer& groups, size_t offset = 0);
   /*! \brief set size bytes of buffer at offset, a multiple of 4, to the
    * 32-bit word value */
   void Fill(const Buffer& buffer, uint32_t value, size_t offset = 0,
@@ -170,11 +179,16 @@ public:
    * destination_offset */
   void Copy(const Buffer& source, const Buffer& destination, size_t size,
             size_t source_offset = 0, size_t destination_offset = 0);
+  /*! \brief write size bytes of data, a multiple of 4, into buffer at
+   * offset when the commands run; the data are copied into the commands
+   * now (in pieces of 64 KiB), so that a small upload needs no submission
+   * of its own */
+  void Update(const Buffer& buffer, const void* data, size_t size,
+              size_t offset = 0);
   /*! \brief run the commands recorded and wait for them */
   void Submit();
 
 private:
-  struct Impl;
   std::unique_ptr<Impl> impl_;
 };
 

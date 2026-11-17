@@ -1,7 +1,7 @@
 #ifndef SHIFT_GUI_ENVIRONMENT_H_
 #define SHIFT_GUI_ENVIRONMENT_H_
 
-#include <QVector3D>
+#include "ksl/vec3.h"
 
 #include <string>
 #include <vector>
@@ -22,32 +22,32 @@ struct SceneEnvironment {
   bool given = false;
 
   SkyType sky_type = kGradient;
-  QVector3D zenith{0.22f, 0.36f, 0.62f};
-  QVector3D horizon{0.62f, 0.68f, 0.74f};
-  QVector3D ground{0.12f, 0.11f, 0.10f};
+  ksl_vec3f_t zenith = ksl_vec3f(0.22f, 0.36f, 0.62f);
+  ksl_vec3f_t horizon = ksl_vec3f(0.62f, 0.68f, 0.74f);
+  ksl_vec3f_t ground = ksl_vec3f(0.12f, 0.11f, 0.10f);
   float turbidity = 3.f;
   std::string image_path; /*!< kImage: an OpenEXR file or resource */
   float image_rotation = 0.f; /*!< kImage: about the vertical (rad) */
   float sky_intensity = 1.f;
 
   /*! unit vector toward the sun */
-  QVector3D sun_direction = QVector3D(0.45f, 0.3f, -0.84f).normalized();
+  ksl_vec3f_t sun_direction = ksl_vec3f(0.450428f, 0.300285f, -0.840799f);
   float sun_intensity = 3.f;
-  QVector3D sun_color{1.f, 0.96f, 0.9f};
+  ksl_vec3f_t sun_color = ksl_vec3f(1.f, 0.96f, 0.9f);
   /*! the model gives the sun's color; else a physical sky colors it */
   bool sun_color_given = false;
 
   float fog_density = 0.f; /*!< 1/m at fog_height, 0 for none */
   float fog_height_falloff = 0.f; /*!< 1/m, upward */
   float fog_height = 0.f;         /*!< m, upward (-z) */
-  QVector3D fog_color;
+  ksl_vec3f_t fog_color = ksl_vec3f(0.f, 0.f, 0.f);
   /*! the model gives the fog's color; else the sky's at the horizon */
   bool fog_color_given = false;
 
   bool water = false;        /*!< whether there is water */
   float water_height = 0.f;  /*!< m, upward (-z) */
-  QVector3D water_color{0.012f, 0.045f, 0.055f};
-  QVector3D water_extinction{0.45f, 0.12f, 0.09f}; /*!< 1/m */
+  ksl_vec3f_t water_color = ksl_vec3f(0.012f, 0.045f, 0.055f);
+  ksl_vec3f_t water_extinction = ksl_vec3f(0.45f, 0.12f, 0.09f); /*!< 1/m */
   float wave_height = 0.15f;  /*!< m, crest to trough */
   float wavelength = 5.f;     /*!< m, of the longest waves */
   float wave_direction = 0.f; /*!< rad, azimuth of travel */
@@ -64,33 +64,33 @@ the sun is a light of its own.
 struct SkyMap {
   int width = 0;
   int height = 0;
-  std::vector<QVector3D> texels; /*!< rows from the zenith */
+  std::vector<ksl_vec3f_t> texels; /*!< rows from the zenith */
 
   /*! \brief bilinear radiance toward d (a unit vector), wrapping in
    * azimuth */
-  QVector3D Sample(const QVector3D& d) const;
+  ksl_vec3f_t Sample(const ksl_vec3f_t& d) const;
   /*! \brief the map averaged over boxes of factor x factor texels */
   SkyMap Downsampled(int factor) const;
 };
 
 /*! \brief unit direction of the point (u, v) of the equirectangular
  * projection, and back */
-QVector3D EquirectDirection(float u, float v);
-void EquirectCoordinates(const QVector3D& d, float& u, float& v);
+ksl_vec3f_t EquirectDirection(float u, float v);
+void EquirectCoordinates(const ksl_vec3f_t& d, float& u, float& v);
 
 /*! \brief radiance of the clear sky of Preetham, Shirley and Smits ("A
  * practical analytic model for daylight", 1999) toward d, for the sun toward
  * sun and the haze turbidity; linear RGB, scaled to the viewer's units (the
  * default gradient sky's zenith for a sun 57 degrees high). Above the
  * horizon only. */
-QVector3D PreethamRadiance(const QVector3D& d, const QVector3D& sun,
+ksl_vec3f_t PreethamRadiance(const ksl_vec3f_t& d, const ksl_vec3f_t& sun,
                            float turbidity);
 
 /*! \brief color of sunlight through the air for the sun toward sun and the
  * haze turbidity: the transmittance of Rayleigh and aerosol scattering
  * along the air mass of its elevation, normalized to the default sun color
  * overhead */
-QVector3D SunlightColor(const QVector3D& sun, float turbidity);
+ksl_vec3f_t SunlightColor(const ksl_vec3f_t& sun, float turbidity);
 
 /*! \brief Angstrom's turbidity coefficient of the haze turbidity, the
  * optical depth of the aerosols overhead at 1 um (Preetham et al. 1999): the
@@ -138,8 +138,8 @@ struct EnvironmentTables {
   std::vector<float> specular;
   std::vector<float> irradiance;
   std::vector<float> brdf;
-  QVector3D zenith;
-  QVector3D horizon;
+  ksl_vec3f_t zenith = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t horizon = ksl_vec3f(0.f, 0.f, 0.f);
 };
 
 /*! \brief the tables of a sky map of kRadianceWidth x kRadianceHeight */

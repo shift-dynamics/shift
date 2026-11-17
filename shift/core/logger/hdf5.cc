@@ -253,7 +253,8 @@ static void AppendList(H5::DataSet& dataset, hsize_t length, hsize_t count,
 void shift::core::logger::HDF5::CreateTerrainLogs() {
   terrain_logs_.clear();
   H5::Group group;
-  for(auto terrain : context_->get_active_terrain()) {
+  for(auto terrain : shift::core::terrain::Base::WithRegions(
+        context_->get_active_terrain())) {
     auto scm = dynamic_cast<const shift::core::terrain::Scm*>(terrain);
     if(!scm) {
       continue;
