@@ -63,6 +63,75 @@ void shift::core::body::Flex::SetNode(const std::string& frame_name,
                                       unsigned int point) {
   node_names_.push_back(frame_name);
   node_points_.push_back(point);
+  node_sliding_.push_back(-1);
+}
+
+void shift::core::body::Flex::SetSlidingNode(
+  const std::string& frame_name, const std::vector<unsigned int>& stations,
+  double first, double spacing, const ksl_vec3_t& axis) {
+  if(stations.empty() || (stations.size() > 1 && !(spacing > 0.0))) {
+    throw shift::core::Exception("Flexible body '" + get_name() +
+                                 "': sliding node '" + frame_name +
+                                 "' needs stations a positive spacing apart");
+  }
+  SlidingNode node;
+  node.stations = stations;
+  node.first = first;
+  node.spacing = spacing;
+  node.axis = axis;
+  ksl_vec3_normalize(&node.axis);
+  node_names_.push_back(frame_name);
+  node_points_.push_back(stations[0]);
+  node_sliding_.push_back(static_cast<int>(sliding_.size()));
+  sliding_.push_back(node);
+}
+
+shift::core::body::Flex::SplineWeights shift::core::body::Flex::Weights(
+  const SlidingNode& node, double s) {
+  SplineWeights w;
+  const size_t count = node.stations.size();
+  if(count < 2) {
+    return w;
+  }
+  const double h = node.spacing;
+  const double last = node.first + h * double(count - 1);
+  w.d0 = -1.0 / h;
+  w.d1 = 1.0 / h;
+  if(s < node.first) {
+    /* Y_0 + delta Y'(x_0), Y'(x_0) = (Y_1 - Y_0) / h - h M_1 / 6 */
+    const double delta = s - node.first;
+    w.i = 0;
+    w.i1 = 1;
+    w.c0 = 1.0 - delta / h;
+    w.c1 = delta / h;
+    w.e1 = -delta * h / 6.0;
+    w.f1 = -h / 6.0;
+    return w;
+  }
+  if(s > last) {
+    /* Y_N + delta Y'(x_N), Y'(x_N) = (Y_N - Y_N-1) / h + h M_N-1 / 6 */
+    const double delta = s - last;
+    w.i = count - 2;
+    w.i1 = count - 1;
+    w.c0 = -delta / h;
+    w.c1 = 1.0 + delta / h;
+    w.e0 = delta * h / 6.0;
+    w.f0 = h / 6.0;
+    return w;
+  }
+  w.i = std::min(size_t((s - node.first) / h), count - 2);
+  w.i1 = w.i + 1;
+  const double t = (s - node.first - h * double(w.i)) / h;
+  const double r = 1.0 - t;
+  w.c0 = r;
+  w.c1 = t;
+  w.e0 = h * h / 6.0 * (r * r * r - r);
+  w.e1 = h * h / 6.0 * (t * t * t - t);
+  w.f0 = -h / 6.0 * (3.0 * r * r - 1.0);
+  w.f1 = h / 6.0 * (3.0 * t * t - 1.0);
+  w.g0 = r;
+  w.g1 = t;
+  return w;
 }
 
 void shift::core::body::Flex::SetInitialElasticState(
@@ -150,6 +219,48 @@ void shift::core::body::Flex::SetupElastic() {
     ksl_mat3x3_t temp;
     ksl_product_drdr(&rotary_inertias_[p], &D_or->R, &temp);
     ksl_product_drinvdr(&D_or->R, &temp, &rotary_r[p]);
+  }
+
+  /* the sliding nodes' splines: M_0 = M_N-1 = 0 and, between,
+  M_i-1 + 4 M_i + M_i+1 = 6 (Y_i+1 - 2 Y_i + Y_i-1) / h^2, by the Thomas
+  algorithm for each of the 6 n_e components */
+  for(SlidingNode& node : sliding_) {
+    const size_t count = node.stations.size();
+    for(unsigned int station : node.stations) {
+      if(station >= point_count) {
+        throw shift::core::Exception("Flexible body '" + get_name() +
+                                     "': a sliding node has no point " +
+                                     std::to_string(station));
+      }
+    }
+    node.curvature.assign(count * n, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+    if(count < 3) {
+      continue;
+    }
+    const double h = node.spacing;
+    std::vector<double> diagonal(count), right(count);
+    for(size_t j = 0; j < n; j++) {
+      for(int c = 0; c < 6; c++) {
+        auto y = [&](size_t i) {
+          return shapes_r_[size_t(node.stations[i]) * n + j].at[c];
+        };
+        /* forward elimination over the interior rows 1 .. N-2 */
+        for(size_t i = 1; i + 1 < count; i++) {
+          diagonal[i] = 4.0;
+          right[i] = 6.0 * (y(i + 1) - 2.0 * y(i) + y(i - 1)) / (h * h);
+          if(i > 1) {
+            const double factor = 1.0 / diagonal[i - 1];
+            diagonal[i] -= factor;
+            right[i] -= factor * right[i - 1];
+          }
+        }
+        for(size_t i = count - 2; i >= 1; i--) {
+          const double next =
+            i + 2 < count ? node.curvature[(i + 1) * n + j].at[c] : 0.0;
+          node.curvature[i * n + j].at[c] = (right[i] - next) / diagonal[i];
+        }
+      }
+    }
   }
 
   /* the invariants */
@@ -346,6 +457,118 @@ double shift::core::body::Flex::ElasticEnergy(const double* eta) const {
     }
   }
   return 0.5 * e;
+}
+
+void shift::core::body::Flex::EvaluateSlidingNode(
+  unsigned int k, double s, double s_dot, const double* eta,
+  const double* eta_dot, ksl_SE3_t* d_rk, ksl_screw_t* h_k,
+  ksl_screw_t* gamma_k, ksl_screw_t* h_s, ksl_screw_t* h_s_dot) const {
+  if(!is_sliding_node(k)) {
+    EvaluateNode(k, eta, eta_dot, d_rk, h_k, gamma_k);
+    return;
+  }
+  const size_t n = elastic_count_;
+  const SlidingNode& node = sliding_[size_t(node_sliding_[k])];
+  const SplineWeights w = Weights(node, s);
+  const ksl_screw_t* y0 = &shapes_r_[size_t(node.stations[w.i]) * n];
+  const ksl_screw_t* y1 = &shapes_r_[size_t(node.stations[w.i1]) * n];
+  const ksl_screw_t* m0 = &node.curvature[w.i * n];
+  const ksl_screw_t* m1 = &node.curvature[w.i1 * n];
+  const bool rates = eta_dot != nullptr;
+
+  /* the deformation at the station and its derivatives in s: u, theta (and
+  ', ''), and with the rates: rho_e, Theta_dot (Upsilon eta_dot) and U',
+  Theta' (Upsilon' eta_dot) */
+  ksl_vec3_t u = {}, theta = {}, u1 = {}, theta1 = {}, u2 = {}, theta2 = {};
+  ksl_vec3_t rho_e = {}, Theta = {}, U1 = {}, Theta1 = {};
+  for(size_t j = 0; j < n; j++) {
+    ksl_screw_t y, d, dd;
+    for(int c = 0; c < 6; c++) {
+      const double a0 = y0[j].at[c], a1 = y1[j].at[c];
+      const double b0 = m0[j].at[c], b1 = m1[j].at[c];
+      y.at[c] = w.c0 * a0 + w.c1 * a1 + w.e0 * b0 + w.e1 * b1;
+      d.at[c] = w.d0 * a0 + w.d1 * a1 + w.f0 * b0 + w.f1 * b1;
+      dd.at[c] = w.g0 * b0 + w.g1 * b1;
+    }
+    AddScaledVector(eta[j], y.lin, &u);
+    AddScaledVector(eta[j], y.ang, &theta);
+    AddScaledVector(eta[j], d.lin, &u1);
+    AddScaledVector(eta[j], d.ang, &theta1);
+    AddScaledVector(eta[j], dd.lin, &u2);
+    AddScaledVector(eta[j], dd.ang, &theta2);
+    if(rates) {
+      AddScaledVector(eta_dot[j], y.lin, &rho_e);
+      AddScaledVector(eta_dot[j], y.ang, &Theta);
+      AddScaledVector(eta_dot[j], d.lin, &U1);
+      AddScaledVector(eta_dot[j], d.ang, &Theta1);
+    }
+    if(h_k) {
+      h_k[j] = y;
+    }
+  }
+
+  /* the station p(s) = t_0 + s a, moved: rho = p + u, turned by theta */
+  const ksl_SE3_t* D_0 = node_frames_[k]->get_d_wrt_reference();
+  ksl_vec3_t a;
+  ksl_product_drv(&D_0->R, &node.axis, &a);
+  ksl_vec3_t rho = D_0->t;
+  AddScaledVector(s, a, &rho);
+  AddScaledVector(1.0, u, &rho);
+  ksl_mat3x3_t R_theta;
+  const double angle = ksl_vec3_l2norm(&theta);
+  if(angle > 1e-300) {
+    ksl_vec3_t direction;
+    ksl_product_av(1.0 / angle, &theta, &direction);
+    ksl_mat3x3_setFromAxisAngle(&R_theta, &direction, angle);
+  } else {
+    ksl_mat3x3_setIdentity(&R_theta);
+  }
+  /* the frame: offset -s a from the station, turned with it */
+  ksl_vec3_t offset, offset_turned;
+  ksl_product_av(-s, &a, &offset);
+  ksl_product_drv(&R_theta, &offset, &offset_turned);
+  ksl_product_drdr(&R_theta, &D_0->R, &d_rk->R);
+  ksl_add_vv(&rho, &offset_turned, &d_rk->t);
+
+  if(h_k) {
+    for(size_t j = 0; j < n; j++) {
+      ksl_vec3_t moment;
+      ksl_cross_vv(&rho, &h_k[j].ang, &moment);
+      AddScaledVector(1.0, moment, &h_k[j].lin);
+    }
+  }
+  /* rho_dot = (a + u') s_dot + rho_e */
+  ksl_vec3_t rho_dot = rho_e;
+  AddScaledVector(s_dot, a, &rho_dot);
+  AddScaledVector(s_dot, u1, &rho_dot);
+  if(gamma_k) {
+    /* {rho_dot x Theta_dot + s_dot (U' + rho x Theta'); s_dot Theta'} */
+    ksl_vec3_t temp;
+    ksl_cross_vv(&rho_dot, &Theta, &gamma_k->lin);
+    AddScaledVector(s_dot, U1, &gamma_k->lin);
+    ksl_cross_vv(&rho, &Theta1, &temp);
+    AddScaledVector(s_dot, temp, &gamma_k->lin);
+    ksl_product_av(s_dot, &Theta1, &gamma_k->ang);
+  }
+  if(h_s) {
+    /* {a + u' + rho x theta'; theta'} */
+    ksl_cross_vv(&rho, &theta1, &h_s->lin);
+    AddScaledVector(1.0, a, &h_s->lin);
+    AddScaledVector(1.0, u1, &h_s->lin);
+    h_s->ang = theta1;
+  }
+  if(h_s_dot) {
+    /* {s_dot u'' + U' + rho_dot x theta' + rho x (s_dot theta'' + Theta');
+    s_dot theta'' + Theta'} */
+    ksl_vec3_t angular = Theta1, temp;
+    AddScaledVector(s_dot, theta2, &angular);
+    ksl_cross_vv(&rho_dot, &theta1, &h_s_dot->lin);
+    AddScaledVector(s_dot, u2, &h_s_dot->lin);
+    AddScaledVector(1.0, U1, &h_s_dot->lin);
+    ksl_cross_vv(&rho, &angular, &temp);
+    AddScaledVector(1.0, temp, &h_s_dot->lin);
+    h_s_dot->ang = angular;
+  }
 }
 
 void shift::core::body::Flex::EvaluateNode(unsigned int k, const double* eta,

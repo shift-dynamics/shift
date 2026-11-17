@@ -3,6 +3,7 @@
 #include <QtDebug>
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 
 #include "ksl/matrix.h"
@@ -251,29 +252,105 @@ void shift::gui::ComputeNormals(std::vector<Vertex>& vertices,
   }
 }
 
-float shift::gui::FlexVonMises(const SceneMesh& mesh,
-                               const FlexUpdate& update, size_t vertex) {
+bool shift::gui::FlexStressSigned(FlexUpdate::Quantity quantity) {
+  return quantity != FlexUpdate::Quantity::kVonMises &&
+         quantity != FlexUpdate::Quantity::kTresca &&
+         quantity != FlexUpdate::Quantity::kSafetyFactor;
+}
+
+void shift::gui::FlexPrincipalStresses(const float s[6], float principal[3]) {
+  /* A = q I + p B: the eigenvalues are q + 2 p cos(phi + 2 pi k / 3), phi =
+  acos(det(B) / 2) / 3 */
+  const float q = (s[0] + s[1] + s[2]) / 3.f;
+  const float a = s[0] - q, b = s[1] - q, c = s[2] - q;
+  const float off = s[3] * s[3] + s[4] * s[4] + s[5] * s[5];
+  const float p2 = a * a + b * b + c * c + 2.f * off;
+  if(!(p2 > 0.f)) {
+    principal[0] = principal[1] = principal[2] = q;
+    return;
+  }
+  const float p = std::sqrt(p2 / 6.f);
+  /* det(A - q I) / p^3; B's diagonal a, b, c, its xy, yz, zx s[3..5] */
+  const float det = a * b * c + 2.f * s[3] * s[4] * s[5] - a * s[4] * s[4] -
+                    b * s[5] * s[5] - c * s[3] * s[3];
+  const float r = std::clamp(0.5f * det / (p * p * p), -1.f, 1.f);
+  const float phi = std::acos(r) / 3.f;
+  principal[0] = q + 2.f * p * std::cos(phi);
+  principal[2] = q + 2.f * p * std::cos(phi + 2.f * float(M_PI) / 3.f);
+  principal[1] = 3.f * q - principal[0] - principal[2];
+}
+
+float shift::gui::FlexStressValue(const float s[6],
+                                  FlexUpdate::Quantity quantity) {
+  switch(quantity) {
+  case FlexUpdate::Quantity::kTresca:
+  case FlexUpdate::Quantity::kMaxPrincipal:
+  case FlexUpdate::Quantity::kMiddlePrincipal:
+  case FlexUpdate::Quantity::kMinPrincipal: {
+    float principal[3];
+    FlexPrincipalStresses(s, principal);
+    if(quantity == FlexUpdate::Quantity::kTresca) {
+      return principal[0] - principal[2];
+    }
+    return principal[int(quantity) - int(FlexUpdate::Quantity::kMaxPrincipal)];
+  }
+  case FlexUpdate::Quantity::kXx:
+  case FlexUpdate::Quantity::kYy:
+  case FlexUpdate::Quantity::kZz:
+  case FlexUpdate::Quantity::kXy:
+  case FlexUpdate::Quantity::kYz:
+  case FlexUpdate::Quantity::kZx:
+    return s[int(quantity) - int(FlexUpdate::Quantity::kXx)];
+  default: {
+    const float d0 = s[0] - s[1], d1 = s[1] - s[2], d2 = s[2] - s[0];
+    return std::sqrt(0.5f * (d0 * d0 + d1 * d1 + d2 * d2) +
+                     3.f * (s[3] * s[3] + s[4] * s[4] + s[5] * s[5]));
+  }
+  }
+}
+
+float shift::gui::FlexStressAt(const SceneMesh& mesh,
+                               const float* coefficients, size_t count,
+                               size_t vertex, FlexUpdate::Quantity quantity) {
   const size_t columns = mesh.flex_columns;
-  if(update.stress_coefficients.size() != columns ||
+  if(count > columns ||
      mesh.flex_stress_basis.size() != 6 * columns * mesh.vertices.size()) {
     return 0.f;
   }
   float s[6] = {};
   const float* b = mesh.flex_stress_basis.data() + 6 * columns * vertex;
-  for(size_t j = 0; j < columns; j++) {
-    const float a = update.stress_coefficients[j];
+  for(size_t j = 0; j < count; j++) {
+    const float a = coefficients[j];
     for(int c = 0; c < 6; c++) {
       s[c] += a * b[6 * j + c];
     }
   }
-  const float d0 = s[0] - s[1], d1 = s[1] - s[2], d2 = s[2] - s[0];
-  return std::sqrt(0.5f * (d0 * d0 + d1 * d1 + d2 * d2) +
-                   3.f * (s[3] * s[3] + s[4] * s[4] + s[5] * s[5]));
+  return FlexStressValue(s, quantity);
+}
+
+float shift::gui::FlexStressMapped(const FlexUpdate& update, float value,
+                                   float largest) {
+  if(update.quantity == FlexUpdate::Quantity::kSafetyFactor) {
+    /* the factor, its colors from the map's end at range[0] */
+    const float low = update.stress_range[0], high = update.stress_range[1];
+    const float factor =
+      value > 0.f ? update.yield_strength / value : std::numeric_limits<float>::max();
+    return high > low ? 1.f - std::clamp((factor - low) / (high - low), 0.f, 1.f)
+                      : 0.f;
+  }
+  const bool automatic = update.stress == FlexUpdate::Stress::kAutomatic;
+  const float low = !automatic ? update.stress_range[0]
+                    : FlexStressSigned(update.quantity) ? -largest
+                                                         : 0.f;
+  const float high = automatic ? largest : update.stress_range[1];
+  return high > low ? std::clamp((value - low) / (high - low), 0.f, 1.f)
+                    : 0.f;
 }
 
 float shift::gui::DeformFlexMesh(const SceneMesh& mesh,
                                  const FlexUpdate& update,
-                                 std::vector<Vertex>& vertices) {
+                                 std::vector<Vertex>& vertices,
+                                 std::vector<float>* peak) {
   vertices = mesh.vertices;
   const size_t columns = mesh.flex_columns;
   if(update.coefficients.size() != columns ||
@@ -282,22 +359,38 @@ float shift::gui::DeformFlexMesh(const SceneMesh& mesh,
   }
   /* the stress, mapped over its range */
   float largest = 0.f;
-  if(update.stress != FlexUpdate::Stress::kNone) {
+  if(update.stress != FlexUpdate::Stress::kNone &&
+     update.stress_coefficients.size() == columns) {
+    /* the peak: the states not folded into it yet folded in */
+    const bool peaked = update.peak && peak;
+    if(peaked) {
+      if(update.peak_first == 0 || peak->size() != vertices.size()) {
+        peak->assign(vertices.size(), 0.f);
+      }
+      const size_t n = update.peak_columns;
+      for(size_t k = 0; n > 0 && (k + 1) * n <= update.peak_samples.size();
+          k++) {
+        for(size_t v = 0; v < vertices.size(); v++) {
+          const float value =
+            FlexStressAt(mesh, update.peak_samples.data() + k * n, n, v,
+                         update.quantity);
+          if(std::fabs(value) > std::fabs((*peak)[v])) {
+            (*peak)[v] = value;
+          }
+        }
+      }
+    }
     std::vector<float> stress(vertices.size());
     for(size_t v = 0; v < vertices.size(); v++) {
-      stress[v] = FlexVonMises(mesh, update, v);
-      largest = std::max(largest, stress[v]);
+      stress[v] = FlexStressAt(mesh, update.stress_coefficients.data(),
+                               columns, v, update.quantity);
+      if(peaked && std::fabs((*peak)[v]) > std::fabs(stress[v])) {
+        stress[v] = (*peak)[v];
+      }
+      largest = std::max(largest, std::fabs(stress[v]));
     }
-    const float low = update.stress == FlexUpdate::Stress::kAutomatic
-                        ? 0.f
-                        : update.stress_range[0];
-    const float high = update.stress == FlexUpdate::Stress::kAutomatic
-                         ? largest
-                         : update.stress_range[1];
     for(size_t v = 0; v < vertices.size(); v++) {
-      vertices[v].uv[0] =
-        high > low ? std::clamp((stress[v] - low) / (high - low), 0.f, 1.f)
-                   : 0.f;
+      vertices[v].uv[0] = FlexStressMapped(update, stress[v], largest);
     }
   }
   for(size_t v = 0; v < vertices.size(); v++) {

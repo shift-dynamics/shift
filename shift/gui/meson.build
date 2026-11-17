@@ -48,7 +48,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
                   'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
                   'mesh_points.vert', 'mesh_points.frag',
-                  'flex_deform.comp', 'flex_normals.comp', 'flex_refit.comp',
+                  'flex_deform.comp', 'flex_normals.comp', 'flex_peak.comp',
+                  'flex_refit.comp',
                   'flex_field.comp']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',

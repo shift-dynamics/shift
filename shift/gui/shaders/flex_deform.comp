@@ -2,9 +2,10 @@
 #extension GL_GOOGLE_include_directive : require
 // the deformed position of each vertex of a flexible body's mesh surface:
 // x0 + sum_j a_j s_j + t + theta x (x0 - c), see shift::gui::FlexUpdate;
-// and, if drawn, its von Mises stress (in w) from the stress of each shape,
-// sum_j b_j sigma_j with b_j the coefficients not magnified (after the
-// columns' a_j), and the largest on the mesh
+// and, if drawn, a quantity of its stress (in w) from the stress of each
+// shape, sum_j b_j sigma_j with b_j the coefficients not magnified (after
+// the columns' a_j), or the peak (flex_peak.comp) where it is greater in
+// magnitude, and the largest magnitude on the mesh
 
 layout(local_size_x = 64) in;
 
@@ -24,10 +25,14 @@ layout(std430, binding = 4) writeonly buffer Deformed {
 layout(std430, binding = 9) readonly buffer StressBasis {
   float stress_basis[];
 };
-// the largest von Mises stress, as the bits of a float (positive floats
-// order as their bits)
+// the largest magnitude of the quantity, as the bits of a float (positive
+// floats order as their bits)
 layout(std430, binding = 10) buffer Maximum {
   uint maximum;
+};
+// the greatest of the quantity at each vertex over the states recorded
+layout(std430, binding = 11) readonly buffer Peak {
+  float peak[];
 };
 
 void main() {
@@ -48,7 +53,7 @@ void main() {
       x += a * vec3(basis[s], basis[s + 1u], basis[s + 2u]);
     }
   }
-  float von_mises = 0.0;
+  float value = 0.0;
   if(params.stress.x > 0.5) {
     float s[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     uint stress_base = 6u * v * columns;
@@ -61,10 +66,11 @@ void main() {
         }
       }
     }
-    float d0 = s[0] - s[1], d1 = s[1] - s[2], d2 = s[2] - s[0];
-    von_mises = sqrt(0.5 * (d0 * d0 + d1 * d1 + d2 * d2) +
-                     3.0 * (s[3] * s[3] + s[4] * s[4] + s[5] * s[5]));
-    atomicMax(maximum, floatBitsToUint(von_mises));
+    value = StressValue(s, uint(params.quantity.x));
+    if(params.quantity.z > 0.5 && abs(peak[v]) > abs(value)) {
+      value = peak[v];
+    }
+    atomicMax(maximum, floatBitsToUint(abs(value)));
   }
-  deformed[v] = vec4(x, von_mises);
+  deformed[v] = vec4(x, value);
 }

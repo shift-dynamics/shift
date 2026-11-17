@@ -25,8 +25,14 @@ class Frame;
 namespace body {
 class Base;
 }
+namespace joint {
+class Base;
+}
 
 namespace topology {
+
+struct DHVA;
+struct Offsets;
 
 /*!
 @brief A node of a flexible body that the kinematics follow on its own: an
@@ -41,6 +47,21 @@ struct NodeSlot {
   unsigned int node = 0;                   /*!< node index in the body */
   int index = -1;      /*!< index in the compressed tree (va index) */
   int he_offset = -1;  /*!< first of its n_e screws in DHVA::he */
+  /*! a sliding node (body::Base::is_sliding_node): the coordinate and rate
+   * of the prismatic joint whose child slides through the body (the slot's
+   * kinematics depend on them), the sign of the joint's translation from
+   * its system parent frame, its two screws in DHVA::slide, and the joint's
+   * own operations, which its sliding operations (body::SlidingJointDh,
+   * body::SlidingJointDhva) run first; slide_q is -1 for a fixed node */
+  shift::core::joint::Base* slide_joint = nullptr;
+  int slide_q = -1;
+  int slide_dq = -1;
+  double slide_sense = 1.0;
+  int slide_offset = -1;
+  void (*joint_dh)(const shift::core::Context&, DHVA&, const Offsets&,
+                   const double*) = nullptr;
+  void (*joint_dhva)(const shift::core::Context&, DHVA&, const Offsets&,
+                     const double*, const double*) = nullptr;
 };
 
 /*!
@@ -180,6 +201,8 @@ struct DHVA {
 #endif
     free = other.free;
     he = other.he;
+    slide = other.slide;
+    dq = other.dq;
     return *this;
   }
 
@@ -215,6 +238,18 @@ struct DHVA {
   An elastic coordinate has a different screw at each node, so it has no
   single entry in h. Empty without flexible bodies. */
   std::vector<ksl_screw_t> he;
+
+  /*! for each sliding node slot (NodeSlot::slide_offset), two screws for
+  its prismatic joint, in fixed coordinates and referred to the fixed origin:
+  the joint's influence screw H (the velocity of its child per unit joint
+  rate, with the sliding of its attachment through the body), and its rate
+  of change \f$\dot{H}\f$, so that the child's quadratic acceleration is
+  aq_slot + \f$\dot{H}\dot{q}\f$. Empty without sliding attachments. */
+  std::vector<ksl_screw_t> slide;
+  /*! with flexible bodies, the generalized velocities this DHVA was last
+   * evaluated at (Context::UpdateDHVA), for the energy of the elastic rates
+   * (solver::Base::ElasticKineticEnergy); empty without */
+  std::vector<double> dq;
 
   inline void Print(std::stringstream& ss) const {
 

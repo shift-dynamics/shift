@@ -130,8 +130,8 @@ int main(int argc, char* argv[]) {
      "with --image: draw the edges of the finite elements of flexible "
      "bodies"},
     {"stresses",
-     "with --image: draw the von Mises stress on flexible bodies' mesh "
-     "surfaces, in the color map and range of Edit > Settings"},
+     "with --image: draw the stress on flexible bodies' mesh surfaces: "
+     "the quantity, color map and range of Edit > Settings"},
     {"constrained-nodes",
      "with --image: draw as points the nodes of flexible bodies that their "
      "joints' attachments tie to their frames"},

@@ -11,7 +11,10 @@ reference) and its tip tied to an averaging one:
   static modes do no work on the fixed-interface modes);
 - Guyan's reduction (no modes) gives frequencies above Craig-Bampton's;
 - attachments that share nodes, or a reference that does not hold the body,
-  are refused. */
+  are refused;
+- the stress recovered from the static modes (fea::NodalStresses) under a
+  tip load converges to the beam's bending stress as the mesh is refined,
+  away from the attachments' patches. */
 
 #include <array>
 #include <cmath>
@@ -284,6 +287,79 @@ TEST_F(FeaReduction, RefusesBadAttachments) {
   EXPECT_THROW(
     shift::core::fea::Reduce(Mesh(), Matrices(), {point}, 0, {}, 1, {0}),
     shift::core::Exception);
+}
+
+/* under a tip load P in y, the bending stress sigma_xx = P (L - x) (b / 2) /
+I in magnitude at the top and bottom faces, at 2 and 5 depths from the root
+(rigid, RBE2) attachment, from the stress of the static modes of the
+reduction: closer as the mesh is refined (0.28 %, 0.018 % and 0.009 % at
+x = 0.5 for 2, 3 and 4 elements through the depth). At the root itself the
+rigid patch holds the end's section from contracting, and its stress moves
+away from the beam's as the mesh is refined (3.3 %, 8.2 % and 9.3 %), while
+half a depth away it is already converging (1.6 %, 1.4 % and 0.6 %); those
+are not checked */
+TEST_F(FeaReduction, StressAwayFromTheAttachmentsConverges) {
+  const double load = 1000.0;
+  const double stations[2] = {0.2, 0.5};
+  double errors[3][2] = {};
+  const int divisions[3] = {2, 3, 4}; /* through the depth */
+  for(int m = 0; m < 3; m++) {
+    const int nyz = divisions[m];
+    const double h = kDepth / nyz;
+    const shift::core::fea::TetMesh mesh = shift::core::fea::MeshVolume(
+      Box(int(std::lround(kLength / h)), nyz), h);
+    const shift::core::fea::Assembled assembled =
+      shift::core::fea::Assemble(mesh, Steel());
+    std::vector<shift::core::fea::Attachment> ends(2);
+    for(int e = 0; e < 2; e++) {
+      ends[e].position = {e * kLength, 0.5 * kDepth, 0.5 * kDepth};
+      ends[e].spider = e == 0 ? shift::core::fea::Attachment::Spider::kRbe2
+                              : shift::core::fea::Attachment::Spider::kRbe3;
+      for(size_t i = 0; i < mesh.nodes.size(); i++) {
+        if(std::fabs(mesh.nodes[i].x - e * kLength) < 1e-9) {
+          ends[e].nodes.push_back(static_cast<int>(i));
+        }
+      }
+    }
+    const shift::core::fea::Reduction r =
+      shift::core::fea::Reduce(mesh, assembled, ends, 0, {}, 0, {});
+    ASSERT_EQ(r.static_count, 6u);
+    const Eigen::Index n = r.elastic_count;
+    const Eigen::MatrixXd K =
+      Eigen::Map<const Eigen::MatrixXd>(r.stiffness.data(), n, n);
+    /* the tip's motion under the load: u = K^-1 f */
+    Eigen::VectorXd f = Eigen::VectorXd::Zero(n);
+    f(1) = load;
+    const Eigen::VectorXd u = K.ldlt().solve(f);
+    for(int k = 0; k < 2; k++) {
+      std::vector<int> nodes;
+      for(size_t i = 0; i < mesh.nodes.size(); i++) {
+        const ksl_vec3_t& x = mesh.nodes[i];
+        if(std::fabs(x.x - stations[k]) < 1e-9 &&
+           (std::fabs(x.y) < 1e-9 || std::fabs(x.y - kDepth) < 1e-9)) {
+          nodes.push_back(static_cast<int>(i));
+        }
+      }
+      ASSERT_FALSE(nodes.empty());
+      const std::vector<double> stresses = shift::core::fea::NodalStresses(
+        mesh, Steel(), nodes, r.shapes, size_t(n));
+      double sum = 0.0;
+      for(size_t i = 0; i < nodes.size(); i++) {
+        double sigma = 0.0;
+        for(Eigen::Index j = 0; j < n; j++) {
+          sigma += u(j) * stresses[6 * (i * size_t(n) + size_t(j))];
+        }
+        sum += std::fabs(sigma);
+      }
+      const double expected =
+        load * (kLength - stations[k]) * 0.5 * kDepth / SecondMoment();
+      errors[m][k] = std::fabs(sum / double(nodes.size()) / expected - 1.0);
+    }
+  }
+  for(int k = 0; k < 2; k++) {
+    EXPECT_LT(errors[2][k], errors[0][k]) << "x = " << stations[k];
+    EXPECT_LT(errors[2][k], 1e-3) << "x = " << stations[k];
+  }
 }
 
 #endif

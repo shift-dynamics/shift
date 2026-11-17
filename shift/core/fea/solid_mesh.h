@@ -18,10 +18,12 @@ it (MeshVolume), and each mid-side node of the boundary is moved onto the
 exact geometry: onto the edge's curve for a segment along an edge of the
 B-rep, onto the face's surface otherwise. A mid-side node whose move would
 turn an element inside out stays at the middle of its edge. boundary_face
-gives the B-rep face of each boundary triangle.
+gives the B-rep face of each boundary triangle. The \p interior points
+inside the solid are nodes, as MeshVolume makes them.
 */
 TetMesh MeshSolid(const cad::Model& model, int body, double element_size,
-                  double minimum_element_size = 0.0);
+                  double minimum_element_size = 0.0,
+                  const std::vector<ksl_vec3_t>& interior = {});
 
 /*! @brief the smallest Jacobian determinant of an element, at its corners
  * and its 4-point rule, relative to that of its straight-sided form */

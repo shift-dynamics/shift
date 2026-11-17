@@ -40,6 +40,7 @@
           "density": 7850,
           "youngs_modulus": 2.1e11,
           "poisson_ratio": 0.3,
+          "yield_strength": 2.5e8,
           "fe_geometry": "rod",
           "element_size": 0.006,
           "mode_count": 4,

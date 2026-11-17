@@ -21,8 +21,10 @@ the rod's slight stretch is magnified too, so at such a scale its small end
 is drawn off the wrist pin);
 View > Flexible bodies draws the surface of the mesh in place of the CAD, or
 the edges of its elements over it, the nodes tied to the joints in its
-bores as points, or its von Mises stress (in the color map of Edit >
-Settings), for every flexible body (the wrist pin hides the small
+bores as points, or its stress (the quantity, color map and range of Edit >
+Settings: von Mises, principal, a component, or the safety factor against
+the rod's ``yield_strength`` of 250 MPa, now or the greatest so far), for
+every flexible body (the wrist pin hides the small
 end's; hide the slider to see them), and the rod's body panel does so for
 the rod alone and opens its mode window. To render an
 image::

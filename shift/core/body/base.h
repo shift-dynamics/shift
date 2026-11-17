@@ -213,7 +213,10 @@ public:
    * body that builds its own model: the joint type, and for a revolute joint
    * its axis in the frame's coordinates */
   struct FrameUse {
-    enum class Joint { kOther, kRevolute, kSpherical };
+    /*! kPrismatic: the frame is the system parent frame of a prismatic
+     * joint, whose child slides along axis through the body (a sliding
+     * attachment) */
+    enum class Joint { kOther, kRevolute, kSpherical, kPrismatic };
     Frame* frame = nullptr;
     Joint joint = Joint::kOther;
     ksl_vec3_t axis = {{0.0, 0.0, 1.0}};
@@ -311,6 +314,41 @@ public:
     if(gamma_k) {
       *gamma_k = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
+  }
+
+  /*! \brief whether node k slides: it is the system parent frame of a
+   * prismatic joint whose child moves along a bore of the body, and its
+   * kinematics depend on the joint's coordinate (EvaluateSlidingNode) */
+  virtual bool is_sliding_node(unsigned int k) const {
+    (void)k;
+    return false;
+  }
+
+  /*! \brief kinematics of a sliding node k (is_sliding_node) whose child
+   * is at \p s along the joint's axis \f$\underline{a}\f$ (in r) from the
+   * node's frame, moving at \p s_dot. The node is carried by the bore's
+   * station at s, the point \f$\underline{p}(s)\f$ moved by the shapes
+   * \f$\Upsilon(s)\f$ interpolated along the bore, with the offset
+   * \f$-s\underline{a}\f$ (turned with the point) to the frame, so that the
+   * joint's own translation by s brings its child to the station. \p d_rk,
+   * \p h_k and \p gamma_k are as for EvaluateNode, with s held (\p gamma_k
+   * gains the terms in \p s_dot of the change of h_k); \p h_s is the
+   * velocity of the child per unit s_dot, in r referred to its origin,
+   * \f$\{\underline{a} + \underline{u}' + \underline{\rho} \times
+   * \underline{\theta}';\; \underline{\theta}'\}\f$ (primes: derivatives in
+   * s of the deformation \f$\Upsilon(s)\underline{\eta}\f$), and \p h_s_dot
+   * its rate of change in r. h_k, h_s and h_s_dot may be nullptr, and
+   * eta_dot and gamma_k are nullptr when the velocities are not needed. */
+  virtual void EvaluateSlidingNode(unsigned int k, double s, double s_dot,
+                                   const double* eta, const double* eta_dot,
+                                   ksl_SE3_t* d_rk, ksl_screw_t* h_k,
+                                   ksl_screw_t* gamma_k, ksl_screw_t* h_s,
+                                   ksl_screw_t* h_s_dot) const {
+    (void)s;
+    (void)s_dot;
+    (void)h_s;
+    (void)h_s_dot;
+    EvaluateNode(k, eta, eta_dot, d_rk, h_k, gamma_k);
   }
   ///@}
 

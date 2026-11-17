@@ -22,7 +22,7 @@ layout(std430, binding = 6) readonly buffer Offsets {
 layout(std430, binding = 7) readonly buffer Triangles {
   uint triangles[];
 };
-// the largest von Mises stress on the mesh (flex_deform.comp)
+// the largest magnitude of the quantity drawn on the mesh (flex_deform.comp)
 layout(std430, binding = 10) readonly buffer Maximum {
   uint maximum;
 };
@@ -57,12 +57,25 @@ void main() {
   vertices[8u * v + 5u] = n.z;
   // the stress drawn, mapped to [0, 1] over its range, in place of u
   float u = reference[8u * v + 6u];
+  // (shift::gui::FlexStressMapped)
   if(params.stress.x > 0.5) {
-    bool automatic = params.stress.x > 1.5;
-    float low = automatic ? 0.0 : params.stress.y;
-    float high = automatic ? uintBitsToFloat(maximum) : params.stress.z;
-    u = high > low ? clamp((deformed[v].w - low) / (high - low), 0.0, 1.0)
-                   : 0.0;
+    float value = deformed[v].w;
+    uint quantity = uint(params.quantity.x);
+    if(quantity == kSafetyFactor) {
+      // the factor, its colors from the map's end at the range's start
+      float factor = value > 0.0 ? params.quantity.y / value : 3.4e38;
+      float low = params.stress.y, high = params.stress.z;
+      u = high > low ? 1.0 - clamp((factor - low) / (high - low), 0.0, 1.0)
+                     : 0.0;
+    } else {
+      bool automatic = params.stress.x > 1.5;
+      float largest = uintBitsToFloat(maximum);
+      float low = !automatic            ? params.stress.y
+                  : StressSigned(quantity) ? -largest
+                                           : 0.0;
+      float high = automatic ? largest : params.stress.z;
+      u = high > low ? clamp((value - low) / (high - low), 0.0, 1.0) : 0.0;
+    }
   }
   vertices[8u * v + 6u] = u;
   vertices[8u * v + 7u] = reference[8u * v + 7u];

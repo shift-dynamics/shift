@@ -205,11 +205,23 @@ public:
    * computed); the part of it that is a rigid motion of the body is drawn
    * as computed, see FlexView */
   void set_deformation_scale(double scale);
-  /*! \brief the flexible bodies (by index into get_bodies) whose von Mises
-   * stress is drawn (FlexUpdate::stress), and its range: from 0 to the
-   * largest on each body (automatic), or from low to high */
+  /*! \brief the flexible bodies (by index into get_bodies) whose stress
+   * is drawn (FlexUpdate::stress), and its range: from 0 (a signed
+   * quantity's: -the largest magnitude) to the largest magnitude on each
+   * body (automatic), or from low to high */
   void set_flex_stresses(std::vector<bool> bodies, bool automatic,
                          double low, double high);
+  /*! \brief the quantity of the stress drawn (the von Mises stress by
+   * default), and the safety factors drawn from the map's end
+   * (safety_low, red in most maps) to its start (safety_high); a body
+   * without a yield strength (body::Flex::get_yield_strength) has no
+   * safety factor drawn */
+  void set_flex_stress_quantity(FlexUpdate::Quantity quantity,
+                                double safety_low, double safety_high);
+  /*! \brief whether the greatest of the quantity over the states recorded
+   * up to the time shown is drawn at each vertex, where it is greater than
+   * now (FlexUpdate::peak) */
+  void set_flex_stress_peak(bool peak);
   /*! \brief whether a flexible body has stresses to draw */
   bool has_flex_stresses(int body) const;
   double get_deformation_scale() const {
@@ -246,6 +258,12 @@ private:
     std::vector<ksl_vec3_t> rigid_translation;
     std::vector<ksl_vec3_t> rigid_rotation;
     bool changed = true;           /*!< since TakeFlexUpdates */
+    /*! the states recorded up to the time shown, those of them the peak
+     * drawn has folded in (FlexUpdate::peak), and the yield strength drawn
+     * with */
+    size_t peak_count = 0;
+    size_t peak_sent = 0;
+    double yield_strength = 0.0;
   };
   /*! \brief the views of the flexible bodies (in LoadModel) */
   void AddFlexViews();
@@ -256,6 +274,9 @@ private:
    * shapes. The mesh's basis is the elastic coordinates' shapes, then the
    * fixed-interface modes computed (for the preview) */
   void FlexCoefficients(const FlexView& view, FlexUpdate& update) const;
+  /*! \brief the states of a view not folded into its peak yet (update's
+   * peak_samples), if its peak is drawn */
+  void FlexPeakSamples(FlexView& view, FlexUpdate& update);
   /*! an SPH soil drawn as Scene::particles[particles] */
   struct SphView {
     shift::core::terrain::Sph* sph = nullptr;
@@ -373,6 +394,10 @@ private:
   std::vector<bool> stress_bodies_; /*!< set_flex_stresses */
   bool stress_automatic_ = true;
   double stress_range_[2] = {0.0, 1.0};
+  /*! set_flex_stress_quantity, set_flex_stress_peak */
+  FlexUpdate::Quantity stress_quantity_ = FlexUpdate::Quantity::kVonMises;
+  double safety_range_[2] = {1.0, 4.0};
+  bool stress_peak_ = false;
   /* the shape previewed: view (-1 for none), kind, coordinate, amplitude */
   int preview_view_ = -1;
   int preview_kind_ = 0;

@@ -2,8 +2,10 @@
 plate of examples/cad/plate_hole.step (80 x 80 x 20 mm, a bore of radius
 10.5 mm on the z axis) hangs on a revolute joint at its bore. The bore's
 faces are found from the joint, the mesh is reduced, the mass is the
-plate's, and the body swings briefly under gravity. */
+plate's, and the body swings briefly under gravity. Frames inside the
+material are mesh nodes. */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -121,6 +123,48 @@ TEST(FlexStep, NodalPlateWithAnAttachment) {
   EXPECT_EQ(plate->get_elastic_count(), 12u);
   EXPECT_TRUE(plate->get_frequencies().empty());
   EXPECT_EQ(plate->get_node_count(), 2u);
+}
+
+/* a frame inside the material and a retained point are nodes of the mesh,
+exactly where they are; the frame is tied to its node and the nodes of the
+elements around it. The pin's frame, in the bore, is not. */
+TEST(FlexStep, FramesInsideTheMaterialAreNodes) {
+  shift::core::Context context;
+  LoadPlate(context, "interior_nodes", R"("type": "nodal",
+    "attachments": [{"frame": "corner"}],
+    "retained_points": [[-0.03, -0.03, 0.01]])");
+  shift::core::body::Flex* plate = Plate(context);
+  ASSERT_NE(plate, nullptr);
+  EXPECT_EQ(plate->get_static_count(), 9u);
+  const auto& positions = plate->get_positions();
+  const unsigned int nodes = plate->get_mesh_node_count();
+  auto node_at = [&](double x, double y, double z) {
+    for(unsigned int i = 0; i < nodes; i++) {
+      if(std::fabs(positions[i].x - x) < 1e-12 &&
+         std::fabs(positions[i].y - y) < 1e-12 &&
+         std::fabs(positions[i].z - z) < 1e-12) {
+        return static_cast<int>(i);
+      }
+    }
+    return -1;
+  };
+  const int corner = node_at(0.035, 0.035, 0.01);
+  ASSERT_GE(corner, 0);
+  EXPECT_GE(node_at(-0.03, -0.03, 0.01), 0);
+  EXPECT_LT(node_at(0.0, 0.0, 0.01), 0);
+  /* the attachments: the pin's (the reference), then the corner's */
+  const auto& tied = plate->get_attachment_nodes();
+  ASSERT_EQ(tied.size(), 2u);
+  const std::vector<int>& ring = tied[1];
+  EXPECT_NE(std::find(ring.begin(), ring.end(), corner), ring.end());
+  EXPECT_GT(ring.size(), 10u);
+  /* the ring: no farther than about an element from the frame */
+  for(int i : ring) {
+    const double dx = positions[size_t(i)].x - 0.035;
+    const double dy = positions[size_t(i)].y - 0.035;
+    const double dz = positions[size_t(i)].z - 0.01;
+    EXPECT_LT(std::sqrt(dx * dx + dy * dy + dz * dz), 0.03);
+  }
 }
 
 TEST(FlexStep, RefusesTwoModeSelections) {

@@ -27,6 +27,9 @@ struct FlexCache {
   /*! the mesh nodes each attachment ties to its frame, in the order of the
    * attachments (the reference frame's first) */
   std::vector<std::vector<int>> attachment_nodes;
+  /*! the number of stations of each sliding attachment, in the order of
+   * the sliding frames; their attachments follow the others' */
+  std::vector<int> sliding_stations;
   /*! the nodes of the boundary, ascending, and their stresses in each of
    * full's shapes (NodalStresses: 6 (i full.elastic_count + j) + c) */
   std::vector<int> surface_nodes;

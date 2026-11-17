@@ -35,7 +35,11 @@ void shift::core::solver::Base::Load() {}
 double shift::core::solver::Base::ElasticKineticEnergy(
   const topology::DHVA& dhva, const std::vector<int>* entries) const {
   double sum = 0.0;
-  const double* dq = context_->get_dq();
+  /* the rates the DHVA was evaluated at, with its velocities */
+  if(dhva.dq.empty()) {
+    return 0.0;
+  }
+  const double* dq = dhva.dq.data();
   const auto& mass_be = context_->get_elastic_mass_be();
   for(int i : context_->get_elastic_bodies()) {
     const auto body = context_->get_active_articulated_bodies()[i];

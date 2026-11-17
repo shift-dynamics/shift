@@ -317,6 +317,8 @@ struct RtUniforms {
   float texture_params[4]; // x = pixel spread angle, y = texture size
   int32_t control[4];
   float floor_frame[16]; // as in FrameUniforms
+  float color_map[shift::gui::Viewport::kColorMapSamples][4]; // as in
+                                                              // FrameUniforms
 };
 
 struct RtInstance {
@@ -331,7 +333,8 @@ struct RtInstance {
   float previous_body_to_world[16]; // pose in the previous frame
   float optical[4]; // x = opacity, yzw = glow (CopyEmission)
   float variation[4]; // as in MaterialUniforms; a flexible body's CAD's:
-                      // y = its motion's entry - its triangle, z = 1
+                      // y = its motion's entry - its triangle, z = 1;
+                      // w = 1: colored by the stress in u (FlexUpdate)
   int32_t surface_layers[4];
   float surface[2][4];
 };
@@ -705,6 +708,7 @@ void shift::gui::Viewport::set_flex_mesh_edges(std::vector<bool> edges) {
 void shift::gui::Viewport::set_color_map(
   const std::vector<ksl_vec3f_t>& colors) {
   color_map_ = colors;
+  rt_frame_ = 0;
   update();
 }
 
@@ -719,6 +723,25 @@ float shift::gui::Viewport::get_flex_stress_maximum() const {
                                   : gpu.stress_maximum);
   }
   return largest;
+}
+
+float shift::gui::Viewport::get_flex_safety_factor_minimum() const {
+  float smallest = 0.f;
+  for(const GpuMesh& gpu : gpu_meshes_) {
+    const FlexUpdate& shown = gpu.flex_shown;
+    if(shown.stress == FlexUpdate::Stress::kNone ||
+       shown.quantity != FlexUpdate::Quantity::kSafetyFactor) {
+      continue;
+    }
+    const float largest = gpu.flex >= 0 && flex_gpu_
+                            ? flex_gpu_->get_stress_maximum(gpu.flex)
+                            : gpu.stress_maximum;
+    const float factor = largest > 0.f
+                           ? shown.yield_strength / largest
+                           : std::numeric_limits<float>::infinity();
+    smallest = smallest > 0.f ? std::min(smallest, factor) : factor;
+  }
+  return smallest;
 }
 
 void shift::gui::Viewport::set_flex_constrained_nodes(
@@ -2214,6 +2237,7 @@ void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
       continue;
     }
     gpu.flex_shown = update;
+    gpu.flex_shown.peak_samples.clear(); // folded in below
     gpu.pick_stale = true;
     if(gpu.flex >= 0 && flex_gpu_) {
       flex_gpu_->Update(gpu.flex, mesh, update, batch);
@@ -2223,7 +2247,8 @@ void shift::gui::Viewport::UploadFlexUpdates(QRhiResourceUpdateBatch* batch,
       }
       continue;
     }
-    gpu.stress_maximum = DeformFlexMesh(mesh, update, flex_vertices_);
+    gpu.stress_maximum =
+      DeformFlexMesh(mesh, update, flex_vertices_, &gpu.peak);
     const quint32 bytes = quint32(flex_vertices_.size() * sizeof(Vertex));
     if(gpu.vertices && bytes == gpu.vertices->size()) {
       batch->uploadStaticBuffer(gpu.vertices.get(), 0, bytes,
@@ -3317,6 +3342,12 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
       CopyEmission(scene, mesh, poses_, instances[i].optical + 1);
       CopySurfaces(mesh, instances[i].variation, instances[i].surface_layers,
                    instances[i].surface);
+      if(mesh.deformable &&
+         size_t(instance.mesh_index) < gpu_meshes_.size() &&
+         gpu_meshes_[size_t(instance.mesh_index)].flex_shown.stress !=
+           FlexUpdate::Stress::kNone) {
+        instances[i].variation[3] = 1.f;
+      }
     } else {
       // CAD geometry: its triangles are scaled, its faces may have colors
       const int c = instance.mesh_index - mesh_count;
@@ -3443,6 +3474,10 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
                                    floor_extent_};
     CopyArray(floor_params, uniforms.floor_params);
     CopyFloorFrame(uniforms.floor_frame);
+    for(size_t k = 0; k < color_map_.size() && k < size_t(kColorMapSamples);
+        k++) {
+      CopyVector(color_map_[k], 1.f, uniforms.color_map[k]);
+    }
     // angle subtended by a pixel, to select texture levels of detail and to
     // scale the denoiser's depth tolerances
     const float spread =

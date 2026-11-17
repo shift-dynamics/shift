@@ -223,10 +223,16 @@ public:
    * kColorMapSamples even steps from 0 to 1 (ColorMapSamples) */
   static constexpr int kColorMapSamples = 16;
   void set_color_map(const std::vector<ksl_vec3f_t>& colors);
-  /*! \brief the largest von Mises stress drawn on the flexible bodies (by
-   * index into the poses) whose stress is drawn, as last deformed; 0 if
+  /*! \brief the largest magnitude of the quantity of the stress drawn on
+   * the flexible bodies whose stress is drawn (FlexUpdate::quantity; the
+   * safety factor's: of the von Mises stress), as last deformed; 0 if
    * none */
   float get_flex_stress_maximum() const;
+  /*! \brief the smallest safety factor drawn on the flexible bodies whose
+   * safety factor is drawn (FlexUpdate::Quantity::kSafetyFactor): their
+   * yield strength over their largest von Mises stress, as last deformed;
+   * 0 if none is drawn */
+  float get_flex_safety_factor_minimum() const;
 
   /*! \brief whether the nodes each flexible body's attachments tie to its
    * frames (the joints' spiders), by index into the poses, are drawn as
@@ -299,8 +305,10 @@ private:
     /*! of a deformable mesh: its deformation shown, and whether picking's
      * triangles are of an earlier one */
     FlexUpdate flex_shown;
-    /*! the largest stress drawn as last deformed on the CPU (DeformFlexMesh) */
+    /*! the largest magnitude of the stress drawn as last deformed on the
+     * CPU (DeformFlexMesh), and its peak at each vertex there */
     float stress_maximum = 0.f;
+    std::vector<float> peak;
     bool pick_stale = false;
     /*! a flexible body's mesh whose CAD can be drawn in its place,
      * deformed (GpuCad::flex), see set_flex_mesh_surfaces */

@@ -15,6 +15,7 @@ the mesh's surface around them. */
 #include <stdexcept>
 #include <cstdint>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "shift/config.h"
@@ -23,7 +24,7 @@ the mesh's surface around them. */
 
 #if SHIFT_HAVE_FEA && SHIFT_HAVE_STEP
 
-static std::string WritePlate() {
+static std::string WritePlate(double time_step = 0.001) {
   const std::string path = testing::TempDir() + "/flex_playback.json";
   std::ofstream file(path);
   file << R"({"model_parameters": {"version": "0.2",
@@ -33,7 +34,7 @@ static std::string WritePlate() {
       "include_directories": [")"
        << SHIFT_EXAMPLES_DIR << R"(/cad"],
       "integrators": [{"type": "ode113", "time_span": 0.001,
-                       "time_step": 0.001, "hmax": 1e-4}]},
+                       "time_step": )" << time_step << R"(, "hmax": 1e-4}]},
       "assemblies": [{"name": "test", "bodies": [{"name": "plate",
         "type": "modal", "mode_count": 2,
         "initial_elastic_coordinates": [1e-4, 0],
@@ -252,6 +253,170 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
   simulation.TakeFlexUpdates(updates);
   ASSERT_EQ(updates.size(), 1u);
   EXPECT_LT(LargestMove(Deformed(scene, updates[0]), deformed), 1e-9);
+}
+
+/* the principal stresses in closed form: of R diag(300, 100, -200) R^T,
+and of a tensor with a repeated one */
+TEST(FlexStress, PrincipalStresses) {
+  const double r[3][3] = {{2.0 / 3, -1.0 / 3, 2.0 / 3},
+                          {2.0 / 3, 2.0 / 3, -1.0 / 3},
+                          {-1.0 / 3, 2.0 / 3, 2.0 / 3}};
+  const double eigen[3] = {300.0, 100.0, -200.0};
+  double a[3][3] = {};
+  for(int i = 0; i < 3; i++) {
+    for(int j = 0; j < 3; j++) {
+      for(int k = 0; k < 3; k++) {
+        a[i][j] += r[i][k] * eigen[k] * r[j][k];
+      }
+    }
+  }
+  const float s[6] = {float(a[0][0]), float(a[1][1]), float(a[2][2]),
+                      float(a[0][1]), float(a[1][2]), float(a[2][0])};
+  float principal[3];
+  shift::gui::FlexPrincipalStresses(s, principal);
+  for(int k = 0; k < 3; k++) {
+    EXPECT_NEAR(principal[k], eigen[k], 1e-3);
+  }
+  EXPECT_NEAR(shift::gui::FlexStressValue(
+                s, shift::gui::FlexUpdate::Quantity::kTresca),
+              500.0, 1e-3);
+  /* von Mises from the principal stresses */
+  EXPECT_NEAR(shift::gui::FlexStressValue(
+                s, shift::gui::FlexUpdate::Quantity::kVonMises),
+              std::sqrt(0.5 * (200.0 * 200.0 + 300.0 * 300.0 +
+                               500.0 * 500.0)),
+              1e-3);
+  EXPECT_FLOAT_EQ(shift::gui::FlexStressValue(
+                    s, shift::gui::FlexUpdate::Quantity::kYz),
+                  s[4]);
+  const float uniaxial[6] = {0.f, 0.f, -7.f, 0.f, 0.f, 0.f};
+  shift::gui::FlexPrincipalStresses(uniaxial, principal);
+  /* at a repeated eigenvalue the closed form loses half the digits: to
+  about sqrt(float epsilon) of the stress */
+  const float tolerance = 7.f * 2e-4f;
+  EXPECT_NEAR(principal[0], 0.f, tolerance);
+  EXPECT_NEAR(principal[1], 0.f, tolerance);
+  EXPECT_NEAR(principal[2], -7.f, tolerance);
+}
+
+/* the greatest stress over the run: the elastic coordinates of the states
+recorded up to the time shown, from the first again when the time goes
+back, and of those not sent yet when it goes on; the safety factor drawn
+once the body's yield_strength, a key that may change as the model runs,
+is set */
+TEST(FlexPlayback, DrawsTheGreatestStressOverTheRun) {
+  const std::string path = WritePlate(1e-4);
+  const std::string cache =
+    testing::TempDir() + "/flex_playback.test__plate.fe.h5";
+  std::remove(cache.c_str());
+  shift::gui::Simulation simulation;
+  simulation.Load(path);
+  std::remove(path.c_str());
+  std::remove(cache.c_str());
+  const int body = simulation.get_flex_bodies().at(0);
+  const size_t n = simulation.get_bodies()[size_t(body)]->get_elastic_count();
+  simulation.Run();
+  while(simulation.is_computing()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  ASSERT_TRUE(simulation.get_error().empty()) << simulation.get_error();
+  const double end = simulation.get_computed_time();
+  ASSERT_GT(end, 0.0);
+  std::vector<bool> stressed(simulation.get_bodies().size(), false);
+  stressed[size_t(body)] = true;
+  simulation.set_flex_stresses(stressed, true, 0.0, 0.0);
+  std::vector<shift::gui::FlexUpdate> updates;
+  /* the states at the start and the end */
+  simulation.ShowTime(0.0);
+  simulation.TakeFlexUpdates(updates, true);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_FALSE(updates[0].peak);
+  EXPECT_TRUE(updates[0].peak_samples.empty());
+  const std::vector<float> first(updates[0].stress_coefficients.begin(),
+                                 updates[0].stress_coefficients.begin() + n);
+  simulation.ShowTime(end);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  const std::vector<float> last(updates[0].stress_coefficients.begin(),
+                                updates[0].stress_coefficients.begin() + n);
+
+  /* all of them at the end */
+  simulation.set_flex_stress_peak(true);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_TRUE(updates[0].peak);
+  EXPECT_EQ(updates[0].peak_first, 0u);
+  EXPECT_EQ(updates[0].peak_columns, n);
+  const std::vector<float> all = updates[0].peak_samples;
+  ASSERT_EQ(all.size() % n, 0u);
+  const size_t states = all.size() / n;
+  ASSERT_GE(states, 5u);
+  for(size_t j = 0; j < n; j++) {
+    EXPECT_EQ(all[j], first[j]);
+    EXPECT_EQ(all[(states - 1) * n + j], last[j]);
+  }
+  /* drawn: at least the stress now everywhere, and somewhere more */
+  const shift::gui::SceneMesh& mesh =
+    simulation.get_scene().meshes[size_t(updates[0].mesh)];
+  std::vector<float> peak;
+  std::vector<shift::gui::Vertex> vertices;
+  shift::gui::DeformFlexMesh(mesh, updates[0], vertices, &peak);
+  ASSERT_EQ(peak.size(), mesh.vertices.size());
+  bool greater = false;
+  for(size_t v = 0; v < peak.size(); v++) {
+    const float now = shift::gui::FlexStressAt(
+      mesh, last.data(), n, v, shift::gui::FlexUpdate::Quantity::kVonMises);
+    EXPECT_GE(peak[v], now * (1.f - 1e-6f));
+    greater = greater || peak[v] > 1.01f * now;
+  }
+  EXPECT_TRUE(greater);
+  /* back: from the first again, fewer of them */
+  simulation.ShowTime(0.5 * end);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_EQ(updates[0].peak_first, 0u);
+  const size_t half = updates[0].peak_samples.size() / n;
+  ASSERT_GT(half, 0u);
+  ASSERT_LT(half, states);
+  for(size_t i = 0; i < half * n; i++) {
+    EXPECT_EQ(updates[0].peak_samples[i], all[i]);
+  }
+  /* on: those after them */
+  simulation.ShowTime(end);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_EQ(updates[0].peak_first, half);
+  ASSERT_EQ(updates[0].peak_samples.size(), (states - half) * n);
+  for(size_t i = 0; i < updates[0].peak_samples.size(); i++) {
+    EXPECT_EQ(updates[0].peak_samples[i], all[half * n + i]);
+  }
+  /* nothing changed: nothing sent */
+  simulation.TakeFlexUpdates(updates);
+  EXPECT_TRUE(updates.empty());
+
+  /* the safety factor: none without a yield strength, then one */
+  simulation.set_flex_stress_quantity(
+    shift::gui::FlexUpdate::Quantity::kSafetyFactor, 1.0, 4.0);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_EQ(updates[0].stress, shift::gui::FlexUpdate::Stress::kNone);
+  shift::core::parameter::Value* yield =
+    simulation.get_bodies()[size_t(body)]->Find("yield_strength");
+  ASSERT_NE(yield, nullptr);
+  EXPECT_TRUE(yield->is_runtime());
+  Json::Value strength(2.5e8);
+  yield->ReadJSON(strength);
+  simulation.TakeFlexUpdates(updates);
+  ASSERT_EQ(updates.size(), 1u);
+  EXPECT_EQ(updates[0].stress, shift::gui::FlexUpdate::Stress::kRange);
+  EXPECT_EQ(updates[0].quantity,
+            shift::gui::FlexUpdate::Quantity::kSafetyFactor);
+  EXPECT_FLOAT_EQ(updates[0].yield_strength, 2.5e8f);
+  EXPECT_FLOAT_EQ(updates[0].stress_range[0], 1.f);
+  EXPECT_FLOAT_EQ(updates[0].stress_range[1], 4.f);
+  /* the peak starts again with the quantity */
+  EXPECT_EQ(updates[0].peak_first, 0u);
+  EXPECT_EQ(updates[0].peak_samples, all);
 }
 
 #endif

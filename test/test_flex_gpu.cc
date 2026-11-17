@@ -2,8 +2,8 @@
 OpenGL device without a window: the steel plate of examples/cad/
 plate_hole.step on a pin, a modal body deformed 1000 times as large as its
 initial elastic coordinates. The vertex buffer they write is DeformFlexMesh's
-surface; the ray tracer's triangles are its triangles in the BVH's order,
-their motion the change since they were last written, and the BVH's boxes
+surface; the ray tracer's triangles are its triangles in the BVH's order
+(with the stress drawn), their motion the change since they were last written, and the BVH's boxes
 those of the triangles under them. A frame without a new deformation zeroes
 the motion. The plate's CAD deforms with the mesh: the displacement of its
 samples is FlexCadField's, and its ray tracer's triangles move from the
@@ -262,6 +262,8 @@ TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
         EXPECT_NEAR(motion[12 * k + 4 * j + c], v.position[c] - before[j][c],
                     1e-6);
       }
+      /* the stress drawn, mapped, which the ray tracer colors by */
+      EXPECT_NEAR(positions[j][3], v.uv[0], 1e-4);
     }
   }
   const auto fitted = Values<shift::gui::BvhNode>(read_nodes);
@@ -320,6 +322,127 @@ TEST(FlexGpu, DeformsTheSurfaceAndRefitsTheRayTracersBvh) {
             0.f);
   EXPECT_EQ(*std::min_element(still.begin(), still.begin() + motion_floats),
             0.f);
+}
+
+/* each kind of quantity of the stress drawn, and the peak folded in twice,
+as DeformFlexMesh draws them */
+TEST(FlexGpu, DrawsEachQuantityAndItsPeak) {
+  std::unique_ptr<QOffscreenSurface> surface;
+  std::unique_ptr<QRhi> rhi = MakeComputeRhi(surface);
+  if(!rhi) {
+    GTEST_SKIP() << "no OpenGL 4.3 device with compute shaders";
+  }
+  const std::string path = WriteGpuPlate();
+  shift::gui::Simulation simulation;
+  const std::string cache = testing::TempDir() + "/flex_gpu.test__plate.fe.h5";
+  std::remove(cache.c_str());
+  simulation.Load(path);
+  std::remove(path.c_str());
+  std::remove(cache.c_str());
+  const int body = simulation.get_flex_bodies().at(0);
+  std::vector<bool> stressed(simulation.get_bodies().size(), false);
+  stressed[size_t(body)] = true;
+  simulation.set_flex_stresses(stressed, true, 0.0, 0.0);
+  std::vector<shift::gui::FlexUpdate> updates;
+  simulation.TakeFlexUpdates(updates, true);
+  ASSERT_EQ(updates.size(), 1u);
+  const shift::gui::FlexUpdate base = updates[0];
+  const shift::gui::SceneMesh& mesh =
+    simulation.get_scene().meshes[size_t(base.mesh)];
+  const size_t n = simulation.get_bodies()[size_t(body)]->get_elastic_count();
+  ASSERT_GT(n, 0u);
+
+  auto vertices = std::unique_ptr<QRhiBuffer>(rhi->newBuffer(
+    QRhiBuffer::Static, QRhiBuffer::VertexBuffer | QRhiBuffer::StorageBuffer,
+    quint32(mesh.vertices.size() * sizeof(shift::gui::Vertex))));
+  vertices->create();
+  auto indices = std::unique_ptr<QRhiBuffer>(rhi->newBuffer(
+    QRhiBuffer::Static, QRhiBuffer::IndexBuffer | QRhiBuffer::StorageBuffer,
+    quint32(mesh.indices.size() * sizeof(uint32_t))));
+  indices->create();
+  shift::gui::FlexGpu flex(rhi.get());
+  int id = -1;
+  std::vector<float> peak; /* DeformFlexMesh's */
+  /* a frame with update: the GPU's vertices against DeformFlexMesh's, and
+  the largest magnitude read back */
+  auto check = [&](const shift::gui::FlexUpdate& update, const char* what) {
+    std::vector<shift::gui::Vertex> expected;
+    const float largest =
+      shift::gui::DeformFlexMesh(mesh, update, expected, &peak);
+    QRhiReadbackResult read;
+    QRhiCommandBuffer* cb = nullptr;
+    ASSERT_EQ(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+    QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
+    if(id < 0) {
+      batch->uploadStaticBuffer(vertices.get(), mesh.vertices.data());
+      batch->uploadStaticBuffer(indices.get(), mesh.indices.data());
+      id = flex.Add(mesh, vertices.get(), indices.get(), batch);
+    }
+    flex.Update(id, mesh, update, batch);
+    batch = flex.Deform(cb, batch, false);
+    batch->readBackBuffer(vertices.get(), 0, vertices->size(), &read);
+    cb->resourceUpdate(batch);
+    ASSERT_EQ(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+    const auto drawn = Values<shift::gui::Vertex>(read);
+    ASSERT_EQ(drawn.size(), expected.size());
+    float spread[2] = {1.f, 0.f};
+    for(size_t v = 0; v < drawn.size(); v++) {
+      EXPECT_NEAR(drawn[v].uv[0], expected[v].uv[0], 1e-3)
+        << what << ", vertex " << v;
+      spread[0] = std::min(spread[0], expected[v].uv[0]);
+      spread[1] = std::max(spread[1], expected[v].uv[0]);
+    }
+    /* colors the test sees */
+    EXPECT_GT(spread[1] - spread[0], 0.2f) << what;
+    EXPECT_NEAR(flex.get_stress_maximum(id), largest, 1e-4 * largest)
+      << what;
+  };
+
+  shift::gui::FlexUpdate update = base;
+  update.quantity = shift::gui::FlexUpdate::Quantity::kMaxPrincipal;
+  check(update, "largest principal");
+  /* signed: about 0 */
+  update.quantity = shift::gui::FlexUpdate::Quantity::kMinPrincipal;
+  check(update, "smallest principal");
+  /* over a fixed range */
+  update.quantity = shift::gui::FlexUpdate::Quantity::kXy;
+  update.stress = shift::gui::FlexUpdate::Stress::kRange;
+  update.stress_range[0] = -0.5f * flex.get_stress_maximum(id);
+  update.stress_range[1] = 0.5f * flex.get_stress_maximum(id);
+  check(update, "xy");
+
+  /* the Tresca stress's peak over two states, then a third; the state now
+  smaller than either */
+  update = base;
+  update.quantity = shift::gui::FlexUpdate::Quantity::kTresca;
+  update.peak = true;
+  update.peak_columns = n;
+  update.peak_first = 0;
+  for(float factor : {-2.f, 0.5f}) {
+    for(size_t j = 0; j < n; j++) {
+      update.peak_samples.push_back(factor * base.stress_coefficients[j]);
+    }
+  }
+  for(size_t j = 0; j < update.stress_coefficients.size(); j++) {
+    update.stress_coefficients[j] *= 0.1f;
+  }
+  check(update, "Tresca peak");
+  update.peak_first = 2;
+  update.peak_samples.clear();
+  for(size_t j = 0; j < n; j++) {
+    /* another shape: the first coordinate only */
+    update.peak_samples.push_back(j == 0 ? 3.f * base.stress_coefficients[j]
+                                         : 0.f);
+  }
+  check(update, "Tresca peak, a state more");
+  /* the safety factor of the von Mises stress's peak, which starts again */
+  update.quantity = shift::gui::FlexUpdate::Quantity::kSafetyFactor;
+  update.yield_strength = 0.5f * flex.get_stress_maximum(id);
+  update.stress = shift::gui::FlexUpdate::Stress::kRange;
+  update.stress_range[0] = 1.f;
+  update.stress_range[1] = 4.f;
+  update.peak_first = 0;
+  check(update, "safety factor peak");
 }
 
 TEST(FlexGpu, DeformsTheCadSurface) {

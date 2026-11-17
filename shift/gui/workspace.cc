@@ -324,8 +324,8 @@ void shift::gui::Workspace::InitializeMenus() {
     flex_constrained_node_bodies_);
   flex_stresses_action_ = flex_option(
     "Flexible bodies: &stresses",
-    "draw the von Mises stress on the mesh surface of flexible bodies, in "
-    "the color map and range of Edit > Settings (raster only)",
+    "draw the stress on the mesh surface of flexible bodies: the "
+    "quantity, color map and range of Edit > Settings",
     flex_stress_bodies_);
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
@@ -472,10 +472,11 @@ void shift::gui::Workspace::InitializeLeftPanel() {
     "draw as points the nodes the joints' attachments (RBE2/RBE3 spiders) "
     "tie to the body's frames (raster only)");
   body_layout->addWidget(body_panel_.constrained_nodes, 8, 0, 1, 4);
-  body_panel_.stresses = new QCheckBox("Draw the stresses (von Mises)");
+  body_panel_.stresses = new QCheckBox("Draw the stresses");
   body_panel_.stresses->setToolTip(
-    "color the mesh's surface by its von Mises stress, in the color map and "
-    "range of Edit > Settings (raster only)");
+    "color the mesh's surface by its stress: the quantity (von Mises, "
+    "principal, a component or the safety factor), color map and range of "
+    "Edit > Settings");
   body_layout->addWidget(body_panel_.stresses, 9, 0, 1, 4);
   auto toggle_flex = [this](std::set<QString>& bodies, bool on) {
     const int body = body_panel_.selected_body;
@@ -1122,8 +1123,8 @@ void shift::gui::Workspace::InitializeLayout() {
   stress_legend_ = new QLabel;
   stress_legend_->setTextFormat(Qt::RichText);
   stress_legend_->setToolTip(
-    "the von Mises stress drawn on flexible bodies (in the model's units of "
-    "stress: Pa in SI units); the color map and range are in Edit > "
+    "the stress drawn on flexible bodies (in the model's units of stress: "
+    "Pa in SI units); its quantity, color map and range are in Edit > "
     "Settings");
   stress_legend_->setVisible(false);
   // the largest stress is read back from the GPU as the bodies deform
@@ -2164,6 +2165,10 @@ void shift::gui::Workspace::ApplyStresses() {
                                 settings_.is_stress_range_automatic(),
                                 settings_.get_stress_minimum(),
                                 settings_.get_stress_maximum());
+  simulation_.set_flex_stress_quantity(settings_.get_stress_quantity(),
+                                       settings_.get_safety_minimum(),
+                                       settings_.get_safety_maximum());
+  simulation_.set_flex_stress_peak(settings_.is_stress_peak());
   UpdateStressLegend();
 }
 
@@ -2196,10 +2201,36 @@ void shift::gui::Workspace::UpdateStressLegend() {
   if(!stress_legend_timer_->isActive()) {
     stress_legend_timer_->start();
   }
-  const bool automatic = settings_.is_stress_range_automatic();
-  const double low = automatic ? 0.0 : settings_.get_stress_minimum();
-  const double high = automatic ? viewport_->get_flex_stress_maximum()
-                                : settings_.get_stress_maximum();
+  // the quantity, and the ends of its range
+  const FlexUpdate::Quantity quantity = settings_.get_stress_quantity();
+  QString label = StressQuantities()[size_t(quantity)].label;
+  if(settings_.is_stress_peak()) {
+    label += ", greatest so far";
+  }
+  QString start, end;
+  if(quantity == FlexUpdate::Quantity::kSafetyFactor) {
+    // the map's start is the largest factor
+    const float smallest = viewport_->get_flex_safety_factor_minimum();
+    label = settings_.is_stress_peak() ? "safety factor, smallest so far"
+                                       : "safety factor";
+    start = QString("%1 &ge;%2 ")
+              .arg(label)
+              .arg(settings_.get_safety_maximum(), 0, 'g', 3);
+    end = QString(" &le;%1").arg(settings_.get_safety_minimum(), 0, 'g', 3);
+    if(smallest > 0.f) {
+      end += QString(" (smallest %1)").arg(smallest, 0, 'g', 3);
+    }
+  } else {
+    const bool automatic = settings_.is_stress_range_automatic();
+    const double largest = viewport_->get_flex_stress_maximum();
+    const double low = !automatic                  ? settings_.get_stress_minimum()
+                       : FlexStressSigned(quantity) ? -largest
+                                                    : 0.0;
+    const double high = automatic ? largest : settings_.get_stress_maximum();
+    start = QString("%1 %2 ").arg(label, FormatStress(low));
+    end = QString(" %1%2").arg(FormatStress(high)).arg(
+      automatic ? " (largest)" : "");
+  }
   // the color map as a bar between its range's ends
   const auto colors = ColorMapSamples(settings_.get_stress_color_map(), 64);
   QImage bar(int(colors.size()), 1, QImage::Format_RGB32);
@@ -2209,12 +2240,9 @@ void shift::gui::Workspace::UpdateStressLegend() {
                       int(colors[k].y * 255.f + 0.5f),
                       int(colors[k].z * 255.f + 0.5f)));
   }
-  const QString text = QString("von Mises %1 ").arg(FormatStress(low));
-  const QString end = QString(" %1%2").arg(FormatStress(high)).arg(
-    automatic ? " (largest)" : "");
   const QPixmap image = QPixmap::fromImage(bar.scaled(96, 12));
   stress_legend_->setText(
-    text + QString("<img src=\"data:image/png;base64,%1\"/>").arg(
+    start + QString("<img src=\"data:image/png;base64,%1\"/>").arg(
              [&image] {
                QByteArray bytes;
                QBuffer buffer(&bytes);
@@ -2320,6 +2348,22 @@ void shift::gui::Workspace::SettingsDialog() {
     }
   });
   // the stress drawn on flexible bodies
+  auto* quantity = new QComboBox;
+  for(const StressQuantity& known : StressQuantities()) {
+    quantity->addItem(known.label);
+  }
+  quantity->setCurrentIndex(int(settings_.get_stress_quantity()));
+  quantity->setToolTip(
+    "what the stress drawn on flexible bodies shows; components are in the "
+    "body's coordinates, and the safety factor is against the body's "
+    "yield_strength (bodies without one are not colored)");
+  layout->addRow("Stress drawn", quantity);
+  auto* peak = new QCheckBox("Greatest over the run so far");
+  peak->setChecked(settings_.is_stress_peak());
+  peak->setToolTip(
+    "at each point, the greatest (in magnitude) over the states recorded up "
+    "to the time shown, rather than the stress now");
+  layout->addRow("", peak);
   auto* color_map = new QComboBox;
   for(const ColorMap& map : ColorMaps()) {
     color_map->addItem(map.label, QString(map.key));
@@ -2331,7 +2375,8 @@ void shift::gui::Workspace::SettingsDialog() {
                         "(View > Flexible bodies: stresses)");
   layout->addRow("Stress color map", color_map);
   auto* range = new QComboBox;
-  range->addItem("Automatic: 0 to the largest on each body");
+  range->addItem("Automatic: 0 (or minus the largest) to the largest on "
+                 "each body");
   range->addItem("Fixed");
   range->setCurrentIndex(settings_.is_stress_range_automatic() ? 0 : 1);
   layout->addRow("Stress range", range);
@@ -2346,15 +2391,41 @@ void shift::gui::Workspace::SettingsDialog() {
   }
   layout->addRow("Stress at the map's start", stress_minimum);
   layout->addRow("Stress at the map's end", stress_maximum);
-  auto fixed_range = [range, stress_minimum, stress_maximum] {
-    stress_minimum->setEnabled(range->currentIndex() == 1);
-    stress_maximum->setEnabled(range->currentIndex() == 1);
+  auto* safety_minimum = new QLineEdit(
+    QString::number(settings_.get_safety_minimum(), 'g', 6));
+  auto* safety_maximum = new QLineEdit(
+    QString::number(settings_.get_safety_maximum(), 'g', 6));
+  for(QLineEdit* edit : {safety_minimum, safety_maximum}) {
+    edit->setValidator(new QDoubleValidator(edit));
+  }
+  safety_minimum->setToolTip("this safety factor and below are drawn in the "
+                             "color map's end");
+  safety_maximum->setToolTip("this safety factor and above are drawn in the "
+                             "color map's start");
+  layout->addRow("Safety factor at the map's end", safety_minimum);
+  layout->addRow("Safety factor at the map's start", safety_maximum);
+  auto fixed_range = [quantity, range, stress_minimum, stress_maximum,
+                      safety_minimum, safety_maximum] {
+    const bool safety =
+      quantity->currentIndex() == int(FlexUpdate::Quantity::kSafetyFactor);
+    range->setEnabled(!safety);
+    stress_minimum->setEnabled(!safety && range->currentIndex() == 1);
+    stress_maximum->setEnabled(!safety && range->currentIndex() == 1);
+    safety_minimum->setEnabled(safety);
+    safety_maximum->setEnabled(safety);
   };
   fixed_range();
   // the stress settings as they are changed, as the others
-  auto preview_stress = [this, color_map, range, stress_minimum,
-                         stress_maximum, fixed_range] {
+  auto preview_stress = [this, quantity, peak, color_map, range,
+                         stress_minimum, stress_maximum, safety_minimum,
+                         safety_maximum, fixed_range] {
     fixed_range();
+    settings_.set_stress_quantity(
+      StressQuantities()[size_t(std::max(0, quantity->currentIndex()))]
+        .quantity);
+    settings_.set_stress_peak(peak->isChecked());
+    settings_.set_safety_range(safety_minimum->text().toDouble(),
+                               safety_maximum->text().toDouble());
     settings_.set_stress_color_map(
       color_map->currentData().toString().toStdString());
     settings_.set_stress_range_automatic(range->currentIndex() == 0);
@@ -2368,6 +2439,13 @@ void shift::gui::Workspace::SettingsDialog() {
   connect(color_map, &QComboBox::currentIndexChanged, &dialog,
           preview_stress);
   connect(range, &QComboBox::currentIndexChanged, &dialog, preview_stress);
+  connect(quantity, &QComboBox::currentIndexChanged, &dialog,
+          preview_stress);
+  connect(peak, &QCheckBox::toggled, &dialog, preview_stress);
+  connect(safety_minimum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
+  connect(safety_maximum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
   connect(stress_minimum, &QLineEdit::editingFinished, &dialog,
           preview_stress);
   connect(stress_maximum, &QLineEdit::editingFinished, &dialog,
@@ -3257,6 +3335,8 @@ void shift::gui::Workspace::ApplyParameterEdit() {
       UpdateWindowTitle();
     }
     UpdateParameterPanel();
+    // what is drawn of it (a flexible body's yield strength)
+    viewport_->requestUpdate();
     return;
   }
   if(!row.in_file) {

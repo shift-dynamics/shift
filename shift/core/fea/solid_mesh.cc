@@ -64,7 +64,7 @@ double shift::core::fea::Tet10JacobianRatio(const TetMesh& mesh,
 
 shift::core::fea::TetMesh shift::core::fea::MeshSolid(
   const cad::Model& model, int body, double element_size,
-  double minimum_element_size) {
+  double minimum_element_size, const std::vector<ksl_vec3_t>& interior) {
   cad::TriangulateOptions options;
   options.element_size = element_size;
   options.minimum_element_size = minimum_element_size;
@@ -77,7 +77,8 @@ shift::core::fea::TetMesh shift::core::fea::MeshSolid(
   }
   surface.triangles = triangulation.triangles;
   surface.face = triangulation.face;
-  TetMesh mesh = MeshVolume(surface, element_size, minimum_element_size);
+  TetMesh mesh =
+    MeshVolume(surface, element_size, minimum_element_size, interior);
 
   /* the boundary's mid-side nodes onto the exact geometry */
   std::vector<char> moved(mesh.nodes.size(), 0);

@@ -125,6 +125,14 @@ public:
 
   virtual void Service(const std::vector<double>& y) override;
 
+  /*! \brief the translation axis, a unit vector in the coordinates of the
+   * joint's frames */
+  ksl_vec3_t get_axis() const {
+    ksl_vec3_t a = axis_;
+    ksl_vec3_normalize(&a);
+    return a;
+  }
+
 private:
   virtual void DeclareParameters() override;
   static bool registered_;

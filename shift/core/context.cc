@@ -50,6 +50,7 @@
 #include "shift/core/geometry/base.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/joint/prismatic.h"
 #include "shift/core/joint/revolute.h"
 #include "shift/core/joint/rigid.h"
 #include "shift/core/joint/spherical.h"
@@ -222,6 +223,14 @@ void shift::core::Context::BuildElasticBodies() {
           u.axis = revolute->get_axis();
         } else if(dynamic_cast<shift::core::joint::Spherical*>(joint)) {
           u.joint = shift::core::body::Base::FrameUse::Joint::kSpherical;
+        } else if(auto prismatic =
+                    dynamic_cast<shift::core::joint::Prismatic*>(joint)) {
+          /* the body holds the joint's parent side: its child slides along
+          the axis through the body */
+          if(frame == joint->get_system_parent_frame()) {
+            u.joint = shift::core::body::Base::FrameUse::Joint::kPrismatic;
+            u.axis = prismatic->get_axis();
+          }
         }
       }
       uses.push_back(u);
@@ -2009,6 +2018,7 @@ void shift::core::Context::AllocateRunTimeArrays() {
   with no coordinates; their indices follow their body's (below) */
   node_slots_.clear();
   unsigned int he_count = 0;
+  unsigned int slide_count = 0;
   for(unsigned int i = 0; i < active_joints_.size(); i++) {
     auto body = active_articulated_bodies_[i];
     const unsigned int elastic_count = body->get_elastic_count();
@@ -2028,6 +2038,27 @@ void shift::core::Context::AllocateRunTimeArrays() {
         SHIFT_ERROR(message);
         throw shift::core::Exception(message);
       }
+      /* a sliding node follows the coordinate of the prismatic joint that
+      slides through the body from it */
+      if(body->is_sliding_node(k)) {
+        for(auto& joint : active_joints_) {
+          if(joint->get_system_parent_frame() == slot.frame &&
+             dynamic_cast<shift::core::joint::Prismatic*>(joint)) {
+            slot.slide_joint = joint;
+            slot.slide_sense = joint->get_sense() >= 0 ? 1.0 : -1.0;
+          }
+        }
+        if(!slot.slide_joint) {
+          const std::string message =
+            "Flexible body '" + body->get_name() + "': its sliding node '" +
+            slot.frame->get_name() +
+            "' is not the parent frame of a prismatic joint";
+          SHIFT_ERROR(message);
+          throw shift::core::Exception(message);
+        }
+        slot.slide_offset = (int)slide_count;
+        slide_count += 2;
+      }
       node_slots_.push_back(slot);
       he_count += elastic_count;
     }
@@ -2038,6 +2069,8 @@ void shift::core::Context::AllocateRunTimeArrays() {
                                       dq_count_, non_rigid_joint_count_);
   dhva_.free.Resize(free_bodies_.size());
   dhva_.he.assign(he_count, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  dhva_.slide.assign(slide_count, ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  dhva_.dq.assign(HasElasticBodies() ? dq_count_ : 0, 0.0);
 
   // std::cout << "q_count: " << q_count_ << std::endl;
   // std::cout << "dq_count: " << dq_count_ << std::endl;
@@ -2098,6 +2131,10 @@ void shift::core::Context::AllocateRunTimeArrays() {
     } else {
       body->set_va_index(-1);
     }
+  }
+  node_slot_at_va_.assign(non_rigid_joint_count_, -1);
+  for(size_t k = 0; k < node_slots_.size(); k++) {
+    node_slot_at_va_[size_t(node_slots_[k].index)] = (int)k;
   }
 
   // get operations count
@@ -2229,7 +2266,20 @@ void shift::core::Context::AllocateRunTimeArrays() {
       dhva_offsets_[operation_count].dq = joint->get_dq_index();
       dhva_offsets_[operation_count].data = joint->get_data_index();
 
-      if(joint->get_q_count()) {
+      const int parent_slot = GetNodeSlot(joint->get_system_parent_frame());
+      if(joint->get_q_count() && parent_slot > -1 &&
+         node_slots_[parent_slot].slide_joint == joint) {
+        /* sliding through a flexible body: the joint's operations, then the
+        screw and acceleration of the sliding */
+        auto& slot = node_slots_[parent_slot];
+        slot.slide_q = (int)joint->get_q_index();
+        slot.slide_dq = (int)joint->get_dq_index();
+        slot.joint_dh = joint->DHfptr();
+        slot.joint_dhva = joint->DHVAfptr();
+        d_fptr_[operation_count] = joint->Dfptr();
+        dh_fptr_[operation_count] = shift::core::body::SlidingJointDh;
+        dhva_fptr_[operation_count] = shift::core::body::SlidingJointDhva;
+      } else if(joint->get_q_count()) {
         d_fptr_[operation_count] = joint->Dfptr();
         dh_fptr_[operation_count] = joint->DHfptr();
         dhva_fptr_[operation_count] = joint->DHVAfptr();
@@ -2392,6 +2442,9 @@ void shift::core::Context::UpdateDHVA(shift::core::topology::DHVA& dhva,
                                       const double* __restrict__ q,
                                       const double* __restrict__ dq) {
   UpdateDC(dhva, q);
+  if(!dhva.dq.empty()) {
+    std::copy(dq, dq + dhva.dq.size(), dhva.dq.begin());
+  }
   for(unsigned int i = 0; i < dhva_fptr_.size(); i++) {
     (dhva_fptr_[i])(*this, dhva, dhva_offsets_[i], q, dq);
   }

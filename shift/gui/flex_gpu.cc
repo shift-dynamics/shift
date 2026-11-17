@@ -25,6 +25,9 @@ struct FlexParams {
   float translation[4];
   float rotation[4];
   float stress[4]; /* FlexUpdate::stress: none, range, automatic; range */
+  float quantity[4]; /* FlexUpdate::quantity, yield_strength, peak */
+  uint32_t peak[4];  /* the states folded into the peak, their columns,
+                        1: start again */
 };
 
 /* Step of flex_refit.comp */
@@ -44,6 +47,12 @@ struct shift::gui::FlexGpu::Mesh {
    * largest von Mises stress (flex_deform.comp) */
   std::unique_ptr<QRhiBuffer> stress_basis;
   std::unique_ptr<QRhiBuffer> maximum;
+  /*! the peak at each vertex (FlexUpdate::peak), and the states folded
+   * into it by the next Deform (flex_peak.comp), with their bindings */
+  std::unique_ptr<QRhiBuffer> peak;
+  std::unique_ptr<QRhiBuffer> samples;
+  std::unique_ptr<QRhiShaderResourceBindings> peak_bindings;
+  bool peak_dispatch = false;
   bool has_stress = false;
   bool stress_drawn = false; /*!< as last updated */
   /*! the largest stress as last read back (get_stress_maximum), and the
@@ -128,6 +137,18 @@ QRhiBuffer* shift::gui::FlexGpu::NewStorage(QRhiBuffer::Type type,
   return buffer;
 }
 
+void shift::gui::FlexGpu::MakePeakBindings(Mesh& flex) {
+  const auto stage = QRhiShaderResourceBinding::ComputeStage;
+  flex.peak_bindings.reset(rhi_->newShaderResourceBindings());
+  flex.peak_bindings->setBindings(
+    {QRhiShaderResourceBinding::uniformBuffer(0, stage, flex.params.get()),
+     QRhiShaderResourceBinding::bufferLoad(1, stage, flex.reference.get()),
+     QRhiShaderResourceBinding::bufferLoad(9, stage, flex.stress_basis.get()),
+     QRhiShaderResourceBinding::bufferLoadStore(11, stage, flex.peak.get()),
+     QRhiShaderResourceBinding::bufferLoad(12, stage, flex.samples.get())});
+  flex.peak_bindings->create();
+}
+
 int shift::gui::FlexGpu::Add(const SceneMesh& mesh, QRhiBuffer* vertices,
                              QRhiBuffer* indices,
                              QRhiResourceUpdateBatch* batch) {
@@ -175,6 +196,10 @@ int shift::gui::FlexGpu::Add(const SceneMesh& mesh, QRhiBuffer* vertices,
   }
   flex->maximum.reset(
     NewStorage(QRhiBuffer::Static, 4 * sizeof(float), nullptr, batch));
+  const std::vector<float> zero(vertex_count, 0.f);
+  flex->peak.reset(NewStorage(QRhiBuffer::Static,
+                              zero.size() * sizeof(float), zero.data(),
+                              batch));
   flex->deformed.reset(NewStorage(
     QRhiBuffer::Static, size_t(vertex_count) * 4 * sizeof(float), nullptr,
     batch));
@@ -194,7 +219,8 @@ int shift::gui::FlexGpu::Add(const SceneMesh& mesh, QRhiBuffer* vertices,
      QRhiShaderResourceBinding::bufferStore(4, stage, flex->deformed.get()),
      QRhiShaderResourceBinding::bufferLoad(9, stage, flex->stress_basis.get()),
      QRhiShaderResourceBinding::bufferLoadStore(10, stage,
-                                                flex->maximum.get())});
+                                                flex->maximum.get()),
+     QRhiShaderResourceBinding::bufferLoad(11, stage, flex->peak.get())});
   flex->deform_bindings->create();
   flex->normal_bindings.reset(rhi_->newShaderResourceBindings());
   flex->normal_bindings->setBindings(
@@ -207,11 +233,15 @@ int shift::gui::FlexGpu::Add(const SceneMesh& mesh, QRhiBuffer* vertices,
      QRhiShaderResourceBinding::bufferStore(8, stage, vertices),
      QRhiShaderResourceBinding::bufferLoad(10, stage, flex->maximum.get())});
   flex->normal_bindings->create();
+  flex->samples.reset(NewStorage(QRhiBuffer::Static, 16, nullptr, batch));
+  MakePeakBindings(*flex);
   if(!deform_pipeline_) {
     deform_pipeline_.reset(
       NewPipeline("flex_deform.comp.qsb", flex->deform_bindings.get()));
     normals_pipeline_.reset(
       NewPipeline("flex_normals.comp.qsb", flex->normal_bindings.get()));
+    peak_pipeline_.reset(
+      NewPipeline("flex_peak.comp.qsb", flex->peak_bindings.get()));
   }
   /* a bound of the deformation (Update) */
   const size_t columns = mesh.flex_columns;
@@ -503,6 +533,26 @@ void shift::gui::FlexGpu::Update(int index, const SceneMesh& mesh,
     const uint32_t zero[4] = {};
     batch->uploadStaticBuffer(updated.maximum.get(), 0, sizeof(zero), zero);
   }
+  /* the states folded into the peak by the next Deform */
+  const bool peak = updated.stress_drawn && update.peak;
+  const size_t n = update.peak_columns;
+  const size_t sample_count =
+    peak && n > 0 && n <= updated.columns ? update.peak_samples.size() / n
+                                          : 0;
+  updated.peak_dispatch = peak && (sample_count > 0 || update.peak_first == 0);
+  if(sample_count > 0) {
+    const size_t bytes = sample_count * n * sizeof(float);
+    if(!updated.samples || updated.samples->size() < bytes) {
+      updated.samples.reset(
+        NewStorage(QRhiBuffer::Static, 2 * bytes, nullptr, batch));
+      updated.peak_bindings.reset();
+    }
+    batch->uploadStaticBuffer(updated.samples.get(), 0, quint32(bytes),
+                              update.peak_samples.data());
+  }
+  if(!updated.peak_bindings) {
+    MakePeakBindings(updated);
+  }
   /* the mesh, and the CADs that follow it */
   for(size_t k = 0; k < meshes_.size(); k++) {
     Mesh& flex = *meshes_[k];
@@ -517,6 +567,12 @@ void shift::gui::FlexGpu::Update(int index, const SceneMesh& mesh,
         update.stress == FlexUpdate::Stress::kAutomatic ? 2.f : 1.f;
       params.stress[1] = update.stress_range[0];
       params.stress[2] = update.stress_range[1];
+      params.quantity[0] = float(int(update.quantity));
+      params.quantity[1] = update.yield_strength;
+      params.quantity[2] = peak ? 1.f : 0.f;
+      params.peak[0] = uint32_t(sample_count);
+      params.peak[1] = uint32_t(n);
+      params.peak[2] = update.peak_first == 0 ? 1u : 0u;
     }
     for(int c = 0; c < 3; c++) {
       params.centroid[c] = flex.centroid.at[c];
@@ -567,6 +623,26 @@ shift::gui::FlexGpu::Deform(QRhiCommandBuffer* cb,
       flex->dispatch = false;
       (flex->source >= 0 ? pending_cads : pending).push_back(flex.get());
     }
+  }
+  /* the peaks, which flex_deform.comp reads, in a pass of their own */
+  bool peaks = false;
+  for(Mesh* flex : pending) {
+    peaks = peaks || (flex->peak_dispatch && flex->peak_bindings);
+  }
+  if(peaks && peak_pipeline_) {
+    cb->beginComputePass(batch);
+    batch = nullptr;
+    cb->setComputePipeline(peak_pipeline_.get());
+    for(Mesh* flex : pending) {
+      if(flex->peak_dispatch && flex->peak_bindings) {
+        cb->setShaderResources(flex->peak_bindings.get());
+        cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+      }
+    }
+    cb->endComputePass();
+  }
+  for(Mesh* flex : pending) {
+    flex->peak_dispatch = false;
   }
   if((!pending.empty() && deform_pipeline_ && normals_pipeline_) ||
      (!pending_cads.empty() && field_pipeline_)) {

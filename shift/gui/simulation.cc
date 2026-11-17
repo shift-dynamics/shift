@@ -836,6 +836,13 @@ void shift::gui::Simulation::LoadModel(
       if(!mesh || !mesh->is_active()) {
         continue;
       }
+      /* a flexible body's meshed solid is drawn by its mesh's surface,
+      deformed (AddFlexViews) */
+      auto flex = dynamic_cast<const shift::core::body::Flex*>(bodies_[i]);
+      if(flex && flex->builds_model() &&
+         flex->get_fe_geometry() == mesh->get_name()) {
+        continue;
+      }
       auto [it, inserted] = asset_meshes.try_emplace(mesh->get_asset());
       if(inserted) {
         textures.AddEmbedded(mesh->get_asset()->embedded_textures);
@@ -1266,6 +1273,14 @@ void shift::gui::Simulation::ShowTime(double t) {
     }
     // the particles: those of the knot at or before t
     ShowParticles(long(p >= 1.0 ? i1 : i0));
+    // the states the peak of the stress drawn is of: those up to t
+    const size_t peak_count = (p >= 1.0 ? i1 : i0) + 1;
+    for(auto& view : flex_views_) {
+      if(view.peak_count != peak_count) {
+        view.peak_count = peak_count;
+        view.changed = view.changed || stress_peak_;
+      }
+    }
     // the levels: those of knot i0 and the fraction p of the deltas to i1
     if(!scm_views_.empty()) {
       const auto knot_end = [&](size_t k) {
@@ -1297,6 +1312,13 @@ void shift::gui::Simulation::ShowContextState() {
   context_->ComputeMobility();
   UpdatePoses(context_->get_dhva());
   ShowElastic(context_->get_q().data());
+  /* the state edited is not one recorded: no peak but its own */
+  for(auto& view : flex_views_) {
+    if(view.peak_count != 0) {
+      view.peak_count = 0;
+      view.changed = view.changed || stress_peak_;
+    }
+  }
   /* the grains the DEM holds: the worker is not running */
   shift::core::dem::State state;
   for(const auto& view : dem_views_) {
@@ -1347,6 +1369,18 @@ void shift::gui::Simulation::AddFlexViews() {
          cad->get_color().size() == 3) {
         const auto& c = cad->get_color();
         mesh.albedo = ksl_vec3f(float(c[0]), float(c[1]), float(c[2]));
+      }
+      /* a mesh's: the diffuse color of its first part's material */
+      auto triangles =
+        dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
+      if(triangles && triangles->get_name() == flex->get_fe_geometry() &&
+         !triangles->get_mesh_data().empty()) {
+        const int m = triangles->get_mesh_data()[0].material_index;
+        const auto& materials = triangles->get_material_data();
+        if(m >= 0 && size_t(m) < materials.size()) {
+          const float* kd = materials[size_t(m)].Kd;
+          mesh.albedo = ksl_vec3f(kd[0], kd[1], kd[2]);
+        }
       }
     }
     /* a vertex for each node on each face, so that edges between faces
@@ -1536,6 +1570,26 @@ void shift::gui::Simulation::set_flex_stresses(std::vector<bool> bodies,
   stress_range_[1] = high;
   for(auto& view : flex_views_) {
     view.changed = true;
+    view.peak_sent = 0;
+  }
+}
+
+void shift::gui::Simulation::set_flex_stress_quantity(
+  FlexUpdate::Quantity quantity, double safety_low, double safety_high) {
+  stress_quantity_ = quantity;
+  safety_range_[0] = safety_low;
+  safety_range_[1] = safety_high;
+  for(auto& view : flex_views_) {
+    view.changed = true;
+    view.peak_sent = 0;
+  }
+}
+
+void shift::gui::Simulation::set_flex_stress_peak(bool peak) {
+  stress_peak_ = peak;
+  for(auto& view : flex_views_) {
+    view.changed = true;
+    view.peak_sent = 0;
   }
 }
 
@@ -1603,6 +1657,21 @@ void shift::gui::Simulation::FlexCoefficients(const FlexView& view,
                                       : FlexUpdate::Stress::kRange;
   update.stress_range[0] = float(stress_range_[0]);
   update.stress_range[1] = float(stress_range_[1]);
+  update.quantity = stress_quantity_;
+  update.yield_strength = float(flex.get_yield_strength());
+  if(stress_quantity_ == FlexUpdate::Quantity::kSafetyFactor) {
+    /* none without a yield strength; always over its own range */
+    if(!(flex.get_yield_strength() > 0.0)) {
+      update.stress = FlexUpdate::Stress::kNone;
+    } else if(update.stress != FlexUpdate::Stress::kNone) {
+      update.stress = FlexUpdate::Stress::kRange;
+      update.stress_range[0] = float(safety_range_[0]);
+      update.stress_range[1] = float(safety_range_[1]);
+    }
+  }
+  /* the peak of the motion recorded, not of a shape previewed */
+  update.peak = update.stress != FlexUpdate::Stress::kNone && stress_peak_ &&
+                !preview;
   if(preview) {
     /* the shape previewed, its largest displacement the amplitude */
     const size_t column =
@@ -1652,14 +1721,47 @@ void shift::gui::Simulation::TakeFlexUpdates(std::vector<FlexUpdate>& updates,
                                              bool all) {
   updates.clear();
   for(auto& view : flex_views_) {
+    /* the yield strength is a key that may change as the model runs */
+    if(view.flex->get_yield_strength() != view.yield_strength) {
+      view.yield_strength = view.flex->get_yield_strength();
+      view.changed = true;
+    }
     if(!view.changed && !all) {
       continue;
     }
     view.changed = false;
     FlexUpdate update;
     FlexCoefficients(view, update);
+    if(all) {
+      view.peak_sent = 0;
+    }
+    FlexPeakSamples(view, update);
     updates.push_back(std::move(update));
   }
+}
+
+void shift::gui::Simulation::FlexPeakSamples(FlexView& view,
+                                             FlexUpdate& update) {
+  const int q = view.flex->get_elastic_q_index();
+  if(!update.peak || q < 0) {
+    update.peak = false;
+    view.peak_sent = 0;
+    return;
+  }
+  /* from the first state, if the time shown went back */
+  const size_t n = view.flex->get_elastic_count();
+  const size_t first = view.peak_count < view.peak_sent ? 0 : view.peak_sent;
+  update.peak_first = first;
+  update.peak_columns = n;
+  std::lock_guard<std::mutex> lock(mutex_);
+  const size_t count = std::min(view.peak_count, times_.size());
+  for(size_t k = first; k < count; k++) {
+    const double* y = states_.data() + k * state_size_ + size_t(q);
+    for(size_t j = 0; j < n; j++) {
+      update.peak_samples.push_back(float(y[j]));
+    }
+  }
+  view.peak_sent = std::max(first, count);
 }
 
 bool shift::gui::Simulation::TakePoses(Poses& poses) {

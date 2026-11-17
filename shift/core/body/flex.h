@@ -38,6 +38,7 @@ public:
   std::string spider = "rbe3";
   std::vector<int> faces;
   double radius = 0.0;
+  double bearing_length = 0.0;
 
 protected:
   virtual void DeclareParameters() override;
@@ -173,6 +174,25 @@ public:
   /*! \brief make the frame named \p frame_name a node, carried by \p point */
   void SetNode(const std::string& frame_name, unsigned int point);
 
+  /*! \brief make the frame named \p frame_name a sliding node (the system
+   * parent frame of a prismatic joint whose child slides along a bore of
+   * the body): carried by the bore's \p stations, points at s = \p first +
+   * i \p spacing (i = 0, 1, ...) along \p axis (a unit vector in the frame's
+   * coordinates) from the frame, their shapes interpolated in s by a natural
+   * cubic spline, continued linearly beyond the first and the last (so that
+   * the interpolation has continuous first and second derivatives) */
+  void SetSlidingNode(const std::string& frame_name,
+                      const std::vector<unsigned int>& stations, double first,
+                      double spacing, const ksl_vec3_t& axis);
+  bool is_sliding_node(unsigned int k) const override {
+    return k < node_sliding_.size() && node_sliding_[k] >= 0;
+  }
+  void EvaluateSlidingNode(unsigned int k, double s, double s_dot,
+                           const double* eta, const double* eta_dot,
+                           ksl_SE3_t* d_rk, ksl_screw_t* h_k,
+                           ksl_screw_t* gamma_k, ksl_screw_t* h_s,
+                           ksl_screw_t* h_s_dot) const override;
+
   /*! \brief set the initial elastic coordinates and their rates,
    * elastic_count each */
   void SetInitialElasticState(const std::vector<double>& eta,
@@ -251,6 +271,12 @@ public:
    * of a deformation is linear in its coordinates */
   const std::vector<double>& get_surface_stresses() const {
     return surface_stresses_;
+  }
+  /*! \brief the yield strength of the material, in its units of stress (0:
+   * not given); the viewer draws the safety factor against it. A key that
+   * may change while the model runs */
+  double get_yield_strength() const {
+    return yield_strength_;
   }
   /*! \brief the points that are mesh nodes, the first of the points (the
    * attachments' points follow them); 0 unless built from a mesh */
@@ -332,6 +358,7 @@ protected:
   /* finite element keys */
   double youngs_modulus_ = 0.0;
   double poisson_ratio_ = 0.0;
+  double yield_strength_ = 0.0;
   std::string fe_geometry_;
   std::string fe_cache_;
   double element_size_ = 0.0;
@@ -376,6 +403,30 @@ protected:
   std::vector<std::string> node_names_;
   std::vector<unsigned int> node_points_;
   std::vector<Frame*> node_frames_;
+
+  /*! a sliding node's stations (SetSlidingNode) and, set by SetupElastic,
+   * the second derivatives in s of their shapes in r, the spline's
+   * \f$M_i\f$, at i n_e + j */
+  struct SlidingNode {
+    std::vector<unsigned int> stations;
+    double first = 0.0;
+    double spacing = 0.0;
+    ksl_vec3_t axis = {{0.0, 0.0, 1.0}};
+    std::vector<ksl_screw_t> curvature;
+  };
+  /*! the weights of the spline at s: the value is c0 Y_i + c1 Y_i1 + e0 M_i
+   * + e1 M_i1, its derivative d0 Y_i + d1 Y_i1 + f0 M_i + f1 M_i1, its
+   * second derivative g0 M_i + g1 M_i1 */
+  struct SplineWeights {
+    size_t i = 0, i1 = 0;
+    double c0 = 1.0, c1 = 0.0, e0 = 0.0, e1 = 0.0;
+    double d0 = 0.0, d1 = 0.0, f0 = 0.0, f1 = 0.0;
+    double g0 = 0.0, g1 = 0.0;
+  };
+  static SplineWeights Weights(const SlidingNode& node, double s);
+  /*! for each node, its index in sliding_, or -1 */
+  std::vector<int> node_sliding_;
+  std::vector<SlidingNode> sliding_;
 
   std::vector<double> initial_eta_;
   std::vector<double> initial_eta_dot_;

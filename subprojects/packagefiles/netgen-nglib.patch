@@ -1,0 +1,61 @@
+diff --git a/nglib/nglib.cpp b/nglib/nglib.cpp
+index a9728b6..b12df61 100644
+--- a/nglib/nglib.cpp
++++ b/nglib/nglib.cpp
+@@ -190,6 +190,13 @@ namespace nglib
+    }
+ 
+ 
++   NGLIB_API void Ng_AddLockedPoint (Ng_Mesh * mesh, double * x)
++   {
++      Mesh * m = (Mesh*)mesh;
++      m->AddLockedPoint (m->AddPoint (Point<3> (x[0], x[1], x[2])));
++   }
++
++
+ 
+ 
+    // Manually add a surface element of a given type to an existing mesh object
+@@ -618,6 +625,13 @@ namespace nglib
+    }
+ 
+ 
++   // frees an STL Geometry
++   NGLIB_API void Ng_STL_DeleteGeometry (Ng_STL_Geometry * geom)
++   {
++      delete (STLGeometry*)geom;
++   }
++
++
+ 
+ 
+    // automatically generates edges:
+diff --git a/nglib/nglib.h b/nglib/nglib.h
+index 721424b..40efca5 100644
+--- a/nglib/nglib.h
++++ b/nglib/nglib.h
+@@ -308,6 +308,14 @@ NGLIB_API Ng_Result Ng_MergeMesh(Ng_Mesh * mesh1, Ng_Mesh * mesh2);
+ NGLIB_API void Ng_AddPoint (Ng_Mesh * mesh, double * x);
+ 
+ 
++/*! \brief Add a point that the volume mesher keeps as a node, unmoved
++
++    Like Ng_AddPoint, but the point is locked: the volume mesher inserts it
++    (it must lie inside the volume) and the optimization does not move it.
++*/
++NGLIB_API void Ng_AddLockedPoint (Ng_Mesh * mesh, double * x);
++
++
+ /*! \brief Add a surface element to a given Netgen Mesh Structure
+ 
+     This function allows the top-level code to directly add individual 
+@@ -595,6 +603,9 @@ NGLIB_API Ng_STL_Geometry * Ng_STL_LoadGeometry (const char * filename, int bina
+ 
+ // generate new STL Geometry
+ NGLIB_API Ng_STL_Geometry * Ng_STL_NewGeometry ();
++
++// frees an STL Geometry
++NGLIB_API void Ng_STL_DeleteGeometry (Ng_STL_Geometry * geom);
+   
+ 
+ // fills STL Geometry

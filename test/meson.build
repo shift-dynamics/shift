@@ -34,6 +34,8 @@ test_sources = [
   'test_fea_mesh.cc',
   'test_fea_reduction.cc',
   'test_flex_step.cc',
+  'test_flex_mesh.cc',
+  'test_flex_sliding.cc',
   'test_cad_triangulate.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',

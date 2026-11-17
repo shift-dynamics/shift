@@ -15,6 +15,7 @@
     <file>raytrace.comp.qsb</file>
     <file>flex_deform.comp.qsb</file>
     <file>flex_normals.comp.qsb</file>
+    <file>flex_peak.comp.qsb</file>
     <file>flex_refit.comp.qsb</file>
     <file>flex_field.comp.qsb</file>
     <file>flex_cad.comp.qsb</file>

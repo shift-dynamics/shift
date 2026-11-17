@@ -5,6 +5,25 @@
 
 #include <fstream>
 
+const std::vector<shift::gui::StressQuantity>&
+shift::gui::StressQuantities() {
+  static const std::vector<StressQuantity> kQuantities = {
+    {"von_mises", "von Mises stress", FlexUpdate::Quantity::kVonMises},
+    {"tresca", "Tresca stress (largest less smallest principal)", FlexUpdate::Quantity::kTresca},
+    {"maximum_principal", "largest principal stress", FlexUpdate::Quantity::kMaxPrincipal},
+    {"middle_principal", "middle principal stress", FlexUpdate::Quantity::kMiddlePrincipal},
+    {"minimum_principal", "smallest principal stress", FlexUpdate::Quantity::kMinPrincipal},
+    {"xx", "normal stress xx", FlexUpdate::Quantity::kXx},
+    {"yy", "normal stress yy", FlexUpdate::Quantity::kYy},
+    {"zz", "normal stress zz", FlexUpdate::Quantity::kZz},
+    {"xy", "shear stress xy", FlexUpdate::Quantity::kXy},
+    {"yz", "shear stress yz", FlexUpdate::Quantity::kYz},
+    {"zx", "shear stress zx", FlexUpdate::Quantity::kZx},
+    {"safety_factor", "safety factor (yield strength / von Mises)",
+     FlexUpdate::Quantity::kSafetyFactor}};
+  return kQuantities;
+}
+
 std::string shift::gui::Settings::get_default_path() {
   return QDir(QDir::homePath()).filePath(".shift/settings.json").toStdString();
 }
@@ -84,6 +103,27 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
   if(json["stress_maximum"].isNumeric()) {
     stress_maximum = json["stress_maximum"].asDouble();
   }
+  FlexUpdate::Quantity quantity = FlexUpdate::Quantity::kVonMises;
+  if(json["stress_quantity"].isString()) {
+    for(const StressQuantity& known : StressQuantities()) {
+      if(json["stress_quantity"].asString() == known.key) {
+        quantity = known.quantity;
+      }
+    }
+  }
+  const bool peak =
+    json["stress_peak"].isBool() && json["stress_peak"].asBool();
+  double safety_minimum = 1.0, safety_maximum = 4.0;
+  if(json["safety_factor_minimum"].isNumeric()) {
+    safety_minimum = json["safety_factor_minimum"].asDouble();
+  }
+  if(json["safety_factor_maximum"].isNumeric()) {
+    safety_maximum = json["safety_factor_maximum"].asDouble();
+  }
+  stress_quantity_ = quantity;
+  stress_peak_ = peak;
+  safety_minimum_ = safety_minimum;
+  safety_maximum_ = safety_maximum;
   stress_color_map_ = color_map;
   stress_range_automatic_ = automatic;
   stress_minimum_ = stress_minimum;
@@ -112,6 +152,11 @@ bool shift::gui::Settings::Save(const std::string& path,
   json["stress_range"] = stress_range_automatic_ ? "automatic" : "fixed";
   json["stress_minimum"] = stress_minimum_;
   json["stress_maximum"] = stress_maximum_;
+  json["stress_quantity"] =
+    StressQuantities()[size_t(stress_quantity_)].key;
+  json["stress_peak"] = stress_peak_;
+  json["safety_factor_minimum"] = safety_minimum_;
+  json["safety_factor_maximum"] = safety_maximum_;
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  ";
   std::ofstream file(path);

@@ -13,7 +13,7 @@
 /* the layout of the file and the version of the analysis: change it when
 either changes (the mesher, the elements, the attachments, the reduction),
 so that caches written before are computed again */
-static const char* kFormat = "shift flex cache 3";
+static const char* kFormat = "shift flex cache 4";
 
 shift::core::fea::Reduction shift::core::fea::KeepModes(
   const Reduction& full, const std::vector<unsigned int>& kept) {
@@ -168,6 +168,8 @@ bool shift::core::fea::WriteFlexCache(const std::string& path,
           attachment_counts.size(), H5::PredType::NATIVE_INT);
     Write(root, "surface_nodes", cache.surface_nodes.data(),
           cache.surface_nodes.size(), H5::PredType::NATIVE_INT);
+    Write(root, "sliding_stations", cache.sliding_stations.data(),
+          cache.sliding_stations.size(), H5::PredType::NATIVE_INT);
     Write(root, "surface_stresses", cache.surface_stresses.data(),
           cache.surface_stresses.size(), H5::PredType::NATIVE_DOUBLE);
     file.close();
@@ -267,6 +269,8 @@ bool shift::core::fea::ReadFlexCache(const std::string& path,
     }
     c.surface_nodes =
       Read<int>(root, "surface_nodes", H5::PredType::NATIVE_INT);
+    c.sliding_stations =
+      Read<int>(root, "sliding_stations", H5::PredType::NATIVE_INT);
     c.surface_stresses =
       Read<double>(root, "surface_stresses", H5::PredType::NATIVE_DOUBLE);
     for(int node : c.surface_nodes) {

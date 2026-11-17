@@ -50,6 +50,36 @@ void NodeDhva(const shift::core::Context&, topology::DHVA&,
 ///@}
 
 /*!
+\name Sliding attachments
+A node slot whose frame is the system parent frame of a prismatic joint
+sliding through the body (body::Base::is_sliding_node) reads the joint's
+coordinate s and rate (NodeSlot::slide_q, slide_dq): its displacement and
+screws are those of the bore's station at s (body::Base::EvaluateSlidingNode),
+with s held, and it keeps in DHVA::slide the joint's influence screw
+\f$H = [Ad]_{fr}\,h_s\f$ (the child's velocity per unit joint rate,
+including the attachment's motion through the deformed body) and its rate
+\f$\dot{H} = \underline{\mathbf{v}}_r \times H + [Ad]_{fr}\,\dot{h}_s\f$.
+The joint's operations are replaced by these, which run the joint's own
+first (its displacement, from the slot's frame by s along the axis, brings
+the child to the station) and then set
+\f[
+h = H, \qquad
+\underline{\mathbf{v}}_{child} = \underline{\mathbf{v}}_{slot} + H\dot{q},
+\qquad
+\underline{\mathbf{a}}^q_{child} = \underline{\mathbf{a}}^q_{slot} +
+  \dot{H}\dot{q}
+\f]
+*/
+///@{
+void SlidingJointDh(const shift::core::Context&, topology::DHVA&,
+                    const topology::Offsets&, const double* q);
+
+void SlidingJointDhva(const shift::core::Context&, topology::DHVA&,
+                      const topology::Offsets&, const double* q,
+                      const double* dq);
+///@}
+
+/*!
 \name Kinematics of a flexible body on a rigid joint
 A flexible body keeps its own entry in the compressed tree even on a rigid
 joint. Its reference frame (child.d) is placed from the joint's parent frame

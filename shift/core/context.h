@@ -362,6 +362,14 @@ public:
    * -1 if the frame is not a node of a flexible body */
   int GetNodeSlot(const Frame* frame) const;
 
+  /*! \brief index in node_slots_ of the node slot at va index \p va_index
+   * (NodeSlot::index), -1 if there is none */
+  int GetNodeSlotAt(int va_index) const {
+    return va_index >= 0 && size_t(va_index) < node_slot_at_va_.size()
+             ? node_slot_at_va_[size_t(va_index)]
+             : -1;
+  }
+
   /*! \brief index of \p frame's velocity and quadratic acceleration in
    * the DHVA arrays: its node slot's for a node of a flexible body, its
    * body's otherwise */
@@ -1179,6 +1187,7 @@ private:
 
   std::vector<controller::Base*> active_controllers_ = {};
   std::vector<body::Base*> active_articulated_bodies_ = {};
+  std::vector<int> node_slot_at_va_ = {}; /*!< GetNodeSlotAt */
   std::vector<topology::NodeSlot> node_slots_ = {}; /*!< node slots of the
                                                       flexible bodies */
   std::vector<body::Base*> active_free_bodies_ = {};

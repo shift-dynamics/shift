@@ -44,7 +44,9 @@ struct RtFlexMesh {
 The shapes of a mesh (SceneMesh::flex_basis) are uploaded once; as it
 deforms, only a FlexUpdate, a coefficient per shape and a rigid correction,
 is. Deform then writes, in compute passes:
-- flex_deform.comp: the deformed positions;
+- flex_peak.comp, with the peak of the stress drawn: the states recorded
+  since the last update folded into the greatest at each vertex;
+- flex_deform.comp: the deformed positions, and the stress drawn;
 - flex_normals.comp: the vertex buffer drawn, with the area weighted normals
   of the deformed triangles (as DeformFlexMesh on the CPU);
 - flex_field.comp: the displacement of the samples of the CADs that follow
@@ -119,9 +121,9 @@ public:
   void Update(int index, const SceneMesh& mesh, const FlexUpdate& update,
               QRhiResourceUpdateBatch* batch);
 
-  /*! \brief the largest von Mises stress on mesh index as it was last
-   * deformed with its stress drawn (FlexUpdate::stress), once read back
-   * from the GPU (a frame or so later) */
+  /*! \brief the largest magnitude of the quantity of the stress drawn on
+   * mesh index (FlexUpdate::stress) as it was last deformed, once read
+   * back from the GPU (a frame or so later) */
   float get_stress_maximum(int index) const;
 
   /*! \brief whether mesh or CAD index has the ray tracer's triangles */
@@ -144,6 +146,8 @@ public:
 
 private:
   struct Mesh;
+  /*! the bindings of flex_peak.comp, of the mesh's samples buffer now */
+  void MakePeakBindings(Mesh& flex);
   QRhiComputePipeline* NewPipeline(const char* shader,
                                    QRhiShaderResourceBindings* bindings);
   QRhiBuffer* NewStorage(QRhiBuffer::Type type, size_t bytes,
@@ -153,6 +157,7 @@ private:
   std::vector<std::unique_ptr<Mesh>> meshes_;
   std::unique_ptr<QRhiComputePipeline> deform_pipeline_;
   std::unique_ptr<QRhiComputePipeline> normals_pipeline_;
+  std::unique_ptr<QRhiComputePipeline> peak_pipeline_;
   std::unique_ptr<QRhiComputePipeline> refit_pipeline_;
   std::unique_ptr<QRhiComputePipeline> field_pipeline_;
   std::unique_ptr<QRhiComputePipeline> cad_pipeline_;

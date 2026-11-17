@@ -25,7 +25,9 @@ common to Modal and Nodal, and BuildElastic */
 #include "shift/core/fea/element.h"
 #include "shift/core/fea/flex_model.h"
 #include "shift/core/fea/reduction.h"
+#include "shift/core/fea/tet_mesh.h"
 #include "shift/core/geometry/cad.h"
+#include "shift/core/geometry/mesh.h"
 #endif
 
 void shift::core::body::FlexAttachment::DeclareParameters() {
@@ -43,7 +45,16 @@ void shift::core::body::FlexAttachment::DeclareParameters() {
   DeclareParameter("radius", &radius,
                    "the nodes within this distance of the frame are tied, "
                    "where no faces are given or found from the joint "
-                   "(default: element_size)",
+                   "(default: a frame inside the material is a mesh node, "
+                   "tied with the nodes of the elements around it; any "
+                   "other frame takes element_size)",
+                   false);
+  DeclareParameter("bearing_length", &bearing_length,
+                   "for the parent frame of a prismatic joint whose child "
+                   "slides along a bore of the body: the length of the "
+                   "bore wall that carries the child at each position, and "
+                   "the spacing of the stations along the bore (default: "
+                   "the bore's diameter)",
                    false);
 }
 
@@ -56,9 +67,16 @@ void shift::core::body::Flex::DeclareFiniteElementParameters() {
                    "Poisson's ratio of the material (required with "
                    "fe_geometry)",
                    false);
+  DeclareParameter("yield_strength", &yield_strength_,
+                   "yield strength of the material, for the safety factor "
+                   "against it that the viewer draws (optional; no "
+                   "effect on the motion)",
+                   false)
+    .set_runtime();
   DeclareParameter("fe_geometry", &fe_geometry_,
                    "name of the body's cad geometry whose solid is meshed "
-                   "with 10-node tetrahedra; the mass properties then come "
+                   "with 10-node tetrahedra, or of its mesh geometry whose "
+                   "triangles close a solid; the mass properties then come "
                    "from the mesh and density, and inertia and "
                    "center_of_mass are not used",
                    false);
@@ -143,19 +161,23 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     }
   }
 
-  /* the solid */
+  /* the solid: a STEP solid, or a closed triangle mesh */
   shift::core::geometry::Cad* cad = nullptr;
+  shift::core::geometry::Mesh* triangles = nullptr;
+  bool named = false;
   for(auto& geometry : geometry_.get_data()) {
     if(geometry->get_name() == fe_geometry_) {
+      named = true;
       cad = dynamic_cast<shift::core::geometry::Cad*>(geometry.get());
-      if(!cad) {
+      triangles = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
+      if(!cad && !triangles) {
         throw shift::core::Exception(
           "Flexible body '" + get_name() + "': fe_geometry '" + fe_geometry_ +
-          "' is not a cad geometry");
+          "' is not a cad or mesh geometry");
       }
     }
   }
-  if(!cad) {
+  if(!named) {
     throw shift::core::Exception("Flexible body '" + get_name() +
                                  "' has no geometry '" + fe_geometry_ + "'");
   }
@@ -164,23 +186,59 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     context_->ReportLoad("Flexible body '" + get_name() + "': " + stage);
   };
   report("reading its solid");
-  cad->Load();
-  const shift::core::geometry::CadAsset* asset = cad->get_asset();
   shift::core::fea::PlacedSolid solid;
-  solid.model = &asset->model;
-  solid.scale = cad->get_scale();
-  int solids = 0;
-  for(const auto& placed : asset->bodies) {
-    if(asset->model.bodies[placed.body].solid) {
-      solid.placed = placed;
-      solids++;
+  shift::core::fea::ClosedSurface surface;
+  if(cad) {
+    cad->Load();
+    const shift::core::geometry::CadAsset* asset = cad->get_asset();
+    solid.model = &asset->model;
+    solid.scale = cad->get_scale();
+    int solids = 0;
+    for(const auto& placed : asset->bodies) {
+      if(asset->model.bodies[placed.body].solid) {
+        solid.placed = placed;
+        solids++;
+      }
     }
-  }
-  if(solids != 1) {
-    throw shift::core::Exception(
-      "Flexible body '" + get_name() + "': fe_geometry '" + fe_geometry_ +
-      "' has " + std::to_string(solids) +
-      " solids; choose one with the geometry's part");
+    if(solids != 1) {
+      throw shift::core::Exception(
+        "Flexible body '" + get_name() + "': fe_geometry '" + fe_geometry_ +
+        "' has " + std::to_string(solids) +
+        " solids; choose one with the geometry's part");
+    }
+  } else {
+    /* the mesh's triangles, in the body's origin coordinates, with the
+    corners its files split (at seams and sharp edges) joined again */
+    triangles->Load();
+    std::vector<ksl_vec3_t> corners;
+    std::vector<std::array<int, 3>> faces;
+    ksl_vec3_t low = ksl_vec3(1e300, 1e300, 1e300);
+    ksl_vec3_t high = ksl_vec3(-1e300, -1e300, -1e300);
+    for(const auto& data : triangles->get_mesh_data()) {
+      const int base = static_cast<int>(corners.size());
+      for(size_t i = 0; i + 2 < data.vertices.size(); i += 3) {
+        const ksl_vec3_t p = ksl_vec3(data.vertices[i], data.vertices[i + 1],
+                                      data.vertices[i + 2]);
+        corners.push_back(p);
+        low = ksl_vec3(std::min(low.x, p.x), std::min(low.y, p.y),
+                       std::min(low.z, p.z));
+        high = ksl_vec3(std::max(high.x, p.x), std::max(high.y, p.y),
+                        std::max(high.z, p.z));
+      }
+      for(size_t i = 0; i + 2 < data.faces.size(); i += 3) {
+        faces.push_back({base + int(data.faces[i]), base + int(data.faces[i + 1]),
+                         base + int(data.faces[i + 2])});
+      }
+    }
+    ksl_vec3_t diagonal;
+    ksl_subtract_vv(&high, &low, &diagonal);
+    surface = shift::core::fea::WeldSurface(
+      corners, faces, 1e-6 * ksl_vec3_l2norm(&diagonal));
+    if(surface.triangles.empty()) {
+      throw shift::core::Exception("Flexible body '" + get_name() +
+                                   "': fe_geometry '" + fe_geometry_ +
+                                   "' has no triangles");
+    }
   }
 
   const double h = element_size_;
@@ -237,9 +295,33 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       }
     }
   }
+  /* the frames that hold the parent side of a prismatic joint slide along
+  a bore: tied to stations along it (below), not as an attachment of their
+  own */
   std::vector<shift::core::fea::AttachmentRequest> requests;
-  for(const FrameUse& use : frames) {
+  std::vector<shift::core::fea::AttachmentRequest> slides;
+  std::vector<double> bearing_lengths;
+  std::vector<size_t> sliding_frames;
+  for(size_t f = 0; f < frames.size(); f++) {
+    const FrameUse& use = frames[f];
     const ksl_SE3_t* D = use.frame->get_d_wrt_origin();
+    if(use.joint == FrameUse::Joint::kPrismatic) {
+      if(use.frame == reference) {
+        throw shift::core::Exception(
+          "Flexible body '" + get_name() + "': its reference frame '" +
+          use.frame->get_name() + "' cannot slide");
+      }
+      shift::core::fea::AttachmentRequest slide;
+      slide.name = use.frame->get_name();
+      slide.position = D->t;
+      ksl_product_drv(&D->R, &use.axis, &slide.axis);
+      auto entry = overrides.find(slide.name);
+      bearing_lengths.push_back(
+        entry != overrides.end() ? entry->second->bearing_length : 0.0);
+      slides.push_back(slide);
+      sliding_frames.push_back(f);
+      continue;
+    }
     shift::core::fea::AttachmentRequest request;
     request.name = use.frame->get_name();
     request.position = D->t;
@@ -295,7 +377,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   /* what the analysis depends on, but for the modes chosen */
   std::stringstream fingerprint;
   fingerprint.precision(17);
-  {
+  if(cad) {
     const std::string file = context_->FindFile(cad->get_filename());
     std::ifstream in(file, std::ios::binary);
     const std::string bytes((std::istreambuf_iterator<char>(in)),
@@ -303,17 +385,30 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     fingerprint << "step " << std::hex
                 << shift::core::fea::Fnv1a(bytes.data(), bytes.size())
                 << std::dec << " " << bytes.size() << "\n";
-  }
-  fingerprint << "body " << solid.placed.body << " scale " << solid.scale
-              << " placement";
-  for(double r : solid.placed.transform.rotation) {
-    fingerprint << " " << r;
-  }
-  for(double t : solid.placed.transform.translation) {
-    fingerprint << " " << t;
+    fingerprint << "body " << solid.placed.body << " scale " << solid.scale
+                << " placement";
+    for(double r : solid.placed.transform.rotation) {
+      fingerprint << " " << r;
+    }
+    for(double t : solid.placed.transform.translation) {
+      fingerprint << " " << t;
+    }
+  } else {
+    /* the triangles, as placed and scaled */
+    fingerprint << "triangles " << std::hex
+                << shift::core::fea::Fnv1a(
+                     surface.points.data(),
+                     surface.points.size() * sizeof(ksl_vec3_t))
+                << " "
+                << shift::core::fea::Fnv1a(
+                     surface.triangles.data(),
+                     surface.triangles.size() * sizeof(surface.triangles[0]))
+                << std::dec << " " << surface.points.size() << " "
+                << surface.triangles.size();
   }
   fingerprint << "\nmaterial " << youngs_modulus_ << " " << poisson_ratio_
-              << " " << density_ << "\nmesh " << h << " " << h_min << "\n";
+              << " " << density_ << "\nmesh " << h << " " << h_min
+              << " interior frames as nodes\n";
   for(const auto& r : requests) {
     fingerprint << "attachment '" << r.name << "' " << r.position.x << " "
                 << r.position.y << " " << r.position.z << " joint "
@@ -328,6 +423,13 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   }
   for(const ksl_vec3_t& p : retained) {
     fingerprint << "retained " << p.x << " " << p.y << " " << p.z << "\n";
+  }
+  for(size_t i = 0; i < slides.size(); i++) {
+    const auto& r = slides[i];
+    fingerprint << "sliding '" << r.name << "' " << r.position.x << " "
+                << r.position.y << " " << r.position.z << " axis " << r.axis.x
+                << " " << r.axis.y << " " << r.axis.z << " bearing "
+                << bearing_lengths[i] << "\n";
   }
 
   /* the cache file: fe_cache, or <model>.<body>.fe.h5, beside the model */
@@ -357,8 +459,23 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   std::stringstream ties;
   if(!cached) {
     report("meshing its solid");
+    /* the frames tied by no faces, and the retained points, are nodes where
+    they lie inside the material */
+    std::vector<ksl_vec3_t> interior;
+    for(const auto& request : requests) {
+      interior.push_back(request.position);
+    }
+    interior.insert(interior.end(), retained.begin(), retained.end());
     shift::core::fea::TetMesh mesh =
-      shift::core::fea::MeshPlacedSolid(solid, h, h_min);
+      cad ? shift::core::fea::MeshPlacedSolid(solid, h, h_min, interior)
+          : shift::core::fea::MeshVolume(
+              shift::core::fea::RemeshSurface(surface, h, h_min), h, h_min,
+              interior);
+    for(size_t a = 0; a < requests.size(); a++) {
+      if(requests[a].faces.empty()) {
+        requests[a].node = mesh.interior_nodes[a];
+      }
+    }
     report("assembling its finite element model");
     shift::core::fea::Material material;
     material.youngs_modulus = youngs_modulus_;
@@ -370,7 +487,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     for(const auto& request : requests) {
       std::vector<int> faces;
       attachments.push_back(
-        shift::core::fea::ChooseAttachment(mesh, solid, request, h, &faces));
+        shift::core::fea::ChooseAttachment(mesh, cad ? &solid : nullptr, request, h, &faces));
       ties << " '" << request.name << "' "
            << (request.spider == shift::core::fea::Attachment::Spider::kRbe2
                  ? "rbe2"
@@ -384,6 +501,49 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       }
       ties << ";";
     }
+    /* the stations of each sliding frame: the bore cut into lengths of the
+    bearing, each tied to its frame-to-be at its middle on the axis */
+    std::vector<std::string> owners;
+    for(const auto& request : requests) {
+      owners.push_back(request.name);
+    }
+    cache.sliding_stations.clear();
+    for(size_t i = 0; i < slides.size(); i++) {
+      const auto& slide = slides[i];
+      const shift::core::fea::Bore bore =
+        shift::core::fea::FindBore(mesh, slide);
+      const double length =
+        bearing_lengths[i] > 0.0 ? bearing_lengths[i] : 2.0 * bore.radius;
+      const double extent = bore.high - bore.low;
+      const int count =
+        std::max(1, static_cast<int>(std::lround(extent / length)));
+      const double spacing = extent / count;
+      ksl_vec3_t axis = slide.axis;
+      ksl_vec3_normalize(&axis);
+      std::vector<shift::core::fea::Attachment> stations(
+        static_cast<size_t>(count));
+      for(int k = 0; k < count; k++) {
+        stations[size_t(k)].position = slide.position;
+        ksl_axpy_vv(bore.low + (k + 0.5) * spacing, &axis,
+                    &stations[size_t(k)].position);
+      }
+      for(int node : bore.nodes) {
+        ksl_vec3_t r;
+        ksl_subtract_vv(&mesh.nodes[size_t(node)], &slide.position, &r);
+        const int k = std::clamp(
+          static_cast<int>((ksl_dot_vv(&r, &axis) - bore.low) / spacing), 0,
+          count - 1);
+        stations[size_t(k)].nodes.push_back(node);
+      }
+      for(auto& station : stations) {
+        attachments.push_back(station);
+        owners.push_back(slide.name);
+      }
+      cache.sliding_stations.push_back(count);
+      ties << " '" << slide.name << "' sliding along " << count
+           << " stations " << spacing << " apart of a bore of radius "
+           << bore.radius << " (" << bore.nodes.size() << " nodes);";
+    }
     /* a node in two attachments: name the frames */
     std::map<int, size_t> owner;
     for(size_t a = 0; a < attachments.size(); a++) {
@@ -392,13 +552,19 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
         if(!inserted) {
           throw shift::core::Exception(
             "Flexible body '" + get_name() + "': the attachments of frames '" +
-            requests[it->second].name + "' and '" + requests[a].name +
+            owners[it->second] + "' and '" + owners[a] +
             "' share nodes (give one of them its faces or a smaller radius)");
         }
       }
     }
-    const std::vector<int> retained_nodes =
+    std::vector<int> retained_nodes =
       shift::core::fea::NearestNodes(mesh, retained);
+    for(size_t i = 0; i < retained.size(); i++) {
+      const int node = mesh.interior_nodes[requests.size() + i];
+      if(node >= 0) {
+        retained_nodes[i] = node;
+      }
+    }
     /* every mode computed kept, for KeepModes to choose from; for a
     frequency, more until one lies above it */
     report("computing its modes");
@@ -482,12 +648,45 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
            damping);
   node_names_.clear();
   node_points_.clear();
-  if(reduction.attachment_points.size() != frames.size()) {
+  node_sliding_.clear();
+  sliding_.clear();
+  size_t station_count = 0;
+  for(int count : cache.sliding_stations) {
+    station_count += size_t(std::max(count, 0));
+  }
+  if(reduction.attachment_points.size() != requests.size() + station_count ||
+     cache.sliding_stations.size() != slides.size()) {
     throw shift::core::Exception("Flexible body '" + get_name() +
                                  "': its cache does not match its frames");
   }
-  for(size_t a = 0; a < frames.size(); a++) {
-    SetNode(frames[a].frame->get_name(), reduction.attachment_points[a]);
+  /* the frames tied as attachments, in order, then the sliding ones, each
+  carried by its stations (at s along the axis from the frame) */
+  size_t next = 0;
+  for(size_t f = 0; f < frames.size(); f++) {
+    if(frames[f].joint != FrameUse::Joint::kPrismatic) {
+      SetNode(frames[f].frame->get_name(), reduction.attachment_points[next++]);
+    }
+  }
+  for(size_t i = 0; i < slides.size(); i++) {
+    const size_t count = size_t(cache.sliding_stations[i]);
+    std::vector<unsigned int> stations(reduction.attachment_points.begin() +
+                                         long(next),
+                                       reduction.attachment_points.begin() +
+                                         long(next + count));
+    next += count;
+    ksl_vec3_t axis = slides[i].axis;
+    ksl_vec3_normalize(&axis);
+    auto s_of = [&](unsigned int point) {
+      ksl_vec3_t r;
+      ksl_subtract_vv(&reduction.positions[point], &slides[i].position, &r);
+      return ksl_dot_vv(&r, &axis);
+    };
+    const double first = s_of(stations[0]);
+    const double spacing =
+      count > 1 ? (s_of(stations[count - 1]) - first) / double(count - 1)
+                : 0.0;
+    SetSlidingNode(frames[sliding_frames[i]].frame->get_name(), stations,
+                   first, spacing, frames[sliding_frames[i]].axis);
   }
   const size_t n = reduction.elastic_count;
   if(!initial_elastic_coordinates_.empty() ||

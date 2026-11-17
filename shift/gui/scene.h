@@ -281,32 +281,86 @@ struct FlexUpdate {
   std::vector<float> coefficients; /*!< SceneMesh::flex_columns of them */
   ksl_vec3f_t translation = ksl_vec3f(0.f, 0.f, 0.f);
   ksl_vec3f_t rotation = ksl_vec3f(0.f, 0.f, 0.f);
-  /*! the stress drawn (SceneMesh::flex_stress_basis): none, or the von
-   * Mises stress of the deformation of stress_coefficients (as the
+  /*! the stress drawn (SceneMesh::flex_stress_basis): none, or a quantity
+   * of the stress of the deformation of stress_coefficients (as the
    * coefficients, but not magnified by the deformation scale), mapped to
-   * [0, 1] over the range (FlexStressRange) in each vertex's uv[0] */
+   * [0, 1] over the range (FlexStressMapped) in each vertex's uv[0] */
   enum class Stress { kNone, kRange, kAutomatic };
   Stress stress = Stress::kNone;
   std::vector<float> stress_coefficients;
-  /*! with kRange: the stress mapped to 0 and to 1; with kAutomatic, from 0
-   * to the largest stress on the mesh */
+  /*! with kRange: the quantity mapped to 0 and to 1 (the safety factor's
+   * always: its colors run the other way, the map's end at range[0]); with
+   * kAutomatic, from 0 (a signed quantity's: -the largest magnitude) to the
+   * largest magnitude on the mesh */
   float stress_range[2] = {0.f, 1.f};
+  /*! the quantity drawn: the von Mises stress; the Tresca stress (the
+   * largest principal stress less the smallest); the principal stresses,
+   * largest first; a component, in the body's coordinates; or the safety
+   * factor, yield_strength / the von Mises stress (FlexStressValue gives
+   * the von Mises stress, FlexStressMapped the factor) */
+  enum class Quantity {
+    kVonMises,
+    kTresca,
+    kMaxPrincipal,
+    kMiddlePrincipal,
+    kMinPrincipal,
+    kXx,
+    kYy,
+    kZz,
+    kXy,
+    kYz,
+    kZx,
+    kSafetyFactor
+  };
+  Quantity quantity = Quantity::kVonMises;
+  float yield_strength = 0.f; /*!< kSafetyFactor's */
+  /*! draw at each vertex the greatest (in magnitude) of the quantity now
+   * and at the states recorded up to now (the peak), which the drawing
+   * keeps: those not folded into it yet are peak_samples, peak_columns
+   * stress coefficients each (of the first columns of the basis: the
+   * elastic coordinates), the first of them state peak_first; peak_first 0
+   * starts the peak again */
+  bool peak = false;
+  size_t peak_first = 0;
+  size_t peak_columns = 0;
+  std::vector<float> peak_samples;
 };
 
-/*! \brief the von Mises stress of a vertex of a deformable mesh: \f$
- * \sqrt{\frac{1}{2}((\sigma_{xx} - \sigma_{yy})^2 + (\sigma_{yy} -
- * \sigma_{zz})^2 + (\sigma_{zz} - \sigma_{xx})^2) + 3 (\tau_{xy}^2 +
- * \tau_{yz}^2 + \tau_{zx}^2)} \f$ with \f$\underline{\sigma} = \sum_j a_j
- * \underline{\sigma}_j\f$ (as flex_deform.comp) */
-float FlexVonMises(const SceneMesh& mesh, const FlexUpdate& update,
-                   size_t vertex);
+/*! \brief whether a quantity of the stress has a sign (a principal stress
+ * or a component), whose automatic range is symmetric about 0 */
+bool FlexStressSigned(FlexUpdate::Quantity quantity);
+
+/*! \brief the principal stresses of s, \f$(\sigma_{xx}, \sigma_{yy},
+ * \sigma_{zz}, \tau_{xy}, \tau_{yz}, \tau_{zx})\f$, largest first: the
+ * eigenvalues of the symmetric stress tensor in closed form (O. K. Smith,
+ * "Eigenvalues of a symmetric 3 x 3 matrix", Communications of the ACM
+ * 4(4), 1961, p. 168), as flex_common.glsl */
+void FlexPrincipalStresses(const float s[6], float principal[3]);
+
+/*! \brief the quantity of the stress s (as FlexPrincipalStresses); the
+ * safety factor's is the von Mises stress (as flex_common.glsl) */
+float FlexStressValue(const float s[6], FlexUpdate::Quantity quantity);
+
+/*! \brief the quantity of the stress of vertex vertex of a deformable mesh
+ * in the deformation with the given coefficients of the first count
+ * columns of its stress basis (\f$\underline{\sigma} = \sum_j a_j
+ * \underline{\sigma}_j\f$) */
+float FlexStressAt(const SceneMesh& mesh, const float* coefficients,
+                   size_t count, size_t vertex, FlexUpdate::Quantity quantity);
+
+/*! \brief a quantity of the stress drawn (FlexStressValue) mapped to [0,
+ * 1] over update's range; largest is the largest magnitude on the mesh (as
+ * flex_normals.comp) */
+float FlexStressMapped(const FlexUpdate& update, float value, float largest);
 
 /*! \brief the vertices of a deformable mesh deformed as update says, on
  * the CPU (as the viewport's compute shaders do; where it has none), with
- * the stress drawn in uv[0]; returns the largest von Mises stress on the
- * mesh (0 if update draws none) */
+ * the stress drawn in uv[0]; peak, if given, is the greatest at each vertex
+ * kept from update to update (FlexUpdate::peak). Returns the largest
+ * magnitude of the quantity drawn on the mesh (0 if update draws none) */
 float DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
-                     std::vector<Vertex>& vertices);
+                     std::vector<Vertex>& vertices,
+                     std::vector<float>* peak = nullptr);
 
 /*! \brief the displacement of each sample of a flexible body's CAD
  * (SceneCad::flex_mesh) deformed as update says (of its mesh), body

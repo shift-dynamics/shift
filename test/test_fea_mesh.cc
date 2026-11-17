@@ -4,8 +4,11 @@ stiffness of 10-node tetrahedra stores no energy in rigid motions and passes
 the patch test (a linear displacement field gives the exact strain energy
 and no forces inside); the lumped masses add up to the body's; and a mesh of
 a STEP solid with its boundary's mid-side nodes on the exact surfaces
-(MeshSolid) has the solid's volume. */
+(MeshSolid) has the solid's volume. A triangle mesh's split corners are
+joined (WeldSurface) and Netgen remakes its triangles (RemeshSurface);
+points inside are kept as nodes. */
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <string>
@@ -107,6 +110,58 @@ TEST(FeaMesh, RefusesAnOpenSurface) {
   open.face.pop_back();
   EXPECT_THROW(shift::core::fea::MeshVolume(open, 0.5),
                shift::core::Exception);
+}
+
+/* the corners of a cube's triangles, each triangle with its own copies (as
+a mesh file splits them), joined again: 8 points; remade by Netgen to a
+finer size, still closed (MeshVolume fills it), with the cube's volume and
+its six sides as faces */
+TEST(FeaMesh, WeldsAndRemeshesASurface) {
+  const shift::core::fea::ClosedSurface cube = Cube(1.0, 1);
+  std::vector<ksl_vec3_t> corners;
+  std::vector<std::array<int, 3>> split;
+  for(const std::array<int, 3>& t : cube.triangles) {
+    const int base = static_cast<int>(corners.size());
+    for(int k : t) {
+      ksl_vec3_t p = cube.points[size_t(k)];
+      p.x += 1e-9; /* within the tolerance */
+      corners.push_back(p);
+    }
+    split.push_back({base, base + 1, base + 2});
+  }
+  const shift::core::fea::ClosedSurface welded =
+    shift::core::fea::WeldSurface(corners, split, 1e-6);
+  EXPECT_EQ(welded.points.size(), 8u);
+  EXPECT_EQ(welded.triangles.size(), 12u);
+
+  const shift::core::fea::ClosedSurface remeshed =
+    shift::core::fea::RemeshSurface(welded, 0.25, 0.0);
+  EXPECT_GT(remeshed.triangles.size(), 6u * 2 * 16 / 2);
+  int faces = 0;
+  for(int f : remeshed.face) {
+    faces = std::max(faces, f + 1);
+  }
+  EXPECT_EQ(faces, 6);
+  const shift::core::fea::TetMesh mesh =
+    shift::core::fea::MeshVolume(remeshed, 0.25);
+  EXPECT_NEAR(mesh.Volume(), 1.0, 1e-9);
+}
+
+/* a point inside, clear of the surface, is a node of the mesh exactly; one
+outside is not */
+TEST(FeaMesh, KeepsInteriorPointsAsNodes) {
+  const std::vector<ksl_vec3_t> points = {{0.37, 0.41, 0.53},
+                                          {1.5, 0.5, 0.5}};
+  const shift::core::fea::TetMesh mesh =
+    shift::core::fea::MeshVolume(Cube(1.0, 4), 0.25, 0.0, points);
+  ASSERT_EQ(mesh.interior_nodes.size(), 2u);
+  ASSERT_GE(mesh.interior_nodes[0], 0);
+  const ksl_vec3_t& node = mesh.nodes[size_t(mesh.interior_nodes[0])];
+  EXPECT_EQ(node.x, 0.37);
+  EXPECT_EQ(node.y, 0.41);
+  EXPECT_EQ(node.z, 0.53);
+  EXPECT_LT(mesh.interior_nodes[1], 0);
+  EXPECT_NEAR(mesh.Volume(), 1.0, 1e-12);
 }
 
 /* steel */

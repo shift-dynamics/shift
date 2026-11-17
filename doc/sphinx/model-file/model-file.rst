@@ -295,10 +295,14 @@ Flexible bodies
 ***************
 
 ``"type": "modal"`` and ``"type": "nodal"`` are flexible bodies made from a
-finite element model of one of their geometries, a solid of a STEP file
-(``fe_geometry``, a ``cad`` geometry of the body). When the model loads,
-*Shift* meshes the solid with 10-node tetrahedra (Netgen, with the mid-side
-nodes on the boundary moved onto the exact surfaces), assembles the stiffness
+finite element model of one of their geometries (``fe_geometry``): a solid
+of a STEP file (a ``cad`` geometry of the body), or a solid closed by the
+triangles of a mesh file (a ``mesh`` geometry, e.g. an OBJ or STL file, whose
+triangles meet edge to edge, every edge shared by two). When the model
+loads, *Shift* meshes the solid with 10-node tetrahedra (Netgen; for a STEP
+solid, the mid-side nodes on the boundary are moved onto the exact surfaces;
+a mesh's triangles are remade at about ``element_size``, finer where the
+surface curves, the new points on the given triangles), assembles the stiffness
 and lumped mass matrices from ``density``, ``youngs_modulus`` and
 ``poisson_ratio``, and reduces them to a few elastic coordinates:
 
@@ -306,9 +310,30 @@ and lumped mass matrices from ``density``, ``youngs_modulus`` and
   ``attachments``, is tied to the mesh. A revolute joint's frame is tied to
   the cylindrical faces coaxial with the joint's axis (its bores, or its pin
   if it has no bore); a spherical joint's frame to the spherical faces
-  centred on it; any other frame to the nodes within ``radius`` of it. By
+  centred on it. A mesh has no such faces: its bores, pins, sockets and
+  balls are found from its triangles, those facing the joint's axis (or
+  centre) at one distance from it that wrap at least about a quarter of the
+  way round it (``faces`` cannot be given). Any other frame inside the material
+  is made a node of the
+  mesh, exactly where it lies, and is tied to that node and the nodes of the
+  elements around it; a frame outside the material (or one given a
+  ``radius``) is tied to the nodes within ``radius`` of it
+  (``element_size`` by default). Points of ``retained_points`` inside the
+  material are mesh nodes too. By
   default the frame moves with the mean motion of those nodes (``"spider":
   "rbe3"``); ``"rbe2"`` moves the nodes rigidly with the frame;
+- a frame that holds the parent side of a ``prismatic`` joint (a frame on
+  the axis of a bore of the body, whose child slides along the bore) is a
+  *sliding attachment*: rays cast from it at right angles to the joint's
+  axis find the bore's wall, which is cut along the axis into lengths of
+  ``bearing_length`` (the bore's diameter by default), each tied to a
+  station on the axis at its middle. The joint's child is carried by the
+  bore at its position s: the stations' motions are interpolated in s by a
+  natural cubic spline, continued in a straight line beyond the first and
+  last stations, and the joint's influence coefficients and accelerations
+  include the attachment's motion through the deforming body. A load at the
+  sliding frame acts at the station at s. Only a closed bore round the axis
+  is found (not an open guide), and a joint has one sliding attachment;
 - the frame of the body's parent joint holds the body (its reference frame),
   and each other tied frame gives six static modes: the deflection of the
   body when that frame alone moves;
@@ -362,21 +387,30 @@ Each entry of ``attachments``:
 In the viewer, a flexible body is drawn deformed as the model runs: its
 ``fe_geometry`` CAD, the exact surface displaced as the surface of its mesh
 around it, where the graphics device has tessellation and compute shaders
-(Vulkan), and otherwise the surface of its mesh. View > Deformation scale
+(Vulkan), and otherwise (and for a ``mesh`` geometry, in the color of its
+material) the surface of its mesh. View > Deformation scale
 magnifies the deformation (but not the part of it that moves the body as a
 whole). The body's panel can draw the surface of its mesh in place of the
-CAD, the edges of its elements over either surface, as points the nodes
-the joints' attachments tie to the body's frames, and the von Mises stress
-on the mesh's surface (all three in raster mode), which the View menu and
-the viewer's ``--image`` options ``--mesh-surface``, ``--mesh-edges``,
+CAD, the edges of its elements over either surface and, as points, the nodes
+the joints' attachments tie to the body's frames (both in raster mode only),
+and the stress on the mesh's surface, which the View menu and the viewer's
+``--image`` options ``--mesh-surface``, ``--mesh-edges``,
 ``--constrained-nodes`` and ``--stresses`` do for every flexible body. The
 stress of each surface node in each shape is computed with the modes (at
 the node in each element around it, averaged by the elements' volumes) and
 kept in ``fe_cache``; as the body deforms, the GPU sums them with the
 elastic coordinates (not magnified by the deformation scale). Edit >
-Settings chooses the color map and its range: from 0 to the largest stress
-on each body as it is drawn, or a fixed range, in the model's units of
-stress; the status bar shows the range. The panel also opens
+Settings chooses what is drawn: the von Mises or Tresca stress, a principal
+stress, a component in the body's coordinates, or the safety factor, the
+body's ``yield_strength`` over its von Mises stress (a body without one is
+not colored); and, for each, either the stress now or the greatest (in
+magnitude) at each point over the states recorded up to the time shown. It
+also chooses the color map and its range: from 0 (minus the largest, for a
+principal stress or a component) to the largest on each body as it is drawn,
+or a fixed range, in the model's units of stress; the safety factor is drawn
+over its own range, the smallest factors at the map's end. The status bar
+shows the range, and the smallest safety factor. ``yield_strength`` can be
+changed in the body's panel as the model runs. The panel also opens
 the mode window, which lists the static modes and every vibration mode
 computed with its frequency, draws the one selected on the body, and writes
 the modes checked back to the model as ``modes_kept``. Meshing the solid and
