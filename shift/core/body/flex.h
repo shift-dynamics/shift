@@ -232,6 +232,26 @@ public:
   const std::vector<int>& get_mesh_boundary_face() const {
     return mesh_boundary_face_;
   }
+  /*! \brief the mesh nodes (points) each attachment ties to its frame, in
+   * the order of the frames attached, the reference frame first (built
+   * from a mesh) */
+  const std::vector<std::vector<int>>& get_attachment_nodes() const {
+    return attachment_nodes_;
+  }
+  /*! \brief the nodes on the mesh's surface, ascending (built from a
+   * mesh) */
+  const std::vector<int>& get_surface_nodes() const {
+    return surface_nodes_;
+  }
+  /*! \brief the stress at each node of get_surface_nodes in each shape
+   * (fea::NodalStresses): the elastic coordinates', then the fixed-interface
+   * modes computed (get_computed_shapes), as \f$(\sigma_{xx}, \sigma_{yy},
+   * \sigma_{zz}, \tau_{xy}, \tau_{yz}, \tau_{zx})\f$ of node i in shape j at
+   * 6 (i (get_elastic_count() + get_frequencies().size()) + j); the stress
+   * of a deformation is linear in its coordinates */
+  const std::vector<double>& get_surface_stresses() const {
+    return surface_stresses_;
+  }
   /*! \brief the points that are mesh nodes, the first of the points (the
    * attachments' points follow them); 0 unless built from a mesh */
   unsigned int get_mesh_node_count() const {
@@ -332,6 +352,9 @@ protected:
   std::vector<std::array<int, 6>> mesh_boundary_;
   std::vector<int> mesh_boundary_face_;
   unsigned int mesh_node_count_ = 0;
+  std::vector<std::vector<int>> attachment_nodes_;
+  std::vector<int> surface_nodes_;
+  std::vector<double> surface_stresses_;
   bool from_cache_ = false;
   std::vector<double> computed_shapes_;
 

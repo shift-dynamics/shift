@@ -24,6 +24,13 @@ struct FlexCache {
   std::vector<int> boundary_face;
   double volume = 0.0;
   int tet_count = 0;
+  /*! the mesh nodes each attachment ties to its frame, in the order of the
+   * attachments (the reference frame's first) */
+  std::vector<std::vector<int>> attachment_nodes;
+  /*! the nodes of the boundary, ascending, and their stresses in each of
+   * full's shapes (NodalStresses: 6 (i full.elastic_count + j) + c) */
+  std::vector<int> surface_nodes;
+  std::vector<double> surface_stresses;
 };
 
 /*!

@@ -4,6 +4,7 @@ common to Modal and Nodal, and BuildElastic */
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <set>
 #include <sstream>
 
 #include "ksl/matrix.h"
@@ -158,6 +159,11 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     throw shift::core::Exception("Flexible body '" + get_name() +
                                  "' has no geometry '" + fe_geometry_ + "'");
   }
+  /* what is being done, for the viewer's progress */
+  auto report = [this](const char* stage) {
+    context_->ReportLoad("Flexible body '" + get_name() + "': " + stage);
+  };
+  report("reading its solid");
   cad->Load();
   const shift::core::geometry::CadAsset* asset = cad->get_asset();
   shift::core::fea::PlacedSolid solid;
@@ -339,6 +345,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
                    .string();
   }
   shift::core::fea::FlexCache cache;
+  report("reading its finite element cache");
   bool cached = !cache_path.empty() &&
                 shift::core::fea::ReadFlexCache(cache_path, fingerprint.str(),
                                                 cache);
@@ -349,8 +356,10 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   }
   std::stringstream ties;
   if(!cached) {
+    report("meshing its solid");
     shift::core::fea::TetMesh mesh =
       shift::core::fea::MeshPlacedSolid(solid, h, h_min);
+    report("assembling its finite element model");
     shift::core::fea::Material material;
     material.youngs_modulus = youngs_modulus_;
     material.poisson_ratio = poisson_ratio_;
@@ -392,6 +401,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       shift::core::fea::NearestNodes(mesh, retained);
     /* every mode computed kept, for KeepModes to choose from; for a
     frequency, more until one lies above it */
+    report("computing its modes");
     unsigned int computed = needed;
     for(;;) {
       cache.full = shift::core::fea::ReduceKeepingAll(
@@ -404,8 +414,22 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       computed *= 2;
     }
     cache.node_count = static_cast<unsigned int>(mesh.nodes.size());
+    cache.attachment_nodes.clear();
+    for(const auto& attachment : attachments) {
+      cache.attachment_nodes.push_back(attachment.nodes);
+    }
     cache.boundary = mesh.boundary;
     cache.boundary_face = mesh.boundary_face;
+    /* the stresses on the surface, for the viewer to draw */
+    report("computing its stresses");
+    std::set<int> surface;
+    for(const auto& triangle : mesh.boundary) {
+      surface.insert(triangle.begin(), triangle.end());
+    }
+    cache.surface_nodes.assign(surface.begin(), surface.end());
+    cache.surface_stresses = shift::core::fea::NodalStresses(
+      mesh, material, cache.surface_nodes, cache.full.shapes,
+      cache.full.elastic_count);
     cache.volume = assembled.volume;
     cache.tet_count = static_cast<int>(mesh.tets.size());
     if(!cache_path.empty() &&
@@ -484,6 +508,34 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   mesh_boundary_ = cache.boundary;
   mesh_boundary_face_ = cache.boundary_face;
   mesh_node_count_ = cache.node_count;
+  attachment_nodes_ = cache.attachment_nodes;
+  /* the surface's stresses in the columns of the elastic coordinates
+  (static modes, then the modes kept), then of the modes computed: full's
+  static modes, then its modes */
+  surface_nodes_ = cache.surface_nodes;
+  surface_stresses_.clear();
+  {
+    const size_t s = cache.full.static_count;
+    const size_t n_full = cache.full.elastic_count;
+    std::vector<size_t> columns;
+    for(size_t j = 0; j < s; j++) {
+      columns.push_back(j);
+    }
+    for(unsigned int k : kept) {
+      columns.push_back(s + k);
+    }
+    for(size_t k = 0; k < reduction.frequencies.size(); k++) {
+      columns.push_back(s + k);
+    }
+    surface_stresses_.reserve(6 * surface_nodes_.size() * columns.size());
+    for(size_t i = 0; i < surface_nodes_.size(); i++) {
+      for(size_t column : columns) {
+        const double* stress =
+          cache.surface_stresses.data() + 6 * (i * n_full + column);
+        surface_stresses_.insert(surface_stresses_.end(), stress, stress + 6);
+      }
+    }
+  }
   from_cache_ = cached;
   computed_shapes_ = reduction.computed_shapes;
   ResolveNodes();

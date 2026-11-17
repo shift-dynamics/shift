@@ -691,6 +691,24 @@ public:
     state_observer_ = std::move(observer);
   }
 
+  /*! \brief Callback invoked while a model loads (LoadJSON): what is being
+   * done, and done of total items of it (total 0 when they are not
+   * counted). It may throw to stop the load, which LoadJSON passes on. */
+  using LoadObserver =
+    std::function<void(const std::string& stage, int done, int total)>;
+
+  void set_load_observer(LoadObserver observer) {
+    load_observer_ = std::move(observer);
+  }
+  /*! \brief tell the load observer, if any, of the stage of the load (also
+   * the objects that take long to load, e.g. a flexible body meshing its
+   * solid) */
+  void ReportLoad(const std::string& stage, int done = 0, int total = 0) {
+    if(load_observer_) {
+      load_observer_(stage, done, total);
+    }
+  }
+
   /*! \brief Pose of a body's origin with respect to the inertial frame,
    * evaluated from the displacements in dhva (by default the context's own),
    * for a free body from dhva.free */
@@ -1165,6 +1183,7 @@ private:
                                                       flexible bodies */
   std::vector<body::Base*> active_free_bodies_ = {};
   StateObserver state_observer_;
+  LoadObserver load_observer_;
   std::vector<collision_geometry::Base*> active_collision_geometry_ = {};
   std::vector<collision_geometry::Base*> contact_geometry_ = {};
   std::map<std::string, collision_geometry::Base*>

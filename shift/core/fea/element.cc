@@ -2,6 +2,9 @@
 
 #include <cmath>
 #include <string>
+#include <unordered_map>
+
+#include "ksl/vec3.h"
 
 #include "shift/core/exception.h"
 
@@ -28,6 +31,114 @@ static void Tet10Derivatives(double xi, double eta, double zeta,
       dn[4 + k][c] = 4.0 * (L[j] * kDL[i][c] + L[i] * kDL[j][c]);
     }
   }
+}
+
+/* the derivatives of the 10 shape functions with respect to x, y, z,
+g[n][r], at the natural coordinates (xi, eta, zeta); false if the Jacobian
+there is not positive, else det the Jacobian's determinant */
+static bool Tet10Gradients(const std::array<ksl_vec3_t, 10>& nodes,
+                           double xi, double eta, double zeta,
+                           double g[10][3], double* det) {
+  double dn[10][3];
+  Tet10Derivatives(xi, eta, zeta, dn);
+  /* the columns of the Jacobian, d x / d xi_c */
+  ksl_vec3_t column[3] = {};
+  for(int n = 0; n < 10; n++) {
+    for(int c = 0; c < 3; c++) {
+      ksl_axpy_vv(dn[n][c], &nodes[n], &column[c]);
+    }
+  }
+  /* its inverse by the cross products of its columns (no pivots): row c,
+  d xi_c / d x, is column[c + 1] x column[c + 2] / det */
+  ksl_vec3_t row[3];
+  for(int c = 0; c < 3; c++) {
+    ksl_cross_vv(&column[(c + 1) % 3], &column[(c + 2) % 3], &row[c]);
+  }
+  *det = ksl_dot_vv(&column[0], &row[0]);
+  if(!(*det > 0.0)) {
+    return false;
+  }
+  /* dN/dx_r = sum_c dN/dxi_c dxi_c/dx_r */
+  for(int n = 0; n < 10; n++) {
+    for(int r = 0; r < 3; r++) {
+      g[n][r] = (dn[n][0] * row[0].at[r] + dn[n][1] * row[1].at[r] +
+                 dn[n][2] * row[2].at[r]) /
+                *det;
+    }
+  }
+  return true;
+}
+
+std::vector<double> shift::core::fea::NodalStresses(
+  const TetMesh& mesh, const Material& material, const std::vector<int>& nodes,
+  const std::vector<ksl_screw_t>& shapes, size_t columns) {
+  const double E = material.youngs_modulus, nu = material.poisson_ratio;
+  const double lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+  const double mu = E / (2.0 * (1.0 + nu));
+  std::unordered_map<int, size_t> index;
+  for(size_t i = 0; i < nodes.size(); i++) {
+    index.emplace(nodes[i], i);
+  }
+  std::vector<double> stresses(6 * nodes.size() * columns, 0.0);
+  std::vector<double> weights(nodes.size(), 0.0);
+  /* the natural coordinates of the nodes, in the order of TetMesh */
+  static const double kNodes[10][3] = {
+    {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0},
+    {0.5, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.0, 0.5, 0.0}, {0.0, 0.0, 0.5},
+    {0.5, 0.0, 0.5}, {0.0, 0.5, 0.5}};
+  for(const std::array<int, 10>& t : mesh.tets) {
+    std::array<ksl_vec3_t, 10> x;
+    for(int a = 0; a < 10; a++) {
+      x[a] = mesh.nodes[t[a]];
+    }
+    /* the element's weight: its volume, so that a small badly shaped
+    element (whose stresses are the least accurate) counts the least */
+    double centre[10][3], volume;
+    if(!Tet10Gradients(x, 0.25, 0.25, 0.25, centre, &volume)) {
+      continue;
+    }
+    for(int a = 0; a < 10; a++) {
+      auto it = index.find(t[a]);
+      if(it == index.end()) {
+        continue;
+      }
+      double g[10][3], det;
+      if(!Tet10Gradients(x, kNodes[a][0], kNodes[a][1], kNodes[a][2], g,
+                         &det)) {
+        continue;
+      }
+      const size_t i = it->second;
+      weights[i] += volume;
+      for(size_t j = 0; j < columns; j++) {
+        /* the displacement gradient H[r][c] = d u_r / d x_c */
+        double H[3][3] = {};
+        for(int b = 0; b < 10; b++) {
+          const ksl_vec3_t& u = shapes[size_t(t[b]) * columns + j].lin;
+          for(int r = 0; r < 3; r++) {
+            for(int c = 0; c < 3; c++) {
+              H[r][c] += u.at[r] * g[b][c];
+            }
+          }
+        }
+        const double trace = H[0][0] + H[1][1] + H[2][2];
+        double* s = stresses.data() + 6 * (i * columns + j);
+        for(int r = 0; r < 3; r++) {
+          s[r] += volume * (lambda * trace + 2.0 * mu * H[r][r]);
+        }
+        s[3] += volume * mu * (H[0][1] + H[1][0]);
+        s[4] += volume * mu * (H[1][2] + H[2][1]);
+        s[5] += volume * mu * (H[2][0] + H[0][2]);
+      }
+    }
+  }
+  for(size_t i = 0; i < nodes.size(); i++) {
+    if(weights[i] > 0.0) {
+      for(size_t k = 6 * i * columns; k < 6 * (i + 1) * columns; k++) {
+        stresses[k] /= weights[i];
+      }
+    }
+  }
+  return stresses;
 }
 
 bool shift::core::fea::Tet10Stiffness(const std::array<ksl_vec3_t, 10>& nodes,

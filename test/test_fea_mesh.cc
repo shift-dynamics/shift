@@ -194,6 +194,36 @@ TEST(FeaElement, RigidMotionsAndThePatchTest) {
     }
   }
   EXPECT_LT(inner, 1e-9 * any);
+
+  /* the stress of the uniform strain at every node, inside and on the
+  boundary: sigma = lambda tr(e) I + 2 mu e, and of a rigid rotation none
+  (the second shape) */
+  std::vector<ksl_screw_t> shapes(2 * static_cast<size_t>(n));
+  std::vector<int> nodes(static_cast<size_t>(n));
+  for(Eigen::Index i = 0; i < n; i++) {
+    nodes[size_t(i)] = static_cast<int>(i);
+    const ksl_vec3_t& x = mesh.nodes[i];
+    shapes[2 * size_t(i)].lin =
+      ksl_vec3(u(3 * i), u(3 * i + 1), u(3 * i + 2));
+    shapes[2 * size_t(i) + 1].lin = ksl_vec3(-1e-3 * x.y, 1e-3 * x.x, 0.0);
+  }
+  const std::vector<double> stresses =
+    shift::core::fea::NodalStresses(mesh, steel, nodes, shapes, 2);
+  ASSERT_EQ(stresses.size(), 12 * size_t(n));
+  double expected[6];
+  for(int r = 0; r < 3; r++) {
+    expected[r] = lambda * trace + 2.0 * mu * A[r][r];
+  }
+  expected[3] = mu * (A[0][1] + A[1][0]);
+  expected[4] = mu * (A[1][2] + A[2][1]);
+  expected[5] = mu * (A[2][0] + A[0][2]);
+  const double size = std::fabs(expected[0]);
+  for(size_t i = 0; i < size_t(n); i++) {
+    for(int c = 0; c < 6; c++) {
+      EXPECT_NEAR(stresses[12 * i + size_t(c)], expected[c], 1e-6 * size);
+      EXPECT_NEAR(stresses[12 * i + 6 + size_t(c)], 0.0, 1e-6 * size);
+    }
+  }
 }
 
 /* a cylinder 1 inch in diameter: the mesh with its boundary's mid-side

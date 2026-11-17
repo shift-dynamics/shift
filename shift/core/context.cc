@@ -131,6 +131,7 @@ void shift::core::Context::LoadJSON(const Json::Value& model,
 }
 
 void shift::core::Context::ReadModel(const std::string& filename) {
+  ReportLoad("Reading the model");
   ReadJSON(root_);
   AddDefaultFloor();
   set_parent(this);
@@ -146,6 +147,7 @@ void shift::core::Context::PostLoad(const std::string) {
   CheckUniqueNames();
 
   /* process topology */
+  ReportLoad("Setting up the topology");
   ActivateObjects(true);
   Connect();
   AddFloatingJoints();
@@ -165,6 +167,7 @@ void shift::core::Context::PostLoad(const std::string) {
   UpdateDH();
   UpdateDHVA();
 
+  ReportLoad("Setting up the equations of motion");
   SetupLookup();
   DetectTrees();
   jacobian_.Initialize();
@@ -177,6 +180,7 @@ void shift::core::Context::PostLoad(const std::string) {
   // InitializeGLReferenceFrames();
 
   LoadData();
+  ReportLoad("Setting up contact detection");
   SetupContactDetection();
 
   // InitializeJointForces();
@@ -1000,6 +1004,7 @@ void shift::core::Context::LoadExactShapes() {
 }
 
 void shift::core::Context::LoadData() {
+  ReportLoad("Loading controllers, bodies and force modules");
   for(auto& controller : active_controllers_) {
     controller->Load();
   }
@@ -1013,8 +1018,10 @@ void shift::core::Context::LoadData() {
     force_module->Load();
   }
   mesh_assets_.clear();
-  for(auto& geometry : active_geometry_) {
-    geometry->Load();
+  const int geometry_count = static_cast<int>(active_geometry_.size());
+  for(int i = 0; i < geometry_count; i++) {
+    ReportLoad("Loading geometry", i, geometry_count);
+    active_geometry_[i]->Load();
   }
   /* mass properties from the meshes, now that they are loaded */
   bool from_density = false;
@@ -1045,14 +1052,20 @@ void shift::core::Context::LoadData() {
   for(auto& sensor : active_sensors_) {
     sensor->Load();
   }
-  for(auto& terrain : active_terrain_) {
-    terrain->LoadAll();
+  const int terrain_count = static_cast<int>(active_terrain_.size());
+  for(int i = 0; i < terrain_count; i++) {
+    ReportLoad("Loading terrain", i, terrain_count);
+    active_terrain_[i]->LoadAll();
   }
   /* collision geometry is fitted to the mesh geometry loaded above */
   collision_geometry_prototypes_.clear();
-  for(auto& collision_geometry : active_collision_geometry_) {
-    collision_geometry->Load();
+  const int collision_count =
+    static_cast<int>(active_collision_geometry_.size());
+  for(int i = 0; i < collision_count; i++) {
+    ReportLoad("Fitting collision geometry", i, collision_count);
+    active_collision_geometry_[i]->Load();
   }
+  ReportLoad("Loading exact shapes");
   LoadExactShapes();
 }
 

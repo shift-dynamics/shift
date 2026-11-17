@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include "ksl/screw.h"
+
 #include <Eigen/Sparse>
 
 #include "shift/core/fea/tet_mesh.h"
@@ -55,6 +57,24 @@ struct Assembled {
   double volume = 0.0;
 };
 Assembled Assemble(const TetMesh& mesh, const Material& material);
+
+/*!
+@brief the stress at nodes of a mesh in each of its deformed shapes
+
+\f$\underline{\sigma} = D B \underline{u}_e\f$ evaluated at the node in
+each element it is a node of, and averaged over those elements weighted
+by their volumes, in Voigt order \f$(\sigma_{xx}, \sigma_{yy},
+\sigma_{zz}, \tau_{xy}, \tau_{yz}, \tau_{zx})\f$ in the units of the
+material's Young's modulus. The shapes are those of a Reduction: the
+translation of node p in shape j is shapes[p columns + j].lin, for the
+mesh's nodes. Returns the stresses of nodes[i] in shape j at 6 (i columns +
+j); a node of no element has none (zeros).
+*/
+std::vector<double> NodalStresses(const TetMesh& mesh,
+                                  const Material& material,
+                                  const std::vector<int>& nodes,
+                                  const std::vector<ksl_screw_t>& shapes,
+                                  size_t columns);
 
 } // namespace fea
 } // namespace core

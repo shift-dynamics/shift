@@ -13,7 +13,7 @@
 /* the layout of the file and the version of the analysis: change it when
 either changes (the mesher, the elements, the attachments, the reduction),
 so that caches written before are computed again */
-static const char* kFormat = "shift flex cache 1";
+static const char* kFormat = "shift flex cache 3";
 
 shift::core::fea::Reduction shift::core::fea::KeepModes(
   const Reduction& full, const std::vector<unsigned int>& kept) {
@@ -155,6 +155,21 @@ bool shift::core::fea::WriteFlexCache(const std::string& path,
           6 * cache.boundary.size(), H5::PredType::NATIVE_INT);
     Write(root, "boundary_face", cache.boundary_face.data(),
           cache.boundary_face.size(), H5::PredType::NATIVE_INT);
+    /* the attachments' nodes, one after the other, and how many each has */
+    std::vector<int> attachment_nodes, attachment_counts;
+    for(const auto& nodes : cache.attachment_nodes) {
+      attachment_counts.push_back(static_cast<int>(nodes.size()));
+      attachment_nodes.insert(attachment_nodes.end(), nodes.begin(),
+                              nodes.end());
+    }
+    Write(root, "attachment_nodes", attachment_nodes.data(),
+          attachment_nodes.size(), H5::PredType::NATIVE_INT);
+    Write(root, "attachment_node_counts", attachment_counts.data(),
+          attachment_counts.size(), H5::PredType::NATIVE_INT);
+    Write(root, "surface_nodes", cache.surface_nodes.data(),
+          cache.surface_nodes.size(), H5::PredType::NATIVE_INT);
+    Write(root, "surface_stresses", cache.surface_stresses.data(),
+          cache.surface_stresses.size(), H5::PredType::NATIVE_DOUBLE);
     file.close();
   } catch(H5::Exception&) {
     std::remove(temporary.c_str());
@@ -229,12 +244,43 @@ bool shift::core::fea::ReadFlexCache(const std::string& path,
     }
     c.boundary_face =
       Read<int>(root, "boundary_face", H5::PredType::NATIVE_INT);
+    const auto attachment_nodes =
+      Read<int>(root, "attachment_nodes", H5::PredType::NATIVE_INT);
+    const auto attachment_counts =
+      Read<int>(root, "attachment_node_counts", H5::PredType::NATIVE_INT);
+    size_t next = 0;
+    for(int count : attachment_counts) {
+      if(count < 0 || next + size_t(count) > attachment_nodes.size()) {
+        return false;
+      }
+      c.attachment_nodes.emplace_back(attachment_nodes.begin() + long(next),
+                                      attachment_nodes.begin() +
+                                        long(next + size_t(count)));
+      next += size_t(count);
+    }
+    for(const auto& nodes : c.attachment_nodes) {
+      for(int node : nodes) {
+        if(node < 0 || unsigned(node) >= c.node_count) {
+          return false;
+        }
+      }
+    }
+    c.surface_nodes =
+      Read<int>(root, "surface_nodes", H5::PredType::NATIVE_INT);
+    c.surface_stresses =
+      Read<double>(root, "surface_stresses", H5::PredType::NATIVE_DOUBLE);
+    for(int node : c.surface_nodes) {
+      if(node < 0 || unsigned(node) >= c.node_count) {
+        return false;
+      }
+    }
     /* consistent sizes, or computed again */
     const size_t n = r.elastic_count;
     if(r.masses.size() != r.positions.size() ||
        r.shapes.size() != r.positions.size() * n ||
        r.stiffness.size() != n * n || r.mass.size() != n * n ||
        c.boundary_face.size() != c.boundary.size() ||
+       c.surface_stresses.size() != 6 * c.surface_nodes.size() * n ||
        r.computed_shapes.size() !=
          3 * size_t(c.node_count) * r.frequencies.size() ||
        c.node_count > r.positions.size()) {
