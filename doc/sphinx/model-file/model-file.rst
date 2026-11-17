@@ -359,12 +359,30 @@ Each entry of ``attachments``:
 .. shift-parameters:: shift/core/body/flex_build.cc
    :function: FlexAttachment::DeclareParameters
 
-In the viewer, a flexible body is drawn by the surface of its mesh, deformed
-as the model runs; View > Deformation scale magnifies the deformation (but
-not the part of it that moves the body as a whole). The body's panel opens
+In the viewer, a flexible body is drawn deformed as the model runs: its
+``fe_geometry`` CAD, the exact surface displaced as the surface of its mesh
+around it, where the graphics device has tessellation and compute shaders
+(Vulkan), and otherwise the surface of its mesh. View > Deformation scale
+magnifies the deformation (but not the part of it that moves the body as a
+whole). The body's panel can draw the surface of its mesh in place of the
+CAD, the edges of its elements over either surface, as points the nodes
+the joints' attachments tie to the body's frames, and the von Mises stress
+on the mesh's surface (all three in raster mode), which the View menu and
+the viewer's ``--image`` options ``--mesh-surface``, ``--mesh-edges``,
+``--constrained-nodes`` and ``--stresses`` do for every flexible body. The
+stress of each surface node in each shape is computed with the modes (at
+the node in each element around it, averaged by the elements' volumes) and
+kept in ``fe_cache``; as the body deforms, the GPU sums them with the
+elastic coordinates (not magnified by the deformation scale). Edit >
+Settings chooses the color map and its range: from 0 to the largest stress
+on each body as it is drawn, or a fixed range, in the model's units of
+stress; the status bar shows the range. The panel also opens
 the mode window, which lists the static modes and every vibration mode
 computed with its frequency, draws the one selected on the body, and writes
-the modes checked back to the model as ``modes_kept``.
+the modes checked back to the model as ``modes_kept``. Meshing the solid and
+computing its modes, when they are not read from ``fe_cache``, can take a
+while; the viewer loads the model in the background, showing what it is
+doing, and its Cancel stops the load.
 
 Joints
 ------

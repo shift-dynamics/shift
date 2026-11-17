@@ -38,7 +38,7 @@ while read -r name model time args; do
 done <<'LIST'
 double_pendulum     pendulum/double_pendulum.json                1.0
 slider_crank        slider_crank/slider_crank.json               0.5
-flex_slider_crank   flex/slider_crank_flexible_rod.json          0.05 --view 240,35 --deformation-scale 300
+flex_slider_crank   flex/slider_crank_flexible_rod.json          0.1  --view 240,35 --deformation-scale 15000
 bricard             bricard/bricard.json                         1.0
 klann_linkage       klann_linkage/klann_linkage.json             1.0  --view 20,70
 klann_walker        klann_linkage/klann_walker.json              1.0  --view 50,22

@@ -12,8 +12,13 @@ examples/flex/crank.step: a crank 60 mm between the centres of its round
 ends (12 mm radius), 10 mm thick, about the same axes: its shaft at the
 origin and its pin at x = 60 mm, below the rod (z = 5 mm to 15 mm).
 
-examples/flex/slider.step: a block 40 mm long (x), 30 mm wide (y) and 30 mm
-high (z), centred on the origin.
+examples/flex/slider.step: a piston sliding along x, its wrist pin about
+the z axis through the origin: a cylindrical crown of 20 mm radius about x
+from x = 18 mm to 40 mm, clear of the rod's small end (15 mm radius); two pin
+bosses, cheeks 8 mm thick above and below the rod (7 mm to 15 mm from the
+rod's mid plane, the rod being 10 mm thick), 20 mm wide, round about the pin
+and joined to the crown; and the wrist pin, 11 mm in diameter (the rod's
+bore is 12 mm), through them.
 
 In millimeters. Each solid is a prism, as written by make_track_step.py.
 
@@ -24,7 +29,7 @@ import math
 import os
 import sys
 
-from make_track_step import circle_loop, extrude, polygon_loop, write
+from make_track_step import circle_loop, extrude, write
 
 ROD_LENGTH = 250.0
 ROD_END_RADIUS = 15.0
@@ -34,7 +39,11 @@ ROD_THICKNESS = 10.0
 CRANK_LENGTH = 60.0
 CRANK_END_RADIUS = 12.0
 CRANK_THICKNESS = 10.0
-SLIDER_SIZE = (40.0, 30.0, 30.0)
+PISTON_RADIUS = 20.0
+PISTON_CROWN = (18.0, 40.0)  # x from, to: clear of the rod's small end
+PISTON_BOSS_HALF_WIDTH = 10.0
+PISTON_BOSS_Z = (7.0, 15.0)  # |z| from, to: clear of the rod (5 mm)
+PISTON_PIN_RADIUS = 5.5
 
 X = (1.0, 0.0, 0.0)
 Y = (0.0, 1.0, 0.0)
@@ -75,11 +84,40 @@ def crank(step, name):
                    Y, CRANK_THICKNESS)
 
 
-def slider(step, name):
-    a, b, c = (d / 2.0 for d in SLIDER_SIZE)
+Z = (0.0, 0.0, 1.0)
+
+
+def piston_crown(step, name):
+    x0, x1 = PISTON_CROWN
     return extrude(step, name,
-                   [polygon_loop([(-a, -b), (a, -b), (a, b), (-a, b)])],
-                   (0.0, 0.0, -c), X, Y, 2.0 * c)
+                   [circle_loop((0.0, 0.0), PISTON_RADIUS, True)],
+                   (x0, 0.0, 0.0), Y, Z, x1 - x0)
+
+
+def piston_boss(z0):
+    """a pin boss from z0, 8 mm along z: round about the pin, reaching
+    1 mm into the crown, with the pin's hole"""
+    w = PISTON_BOSS_HALF_WIDTH
+    x = PISTON_CROWN[0] + 1.0
+    outline = [('line', (0.0, -w)),
+               ('line', (x, -w)),
+               ('line', (x, w)),
+               ('arc', (0.0, w), (0.0, 0.0), True)]
+
+    def build(step, name):
+        return extrude(step, name,
+                       [outline,
+                        circle_loop((0.0, 0.0), PISTON_PIN_RADIUS, False)],
+                       (0.0, 0.0, z0), X, Y,
+                       PISTON_BOSS_Z[1] - PISTON_BOSS_Z[0])
+    return build
+
+
+def piston_pin(step, name):
+    z = PISTON_BOSS_Z[1]
+    return extrude(step, name,
+                   [circle_loop((0.0, 0.0), PISTON_PIN_RADIUS, True)],
+                   (0.0, 0.0, -z), X, Y, 2.0 * z)
 
 
 def main():
@@ -101,10 +139,18 @@ def main():
           (CRANK_LENGTH, CRANK_END_RADIUS, CRANK_THICKNESS,
            ROD_THICKNESS / 2.0),
           [('crank', crank, (0.75, 0.62, 0.30))])
+    piston = (0.35, 0.45, 0.60)
     write(os.path.join(directory, 'slider.step'), 'slider',
-          'a block %g by %g by %g mm centred on the origin. In millimeters. '
-          'Written by scripts/make_flex_step.py' % SLIDER_SIZE,
-          [('slider', slider, (0.35, 0.45, 0.60))])
+          'a piston of %g mm radius sliding along x, its crown from x = %g '
+          'to %g mm, its wrist pin of %g mm diameter about the z axis '
+          'through the origin in bosses %g to %g mm either side of z = 0. In '
+          'millimeters. Written by scripts/make_flex_step.py' %
+          (PISTON_RADIUS, PISTON_CROWN[0], PISTON_CROWN[1],
+           2 * PISTON_PIN_RADIUS, PISTON_BOSS_Z[0], PISTON_BOSS_Z[1]),
+          [('crown', piston_crown, piston),
+           ('boss_lower', piston_boss(PISTON_BOSS_Z[0]), piston),
+           ('boss_upper', piston_boss(-PISTON_BOSS_Z[1]), piston),
+           ('wrist_pin', piston_pin, (0.62, 0.64, 0.68))])
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@
     "integrators": [
       {
         "type": "ode113",
-        "time_span": 0.2,
+        "time_span": 1.0,
         "time_step": 0.0005,
         "hmax": 0.0001,
         "relative_error": 1e-6,
@@ -55,9 +55,9 @@
           "name": "slider",
           "geometry": [{"name": "slider", "type": "cad",
                         "filename": "slider.step"}],
-          "center_of_mass": [0.0, 0.0, 0.0],
-          "inertia": {"mass": 0.2826, "Ixx": 4.239e-5, "Iyy": 5.888e-5,
-                      "Izz": 5.888e-5, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+          "center_of_mass": [0.02264, 0.0, 0.0],
+          "inertia": {"mass": 0.2924, "Ixx": 5.389e-5, "Iyy": 7.704e-5,
+                      "Izz": 7.075e-5, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
         }
       ],
       "joints": [
@@ -68,7 +68,7 @@
           "child": [["crank"], "origin"],
           "axis": [0, 0, 1],
           "initial_displacement": 1.5707963,
-          "initial_velocity": 150.0
+          "initial_velocity": 20.0
         },
         {
           "name": "crank_pin",
