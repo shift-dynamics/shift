@@ -8,6 +8,7 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
+#include "shift/core/environment/surface_material.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
 
@@ -112,6 +113,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
     const auto& material = materials[data.material_index];
     mesh.albedo = QVector3D(material.Kd[0], material.Kd[1], material.Kd[2]);
     mesh.opacity = std::clamp(material.opacity, 0.f, 1.f);
+    mesh.alpha_cutoff = material.alpha_cutoff;
     // use the metallic-roughness value if given, otherwise map the
     // Blinn-Phong exponent to an approximately equivalent GGX roughness
     const float roughness = material.roughness >= 0.f
@@ -132,6 +134,10 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   return mesh;
 }
 
+
+static QVector3D ToQVector(const ksl_vec3_t& v) {
+  return QVector3D(float(v.x), float(v.y), float(v.z));
+}
 
 /* a terrain: its control points for the tessellation shaders, and a
 triangle mesh of the surface (terrain::Basic::LocalZ) in world coordinates,
@@ -188,6 +194,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     pose(r, 2) = float(d.R.v2.at[r]);
     pose(r, 3) = float(d.t.at[r]);
   }
+  const QMatrix4x4 terrain_frame = pose; // the material map's origin
   pose.translate(float(x0), float(y0), 0.f);
   t.pose = pose;
 
@@ -217,6 +224,49 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     s.level = shift::gui::SurfaceNoiseLevel(
       static_cast<int>(mesh.surfaces.size()), surface->get_coverage());
     mesh.surfaces.push_back(s);
+  }
+  /* the surface materials by area, in place of the terrain's texture */
+  if(const auto* map = terrain.get_material_map()) {
+    int materials = 0;
+    for(const auto& m : scene.material_maps) {
+      materials += int(m.materials.size());
+    }
+    if(int(scene.material_maps.size()) ==
+         shift::gui::Scene::kMaxMaterialMaps ||
+       materials + int(map->get_materials().size()) >
+         shift::gui::Scene::kMaxGroundMaterials) {
+      qWarning("Terrain %s: more than %d material maps or %d surface "
+               "materials in the scene; drawn with its own texture",
+               terrain.get_name().c_str(),
+               shift::gui::Scene::kMaxMaterialMaps,
+               shift::gui::Scene::kMaxGroundMaterials);
+    } else {
+      shift::gui::SceneMaterialMap m;
+      m.world_to_map = terrain_frame.inverted();
+      m.width = int(map->get_x_samples());
+      m.height = int(map->get_y_samples());
+      m.x_scale = float(map->get_x_scale());
+      m.y_scale = float(map->get_y_scale());
+      m.blend_width = float(map->get_blend_width());
+      m.indices = map->get_indices();
+      for(const auto* material : map->get_materials()) {
+        shift::gui::SceneGroundMaterial g;
+        g.base_color_layer = textures.Load(material->get_texture_path());
+        g.normal_layer = textures.Load(material->get_normal_map_path());
+        g.roughness_layer = textures.LoadMetallicRoughness(
+          "", "", material->get_roughness_map_path());
+        g.height_layer = textures.Load(material->get_height_map_path());
+        g.texture_scale = float(material->get_texture_scale());
+        g.normal_scale = float(material->get_normal_scale());
+        g.height_scale = float(material->get_height_scale());
+        g.color = ToQVector(material->get_color());
+        g.roughness = float(material->get_roughness());
+        g.label = material->get_label();
+        m.materials.push_back(g);
+      }
+      mesh.material_map = int(scene.material_maps.size());
+      scene.material_maps.push_back(std::move(m));
+    }
   }
   /* twice the resolution of the control points, and at least
   kMinimumMeshSamples a side so that the curvature of a small map is drawn
@@ -279,12 +329,62 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   t.mesh_index = static_cast<int>(scene.meshes.size());
   mesh.terrain = static_cast<int>(scene.terrains.size());
   scene.meshes.push_back(std::move(mesh));
-  scene.instances.push_back({t.mesh_index, 0});
+  scene.instances.push_back({t.mesh_index, 0, {}});
   scene.terrains.push_back(std::move(t));
   return static_cast<int>(scene.terrains.size()) - 1;
 }
 
 /* a light of the model, if its frame is on one of the bodies drawn */
+
+/* the sky, sun, fog and water of the model, or the viewer's own if it gives none */
+static shift::gui::SceneEnvironment
+MakeEnvironment(const shift::core::environment::Environment* model) {
+  shift::gui::SceneEnvironment e;
+  if(!model) {
+    return e;
+  }
+  e.given = true;
+  const auto& sky = model->get_sky();
+  e.sky_type = sky.get_type() == "physical"
+                 ? shift::gui::SceneEnvironment::kPhysical
+                 : (sky.get_type() == "hdri" && !sky.get_path().empty()
+                      ? shift::gui::SceneEnvironment::kImage
+                      : shift::gui::SceneEnvironment::kGradient);
+  e.zenith = ToQVector(sky.get_zenith_color());
+  e.horizon = ToQVector(sky.get_horizon_color());
+  e.ground = ToQVector(sky.get_ground_color());
+  e.turbidity = float(sky.get_turbidity());
+  e.image_path = sky.get_path();
+  e.image_rotation = float(sky.get_rotation() * M_PI / 180.0);
+  e.sky_intensity = float(sky.get_intensity());
+  const auto& sun = model->get_sun();
+  e.sun_direction = ToQVector(sun.Direction()).normalized();
+  e.sun_intensity = float(sun.get_intensity());
+  e.sun_color_given = sun.has_color();
+  if(e.sun_color_given) {
+    e.sun_color = ToQVector(sun.get_color());
+  }
+  const auto& fog = model->get_fog();
+  e.fog_density = float(fog.get_density());
+  e.fog_height_falloff = float(fog.get_height_falloff());
+  e.fog_height = float(fog.get_height());
+  e.fog_color_given = fog.has_color();
+  if(e.fog_color_given) {
+    e.fog_color = ToQVector(fog.get_color());
+  }
+  if(const auto* water = model->get_water()) {
+    e.water = true;
+    e.water_height = float(water->get_height());
+    e.water_color = ToQVector(water->get_color());
+    e.water_extinction = ToQVector(water->get_extinction());
+    e.wave_height = float(water->get_wave_height());
+    e.wavelength = float(water->get_wavelength());
+    e.wave_direction = float(water->get_wave_direction() * M_PI / 180.0);
+    e.wind_speed = float(water->get_wind_speed());
+  }
+  return e;
+}
+
 static void AddLight(const shift::core::light::Base& light,
                      const std::vector<shift::core::body::Base*>& bodies,
                      shift::gui::Scene& scene,
@@ -358,6 +458,7 @@ void shift::gui::Simulation::Load(const std::string& filename) {
   bodies_.clear();
   light_sources_.clear();
   scene_ = Scene();
+  mesh_bvhs_.clear();
   ClearResults();
   RemoveLogDirectory();
   filename_ = filename;
@@ -384,6 +485,7 @@ void shift::gui::Simulation::Reload(const Json::Value& model) {
   bodies_.clear();
   light_sources_.clear();
   scene_ = Scene();
+  mesh_bvhs_.clear();
   ClearResults();
   // a log's files stay where they were taken out to
   LoadModel(path, file_map_, &model);
@@ -396,11 +498,13 @@ void shift::gui::Simulation::LoadModel(
   file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
+  context->set_load_observer(load_observer_);
   if(model) {
     context->LoadJSON(*model, path);
   } else {
     context->LoadJSON(path);
   }
+  context->set_load_observer(nullptr);
   context_ = std::move(context);
 
   // the context is the fixed (inertial) body; list it first, followed by
@@ -425,6 +529,7 @@ void shift::gui::Simulation::LoadModel(
   std::map<const shift::core::geometry::Base*, std::vector<int>>
     geometry_meshes; // for the lights that geometries glow with
   for(size_t i = 0; i < bodies_.size(); i++) {
+    ReportLoad("Preparing the meshes for drawing", int(i), int(bodies_.size()));
     for(auto& geometry : bodies_[i]->get_geometry()) {
       auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
       if(!mesh || !mesh->is_active()) {
@@ -449,9 +554,56 @@ void shift::gui::Simulation::LoadModel(
       geometry_meshes[geometry.get()] = it->second;
     }
   }
+  /* the scenery: its meshes placed on the fixed body (bodies_[0]), each
+  item an instance of the meshes of its variant */
+  std::vector<std::vector<QMatrix4x4>> mesh_placements(mesh_bodies.size());
+  for(auto& scenery : context_->get_scenery()) {
+    ReportLoad("Preparing the scenery for drawing");
+    std::vector<std::vector<int>> variant_meshes;
+    for(auto& geometry : scenery->get_geometry()) {
+      variant_meshes.emplace_back();
+      auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
+      if(!mesh || !mesh->is_active()) {
+        continue;
+      }
+      auto [it, inserted] = asset_meshes.try_emplace(mesh->get_asset());
+      if(inserted) {
+        textures.AddEmbedded(mesh->get_asset()->embedded_textures);
+        for(const auto& data : mesh->get_mesh_data()) {
+          if(data.faces.empty()) {
+            continue;
+          }
+          it->second.push_back(static_cast<int>(scene_.meshes.size()));
+          scene_.meshes.push_back(
+            MakeSceneMesh(data, mesh->get_material_data(), textures));
+          scene_.meshes.back().draw_distance =
+            float(scenery->get_draw_distance());
+          mesh_bodies.emplace_back();
+          mesh_placements.emplace_back();
+        }
+      }
+      variant_meshes.back() = it->second;
+    }
+    for(const auto& item : scenery->get_items()) {
+      QMatrix4x4 placement;
+      for(int r = 0; r < 3; r++) {
+        placement(r, 0) = float(item.pose.R.v0.at[r]);
+        placement(r, 1) = float(item.pose.R.v1.at[r]);
+        placement(r, 2) = float(item.pose.R.v2.at[r]);
+        placement(r, 3) = float(item.pose.t.at[r]);
+      }
+      placement.scale(float(item.scale));
+      for(int mesh_index : variant_meshes[size_t(item.variant)]) {
+        mesh_placements[size_t(mesh_index)].push_back(placement);
+      }
+    }
+  }
   for(size_t m = 0; m < mesh_bodies.size(); m++) {
     for(int body : mesh_bodies[m]) {
-      scene_.instances.push_back({static_cast<int>(m), body});
+      scene_.instances.push_back({static_cast<int>(m), body, {}});
+    }
+    for(const QMatrix4x4& placement : mesh_placements[m]) {
+      scene_.instances.push_back({static_cast<int>(m), 0, placement});
     }
   }
   /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset),
@@ -487,6 +639,7 @@ void shift::gui::Simulation::LoadModel(
   }
   /* terrains, on the fixed body (body 0) */
   scm_views_.clear();
+  ReportLoad("Preparing the terrain for drawing");
   for(auto terrain : context_->get_active_terrain()) {
     if(auto basic = dynamic_cast<shift::core::terrain::Basic*>(terrain)) {
       const int index = AddTerrain(*basic, textures, scene_);
@@ -500,6 +653,7 @@ void shift::gui::Simulation::LoadModel(
   for(auto light : context_->get_active_lights()) {
     AddLight(*light, bodies_, scene_, light_sources_);
   }
+  scene_.environment = MakeEnvironment(context_->get_environment());
   /* the meshes that glow with the lights */
   for(size_t k = 0; k < light_sources_.size(); k++) {
     for(const auto& name : light_sources_[k]->get_glow()) {
@@ -516,6 +670,21 @@ void shift::gui::Simulation::LoadModel(
     }
   }
   scene_.body_count = static_cast<int>(bodies_.size());
+  /* the meshes' ray tracing hierarchies, the longest part of making the
+  scene ready to draw, here rather than in the viewer as it draws */
+  mesh_bvhs_.clear();
+  mesh_bvhs_.resize(scene_.meshes.size());
+  for(size_t m = 0; m < scene_.meshes.size(); m++) {
+    ReportLoad("Preparing the meshes for ray tracing", int(m),
+               int(scene_.meshes.size()));
+    const SceneMesh& mesh = scene_.meshes[m];
+    // a deformable terrain's triangles tagged, for the viewer to follow
+    const bool deformable =
+      mesh.terrain >= 0 &&
+      mesh.terrain < static_cast<int>(scene_.terrains.size()) &&
+      scene_.terrains[mesh.terrain].deformable;
+    mesh_bvhs_[m] = BuildSceneMeshBvh(mesh, deformable);
+  }
   shown_lights_.assign(light_sources_.size(), 0.f);
   for(size_t k = 0; k < light_sources_.size(); k++) {
     shown_lights_[k] = scene_.lights[k].intensity;
@@ -987,6 +1156,7 @@ static hsize_t Rows(const H5::DataSet& dataset) {
 }
 
 void shift::gui::Simulation::LoadLog(const std::string& filename) {
+  ReportLoad("Unpacking the log");
   std::string error_prefix = "Log " + filename + ": ";
   H5::Exception::dontPrint();
   try {
@@ -1090,6 +1260,7 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
     LoadModel(model_file.string(), std::move(file_map));
 
     /* the rows: q, dq and the states of free bodies */
+    ReportLoad("Reading the results");
     std::vector<double> times(Rows(file.openDataSet("/time")));
     file.openDataSet("/time").read(times.data(), H5::PredType::NATIVE_DOUBLE);
     const size_t rows = times.size();

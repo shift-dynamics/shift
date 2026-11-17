@@ -208,8 +208,94 @@ double shift::core::force_module::Contact::Combine(const std::string& rule,
                                "': unknown combine rule '" + rule + "'");
 }
 
+void shift::core::force_module::Contact::Merge() {
+  auto given = [](const Contact* module, const char* key) {
+    const shift::core::parameter::Value* value =
+      const_cast<Contact*>(module)->shift::core::parameter::List::Find(key);
+    return value && value->is_loaded_from_file();
+  };
+  /* a setting: this module's if it gives it, else root's if root gives it,
+  else this module's default */
+  /* (get_data of an array is not const) */
+  Contact* root = const_cast<Contact*>(root_);
+  auto pick = [&](const char* key) -> const Contact* {
+    return root && !given(this, key) && given(root, key) ? root : this;
+  };
+  used_default_material_ = pick("default_material")->default_material_;
+  used_friction_combine_ = pick("friction_combine")->friction_combine_;
+  used_restitution_combine_ = pick("restitution_combine")->restitution_combine_;
+  used_friction_velocity_ = pick("friction_velocity")->friction_velocity_;
+  used_damping_depth_ = pick("damping_depth")->damping_depth_;
+  used_stick_slip_all_ = &pick("stick_slip_all")->stick_slip_all_;
+
+  /* materials and pairs: this module's, then root's that it does not
+  replace */
+  used_materials_.clear();
+  for(const auto& m : materials_.get_data()) {
+    used_materials_.push_back(m.get());
+  }
+  used_pairs_.clear();
+  for(const auto& p : pairs_.get_data()) {
+    used_pairs_.push_back(p.get());
+  }
+  used_stick_slip_.clear();
+  for(const auto& s : stick_slip_.get_data()) {
+    used_stick_slip_.push_back(s.get());
+  }
+  used_disabled_pairs_ = disabled_pairs_;
+  if(!root) {
+    return;
+  }
+  const size_t own_materials = used_materials_.size();
+  for(const auto& m : root->materials_.get_data()) {
+    bool replaced = false;
+    for(size_t i = 0; i < own_materials; i++) {
+      replaced = replaced || used_materials_[i]->name == m->name;
+    }
+    if(!replaced) {
+      used_materials_.push_back(m.get());
+    }
+  }
+  auto same_pair = [](const ContactMaterialPair& a,
+                      const ContactMaterialPair& b) {
+    if(a.materials.size() != 2 || b.materials.size() != 2) {
+      return false;
+    }
+    return (a.materials[0] == b.materials[0] &&
+            a.materials[1] == b.materials[1]) ||
+           (a.materials[0] == b.materials[1] &&
+            a.materials[1] == b.materials[0]);
+  };
+  const size_t own_pairs = used_pairs_.size();
+  for(const auto& p : root->pairs_.get_data()) {
+    bool replaced = false;
+    for(size_t i = 0; i < own_pairs; i++) {
+      replaced = replaced || same_pair(*used_pairs_[i], *p);
+    }
+    if(!replaced) {
+      used_pairs_.push_back(p.get());
+    }
+  }
+  for(const auto& s : root->stick_slip_.get_data()) {
+    used_stick_slip_.push_back(s.get());
+  }
+  for(const auto& pair : root->disabled_pairs_) {
+    used_disabled_pairs_.push_back(pair);
+  }
+  std::string from_root;
+  for(size_t i = own_materials; i < used_materials_.size(); i++) {
+    from_root += (from_root.empty() ? "" : ", ") + used_materials_[i]->name;
+  }
+  SHIFT_INFO("Contact force module '" + name_ + "' overrides the contact "
+             "model of the environment; materials of the environment in "
+             "use: " + (from_root.empty() ? std::string("none") : from_root));
+}
+
 void shift::core::force_module::Contact::Load() {
-  const std::string description = "Contact force module '" + name_ + "'";
+  const std::string description =
+    environment_ ? std::string("The contact model of the environment")
+                  : "Contact force module '" + name_ + "'";
+  Merge();
   for(auto module : context_->get_active_force_modules()) {
     if(module != this && dynamic_cast<Contact*>(module)) {
       throw shift::core::Exception(
@@ -217,14 +303,14 @@ void shift::core::force_module::Contact::Load() {
         module->get_name() + "' too");
     }
   }
-  if(friction_velocity_ <= 0.0 || damping_depth_ <= 0.0) {
+  if(used_friction_velocity_ <= 0.0 || used_damping_depth_ <= 0.0) {
     throw shift::core::Exception(
       description + ": friction_velocity and damping_depth must be positive");
   }
   group_mass_.clear();
 
   /* materials */
-  auto& materials = materials_.get_data();
+  auto& materials = used_materials_;
   const int count = static_cast<int>(materials.size());
   if(count == 0) {
     throw shift::core::Exception(description + " has no materials");
@@ -256,7 +342,7 @@ void shift::core::force_module::Contact::Load() {
     }
   }
   const int default_material =
-    default_material_.empty() ? 0 : index_of(default_material_);
+    used_default_material_.empty() ? 0 : index_of(used_default_material_);
 
   /* the material and body of each collision geometry, and the shapes that
   each material is used for */
@@ -312,14 +398,14 @@ void shift::core::force_module::Contact::Load() {
       Law& law = laws_[i * count + j];
       if(a.restitution >= 0.0 && b.restitution >= 0.0) {
         law.restitution =
-          Combine(restitution_combine_, a.restitution, b.restitution);
+          Combine(used_restitution_combine_, a.restitution, b.restitution);
       }
       if(a.damping >= 0.0 && b.damping >= 0.0) {
         law.damping = a.damping > 0.0 && b.damping > 0.0
                         ? 1.0 / (1.0 / a.damping + 1.0 / b.damping)
                         : 0.0;
       }
-      law.friction = Combine(friction_combine_, a.friction, b.friction);
+      law.friction = Combine(used_friction_combine_, a.friction, b.friction);
       if(a.youngs_modulus > 0.0 && b.youngs_modulus > 0.0) {
         law.modulus =
           1.0 / ((1.0 - a.poisson_ratio * a.poisson_ratio) / a.youngs_modulus +
@@ -346,7 +432,7 @@ void shift::core::force_module::Contact::Load() {
       }
     }
   }
-  for(const auto& pair : pairs_.get_data()) {
+  for(const auto& pair : used_pairs_) {
     if(pair->materials.size() != 2) {
       throw shift::core::Exception(description +
                                    ": a pair names two materials");
@@ -426,7 +512,7 @@ void shift::core::force_module::Contact::Load() {
         by_name[geometry->get_name()] = geometry;
       }
     }
-    for(const auto& s : stick_slip_.get_data()) {
+    for(const auto& s : used_stick_slip_) {
       const std::string pair_name = s->geometry_a + "_" + s->geometry_b;
       auto a = by_name.find(s->geometry_a);
       auto b = by_name.find(s->geometry_b);
@@ -479,7 +565,7 @@ void shift::core::force_module::Contact::Load() {
     /* the sets of bristles that every other pair shares */
     shared_.clear();
     shared_index_.clear();
-    const StickSlipAll& all = stick_slip_all_;
+    const StickSlipAll& all = *used_stick_slip_all_;
     if(all.bristle_stiffness > 0.0) {
       if(all.bristle_damping < 0.0 || all.viscous_friction < 0.0 ||
          !(all.stribeck_velocity > 0.0) || !(all.release_time > 0.0) ||
@@ -529,7 +615,7 @@ void shift::core::force_module::Contact::Load() {
                   "number of pairs that hold a set of stick_slip_all");
   }
 
-  for(const auto& pair : disabled_pairs_) {
+  for(const auto& pair : used_disabled_pairs_) {
     if(pair.size() != 2) {
       throw shift::core::Exception("Contact force module '" + name_ +
                                    "': each of disabled_pairs names two "
@@ -685,7 +771,7 @@ shift::core::force_module::Contact::SharedBristles(const GeometryPair& pair,
     }
     Bristles& set = shared_[i];
     set.mu_coulomb = friction;
-    set.mu_static = stick_slip_all_.static_ratio * friction;
+    set.mu_static = used_stick_slip_all_->static_ratio * friction;
     shared_owner_[i] = pair;
     shared_touched_[i] = 1;
     shared_index_[pair] = static_cast<int>(i);
@@ -750,7 +836,7 @@ void shift::core::force_module::Contact::Service(const double* y,
     group_mass_.erase(-1);
     group_mass_[-2] = 0.0; // found, even without bodies
   }
-  const int count = static_cast<int>(materials_.get_data().size());
+  const int count = static_cast<int>(used_materials_.size());
   for(auto pair : context_->get_contacts()) {
     const Geometry& a = Find(pair->a);
     const Geometry& b = Find(pair->b);
@@ -804,7 +890,7 @@ void shift::core::force_module::Contact::Service(const double* y,
       const double along = ksl_dot_vv(&relative, &n);
       /* IMPACT of Adams: the damping ramps up over damping_depth by STEP,
       a cubic; the force never pulls */
-      const double s = std::min(c.depth / damping_depth_, 1.0);
+      const double s = std::min(c.depth / used_damping_depth_, 1.0);
       const double ramp = damping * s * s * (3.0 - 2.0 * s);
       const double normal =
         c.weight *
@@ -820,13 +906,13 @@ void shift::core::force_module::Contact::Service(const double* y,
       const double friction =
         law.friction * normal /
         std::sqrt(ksl_dot_vv(&sliding, &sliding) +
-                  friction_velocity_ * friction_velocity_);
+                  used_friction_velocity_ * used_friction_velocity_);
       /* Archard wear of each geometry whose material wears */
       const double speed = std::sqrt(ksl_dot_vv(&sliding, &sliding));
       for(const Geometry* g : {&a, &b}) {
         if(g->wear >= 0) {
           dy[state_offset_ + g->wear] +=
-            materials_.get_data()[g->material]->wear_coefficient * normal *
+            used_materials_[g->material]->wear_coefficient * normal *
             speed;
         }
       }
@@ -881,7 +967,7 @@ void shift::core::force_module::Contact::Service(const double* y,
     if(pair->point_laws) {
       auto point_law = [&](const collision_geometry::ContactPoint& c,
                            double& stiffness, double& exponent) {
-        return PointLaw(c, law.modulus, damping_depth_, stiffness, exponent,
+        return PointLaw(c, law.modulus, used_damping_depth_, stiffness, exponent,
                         law.foundation);
       };
       double stiffness, exponent, total = 0.0;
@@ -927,7 +1013,7 @@ void shift::core::force_module::Contact::Service(const double* y,
     if(damping < 0.0) {
       const double mass = effective_mass();
       if(hertz) {
-        const double linear = 1.5 * stiffness * std::sqrt(damping_depth_);
+        const double linear = 1.5 * stiffness * std::sqrt(used_damping_depth_);
         damping = 2.0 * law.damping_ratio * std::sqrt(linear * mass);
       } else {
         damping = 2.0 * law.damping_ratio * std::sqrt(4.0 * stiffness * mass) /

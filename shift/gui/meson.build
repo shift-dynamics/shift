@@ -17,6 +17,14 @@ ffmpeg_dep = [
   dependency('libswscale'),
 ]
 
+# HDR sky images (OpenEXR), optional: without it a sky image is drawn as the
+# gradient sky
+openexr_dep = dependency('OpenEXR', required: false)
+gui_cpp_args = []
+if openexr_dep.found()
+  gui_cpp_args += '-DSHIFT_HAVE_OPENEXR'
+endif
+
 # The RHI headers live in a versioned private include directory
 qt_include_dir = run_command('pkg-config', '--variable=includedir', 'Qt6Core',
                              check: true).stdout().strip()
@@ -51,7 +59,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
     depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
-                        'shaders/surfaces.glsl'),
+                        'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                        'shaders/ground.glsl', 'shaders/water.glsl'),
   )
 endforeach
 
@@ -85,7 +94,8 @@ shader_bundles += custom_target(
   output: 'cad.frag.qsb',
   command: [qsb, '-DCAD', '-o', '@OUTPUT@', '@INPUT@'],
   depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl',
-                      'shaders/surfaces.glsl'),
+                      'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                        'shaders/ground.glsl', 'shaders/water.glsl'),
 )
 
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them
@@ -126,6 +136,7 @@ shift_gui_lib = static_library(
   'cad_scene.cc',
   'camera.cc',
   'environment.cc',
+  'ocean_waves.cc',
   'playback_slider.cc',
   'scene.cc',
   'settings.cc',
@@ -137,7 +148,8 @@ shift_gui_lib = static_library(
   gui_moc,
   include_directories: [shift_inc, rhi_inc],
   implicit_include_directories: false,
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
+  cpp_args: gui_cpp_args,
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
 )
 
 # resources are compiled into the executable so their static initializers
@@ -146,5 +158,6 @@ shift_gui_dep = declare_dependency(
   sources: [shader_resources, icon_resources, asset_resources],
   link_with: shift_gui_lib,
   include_directories: [shift_inc, rhi_inc],
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
+  compile_args: gui_cpp_args, # SHIFT_HAVE_OPENEXR for the tests
 )

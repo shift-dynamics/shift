@@ -80,7 +80,11 @@ drives the hub joints.
 The drive is a powertrain module: the engine, with the published torque peak
 and power; the clutch; six gears; and a fixed drive to both axles (no center
 differential), each with a limited slip differential, and a brake at each
-wheel. The tires are the Iowa tire, with a relaxation length, on rigid gravel
+wheel. The handbrake is a rally car's hydraulic one: the brakes
+``left_handbrake`` and ``right_handbrake`` on the rear hubs, applied by the
+schedule ``handbrake`` (0 on the route), and the map ``rear_drive``, which
+opens the drive to the rear axle (its ``engaged``) as the handbrake is
+pulled, so that the rear wheels lock while the engine drives the front ones. The tires are the Iowa tire, with a relaxation length, on rigid gravel
 (friction coefficient 0.75).
 
 The friction of the clutch, of the gears' clutches and of the differentials
@@ -176,7 +180,8 @@ springs, dampers, brakes and tire properties are estimates:
   rear: about 1.6 and 1.7 Hz in heave, a soft gravel setup. The preloads hold
   the modelled lengths with the car at rest;
 * brakes 1500 N·m at the front and 600 N·m at the rear at full pedal, a
-  balance that keeps the rear wheels turning under braking;
+  balance that keeps the rear wheels turning under braking; the handbrake
+  1500 N·m at each rear wheel, about twice the torque that locks it on gravel;
 * anti-roll bars of 800 N·m/rad at the front and 500 N·m/rad at the rear,
   solid steel bars about 17.5 and 15.5 mm across: through the drop links
   they add about half and a third to the roll stiffness of the springs;
@@ -197,9 +202,22 @@ by *generate_polo_r_wrc.py*::
 The body, wheel and caliper meshes are written by
 *shift/scripts/split_vehicle_gltf.py* with the configuration
 *shift/scripts/vehicle_splits/polo_r_wrc.json*, from the glTF download of the
-source model (Blender 4.2 or later), after *generate_polo_r_wrc.py*: the
-configuration replaces the plate texture of the source with
-*polo_r_wrc_plate.png*::
+source model (Blender 4.2 or later), after *generate_polo_r_wrc.py* and
+*redraw_textures.py*. The configuration replaces the plate texture of the
+source with *polo_r_wrc_plate.png*, and its textures, 1024 or 512 pixels
+across, with those that *redraw_textures.py* draws at 4096 x 4096 from them,
+the edges of the livery, lettering and logos kept sharp (the viewer keeps
+textures larger than 1024 pixels at 4096)::
+
+    python3 redraw_textures.py scene/textures
+
+It makes the glow of the lamps, painted on black, a cut-out where it is dark
+(``"cutouts"``), so that the black is not drawn as paint around the tail and
+reversing lamps; it paints the glow of the tail lamps, which the source
+draws on cards that stand off the lamps and fan out over the body, on the
+lenses of the lamps (``"decals"``), leaving the cards out; and it lays the
+glow of the brake lights on the lenses, under the glass of the lamps
+(``"projections"``)::
 
     blender --background --factory-startup \
         --python shift/scripts/split_vehicle_gltf.py -- \
@@ -208,5 +226,5 @@ configuration replaces the plate texture of the source with
 It also writes *brake_lamps.glb*, from which *generate_polo_r_wrc.py* cuts
 the lenses of the stop lamps (so the generator runs again after the split),
 and *beams.glb*, the glow of the position lights with the headlight beams of
-the source, which reach about 1 m ahead of the bumper; the model does not
-use it.
+the source, which reach about 1 m ahead of the bumper, and of the tail lamps'
+cards; the model does not use it.

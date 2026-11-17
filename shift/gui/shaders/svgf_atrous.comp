@@ -52,7 +52,8 @@ void main() {
 
   vec4 center = imageLoad(source, pixel);
   vec4 g = imageLoad(position, pixel);
-  if(int(round(g.w)) == -1) {
+  // the sky, and deep water (-3), whose light is all exact
+  if(int(round(g.w)) == -1 || int(round(g.w)) == -3) {
     imageStore(destination, pixel, center); // sky
     return;
   }
@@ -93,7 +94,8 @@ void main() {
         continue;
       }
       vec4 tap_position = imageLoad(position, tap);
-      if(int(round(tap_position.w)) == -1) {
+      if(int(round(tap_position.w)) == -1 ||
+         int(round(tap_position.w)) == -3) {
         continue;
       }
       vec4 value = imageLoad(source, tap);

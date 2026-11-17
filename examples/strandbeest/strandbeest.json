@@ -1,0 +1,6435 @@
+{
+  // A Strandbeest (written by make_strandbeest.py): twelve of Theo Jansen's
+  // legs, with his link lengths, in six pairs on one crankshaft that a PID
+  // controller drives, on a chassis that is free to move. The links are bones,
+  // textured with the maps of make_bone_textures.py. Only the feet, spheres,
+  // touch the ground plane.
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [
+      0,
+      0,
+      9.81
+    ],
+    "include_directories": [
+      "."
+    ],
+    "enable_contact_detection": true,
+    "solvers": [
+      {
+        "type": "rnca"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 12.0,
+        "time_step": 0.02,
+        "relative_error": 1e-05,
+        "absolute_error": 1e-05
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "sun",
+      "T": [
+        4.0,
+        -3.0,
+        -8.0
+      ]
+    },
+    {
+      "name": "fill",
+      "T": [
+        -6.0,
+        6.0,
+        -5.0
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "name": "sun",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "sun"
+      ],
+      "Ka": [
+        0.12,
+        0.11,
+        0.1
+      ],
+      "Kd": [
+        0.85,
+        0.8,
+        0.7
+      ],
+      "Ks": [
+        0.3,
+        0.3,
+        0.3
+      ]
+    },
+    {
+      "name": "fill",
+      "type": "point",
+      "parent": [
+        "fixed",
+        "fill"
+      ],
+      "Ka": [
+        0.05,
+        0.05,
+        0.06
+      ],
+      "Kd": [
+        0.35,
+        0.38,
+        0.45
+      ],
+      "Ks": [
+        0.1,
+        0.1,
+        0.1
+      ]
+    }
+  ],
+  "collision_geometry": [
+    {
+      "name": "ground",
+      "type": "plane",
+      "normal": [
+        0,
+        0,
+        -1
+      ],
+      "offset": 0.0,
+      "material": "sand"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "strandbeest",
+      "bodies": [
+        {
+          "name": "chassis",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_chassis.obj",
+                "strandbeest_chassis.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "crankshaft",
+              "T": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s1_front_Z",
+              "T": [
+                -0.38,
+                -0.95,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s1_rear_Z",
+              "T": [
+                0.38,
+                -0.95,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s2_front_Z",
+              "T": [
+                -0.38,
+                -0.57,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s2_rear_Z",
+              "T": [
+                0.38,
+                -0.57,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s3_front_Z",
+              "T": [
+                -0.38,
+                -0.19,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s3_rear_Z",
+              "T": [
+                0.38,
+                -0.19,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s4_front_Z",
+              "T": [
+                -0.38,
+                0.19,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s4_rear_Z",
+              "T": [
+                0.38,
+                0.19,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s5_front_Z",
+              "T": [
+                -0.38,
+                0.57,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s5_rear_Z",
+              "T": [
+                0.38,
+                0.57,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s6_front_Z",
+              "T": [
+                -0.38,
+                0.95,
+                0.078
+              ],
+              "R": [
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            },
+            {
+              "name": "s6_rear_Z",
+              "T": [
+                0.38,
+                0.95,
+                0.078
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ],
+                [
+                  0.0,
+                  -1.0,
+                  0.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 40.0,
+            "Ixx": 21.366666666666664,
+            "Iyy": 2.6666666666666674,
+            "Izz": 22.96666666666667,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "crankshaft",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_crankshaft.obj",
+                "strandbeest_crankshaft.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "s1_front_A",
+              "T": [
+                0.15,
+                0.0,
+                -0.95
+              ]
+            },
+            {
+              "name": "s1_rear_A",
+              "T": [
+                0.15,
+                0.0,
+                -0.95
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            },
+            {
+              "name": "s2_front_A",
+              "T": [
+                -0.07499999999999997,
+                0.1299038105676658,
+                -0.57
+              ]
+            },
+            {
+              "name": "s2_rear_A",
+              "T": [
+                -0.07499999999999997,
+                0.1299038105676658,
+                -0.57
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            },
+            {
+              "name": "s3_front_A",
+              "T": [
+                -0.07500000000000007,
+                -0.12990381056766576,
+                -0.19
+              ]
+            },
+            {
+              "name": "s3_rear_A",
+              "T": [
+                -0.07500000000000007,
+                -0.12990381056766576,
+                -0.19
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            },
+            {
+              "name": "s4_front_A",
+              "T": [
+                -0.15,
+                1.8369701987210297e-17,
+                0.19
+              ]
+            },
+            {
+              "name": "s4_rear_A",
+              "T": [
+                -0.15,
+                1.8369701987210297e-17,
+                0.19
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            },
+            {
+              "name": "s5_front_A",
+              "T": [
+                0.07500000000000001,
+                -0.12990381056766578,
+                0.57
+              ]
+            },
+            {
+              "name": "s5_rear_A",
+              "T": [
+                0.07500000000000001,
+                -0.12990381056766578,
+                0.57
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            },
+            {
+              "name": "s6_front_A",
+              "T": [
+                0.07500000000000001,
+                0.12990381056766578,
+                0.95
+              ]
+            },
+            {
+              "name": "s6_rear_A",
+              "T": [
+                0.07500000000000001,
+                0.12990381056766578,
+                0.95
+              ],
+              "R": [
+                [
+                  -1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  -1.0
+                ]
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 6.0,
+            "Ixx": 3.125,
+            "Iyy": 3.125,
+            "Izz": 0.0675,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "beach",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 2.0,
+              "filename": [
+                "strandbeest_beach.obj",
+                "strandbeest_beach.mtl"
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s1_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s1_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s1_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s1_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s2_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s2_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s2_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s2_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s2_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s3_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s3_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s3_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s3_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s3_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s4_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s4_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s4_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s4_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s4_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s5_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s5_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s5_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s5_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s5_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s6_front_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_front_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_front_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_front_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_front_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_front_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s6_front_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        },
+        {
+          "name": "s6_rear_j",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_j.obj",
+                "strandbeest_j.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.5,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.25,
+            0.0,
+            0.035
+          ],
+          "inertia": {
+            "mass": 0.75,
+            "Ixx": 4.537e-05,
+            "Iyy": 0.015625,
+            "Izz": 0.015625,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_rear_k",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_k.obj",
+                "strandbeest_k.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.619,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.3095,
+            0.0,
+            0.08
+          ],
+          "inertia": {
+            "mass": 0.9285,
+            "Ixx": 5.617e-05,
+            "Iyy": 0.02964708,
+            "Izz": 0.02964708,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_rear_upper",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_upper.obj",
+                "strandbeest_upper.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "C",
+              "T": [
+                0.415,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "D",
+              "T": [
+                0.026099,
+                0.40015,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.156049,
+            0.139645,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.061,
+            "Ixx": 0.03664906,
+            "Iyy": 0.03700993,
+            "Izz": 0.0735343,
+            "Ixy": 0.01671598,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_rear_c",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_c.obj",
+                "strandbeest_c.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "F",
+              "T": [
+                0.393,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.1965,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.5895,
+            "Ixx": 3.566e-05,
+            "Iyy": 0.00758731,
+            "Izz": 0.00758731,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_rear_f",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_f.obj",
+                "strandbeest_f.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.394,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.197,
+            0.0,
+            0.17
+          ],
+          "inertia": {
+            "mass": 0.591,
+            "Ixx": 3.576e-05,
+            "Iyy": 0.00764537,
+            "Izz": 0.00764537,
+            "Ixy": -0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "s6_rear_lower",
+          "geometry": [
+            {
+              "type": "mesh",
+              "texture_mapping": "triplanar",
+              "texture_scale": 0.15,
+              "filename": [
+                "strandbeest_lower.obj",
+                "strandbeest_lower.mtl"
+              ]
+            }
+          ],
+          "frames": [
+            {
+              "name": "E",
+              "T": [
+                0.367,
+                -0.0,
+                0.0
+              ]
+            },
+            {
+              "name": "G",
+              "T": [
+                -0.077466,
+                0.483838,
+                0.0
+              ]
+            }
+          ],
+          "center_of_mass": [
+            0.094767,
+            0.183277,
+            0.125
+          ],
+          "inertia": {
+            "mass": 2.271,
+            "Ixx": 0.05803378,
+            "Iyy": 0.04274339,
+            "Izz": 0.10063977,
+            "Ixy": 0.03173713,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          },
+          "collision_geometry": [
+            {
+              "name": "s6_rear_foot",
+              "type": "sphere",
+              "radius": 0.03,
+              "pose": {
+                "T": [
+                  -0.077466,
+                  0.483838,
+                  0.125
+                ]
+              },
+              "material": "foot"
+            }
+          ]
+        }
+      ],
+      "joints": [
+        {
+          "name": "beach_fixed",
+          "type": "rigid",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "beach"
+            ],
+            "origin"
+          ]
+        },
+        {
+          "name": "chassis_float",
+          "type": "float",
+          "parent": [
+            [
+              "fixed"
+            ],
+            "origin"
+          ],
+          "child": [
+            [
+              "chassis"
+            ],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [
+              0.0,
+              0.0,
+              -0.957569
+            ]
+          }
+        },
+        {
+          "name": "crankshaft_bearing",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "crankshaft"
+          ],
+          "child": [
+            [
+              "crankshaft"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s1_front_Z"
+          ],
+          "child": [
+            [
+              "s1_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.227043,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s1_front_Z"
+          ],
+          "child": [
+            [
+              "s1_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.285839,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s1_front_A"
+          ],
+          "child": [
+            [
+              "s1_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.465895,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s1_front_A"
+          ],
+          "child": [
+            [
+              "s1_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.315481,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s1_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.238852,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s1_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.029642,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s1_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.931546,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s1_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.391776,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s1_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.81044,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s1_rear_Z"
+          ],
+          "child": [
+            [
+              "s1_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.99111,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s1_rear_Z"
+          ],
+          "child": [
+            [
+              "s1_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.339272,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s1_rear_A"
+          ],
+          "child": [
+            [
+              "s1_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.495893,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s1_rear_A"
+          ],
+          "child": [
+            [
+              "s1_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.519815,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s1_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.504783,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s1_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.180543,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s1_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.260582,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s1_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -4.128941,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s1_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s1_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s1_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.462023,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s2_front_Z"
+          ],
+          "child": [
+            [
+              "s2_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.977062,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s2_front_Z"
+          ],
+          "child": [
+            [
+              "s2_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.296846,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s2_front_A"
+          ],
+          "child": [
+            [
+              "s2_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.787614,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s2_front_A"
+          ],
+          "child": [
+            [
+              "s2_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.897548,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s2_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.810552,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s2_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.600702,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s2_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.498671,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s2_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.18738,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s2_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.585199,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s2_rear_Z"
+          ],
+          "child": [
+            [
+              "s2_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.571024,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s2_rear_Z"
+          ],
+          "child": [
+            [
+              "s2_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.087392,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s2_rear_A"
+          ],
+          "child": [
+            [
+              "s2_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.714537,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s2_rear_A"
+          ],
+          "child": [
+            [
+              "s2_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.02635,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s2_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.143513,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s2_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.938958,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s2_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.10254,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s2_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.553212,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s2_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s2_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s2_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.997336,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s3_front_Z"
+          ],
+          "child": [
+            [
+              "s3_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.332299,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s3_front_Z"
+          ],
+          "child": [
+            [
+              "s3_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.318014,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s3_front_A"
+          ],
+          "child": [
+            [
+              "s3_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.997551,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s3_front_A"
+          ],
+          "child": [
+            [
+              "s3_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.749745,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s3_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.665252,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s3_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.431731,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s3_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.198018,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s3_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.55468,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s3_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.102386,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s3_rear_Z"
+          ],
+          "child": [
+            [
+              "s3_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.102703,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s3_rear_Z"
+          ],
+          "child": [
+            [
+              "s3_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.73717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s3_rear_A"
+          ],
+          "child": [
+            [
+              "s3_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.135915,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s3_rear_A"
+          ],
+          "child": [
+            [
+              "s3_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.568448,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s3_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.033212,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s3_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.831278,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s3_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.307493,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s3_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.745845,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s3_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s3_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s3_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.213465,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s4_front_Z"
+          ],
+          "child": [
+            [
+              "s4_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.99111,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s4_front_Z"
+          ],
+          "child": [
+            [
+              "s4_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.339272,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s4_front_A"
+          ],
+          "child": [
+            [
+              "s4_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.495893,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s4_front_A"
+          ],
+          "child": [
+            [
+              "s4_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.519815,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s4_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.504783,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s4_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.180543,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s4_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.260582,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s4_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -4.128941,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s4_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.462023,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s4_rear_Z"
+          ],
+          "child": [
+            [
+              "s4_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.227043,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s4_rear_Z"
+          ],
+          "child": [
+            [
+              "s4_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.285839,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s4_rear_A"
+          ],
+          "child": [
+            [
+              "s4_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.465895,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s4_rear_A"
+          ],
+          "child": [
+            [
+              "s4_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.315481,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s4_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.238852,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s4_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.029642,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s4_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.931546,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s4_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.391776,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s4_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s4_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s4_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.81044,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s5_front_Z"
+          ],
+          "child": [
+            [
+              "s5_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.102703,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s5_front_Z"
+          ],
+          "child": [
+            [
+              "s5_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.73717,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s5_front_A"
+          ],
+          "child": [
+            [
+              "s5_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.135915,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s5_front_A"
+          ],
+          "child": [
+            [
+              "s5_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.568448,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s5_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.033212,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s5_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.831278,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s5_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.307493,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s5_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.745845,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s5_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.213465,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s5_rear_Z"
+          ],
+          "child": [
+            [
+              "s5_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.332299,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s5_rear_Z"
+          ],
+          "child": [
+            [
+              "s5_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.318014,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s5_rear_A"
+          ],
+          "child": [
+            [
+              "s5_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.997551,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s5_rear_A"
+          ],
+          "child": [
+            [
+              "s5_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.749745,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s5_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.665252,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s5_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.431731,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s5_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.198018,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s5_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.55468,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s5_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s5_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s5_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 5.102386,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s6_front_Z"
+          ],
+          "child": [
+            [
+              "s6_front_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.571024,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s6_front_Z"
+          ],
+          "child": [
+            [
+              "s6_front_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.087392,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s6_front_A"
+          ],
+          "child": [
+            [
+              "s6_front_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.714537,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s6_front_A"
+          ],
+          "child": [
+            [
+              "s6_front_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.02635,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_front_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s6_front_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.143513,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_front_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s6_front_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.938958,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_front_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s6_front_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 4.10254,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_front_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s6_front_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -2.553212,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_front_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_front_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s6_front_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 3.997336,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_Z_upper",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s6_rear_Z"
+          ],
+          "child": [
+            [
+              "s6_rear_upper"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 1.977062,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_Z_c",
+          "type": "revolute",
+          "parent": [
+            [
+              "chassis"
+            ],
+            "s6_rear_Z"
+          ],
+          "child": [
+            [
+              "s6_rear_c"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.296846,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_A_j",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s6_rear_A"
+          ],
+          "child": [
+            [
+              "s6_rear_j"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 2.787614,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_A_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "crankshaft"
+            ],
+            "s6_rear_A"
+          ],
+          "child": [
+            [
+              "s6_rear_k"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.897548,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_C",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_rear_j"
+            ],
+            "C"
+          ],
+          "child": [
+            [
+              "s6_rear_upper"
+            ],
+            "C"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -0.810552,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_F_k",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_rear_k"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s6_rear_c"
+            ],
+            "F"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": 0.600702,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_F_lower",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_rear_c"
+            ],
+            "F"
+          ],
+          "child": [
+            [
+              "s6_rear_lower"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.498671,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_D",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_rear_upper"
+            ],
+            "D"
+          ],
+          "child": [
+            [
+              "s6_rear_f"
+            ],
+            "origin"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -3.18738,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "s6_rear_E",
+          "type": "revolute",
+          "parent": [
+            [
+              "s6_rear_f"
+            ],
+            "E"
+          ],
+          "child": [
+            [
+              "s6_rear_lower"
+            ],
+            "E"
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "initial_displacement": -1.585199,
+          "initial_velocity": 0.0
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "crankshaft_speed",
+          "joint": "crankshaft_bearing",
+          "quantity": "velocity"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "crankshaft_drive",
+          "kp": 1500.0,
+          "ki": 3000.0,
+          "kd": 0.0,
+          "target": -2.0,
+          "sensor": "crankshaft_speed",
+          "joint": "crankshaft_bearing"
+        }
+      ],
+      "force_modules": [
+        {
+          "type": "contact",
+          "name": "contact",
+          "damping_depth": 0.001,
+          "materials": [
+            {
+              "name": "foot",
+              "youngs_modulus": 2000000.0,
+              "poisson_ratio": 0.45,
+              "damping": 8000.0,
+              "friction": 0.9
+            },
+            {
+              "name": "sand",
+              "youngs_modulus": 50000000.0,
+              "poisson_ratio": 0.3,
+              "damping": 1000000000.0,
+              "friction": 0.8
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

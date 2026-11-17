@@ -3,6 +3,7 @@
 
 #include "shift/gui/bvh.h"
 #include "shift/gui/camera.h"
+#include "shift/gui/ocean_waves.h"
 #include "shift/gui/scene.h"
 
 #include <QPoint>
@@ -242,6 +243,10 @@ private:
     /*! range of Scene::instances drawn with this mesh */
     uint32_t first_instance = 0;
     uint32_t instance_count = 0;
+    /*! the instances drawn in this frame, the first of the range: those
+     * of the bodies, and the placed ones (scenery) in view and within the
+     * mesh's draw distance */
+    uint32_t drawn_count = 0;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -287,7 +292,11 @@ private:
 
   void UploadScene(QRhiResourceUpdateBatch* batch);
   void UploadEnvironment(QRhiResourceUpdateBatch* batch);
-  void CreateTextureArray(int layer_count, int size);
+  /*! \brief the water's waves at the time shown, when they change */
+  void UploadWaves(QRhiResourceUpdateBatch* batch);
+  /*! \brief array, of layer_count layers of size square, mipmapped */
+  void CreateTextureArray(std::unique_ptr<QRhiTexture>& array,
+                          int layer_count, int size);
   void UpdateEnvironment();
   /*! \brief the floor's axes and origin, a column major 4x4 matrix */
   void CopyFloorFrame(float out[16]) const;
@@ -379,6 +388,8 @@ private:
   std::unique_ptr<QRhiBuffer> instance_buffer_;
   std::unique_ptr<QRhiShaderResourceBindings> raster_bindings_;
   std::unique_ptr<QRhiGraphicsPipeline> mesh_pipeline_;
+  /*! mesh_pipeline_ blending the meshes that let light through */
+  std::unique_ptr<QRhiGraphicsPipeline> transparent_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> sky_pipeline_;
   std::unique_ptr<QRhiGraphicsPipeline> floor_pipeline_;
 
@@ -417,15 +428,48 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> cad_pipeline_;
 
   // image based lighting tables of the sky (see environment.h)
+  std::unique_ptr<QRhiTexture> environment_radiance_;
+  /*! the material maps of the terrains and their materials (GroundBuffer,
+   * ground.glsl) */
+  std::unique_ptr<QRhiBuffer> ground_buffer_;
   std::unique_ptr<QRhiTexture> environment_specular_;
   std::unique_ptr<QRhiTexture> environment_irradiance_;
   std::unique_ptr<QRhiTexture> environment_brdf_;
   std::unique_ptr<QRhiSampler> linear_sampler_;
+  /*! linear, wrapping in azimuth (u) and clamped at the poles (v) */
+  std::unique_ptr<QRhiSampler> environment_sampler_;
   bool environment_dirty_ = false;
+  /*! the environment drawn: the scene's, with the sun's and the fog's
+   * colors resolved */
+  SceneEnvironment environment_;
+  QVector3D sky_zenith_;  //!< radiance of the sky overhead
+  QVector3D sky_horizon_; //!< mean radiance of the sky at the horizon
+  /*! \brief the sun's direction (w: intensity) and color for the frame,
+   * given whether the model's lights are on */
+  void SunUniforms(bool lights_on, float direction[4], float color[4]) const;
+  /*! \brief the fog's density, height falloff, height and whether there is
+   * fog, and its color */
+  void FogUniforms(float params[4], float color[4]) const;
+  /*! \brief the water's height, wave height, wavelength and whether there
+   * is water; its direction of travel, the time shown and the greatest
+   * height of the waves; its color; its extinction and the steepest slope
+   * of the waves but the ripples */
+  void WaterUniforms(float params[4], float wave[4], float color[4],
+                     float extinction[4]) const;
+
+  // the water's waves (OceanWaves), a layer per tile of the height, the
+  // slopes and the sum of their squares with their levels of detail,
+  // shared by both render modes
+  OceanWaves ocean_waves_;
+  std::unique_ptr<QRhiTexture> waves_texture_;
+  std::unique_ptr<QRhiSampler> waves_sampler_;
+  bool waves_uploaded_ = false; //!< whether waves_texture_ holds ocean_waves_
 
   // texture layers of the scene (Scene::texture_layers), shared by both
   // render modes
   std::unique_ptr<QRhiTexture> texture_array_;
+  /*! the larger texture layers (Scene::large_texture_layers) */
+  std::unique_ptr<QRhiTexture> large_texture_array_;
   std::unique_ptr<QRhiSampler> texture_sampler_;
 
   // triangles of the CAD geometry for ray tracing and picking, per

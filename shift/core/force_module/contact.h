@@ -361,6 +361,22 @@ public:
   }
   virtual void Connect() override {}
 
+  /*! \brief the contact model of the environment, which this module
+   * overrides, or nullptr: at Load, the materials and pairs of root with
+   * names (or, for a pair, materials) that this module does not give are
+   * added to this module's, stick_slip and disabled_pairs are joined, and
+   * each setting this module does not give from the model file is root's if
+   * root gives it. Neither module's parameters change, so both are written
+   * back as they were read. */
+  void set_root(const Contact* root) {
+    root_ = root;
+  }
+  /*! \brief mark this as the contact model of the environment, at the root
+   * of the model file, for its messages */
+  void set_environment() {
+    environment_ = true;
+  }
+
 private:
   /* the contact law of a pair of materials */
   struct Law {
@@ -404,6 +420,23 @@ private:
   double damping_depth_ = 1e-4;
   /*! pairs of bodies, by name, whose geometries are not tested for contact */
   std::vector<std::vector<std::string>> disabled_pairs_;
+
+  /* the environment's contact model this module overrides (set_root), and
+  the parameters in use, this module's merged with root_'s at Load */
+  const Contact* root_ = nullptr;
+  bool environment_ = false;
+  std::vector<const ContactMaterial*> used_materials_;
+  std::vector<const ContactMaterialPair*> used_pairs_;
+  std::vector<const StickSlipPair*> used_stick_slip_;
+  const StickSlipAll* used_stick_slip_all_ = nullptr;
+  std::string used_default_material_;
+  std::string used_friction_combine_;
+  std::string used_restitution_combine_;
+  double used_friction_velocity_ = 0.0;
+  double used_damping_depth_ = 0.0;
+  std::vector<std::vector<std::string>> used_disabled_pairs_;
+  /*! \brief the parameters in use, from this module's and root_'s */
+  void Merge();
 
   std::vector<Law> laws_; //!< by material indices, laws_[i * count + j]
   std::unordered_map<const collision_geometry::Base*, Geometry> geometry_;

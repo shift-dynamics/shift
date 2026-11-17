@@ -45,11 +45,20 @@ The route is a list of schedules: the throttle, the clutch, the gear and the
 brakes, and the steering, which sets the target of a PID controller that holds
 the rack in position.
 
+The handbrake, as on a rally car, is a hydraulic one on the rear wheels that
+also opens the drive to the rear axle as it is pulled, so that the rear wheels
+lock while the engine drives the front: the brakes left_handbrake and
+right_handbrake on the rear hubs, applied by the schedule "handbrake" (0 on the
+route), and the map "rear_drive", which disengages the rear axle by the
+handbrake's value. Its capacity, enough to lock the rear wheels on gravel, is
+an estimate.
+
     python3 generate_polo_r_wrc.py polo_r_wrc.json
 
 It also writes polo_r_wrc_suspension.json, the same car without its body
 shell, and the meshes of the parts it adds (OBJ).
 """
+import io
 import json
 import math
 import os
@@ -66,6 +75,13 @@ import mesh_builder  # noqa: E402
 
 out = sys.argv[1] if len(sys.argv) > 1 else "polo_r_wrc.json"
 radius = 0.314     # gravel tire on a 15 inch wheel, from the meshes
+
+# the handbrake on each rear wheel at full pull (N m, estimated): about twice
+# the torque that locks a rear wheel on gravel (a load of about 2,600 N, a
+# friction coefficient of 0.8 and the radius of 0.314 m give 650 N m), so that
+# it locks the wheel against the drive's drag and the wheel's inertia
+HANDBRAKE_CAPACITY = 1500.0
+
 # the tires start touching the ground: the chassis starts a little lower,
 # for the tires to carry the car
 ride_drop = 0.02
@@ -624,15 +640,17 @@ body_parts.write()
 
 # the lenses of the stop lamps, which light up as the car brakes: cut from the
 # glow of the brake lights of the source (brake_lamps.glb, written by the
-# split script), a few quads over the lamps textured with lit lamps. The
+# split script, which lays it on the lenses of the lamps, under their glass),
+# a few quads textured with lit lamps. The
 # pupil of each tail lamp, the square in the middle of its glow, and the high
 # mounted stop lamp on the spoiler are kept, as pixel rectangles of the 512 x
 # 512 texture (u from the left, v from the top); the reflectors low on the
-# bumper are not lamps. The lenses lie 2 mm proud of the tail lamps' own
-# glow, which is the same picture, so that the two do not fight over pixels
+# bumper are not lamps. The lenses lie half a millimeter proud of the lamps'
+# lenses, on which the split paints the same picture, so that the two do not
+# fight over pixels, and under the glass, a few millimeters out
 LENS_RECTS = {"pupil": (382.0, 425.0, 428.0, 457.0),
               "high": (0.0, 135.0, 512.0, 195.0)}
-LENS_OFFSET = 0.002
+LENS_OFFSET = 0.0005
 
 
 def read_glb(path):
@@ -688,9 +706,15 @@ def write_lenses():
     normal"""
     positions, uvs, triangles, image, mime = read_glb(
         os.path.join(HERE, "brake_lamps.glb"))
-    assert mime == "image/jpeg"
-    with open(os.path.join(HERE, "polo_r_wrc_lamp_glow.jpg"), "wb") as f:
-        f.write(image)
+    if mime == "image/jpeg":
+        with open(os.path.join(HERE, "polo_r_wrc_lamp_glow.jpg"), "wb") as f:
+            f.write(image)
+    else:
+        # the glow cut out where it is dark (the split's "cutouts"): the
+        # lenses lie on the lamps, inside the cut, and keep only the color
+        assert mime == "image/png"
+        Image.open(io.BytesIO(image)).convert("RGB").save(
+            os.path.join(HERE, "polo_r_wrc_lamp_glow.jpg"), quality=95)
     lenses = {"right_stop_lamp_lens": [], "left_stop_lamp_lens": [],
               "high_stop_lamp_lens": []}
     for triangle in triangles:
@@ -930,7 +954,10 @@ force_modules.append({
     "brakes": [{"name": side + "_" + end, "joint": side + "_" + end + "_hub",
                 "direction": -1, "capacity": capacity}
                for side in ("left", "right")
-               for end, capacity in (("front", 1500.0), ("rear", 600.0))]})
+               for end, capacity in (("front", 1500.0), ("rear", 600.0))] +
+              [{"name": side + "_handbrake", "joint": side + "_rear_hub",
+                "direction": -1, "capacity": HANDBRAKE_CAPACITY}
+               for side in ("left", "right")]})
 
 controllers.append({
     "type": "pid", "name": "steering", "kp": 1000000.0, "ki": 2000000.0,
@@ -992,6 +1019,14 @@ schedule("gears", "step", ROUTE["gears"],
 schedule("brake_pedal", "linear", ROUTE["brakes"],
          ["force_modules/drive/brakes/" + side + "_" + end + "/pressure"
           for side in ("left", "right") for end in ("front", "rear")])
+schedule("handbrake", "linear", [0, 0, ROUTE["time_span"], 0],
+         ["force_modules/drive/brakes/" + side + "_handbrake/pressure"
+          for side in ("left", "right")])
+# the handbrake opens the drive to the rear axle as it is pulled
+controllers.append({
+    "type": "map", "name": "rear_drive", "component": "handbrake",
+    "output": "value", "points": [0.0, 1.0, 1.0, 0.0],
+    "targets": ["force_modules/drive/axles/rear/engaged"]})
 schedule("steering_wheel", "cubic", ROUTE["rack"],
          ["controllers/steering/target"])
 # the stop lamps light at full brightness once the pedal is pressed 5%

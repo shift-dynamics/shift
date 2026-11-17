@@ -30,7 +30,8 @@ void main() {
 
   vec4 g = imageLoad(position, pixel);
   vec4 h = imageLoad(history_illumination, pixel);
-  if(int(round(g.w)) == -1) {
+  // the sky, and deep water (-3), whose light is all exact
+  if(int(round(g.w)) == -1 || int(round(g.w)) == -3) {
     imageStore(filtered, pixel, vec4(h.rgb, 0.0)); // sky
     return;
   }
@@ -54,7 +55,8 @@ void main() {
         continue;
       }
       vec4 tap_position = imageLoad(position, tap);
-      if(int(round(tap_position.w)) == -1) {
+      if(int(round(tap_position.w)) == -1 ||
+         int(round(tap_position.w)) == -3) {
         continue;
       }
       vec3 tap_normal = imageLoad(normal, tap).xyz;

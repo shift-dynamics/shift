@@ -35,7 +35,9 @@
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QFileDialog>
+#include <QCloseEvent>
 #include <QDir>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -74,7 +76,10 @@
 #include <set>
 #include <sstream>
 #include <tuple>
+#include <atomic>
+#include <mutex>
 #include <stdexcept>
+#include <thread>
 
 
 static constexpr int kBodyItem = QTreeWidgetItem::UserType + 1;
@@ -1007,6 +1012,137 @@ void shift::gui::Workspace::InitializeLayout() {
 
 // -------------------------------------------------------------- model file
 
+namespace shift {
+namespace gui {
+/*! thrown by the load observer of Workspace::LoadInBackground to stop the
+ * load when it is cancelled */
+class LoadCancelled : public std::runtime_error {
+public:
+  LoadCancelled()
+    : std::runtime_error("loading cancelled") {}
+};
+} // namespace gui
+} // namespace shift
+
+std::string shift::gui::Workspace::LoadInBackground(const QString& filename,
+                                                   const Json::Value* model,
+                                                   bool& cancelled) {
+  // nothing may touch the simulation while it loads: the menus, their
+  // shortcuts and the panels are disabled, and Tick waits
+  loading_ = true;
+  std::vector<QAction*> disabled;
+  for(QAction* action : findChildren<QAction*>()) {
+    if(action->isEnabled()) {
+      action->setEnabled(false);
+      disabled.push_back(action);
+    }
+  }
+  menuBar()->setEnabled(false);
+  centralWidget()->setEnabled(false);
+  const QString name = QFileInfo(filename).fileName();
+  status_label_->setText(QString("Loading %1…").arg(name));
+
+  // what the loader is doing, set by the worker and shown by the dialog
+  struct Progress {
+    std::mutex mutex;
+    std::string stage = "Reading the model";
+    int done = 0;
+    int total = 0;
+    std::atomic<bool> cancel{false};
+  } progress;
+  simulation_.set_load_observer(
+    [&progress](const std::string& stage, int done, int total) {
+      if(progress.cancel) {
+        throw LoadCancelled();
+      }
+      std::lock_guard<std::mutex> lock(progress.mutex);
+      progress.stage = stage;
+      progress.done = done;
+      progress.total = total;
+    });
+
+  // shown if the load takes more than a moment
+  QProgressDialog dialog(QString("Loading %1…").arg(name), "Cancel", 0, 0,
+                         this);
+  dialog.setWindowTitle("Loading");
+  dialog.setWindowModality(Qt::WindowModal);
+  dialog.setMinimumDuration(400);
+  dialog.setAutoClose(false);
+  dialog.setAutoReset(false);
+  dialog.setMinimumWidth(420);
+  connect(&dialog, &QProgressDialog::canceled, this, [&]() {
+    // the worker stops at the next stage or item it reports
+    progress.cancel = true;
+    status_label_->setText(QString("Cancelling the loading of %1…").arg(name));
+  });
+  QTimer refresh;
+  connect(&refresh, &QTimer::timeout, this, [&]() {
+    if(progress.cancel) {
+      return;
+    }
+    std::string stage;
+    int done, total;
+    {
+      std::lock_guard<std::mutex> lock(progress.mutex);
+      stage = progress.stage;
+      done = progress.done;
+      total = progress.total;
+    }
+    QString label = QString("Loading %1\n%2").arg(name,
+                                                 QString::fromStdString(stage));
+    if(total > 0) {
+      label += QString(" (%1 of %2)").arg(done + 1).arg(total);
+      dialog.setRange(0, total);
+      dialog.setValue(done);
+    } else {
+      dialog.setRange(0, 0); // busy
+    }
+    dialog.setLabelText(label);
+  });
+  refresh.start(100);
+
+  std::string error;
+  QEventLoop loop;
+  std::thread worker([&]() {
+    try {
+      if(model) {
+        simulation_.Reload(*model);
+      } else {
+        simulation_.Load(filename.toStdString());
+      }
+    } catch(LoadCancelled&) {
+      cancelled = true;
+      error = "loading cancelled";
+    } catch(std::exception& e) {
+      error = e.what();
+    }
+    // queued: delivered once the loop runs, even if it has not yet started
+    QMetaObject::invokeMethod(&loop, &QEventLoop::quit, Qt::QueuedConnection);
+  });
+  loop.exec();
+  worker.join();
+  refresh.stop();
+  simulation_.set_load_observer(nullptr);
+  // a cancel pressed just as the load finished stops nothing
+  cancelled = cancelled && progress.cancel;
+
+  centralWidget()->setEnabled(true);
+  menuBar()->setEnabled(true);
+  for(QAction* action : disabled) {
+    action->setEnabled(true);
+  }
+  loading_ = false;
+  return error;
+}
+
+void shift::gui::Workspace::closeEvent(QCloseEvent* event) {
+  if(loading_) {
+    event->ignore();
+    return;
+  }
+  QMainWindow::closeEvent(event);
+}
+
 bool shift::gui::Workspace::Open(const QString& filename,
                                  QString* error_message) {
   return LoadModel(filename, nullptr, error_message, false);
@@ -1061,23 +1197,15 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   }
   geometry_panel_.selected = nullptr;
 
-  std::string error;
-  try {
-    if(model) {
-      simulation_.Reload(*model);
-    } else {
-      simulation_.Load(filename.toStdString());
-    }
-  } catch(std::exception& e) {
-    error = e.what();
-  }
+  bool cancelled = false;
+  const std::string error = LoadInBackground(filename, model, cancelled);
   QApplication::restoreOverrideCursor();
   if(!error.empty()) {
     const QString message = QString("Could not load %1:\n%2")
                               .arg(filename, QString::fromStdString(error));
     if(error_message) {
       *error_message = message;
-    } else {
+    } else if(!cancelled) {
       QMessageBox::critical(this, "Open failed", message);
     }
     model_parameters_panel_.group_box->setVisible(false);
@@ -3304,7 +3432,7 @@ void shift::gui::Workspace::Jog() {
 // ------------------------------------------------------------- simulation
 
 void shift::gui::Workspace::RunSimulation() {
-  if(!simulation_.is_loaded() || simulation_.is_computing()) {
+  if(loading_ || !simulation_.is_loaded() || simulation_.is_computing()) {
     return;
   }
   jogging_ = nullptr;
@@ -3382,6 +3510,9 @@ void shift::gui::Workspace::SetPlaybackTime(double t) {
 
 void shift::gui::Workspace::Tick() {
   const double dt = tick_clock_.restart() / 1000.0;
+  if(loading_) {
+    return;
+  }
   if(!simulation_.is_loaded()) {
     if(++tick_count_ % 15 == 0) {
       UpdateStatus();

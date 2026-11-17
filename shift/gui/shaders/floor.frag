@@ -15,7 +15,30 @@ layout(std140, binding = 0) uniform Frame {
   vec4 sky_horizon;
     vec4 floor_params;
   mat4 floor_frame;
+  vec4 fog_params;
+  vec4 fog_color;
+  vec4 water_params;     // height (up), wave height, wavelength, 1 if water
+  vec4 water_wave;       // direction of travel (x, y), time
+  vec4 water_color;
+  vec4 water_extinction;
 } frame;
+
+#include "environment.glsl"
+// the radiance of the sky, equirectangular, for the water's reflections
+layout(binding = 10) uniform sampler2D sky_radiance;
+#define WATER_SKY sky_radiance
+#include "surfaces.glsl"
+#define WATER_PARAMS frame.water_params
+#define WATER_WAVE frame.water_wave
+#define WATER_COLOR frame.water_color
+#define WATER_EXTINCTION frame.water_extinction
+#define SUN_DIRECTION frame.sun_direction
+#define SUN_COLOR frame.sun_color
+#define SKY_ZENITH frame.sky_zenith
+vec3 WaterSky(vec3 d) {
+  return textureLod(WATER_SKY, EquirectUv(d), 0.0).rgb;
+}
+#include "water.glsl"
 
 #define LIGHTS_BINDING 8
 #define IES_BINDING 9
@@ -68,6 +91,23 @@ void main() {
   vec3 to_point = world_position - frame.camera_position.xyz;
   float fade = clamp(length(to_point) / frame.floor_params.w, 0.0, 1.0);
   color = mix(color, frame.sky_horizon.rgb, fade * fade);
+  float pixel = length(fwidth(world_position));
+  vec3 crossing;
+  if(WaterCrossing(frame.camera_position.xyz, world_position, crossing)) {
+    // the size of the pixel across the view at the crossing (the size of
+    // the pixel on a surface it grazes is the size along the view)
+    vec3 to_camera = normalize(frame.camera_position.xyz - crossing);
+    float footprint =
+      pixel * max(-to_camera.z, 0.02) *
+      distance(frame.camera_position.xyz, crossing) /
+      max(distance(frame.camera_position.xyz, world_position), 1e-6);
+    color = WaterOver(frame.camera_position.xyz, crossing, world_position,
+                      color, false, footprint);
+  }
+  color = Aerial(frame.camera_position.xyz, world_position, color,
+                 frame.fog_params, frame.fog_color,
+                 WaterSky(HorizonDirection(world_position -
+                                           frame.camera_position.xyz)));
 
   color = color / (color + vec3(1.0));
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);

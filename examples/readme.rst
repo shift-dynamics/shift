@@ -19,6 +19,7 @@ Mechanisms and robots
 * `Slider crank <slider_crank>`_
 * `Bricard's mechanism <bricard>`_
 * `Klann linkage and walker <klann_linkage>`_
+* `Strandbeest <strandbeest>`_
 * `Sarrus linkage <sarrus>`_
 * `Bicycle caliper brake <brake>`_
 * `Screw and gear joints <joints>`_
@@ -43,6 +44,17 @@ Forces, contact and geometry
 * `Collision modeling <collision>`_
 * `CAD parts, cam and track <cad>`_
 * `Terrain modeling <terrain>`_
+
+Environments
+------------
+
+* `Strandbeest on a sand beach <beach>`_
+* `Polo R WRC on a gravel rally stage through a forest <forest>`_
+
+The beach and the forest stage themselves, and the trees, shrubs, grass and
+rocks strewn over them, are in `../assets/environments
+<../assets/environments>`_ and `../assets/scenery <../assets/scenery>`_, to
+use in other models.
 
 Building models
 ---------------

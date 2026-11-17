@@ -5,6 +5,7 @@
 
 #include "shift/core/force_module/soil.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/material_map.h"
 #include "shift/core/terrain/soil_map.h"
 #include "shift/core/terrain/surface_texture.h"
 
@@ -113,6 +114,15 @@ public:
    * those of the soil map */
   const std::vector<force_module::SoilProperties>& get_soils() const {
     return soils_;
+  }
+
+  /*! \brief the surface materials by area, or nullptr if the terrain has
+   * no material map; a region's is that of the terrain that holds it */
+  const MaterialMap* get_material_map() const {
+    if(parent_basic_) {
+      return parent_basic_->get_material_map();
+    }
+    return material_map_.is_given() ? &material_map_ : nullptr;
   }
 
   /*! \brief whether an elevation map was loaded; without one (a flat
@@ -260,6 +270,7 @@ private:
 
   force_module::Soil soil_;
   SoilMap soil_map_;
+  MaterialMap material_map_;
   std::vector<force_module::SoilProperties> soils_;
   int base_soil_ = -1; //!< index of soil_ in soils_, -1 if not given
 

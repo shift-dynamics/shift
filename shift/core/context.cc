@@ -1,4 +1,6 @@
 #include "shift/core/context.h"
+#include "shift/core/terrain/basic.h"
+#include "shift/core/utility.h"
 
 #include <assert.h>
 #include <string.h>
@@ -127,6 +129,7 @@ void shift::core::Context::LoadJSON(const Json::Value& model,
 }
 
 void shift::core::Context::ReadModel(const std::string& filename) {
+  ReportLoad("Reading the model");
   ReadJSON(root_);
   AddDefaultFloor();
   set_parent(this);
@@ -142,6 +145,7 @@ void shift::core::Context::PostLoad(const std::string) {
   CheckUniqueNames();
 
   /* process topology */
+  ReportLoad("Setting up the topology");
   ActivateObjects(true);
   Connect();
   AddFloatingJoints();
@@ -160,6 +164,7 @@ void shift::core::Context::PostLoad(const std::string) {
   UpdateDH();
   UpdateDHVA();
 
+  ReportLoad("Setting up the equations of motion");
   SetupLookup();
   DetectTrees();
   jacobian_.Initialize();
@@ -171,6 +176,7 @@ void shift::core::Context::PostLoad(const std::string) {
   // InitializeGLReferenceFrames();
 
   LoadData();
+  ReportLoad("Setting up contact detection");
   SetupContactDetection();
 
   // InitializeJointForces();
@@ -355,6 +361,27 @@ void shift::core::Context::ActivateObjects(bool) {
   }
   for(auto& terrain : get_terrain()) {
     terrain->ActivateObjects(true);
+  }
+  for(auto& scenery : get_scenery()) {
+    scenery->ActivateObjects(true);
+  }
+  /* the contact model of the environment: overridden by a contact force
+  module of an assembly, else a force module of its own */
+  force_module::Contact* root_contact = get_root_contact();
+  if(root_contact) {
+    RemoveActiveObject(root_contact);
+    force_module::Contact* module = nullptr;
+    for(auto other : active_force_modules_) {
+      if(auto contact = dynamic_cast<force_module::Contact*>(other)) {
+        module = contact;
+        break;
+      }
+    }
+    if(module) {
+      module->set_root(root_contact);
+    } else {
+      AppendActiveObject(root_contact);
+    }
   }
 }
 
@@ -916,7 +943,100 @@ void shift::core::Context::LoadExactShapes() {
   }
 }
 
+void shift::core::Context::LoadEnvironment() {
+  environment::Environment* environment = get_environment();
+  if(!environment) {
+    return;
+  }
+  environment->Check();
+  environment::Sky& sky = environment->get_sky();
+  sky.set_path("");
+  if(sky.get_type() == "hdri") {
+    /* the sky only changes the look: draw the gradient sky if the image is
+    missing */
+    if(shift::core::utility::IsResourcePath(sky.get_filename())) {
+      sky.set_path(sky.get_filename());
+    } else {
+      sky.set_path(FindFile(sky.get_filename()));
+      if(sky.get_path().empty()) {
+        SHIFT_WARNING("environment: sky: file " + sky.get_filename() +
+                      " not found; drawn as a gradient sky");
+      }
+    }
+  }
+}
+
+void shift::core::Context::PlaceScenery() {
+  std::vector<const environment::Scenery*> placed;
+  for(auto& scenery : get_scenery()) {
+    scenery->Check();
+    const std::string prefix = "scenery " + scenery->get_name() + ": ";
+    const terrain::Basic* ground = nullptr;
+    for(auto terrain : active_terrain_) {
+      if(terrain->get_name() == scenery->get_terrain_name()) {
+        ground = dynamic_cast<const terrain::Basic*>(terrain);
+      }
+    }
+    if(!ground) {
+      throw shift::core::Exception(prefix + "no active terrain named '" +
+                                   scenery->get_terrain_name() + "'");
+    }
+    for(const auto& name : scenery->get_materials()) {
+      bool found = false;
+      for(const auto& material : get_surface_material_data()) {
+        found = found || material->get_name() == name;
+      }
+      if(!found) {
+        throw shift::core::Exception(prefix + "no surface material named '" +
+                                     name + "'");
+      }
+    }
+    std::vector<const environment::Scenery*> avoided;
+    for(const auto& name : scenery->get_avoid()) {
+      auto it = std::find_if(placed.begin(), placed.end(),
+                             [&](const environment::Scenery* other) {
+                               return other->get_name() == name;
+                             });
+      if(it == placed.end()) {
+        throw shift::core::Exception(prefix + "avoids '" + name +
+                                     "', which is not a scenery given "
+                                     "before it");
+      }
+      avoided.push_back(*it);
+    }
+    scenery->Place(*ground, avoided);
+    placed.push_back(scenery.get());
+  }
+}
+
+void shift::core::Context::LoadSurfaceMaterials() {
+  for(auto& material : get_surface_material_data()) {
+    material->Check();
+    /* the images only change the look: draw without one that is missing */
+    auto find = [&](const std::string& name, const char* what) {
+      if(name.empty()) {
+        return std::string();
+      }
+      if(shift::core::utility::IsResourcePath(name)) {
+        return name;
+      }
+      const std::string path = FindFile(name);
+      if(path.empty()) {
+        SHIFT_WARNING("surface material " + material->get_name() + ": " +
+                      what + " " + name + " not found; drawn without it");
+      }
+      return path;
+    };
+    material->set_paths(
+      find(material->get_texture_filename(), "texture"),
+      find(material->get_normal_map_filename(), "normal map"),
+      find(material->get_roughness_map_filename(), "roughness map"),
+      find(material->get_height_map_filename(), "height map"));
+  }
+}
+
 void shift::core::Context::LoadData() {
+  ReportLoad("Loading controllers, bodies and force modules");
   for(auto& controller : active_controllers_) {
     controller->Load();
   }
@@ -930,8 +1050,10 @@ void shift::core::Context::LoadData() {
     force_module->Load();
   }
   mesh_assets_.clear();
-  for(auto& geometry : active_geometry_) {
-    geometry->Load();
+  const int geometry_count = static_cast<int>(active_geometry_.size());
+  for(int i = 0; i < geometry_count; i++) {
+    ReportLoad("Loading geometry", i, geometry_count);
+    active_geometry_[i]->Load();
   }
   /* mass properties from the meshes, now that they are loaded */
   bool from_density = false;
@@ -960,14 +1082,24 @@ void shift::core::Context::LoadData() {
   for(auto& sensor : active_sensors_) {
     sensor->Load();
   }
-  for(auto& terrain : active_terrain_) {
-    terrain->LoadAll();
+  LoadSurfaceMaterials();
+  const int terrain_count = static_cast<int>(active_terrain_.size());
+  for(int i = 0; i < terrain_count; i++) {
+    ReportLoad("Loading terrain", i, terrain_count);
+    active_terrain_[i]->LoadAll();
   }
+  ReportLoad("Placing scenery");
+  PlaceScenery();
+  LoadEnvironment();
   /* collision geometry is fitted to the mesh geometry loaded above */
   collision_geometry_prototypes_.clear();
-  for(auto& collision_geometry : active_collision_geometry_) {
-    collision_geometry->Load();
+  const int collision_count =
+    static_cast<int>(active_collision_geometry_.size());
+  for(int i = 0; i < collision_count; i++) {
+    ReportLoad("Fitting collision geometry", i, collision_count);
+    active_collision_geometry_[i]->Load();
   }
+  ReportLoad("Loading exact shapes");
   LoadExactShapes();
 }
 

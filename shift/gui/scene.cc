@@ -4,6 +4,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <string>
+#include <string_view>
 
 void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
                              QVector3D& box_min, QVector3D& box_max) {
@@ -11,8 +14,8 @@ void shift::gui::SceneBounds(const Scene& scene, const Poses& poses,
   box_max = -box_min;
   for(const auto& instance : scene.instances) {
     const SceneMesh& mesh = scene.meshes[instance.mesh_index];
-    if(mesh.terrain >= 0) {
-      continue; // frame the model, not the ground it stands on
+    if(mesh.terrain >= 0 || !instance.placement.isIdentity()) {
+      continue; // frame the model, not the ground and scenery about it
     }
     const QMatrix4x4& pose = poses.bodies.at(instance.body_index);
     for(int corner = 0; corner < 8; corner++) {
@@ -58,7 +61,7 @@ void shift::gui::TextureLoader::AddEmbedded(
   }
 }
 
-QImage shift::gui::TextureLoader::Read(const std::string& path) {
+QImage shift::gui::TextureLoader::ReadImage(const std::string& path) {
   QImage image;
   auto embedded = embedded_.find(path);
   if(embedded == embedded_.end()) {
@@ -79,14 +82,21 @@ QImage shift::gui::TextureLoader::Read(const std::string& path) {
   }
   if(image.isNull()) {
     qWarning("Cannot read texture %s", path.c_str());
-    return image;
   }
-  const int size = Scene::kTextureSize;
+  return image;
+}
+
+QImage shift::gui::TextureLoader::Fit(QImage image, int size) {
   if(image.width() != size || image.height() != size) {
     image = image.scaled(size, size, Qt::IgnoreAspectRatio,
                          Qt::SmoothTransformation);
   }
   return image.convertToFormat(QImage::Format_RGBA8888);
+}
+
+QImage shift::gui::TextureLoader::Read(const std::string& path) {
+  QImage image = ReadImage(path);
+  return image.isNull() ? image : Fit(std::move(image), Scene::kTextureSize);
 }
 
 int shift::gui::TextureLoader::Load(const std::string& path) {
@@ -97,13 +107,40 @@ int shift::gui::TextureLoader::Load(const std::string& path) {
   if(it != layers_.end()) {
     return it->second;
   }
-  QImage image = Read(path);
+  // an embedded image is loaded once for all the mesh files that hold the
+  // same data
+  std::string content;
+  auto embedded = embedded_.find(path);
+  if(embedded != embedded_.end()) {
+    const auto& data = embedded->second->data;
+    content = "data:" + std::to_string(data.size()) + ":" +
+              std::to_string(embedded->second->width) + ":" +
+              std::to_string(std::hash<std::string_view>()(std::string_view(
+                reinterpret_cast<const char*>(data.data()), data.size())));
+    auto same = layers_.find(content);
+    if(same != layers_.end()) {
+      layers_[path] = same->second;
+      return same->second;
+    }
+  }
+  QImage image = ReadImage(path);
   int layer = -1;
   if(!image.isNull()) {
-    layer = static_cast<int>(scene_.texture_layers.size());
-    scene_.texture_layers.push_back(std::move(image));
+    if(std::max(image.width(), image.height()) > Scene::kTextureSize) {
+      layer = Scene::kLargeLayer +
+              static_cast<int>(scene_.large_texture_layers.size());
+      scene_.large_texture_layers.push_back(
+        Fit(std::move(image), Scene::kLargeTextureSize));
+    } else {
+      layer = static_cast<int>(scene_.texture_layers.size());
+      scene_.texture_layers.push_back(
+        Fit(std::move(image), Scene::kTextureSize));
+    }
   }
   layers_[path] = layer;
+  if(!content.empty()) {
+    layers_[content] = layer;
+  }
   return layer;
 }
 
@@ -209,4 +246,32 @@ float shift::gui::SurfaceNoiseLevel(int surface, double coverage) {
                             size_t((1.0 - coverage) * samples.size()));
   std::nth_element(samples.begin(), samples.begin() + k, samples.end());
   return samples[k];
+}
+
+shift::gui::SceneMeshBvh shift::gui::BuildSceneMeshBvh(const SceneMesh& mesh,
+                                                       bool tagged) {
+  SceneMeshBvh bvh;
+  auto& triangles = bvh.triangles;
+  triangles.resize(mesh.indices.size() / 3);
+  for(size_t i = 0; i < triangles.size(); i++) {
+    float* positions[3] = {triangles[i].v0, triangles[i].v1, triangles[i].v2};
+    float* normals[3] = {triangles[i].n0, triangles[i].n1, triangles[i].n2};
+    for(int j = 0; j < 3; j++) {
+      const Vertex& v = mesh.vertices[mesh.indices[3 * i + j]];
+      std::copy(v.position, v.position + 3, positions[j]);
+      std::copy(v.normal, v.normal + 3, normals[j]);
+      // texture coordinates in the spare components
+      positions[j][3] = v.uv[0];
+      normals[j][3] = v.uv[1];
+    }
+  }
+  bvh.faces.assign(triangles.size(), -1);
+  if(tagged) {
+    // the BVH reorders the tags with the triangles: where each went
+    for(size_t i = 0; i < bvh.faces.size(); i++) {
+      bvh.faces[i] = static_cast<int32_t>(i);
+    }
+  }
+  bvh.nodes = BuildBvh(triangles, &bvh.faces);
+  return bvh;
 }

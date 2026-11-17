@@ -1,6 +1,7 @@
 /* deformable SCM terrain (terrain::Scm): its grid of nodes, the deformed
 surface, nodes that change only when a step is accepted; and the soils of a
-terrain, its own and those of a soil map (terrain::SoilMap) */
+terrain, its own and those of a soil map (terrain::SoilMap) or of the surface materials of a
+material map (terrain::MaterialMap) */
 
 #include <cmath>
 #include <cstdint>
@@ -56,9 +57,11 @@ static void WriteTiff(const std::string& path, int width, int height,
   TIFFClose(tiff);
 }
 
-/* a model with one terrain, on the frame "terrain" of the fixed body */
+/* a model with one terrain, on the frame "terrain" of the fixed body; root
+holds more keys of the root of the model file, each followed by a comma */
 static void LoadTerrain(shift::core::Context& context, const std::string& name,
-                        const std::string& terrain, const std::string& frame) {
+                        const std::string& terrain, const std::string& frame,
+                        const std::string& root = "") {
   const std::string path = testing::TempDir() + "/" + name + ".json";
   std::ostringstream model;
   model << R"({
@@ -72,6 +75,7 @@ static void LoadTerrain(shift::core::Context& context, const std::string& name,
     "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]
   },
   "frames": [)" << frame << R"(],
+  )" << root << R"(
   "terrain": [)" << terrain << R"(],
   "assemblies": [{"name": "a",
     "bodies": [{"name": "block", "center_of_mass": [0, 0, 0],
@@ -431,6 +435,111 @@ TEST(SoilMap, Checks) {
   error = message(SoilTerrain(file, R"(, "soil": {"name": "dry_sand"})",
                               kSoils));
   EXPECT_NE(error.find("integer"), std::string::npos) << error;
+  std::remove(path.c_str());
+}
+
+/* surface materials, laid out by the values of kSoilValues: dry sand has
+the terrain's soil, wet sand and rock their own */
+static const char* kSurfaceMaterials = R"("surface_materials": [
+  {"name": "dry_sand", "label": "sand"},
+  {"name": "wet_sand", "label": "sand", "soil": {"name": "clayey_soil_wet"}},
+  {"name": "rock", "soil": {"name": "sandy_loam", "shear_modulus": 0.03}}],)";
+
+static std::string MaterialTerrain(const std::string& map,
+                                   const std::string& materials) {
+  return R"({"type": "scm", "name": "site", "parent": [["fixed"], "terrain"],
+             "x": [0, 2], "y": [0, 1], "spacing": 0.25,
+             "soil": {"name": "dry_sand"},
+             "material_map": {"filename": ")" + map +
+         R"(", "x_scale": 0.5, "y_scale": 0.25, "blend_width": 0.1,
+             "materials": [)" + materials + "]}}";
+}
+
+static const char* kMappedMaterials =
+  R"({"value": 0, "material": "dry_sand"},
+     {"value": 1, "material": "wet_sand"},
+     {"value": 2, "material": "rock"},
+     {"value": 3, "material": "wet_sand"})";
+
+/* the soil of the material of the nearest sample, or the terrain's own; the
+materials in use, each once, and the material of each sample */
+TEST(MaterialMap, NearestSample) {
+  const std::string file = "material_map.tiff";
+  WriteTiff(testing::TempDir() + "/" + file, 4, 3, 8, false,
+            [](int row, int column) { return kSoilValues[row][column]; });
+  shift::core::Context context;
+  LoadTerrain(context, "material_map", MaterialTerrain(file, kMappedMaterials),
+              kTerrainFrame, kSurfaceMaterials);
+  auto* scm = GetScm(context);
+  ASSERT_NE(scm, nullptr);
+  // the terrain's soil, then those of wet sand and rock
+  ASSERT_EQ(scm->get_soils().size(), 3u);
+  auto k_phi = [&](double x, double y) {
+    const auto* soil = scm->LocalSoil(x, y);
+    return soil ? soil->k_phi : -1.0;
+  };
+  EXPECT_EQ(k_phi(0.0, 0.0), Table("clayey_soil_wet").k_phi); // value 1
+  EXPECT_EQ(k_phi(0.5, 0.25), Table("dry_sand").k_phi);       // value 0
+  EXPECT_EQ(k_phi(1.5, 0.0), Table("sandy_loam").k_phi);      // value 2
+  EXPECT_EQ(scm->LocalSoil(1.5, 0.0)->shear_modulus, 0.03);
+  EXPECT_EQ(k_phi(0.5, 0.5), Table("clayey_soil_wet").k_phi); // value 3
+  EXPECT_EQ(k_phi(9.0, -3.0), Table("sandy_loam").k_phi);     // beyond
+  const auto* map = scm->get_material_map();
+  ASSERT_NE(map, nullptr);
+  ASSERT_EQ(map->get_materials().size(), 3u);
+  EXPECT_EQ(map->get_materials()[0]->get_name(), "dry_sand");
+  EXPECT_EQ(map->get_materials()[1]->get_name(), "wet_sand");
+  EXPECT_EQ(map->get_materials()[2]->get_label(), "rock"); // the name
+  EXPECT_EQ(map->get_materials()[1]->get_label(), "sand");
+  ASSERT_EQ(map->get_x_samples(), 4);
+  ASSERT_EQ(map->get_y_samples(), 3);
+  const std::vector<uint8_t> indices = {1, 1, 2, 2, 1, 0, 2, 2, 1, 1, 1, 1};
+  EXPECT_EQ(map->get_indices(), indices);
+  EXPECT_EQ(map->get_blend_width(), 0.1);
+  std::remove((testing::TempDir() + "/" + file).c_str());
+}
+
+/* every value of the map needs a material, every material a surface
+material; not with a soil map */
+TEST(MaterialMap, Checks) {
+  const std::string file = "material_map_checks.tiff";
+  const std::string path = testing::TempDir() + "/" + file;
+  WriteTiff(path, 4, 3, 8, false,
+            [](int row, int column) { return kSoilValues[row][column]; });
+  auto message = [&](const std::string& terrain, const std::string& root) {
+    try {
+      shift::core::Context context;
+      LoadTerrain(context, "material_map_checks", terrain, kLevelFrame, root);
+    } catch(const shift::core::Exception& e) {
+      return std::string(e.what());
+    }
+    return std::string();
+  };
+  std::string error = message(
+    MaterialTerrain(file, R"({"value": 0, "material": "dry_sand"},
+                             {"value": 2, "material": "rock"})"),
+    kSurfaceMaterials);
+  EXPECT_NE(error.find("values with no material: 1, 3"), std::string::npos)
+    << error;
+  error = message(MaterialTerrain(file, std::string(kMappedMaterials) +
+                                          R"(, {"value": 4, "material": "mud"})"),
+                  kSurfaceMaterials);
+  EXPECT_NE(error.find("no surface material named 'mud'"), std::string::npos)
+    << error;
+  error = message(MaterialTerrain(file, std::string(kMappedMaterials) +
+                                          R"(, {"value": 2, "material": "rock"})"),
+                  kSurfaceMaterials);
+  EXPECT_NE(error.find("two materials have the value 2"), std::string::npos)
+    << error;
+  std::string both = MaterialTerrain(file, kMappedMaterials);
+  both.insert(both.rfind('}'), R"(, "soil_map": {"filename": ")" + file +
+                                 R"(", "soils": [)" + kSoils + "]}");
+  error = message(both, kSurfaceMaterials);
+  EXPECT_NE(error.find("not both"), std::string::npos) << error;
+  error = message(MaterialTerrain(file, kMappedMaterials),
+                  R"("surface_materials": [{"name": "rock"},
+                                           {"name": "rock"}],)");
+  EXPECT_FALSE(error.empty());
   std::remove(path.c_str());
 }
 

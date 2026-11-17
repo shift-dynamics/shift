@@ -5,6 +5,7 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/linearization.h"
 #include "shift/core/exception.h"
+#include "shift/core/geometry/mesh.h"
 #include "shift/core/log.h"
 
 #include <fenv.h>
@@ -13,6 +14,8 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 
@@ -90,6 +93,12 @@ int main(int argc, char* argv[]) {
      {"modes",
       {"-m", "--modes"},
       "with --linearize: the number of modes to print (default: 10)",
+      1},
+     {"scenery",
+      {"-s", "--scenery"},
+      "write the items of the scenery, as placed on the terrain, to this\n"
+      "                        "
+      "CSV file (scenery, variant, mesh, x, y, z, scale) and exit",
       1}}};
 
   argagg::parser_results args;
@@ -213,6 +222,30 @@ int main(int argc, char* argv[]) {
       context.DigraphFrames();
       return EXIT_SUCCESS;
     }
+    if(args["scenery"]) {
+      const std::string filename = args["scenery"].as<std::string>();
+      std::ofstream file(filename);
+      if(!file) {
+        throw shift::core::Exception("--scenery: cannot write " + filename);
+      }
+      file << "scenery,variant,mesh,x,y,z,scale\n" << std::setprecision(9);
+      for(auto& scenery : context.get_scenery()) {
+        auto& geometry = scenery->get_geometry();
+        for(const auto& item : scenery->get_items()) {
+          std::string mesh;
+          auto* shape = dynamic_cast<shift::core::geometry::Mesh*>(
+            geometry[item.variant].get());
+          if(shape && !shape->get_filenames().empty()) {
+            mesh = shape->get_filenames()[0];
+          }
+          file << scenery->get_name() << "," << item.variant << "," << mesh
+               << "," << item.pose.t.x << "," << item.pose.t.y << ","
+               << item.pose.t.z << "," << item.scale << "\n";
+        }
+      }
+      return EXIT_SUCCESS;
+    }
+
     if(args["validate"]) {
       context.Print();
     } else if(args["linearize"]) {
