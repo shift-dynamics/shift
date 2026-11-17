@@ -37,6 +37,7 @@ test_sources = [
   'test_beam.cc',
   'test_belt.cc',
   'test_mesh_scale.cc',
+  'test_simplify.cc',
   'test_applied_load.cc',
   'test_sensors.cc',
   'test_bushing.cc',
@@ -95,6 +96,7 @@ if not is_disabler(shift_gui_dep)
                    'test_cad_scene.cc', 'test_video_trimmer.cc',
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
+                   'test_opacity_micromap.cc',
                    'test_light_glow.cc', 'test_sky.cc',
                    'test_ocean_waves.cc']
   test_deps += [shift_gui_dep]

@@ -44,9 +44,9 @@ static std::vector<std::string> Fields(const std::string& shader,
 TEST(ShaderLayouts, InstancesMatchTheRayTracer) {
   const auto fields = Fields("raytrace.comp", "Instance");
   ASSERT_FALSE(fields.empty());
-  /* mat4 x 3 (48 floats), vec4 x 6, ivec4 x 2 and vec4[2] (40): 352 bytes,
+  /* mat4 x 3 (48 floats), vec4 x 7, ivec4 x 4 and vec4[2] (52): 400 bytes,
   the size of RtInstance */
-  EXPECT_EQ(fields.size(), 12u);
+  EXPECT_EQ(fields.size(), 15u);
   for(const char* shader : {"svgf_temporal.comp", "svgf_taa.comp"}) {
     EXPECT_EQ(Fields(shader, "Instance"), fields) << shader;
   }

@@ -24,6 +24,43 @@ struct Vertex {
   float uv[2];
 };
 
+/*! \brief a simplified copy of a SceneMesh (BuildSceneMeshLods), drawn by
+ * the rasterizer in its place where the mesh covers few pixels */
+struct SceneMeshLod {
+  /*! \brief the pixels across the screen that the error of a level spans
+   * where it is drawn at max_pixels: in the forest (examples/forest) the
+   * levels cannot be told from the meshes at 8, and shrubs turn to blobs at
+   * 32. The viewer's level of detail tolerance scales max_pixels by its
+   * ratio to this. */
+  static constexpr float kPixelError = 8.f;
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices;
+  /*! drawn when the mesh's bounding sphere spans fewer pixels than this
+   * across the screen, at the tolerance kPixelError */
+  float max_pixels = 0.f;
+  /*! how far the level strays from the mesh, relative to the largest side
+   * of the mesh's box; no less than that of the level before */
+  float error = 0.f;
+  /*! the SceneMesh whose material and textures the level is drawn with (an
+   * impostor's, AddSceneMeshImpostor), -1 for the mesh's own */
+  int material = -1;
+};
+
+/*! \brief a few crossed cards that show a cut-out mesh (foliage) from afar,
+ * with its colors and normals baked into textures (BakeSceneMeshImpostor) */
+struct SceneMeshImpostor {
+  /*! the cards, in the mesh's coordinates; max_pixels from error */
+  SceneMeshLod lod;
+  /*! the views along x, y and z, in three quarters of a Scene::kTextureSize
+   * square: base color (sRGB, alpha 0 where empty) and tangent space
+   * normals */
+  QImage color;
+  QImage normal;
+  /*! how far the cards may be from the surfaces they show, relative to the
+   * largest side of the mesh's box */
+  double error = 0.0;
+};
+
 /*! \brief triangle mesh in body (origin frame) coordinates with its
  * material, uploaded once and drawn for each of its SceneInstance */
 /*! \brief a texture drawn over a triplanar mesh's own in patches where a
@@ -85,6 +122,10 @@ struct SceneMesh {
   /*! placed instances (scenery) farther than this from the camera are not
    * drawn by the rasterizer (m); 0 for no limit */
   float draw_distance = 0.f;
+
+  /*! simplified copies, each coarser than the one before, drawn far from
+   * the camera (BuildSceneMeshLods, AddSceneMeshImpostor) */
+  std::vector<SceneMeshLod> lods;
 
   /*! the terrain (Scene::terrains) the mesh triangulates, -1 if none: it is
    * drawn tessellated from the terrain's maps where the device can, and as
@@ -232,6 +273,32 @@ struct SceneMeshBvh {
  * spare components, and their hierarchy; tagged: each triangle's index in
  * the mesh in faces, followed through the reordering */
 SceneMeshBvh BuildSceneMeshBvh(const SceneMesh& mesh, bool tagged);
+
+/*! \brief fills mesh.lods with its levels of detail when it has enough
+ * triangles to gain from them: each level about a quarter of the triangles
+ * of the one before, drawn where its error spans less than about two
+ * pixels.
+ * Cut-out cards (alpha_cutoff, foliage) are thinned by keeping a share of
+ * their parts, enlarged to the same area (geometry::PruneComponents);
+ * other meshes are simplified by quadric error collapses
+ * (geometry::SimplifyQuadric), or by clustering
+ * (geometry::SimplifyGrid) where those stop short. */
+void BuildSceneMeshLods(SceneMesh& mesh);
+
+/*! \brief the impostor of a cut-out mesh (alpha_cutoff, foliage) with a
+ * base color texture and levels of detail: three cards through the center
+ * of its box, across x, y and z, each showing the mesh as seen along its
+ * axis (from +x, +y, +z), the nearest surface that is not cut out at each
+ * texel. Returns false for other meshes. Reads only scene's textures, so
+ * meshes may be baked at once on many threads. */
+bool BakeSceneMeshImpostor(const Scene& scene, const SceneMesh& mesh,
+                           SceneMeshImpostor& impostor);
+
+/*! \brief add the impostor of scene.meshes[mesh] as its coarsest level of
+ * detail: its textures become layers of scene, and its material a SceneMesh
+ * of no instances (the mesh's, with the baked textures), which the level
+ * names */
+void AddSceneMeshImpostor(Scene& scene, int mesh, SceneMeshImpostor impostor);
 
 /*!
 @brief Loads the texture images of a scene into its layers, once per file,

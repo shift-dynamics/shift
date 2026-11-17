@@ -51,7 +51,8 @@ shader_bundles = []
 foreach shader : ['mesh.vert', 'mesh.frag', 'fullscreen.vert', 'sky.frag',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
-                  'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
+                  'svgf_composite.comp', 'svgf_taa.comp', 'sun_shadow.comp',
+                  'axes.vert',
                   'axes.frag']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
@@ -98,6 +99,25 @@ shader_bundles += custom_target(
                         'shaders/ground.glsl', 'shaders/water.glsl'),
 )
 
+# ray tracing in hardware (hardware_ray_tracing.h): raytrace.comp with ray
+# queries, compiled to SPIR-V as a C initializer that the source includes;
+# without glslc the viewer traces rays in compute shaders only
+gui_sources = []
+if glslc.found()
+  gui_sources += custom_target(
+    'raytrace_hardware_spirv',
+    input: 'shaders/raytrace.comp',
+    output: 'raytrace_hardware.comp.inc',
+    command: [glslc, '--target-env=vulkan1.2', '-O', '-mfmt=c',
+              '-DHARDWARE_RAY_QUERY', '-fshader-stage=compute',
+              '-o', '@OUTPUT@', '@INPUT@'],
+    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
+                        'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                        'shaders/ground.glsl', 'shaders/water.glsl'),
+  )
+  gui_cpp_args += '-DSHIFT_HAVE_HARDWARE_RAY_TRACING'
+endif
+
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them
 shader_qrc = configure_file(input: 'shaders/shaders.qrc', output: 'shaders.qrc',
                             copy: true)
@@ -136,6 +156,8 @@ shift_gui_lib = static_library(
   'cad_scene.cc',
   'camera.cc',
   'environment.cc',
+  'hardware_ray_tracing.cc',
+  'opacity_micromap.cc',
   'ocean_waves.cc',
   'playback_slider.cc',
   'scene.cc',
@@ -146,6 +168,7 @@ shift_gui_lib = static_library(
   'viewport.cc',
   'workspace.cc',
   gui_moc,
+  gui_sources,
   include_directories: [shift_inc, rhi_inc],
   implicit_include_directories: false,
   cpp_args: gui_cpp_args,

@@ -1,5 +1,8 @@
 #include "shift/gui/viewport.h"
 
+#include "shift/core/log.h"
+#include "shift/gui/opacity_micromap.h"
+
 #include "shift/core/context.h"
 #include "shift/core/terrain/base.h"
 #include "shift/core/terrain/basic.h"
@@ -14,6 +17,7 @@
 #include <QVulkanInstance>
 #include <QWheelEvent>
 #include <rhi/qrhi.h>
+#include <rhi/qrhi_platform.h>
 #include <rhi/qshader.h>
 
 #include <QFloat16>
@@ -23,6 +27,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <limits>
+#include <map>
 #include <vector>
 
 
@@ -343,6 +348,8 @@ struct RtUniforms {
   float water_wave[4];
   float water_color[4];
   float water_extinction[4];
+  uint32_t hardware[4]; // xy = address of the top level acceleration
+                        // structure (low, high bits), z = 1 if any
 };
 
 struct RtInstance {
@@ -359,8 +366,13 @@ struct RtInstance {
   float variation[4]; // as in MaterialUniforms
   int32_t surface_layers[4];
   float surface[2][4];
+  int32_t lods[4]; // x = the levels in lod_roots, yzw = the mesh's own
+                   // texture layers (as offsets 1..3), which they take
+  int32_t lod_roots[4]; // the mesh and its simplified levels, finest first,
+                        // which shadow and bounce rays choose from
+  float lod_errors[4];  // how far each strays from the mesh (m, world)
 };
-static_assert(sizeof(RtInstance) == 352);
+static_assert(sizeof(RtInstance) == 400);
 static_assert(sizeof(MaterialUniforms) == 128);
 
 struct DenoiseUniforms {
@@ -370,8 +382,21 @@ struct DenoiseUniforms {
   float blend[4];  // x = progressive frames, y, z = blend start, end
   int32_t control[4]; // x = instance count
   float view_projection[16]; // current frame
+  float upscale[4]; // xy = the primary rays' jitter (ray traced pixels),
+                    // zw = ray traced size / output size (1 = not scaled)
 };
-static_assert(sizeof(DenoiseUniforms) == 176);
+static_assert(sizeof(DenoiseUniforms) == 192);
+
+/* the radical inverse of index in base, as in raytrace.comp */
+static float Halton(uint32_t index, uint32_t base) {
+  float f = 1.f, r = 0.f;
+  while(index > 0u) {
+    f /= float(base);
+    r += f * float(index % base);
+    index /= base;
+  }
+  return r;
+}
 
 
 static QShader LoadShader(const char* name) {
@@ -620,6 +645,29 @@ void shift::gui::Viewport::set_joint_thickness(float thickness) {
   update();
 }
 
+void shift::gui::Viewport::set_render_scale(float scale) {
+  render_scale_ = std::clamp(scale, 0.25f, 1.f);
+  // initialize makes the images of the new size
+  update();
+}
+
+QSize shift::gui::Viewport::RayTracedSize() const {
+  const QSize full = get_render_target()->pixelSize();
+  if(is_offscreen() || render_scale_ >= 1.f) {
+    return full;
+  }
+  return QSize(std::max(int(std::lround(full.width() * render_scale_)), 1),
+               std::max(int(std::lround(full.height() * render_scale_)), 1));
+}
+
+void shift::gui::Viewport::set_lod_tolerance(float pixels) {
+  lod_tolerance_ = std::max(pixels, 0.f);
+  // the ray tracer's instances hold the levels they trace
+  rt_instances_dirty_ = true;
+  rt_frame_ = 0;
+  update();
+}
+
 void shift::gui::Viewport::set_hidden_bodies(std::vector<bool> hidden) {
   hidden_bodies_ = std::move(hidden);
   // the ray tracer's instances hold the bodies' boxes
@@ -780,7 +828,23 @@ void shift::gui::Viewport::InitializeRhi() {
   QRhiVulkanInitParams params;
   params.inst = vulkanInstance();
   params.window = this;
-  rhi_.reset(QRhi::create(QRhi::Vulkan, &params));
+  // a device that traces rays in hardware, if there is one, given to QRhi;
+  // otherwise QRhi makes its own
+  hardware_ = HardwareRayTracing::Create(vulkanInstance(), this);
+  if(hardware_) {
+    QRhiVulkanNativeHandles handles;
+    hardware_->FillNativeHandles(&handles);
+    rhi_.reset(QRhi::create(QRhi::Vulkan, &params, {}, &handles));
+    if(rhi_) {
+      SHIFT_INFO("Tracing rays in hardware on " +
+                 hardware_->get_device_name());
+    } else {
+      hardware_.reset();
+    }
+  }
+  if(!rhi_) {
+    rhi_.reset(QRhi::create(QRhi::Vulkan, &params));
+  }
   if(!rhi_) {
     qWarning("Failed to create a Vulkan QRhi");
     return;
@@ -796,6 +860,29 @@ void shift::gui::Viewport::InitializeRhi() {
   swapchain_->setRenderPassDescriptor(swapchain_render_pass_.get());
 }
 
+/* SHIFT_GPU_PROFILE: the mean GPU time of each pass of the ray traced
+frames, to the standard error */
+void shift::gui::Viewport::PrintGpuProfile() {
+  if(hardware_ && hardware_->is_profiling()) {
+    std::vector<std::string> names = {"top level structure", "ray tracing",
+                                      "sun shadow", "denoise: temporal",
+                                      "denoise: variance"};
+    for(int i = 0; i < kAtrousIterations; i++) {
+      names.push_back("denoise: a-trous " + std::to_string(i + 1));
+    }
+    names.push_back("denoise: composite");
+    names.push_back("anti-aliasing");
+    std::vector<const char*> pointers;
+    for(const auto& name : names) {
+      pointers.push_back(name.c_str());
+    }
+    std::fprintf(stderr, "%s",
+                 hardware_->TakeProfileReport(pointers.data(),
+                                          int(pointers.size()))
+                   .c_str());
+  }
+}
+
 void shift::gui::Viewport::ReleaseRhi() {
   offscreen_target_.reset();
   offscreen_render_pass_.reset();
@@ -808,6 +895,10 @@ void shift::gui::Viewport::ReleaseRhi() {
   swapchain_.reset();
   depth_stencil_.reset();
   rhi_.reset();
+  PrintGpuProfile();
+  // the device last, as QRhi used it
+  hardware_scene_ = false;
+  hardware_.reset();
 }
 
 QRhiRenderTarget* shift::gui::Viewport::get_render_target() const {
@@ -908,6 +999,7 @@ void shift::gui::Viewport::EndOffscreen() {
   if(!offscreen_target_ && !offscreen_texture_) {
     return;
   }
+  PrintGpuProfile();
   offscreen_target_.reset();
   offscreen_render_pass_.reset();
   offscreen_depth_.reset();
@@ -983,7 +1075,8 @@ void shift::gui::Viewport::initialize() {
     device_resources_ready_ = true;
     scene_dirty_ = simulation_ != nullptr;
   }
-  if(output_size_ != get_render_target()->pixelSize()) {
+  if(output_size_ != get_render_target()->pixelSize() ||
+     (ray_tracing_supported_ && rt_size_ != RayTracedSize())) {
     CreateSizeDependentResources();
   }
   if(pipeline_render_pass_ != get_render_target()->renderPassDescriptor()) {
@@ -1018,6 +1111,7 @@ void shift::gui::Viewport::ReleaseAll() {
   blit_bindings_.reset();
   sampler_.reset();
   svgf_taa_pipeline_.reset();
+  sun_shadow_pipeline_.reset();
   svgf_composite_pipeline_.reset();
   svgf_atrous_pipeline_.reset();
   svgf_variance_pipeline_.reset();
@@ -1025,6 +1119,7 @@ void shift::gui::Viewport::ReleaseAll() {
   rt_pipeline_.reset();
   for(int p = 0; p < 2; p++) {
     svgf_taa_bindings_[p].reset();
+    sun_shadow_bindings_[p].reset();
     svgf_composite_bindings_[p].reset();
     rt_taa_[p].reset();
     svgf_atrous_bindings_[p][0].reset();
@@ -1038,13 +1133,16 @@ void shift::gui::Viewport::ReleaseAll() {
     rt_history_illumination_[p].reset();
     rt_normal_[p].reset();
     rt_position_[p].reset();
+    rt_sun_passed_[p].reset();
   }
   rt_color_.reset();
+  rt_sun_.reset();
   rt_direct_.reset();
   rt_albedo_.reset();
   rt_illumination_.reset();
   svgf_ubo_.reset();
   rt_accumulation_.reset();
+  rt_upscaled_mean_.reset();
   rt_output_.reset();
   rt_instance_node_buffer_.reset();
   rt_instance_buffer_.reset();
@@ -1206,26 +1304,36 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   if(!ray_tracing_supported_) {
     return;
   }
-  auto make_image = [&](QRhiTexture::Format format) {
-    std::unique_ptr<QRhiTexture> texture(rhi_->newTexture(
-      format, output_size_, 1, QRhiTexture::UsedWithLoadStore));
+  rt_size_ = RayTracedSize();
+  // the anti-aliasing pass and its history at the output's size: it scales
+  // the ray traced images up (svgf_taa.comp)
+  auto make_image = [&](QRhiTexture::Format format, QSize size = QSize()) {
+    std::unique_ptr<QRhiTexture> texture(
+      rhi_->newTexture(format, size.isEmpty() ? rt_size_ : size, 1,
+                       QRhiTexture::UsedWithLoadStore));
     texture->create();
     return texture;
   };
-  rt_output_ = make_image(QRhiTexture::RGBA8);
+  rt_output_ = make_image(QRhiTexture::RGBA8, output_size_);
+  // the progressive mean at the output's size, only read when scaled
+  rt_upscaled_mean_ =
+    make_image(QRhiTexture::RGBA32F,
+               rt_size_ == output_size_ ? QSize(1, 1) : output_size_);
   rt_accumulation_ = make_image(QRhiTexture::RGBA32F);
   rt_illumination_ = make_image(QRhiTexture::RGBA16F);
   rt_albedo_ = make_image(QRhiTexture::RGBA16F);
   rt_direct_ = make_image(QRhiTexture::RGBA16F);
+  rt_sun_ = make_image(QRhiTexture::RGBA16F);
   rt_color_ = make_image(QRhiTexture::RGBA16F);
   for(int p = 0; p < 2; p++) {
     rt_position_[p] = make_image(QRhiTexture::RGBA32F);
+    rt_sun_passed_[p] = make_image(QRhiTexture::R32F);
     rt_normal_[p] = make_image(QRhiTexture::RGBA16F);
     rt_history_illumination_[p] = make_image(QRhiTexture::RGBA16F);
     rt_history_moments_[p] = make_image(QRhiTexture::RGBA32F);
     rt_history_albedo_[p] = make_image(QRhiTexture::RGBA16F);
     rt_filter_[p] = make_image(QRhiTexture::RGBA16F);
-    rt_taa_[p] = make_image(QRhiTexture::RGBA16F);
+    rt_taa_[p] = make_image(QRhiTexture::RGBA16F, output_size_);
   }
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
@@ -1556,7 +1664,14 @@ void shift::gui::Viewport::CreatePipelines() {
        Binding::sampledTexture(20, compute, waves_texture_.get(),
                                waves_sampler_.get()),
        Binding::sampledTexture(21, compute, large_texture_array_.get(),
-                               texture_sampler_.get())});
+                               texture_sampler_.get()),
+       store(22, rt_sun_)});
+    sun_shadow_bindings_[p] = make_bindings(
+      {denoise_uniforms, load(1, rt_position_[p]), load(2, rt_normal_[p]),
+       load(3, rt_sun_),
+       Binding::imageLoadStore(4, compute, rt_direct_.get(), 0),
+       Binding::imageLoadStore(5, compute, rt_accumulation_.get(), 0),
+       store(6, rt_sun_passed_[p])});
     svgf_temporal_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_illumination_),
        load(3, rt_albedo_), load(4, rt_position_[p]), load(5, rt_normal_[p]),
@@ -1582,18 +1697,32 @@ void shift::gui::Viewport::CreatePipelines() {
     static_assert(kAtrousIterations % 2 == 1);
     svgf_composite_bindings_[p] = make_bindings(
       {denoise_uniforms, load(1, rt_position_[p]), load(2, rt_illumination_),
-       load(3, rt_history_albedo_[p]), load(4, rt_filter_[1]),
-       store(6, rt_color_), load(7, rt_direct_)});
+       load(4, rt_filter_[1]),
+       store(6, rt_color_), load(7, rt_direct_), load(8, rt_albedo_)});
     svgf_taa_bindings_[p] = make_bindings(
       {denoise_uniforms, instances, load(2, rt_position_[p]),
        load(3, rt_color_), load(4, rt_taa_[q]), store(5, rt_taa_[p]),
        store(6, rt_output_), load(7, rt_accumulation_),
        load(8, rt_position_[q]), load(9, rt_normal_[p]),
-       load(10, rt_normal_[q])});
+       load(10, rt_normal_[q]), load(11, rt_illumination_),
+       load(12, rt_albedo_), load(13, rt_direct_),
+       Binding::imageLoadStore(14, compute, rt_upscaled_mean_.get(), 0),
+       load(15, rt_sun_passed_[p]), load(16, rt_sun_passed_[q])});
   }
 
-  rt_pipeline_.reset(NewComputePipeline("raytrace.comp.qsb",
-                                        rt_bindings_[0].get()));
+  // the variant with ray queries on a device that traces rays in hardware,
+  // with the same bindings
+  QShader raytrace = LoadShader("raytrace.comp.qsb");
+  if(hardware_) {
+    raytrace.setShader(QShaderKey(QShader::SpirvShader, QShaderVersion(100)),
+                       QShaderCode(HardwareRayTracing::get_spirv(), "main"));
+  }
+  rt_pipeline_.reset(rhi_->newComputePipeline());
+  rt_pipeline_->setShaderStage({QRhiShaderStage::Compute, raytrace});
+  rt_pipeline_->setShaderResourceBindings(rt_bindings_[0].get());
+  rt_pipeline_->create();
+  sun_shadow_pipeline_.reset(NewComputePipeline(
+    "sun_shadow.comp.qsb", sun_shadow_bindings_[0].get()));
   svgf_temporal_pipeline_.reset(NewComputePipeline(
     "svgf_temporal.comp.qsb", svgf_temporal_bindings_[0].get()));
   svgf_variance_pipeline_.reset(NewComputePipeline(
@@ -1761,7 +1890,8 @@ static void BuildMeshBvhs(
   std::vector<int32_t>& all_faces, std::vector<shift::gui::BvhNode>& all_nodes,
   std::vector<int>& roots,
   std::vector<shift::gui::RtDeformableTerrain>* deformables = nullptr,
-  std::vector<shift::gui::SceneMeshBvh>* prebuilt = nullptr) {
+  std::vector<shift::gui::SceneMeshBvh>* prebuilt = nullptr,
+  std::vector<std::vector<int>>* lod_roots = nullptr) {
   int last_node_count = 0;
   auto append = [&](std::vector<shift::gui::RtTriangle>& triangles,
                     std::vector<int32_t>& faces,
@@ -1840,6 +1970,66 @@ static void BuildMeshBvhs(
       shift::gui::BuildBvh(triangles, &faces);
     append(triangles, faces, std::move(nodes));
   }
+  // the levels of detail of each mesh (SceneMesh::lods), after all the
+  // others so that roots stays one per mesh and SceneCad: lod_roots holds
+  // the root of the mesh and of each of its levels
+  if(lod_roots) {
+    lod_roots->assign(scene.meshes.size(), {});
+    for(size_t m = 0; m < scene.meshes.size(); m++) {
+      const auto& mesh = scene.meshes[m];
+      (*lod_roots)[m].push_back(roots[m]);
+      for(const auto& lod : mesh.lods) {
+        shift::gui::SceneMesh level;
+        level.vertices = lod.vertices;
+        level.indices = lod.indices;
+        shift::gui::SceneMeshBvh bvh =
+          shift::gui::BuildSceneMeshBvh(level, false);
+        append(bvh.triangles, bvh.faces, std::move(bvh.nodes));
+        (*lod_roots)[m].push_back(roots.back());
+        roots.pop_back();
+      }
+    }
+  }
+}
+
+/* the mesh whose material level (as LodLevel) of scene.meshes[mesh] is
+drawn with: an impostor's, or the mesh's own */
+static const shift::gui::SceneMesh& LodMaterial(const shift::gui::Scene& scene,
+                                                int mesh, int level) {
+  const shift::gui::SceneMesh& own = scene.meshes[size_t(mesh)];
+  if(level > 0 && own.lods[size_t(level - 1)].material >= 0) {
+    return scene.meshes[size_t(own.lods[size_t(level - 1)].material)];
+  }
+  return own;
+}
+
+/* the pixels across the screen that the bounding sphere of mesh drawn with
+model spans, seen from eye; pixels_per_slope: the pixels across the screen
+of a sphere of radius 1 at distance 1 */
+static float LodPixels(const shift::gui::SceneMesh& mesh,
+                       const QMatrix4x4& model, const QVector3D& eye,
+                       float pixels_per_slope) {
+  const QVector3D center =
+    model.map(0.5f * (mesh.bounds_min + mesh.bounds_max));
+  const float radius = 0.5f * (mesh.bounds_max - mesh.bounds_min).length() *
+                       model.column(0).toVector3D().length();
+  const float distance = (center - eye).length();
+  return pixels_per_slope * radius / std::max(distance, radius);
+}
+
+/* the coarsest level of detail of mesh (0 the mesh itself, k
+SceneMeshLod k - 1) made for as few pixels as it spans, with its errors
+allowed to span looseness times the pixels they were made for
+(SceneMeshLod::kPixelError); 0 keeps the mesh */
+static int LodLevel(const shift::gui::SceneMesh& mesh, float pixels,
+                    float looseness) {
+  int level = 0;
+  for(size_t k = 0; k < mesh.lods.size(); k++) {
+    if(pixels < looseness * mesh.lods[k].max_pixels) {
+      level = int(k) + 1;
+    }
+  }
+  return level;
 }
 
 /* distance along the ray o + t d to the box, if it is hit before t_max */
@@ -1949,6 +2139,10 @@ void shift::gui::Viewport::UploadTerrainUpdates(
         quint32(size_t(terrain.first_node) * sizeof(BvhNode)),
         quint32(size_t(terrain.node_count) * sizeof(BvhNode)),
         pick_nodes_.data() + terrain.first_node);
+      if(hardware_scene_) {
+        hardware_->RebuildMesh(pick_triangles_, pick_nodes_,
+                               terrain.first_node);
+      }
       rt_instances_dirty_ = true; // the terrain's box
       rt_frame_ = 0;
     }
@@ -2119,12 +2313,17 @@ void shift::gui::Viewport::ShapeRtTerrain(
 
 void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
   scene_dirty_ = false;
+  if(hardware_) {
+    hardware_->ReleaseMeshes();
+  }
+  hardware_scene_ = false;
   rt_terrains_.clear();
   gpu_meshes_.clear();
   rt_triangles_.clear();
   rt_triangle_faces_.clear();
   rt_nodes_.clear();
   rt_roots_.clear();
+  rt_lod_roots_.clear();
   rt_instance_list_.clear();
   pick_triangles_.clear();
   pick_triangle_faces_.clear();
@@ -2150,6 +2349,23 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     batch->uploadStaticBuffer(gpu.vertices.get(), mesh.vertices.data());
     batch->uploadStaticBuffer(gpu.indices.get(), mesh.indices.data());
     gpu.index_count = quint32(mesh.indices.size());
+    for(const SceneMeshLod& lod : mesh.lods) {
+      GpuMesh::Lod gpu_lod;
+      gpu_lod.vertices.reset(rhi_->newBuffer(
+        QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer,
+        quint32(lod.vertices.size() * sizeof(Vertex))));
+      gpu_lod.vertices->create();
+      gpu_lod.indices.reset(rhi_->newBuffer(
+        QRhiBuffer::Immutable, QRhiBuffer::IndexBuffer,
+        quint32(lod.indices.size() * sizeof(uint32_t))));
+      gpu_lod.indices->create();
+      batch->uploadStaticBuffer(gpu_lod.vertices.get(), lod.vertices.data());
+      batch->uploadStaticBuffer(gpu_lod.indices.get(), lod.indices.data());
+      gpu_lod.index_count = quint32(lod.indices.size());
+      gpu.lods.push_back(std::move(gpu_lod));
+    }
+    gpu.level_first.assign(mesh.lods.size() + 1, 0);
+    gpu.level_count.assign(mesh.lods.size() + 1, 0);
     gpu_meshes_.push_back(std::move(gpu));
   }
   // the instances of a mesh are contiguous (Scene::instances)
@@ -2302,7 +2518,7 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     std::vector<SceneMeshBvh> prebuilt = simulation_->TakeMeshBvhs();
     BuildMeshBvhs(scene, cad_triangles_, cad_triangle_faces_, trims,
                   rt_triangles_, rt_triangle_faces_, rt_nodes_, rt_roots_,
-                  &rt_terrains_, &prebuilt);
+                  &rt_terrains_, &prebuilt, &rt_lod_roots_);
     // the deformable terrains as shown, not as the meshes were made
     rt_terrain_smooth_ = smooth_terrain_;
     for(const auto& terrain : rt_terrains_) {
@@ -2367,6 +2583,62 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
     pick_roots_ = rt_roots_;
     pick_cad_trims_ = std::move(trims);
     pick_built_ = true;
+    // the acceleration structures of the roots: of the meshes and CAD
+    // geometry, and of the meshes' levels of detail
+    if(hardware_) {
+      // with the alpha textures that cut-out cards test their hits against
+      // (AcceptHit in raytrace.comp), at the resolution of the small
+      // layers, which the large ones are read at by a level of detail
+      std::map<int, std::unique_ptr<AlphaCoverage>> alpha_of_layer;
+      auto coverage = [&](const SceneMesh& material,
+                          float cutoff) -> const AlphaCoverage* {
+        const int layer = material.base_color_layer;
+        if(cutoff <= 0.f || layer < 0) {
+          return nullptr;
+        }
+        auto found = alpha_of_layer.find(layer);
+        if(found == alpha_of_layer.end()) {
+          const QImage* image = nullptr;
+          if(layer >= Scene::kLargeLayer) {
+            const size_t k = size_t(layer - Scene::kLargeLayer);
+            image = k < scene.large_texture_layers.size()
+                      ? &scene.large_texture_layers[k]
+                      : nullptr;
+          } else if(size_t(layer) < scene.texture_layers.size()) {
+            image = &scene.texture_layers[size_t(layer)];
+          }
+          std::unique_ptr<AlphaCoverage> alpha;
+          if(image && image->format() == QImage::Format_RGBA8888 &&
+             image->width() == image->height() &&
+             image->width() % Scene::kTextureSize == 0 &&
+             image->bytesPerLine() == 4 * image->width()) {
+            const std::vector<uint8_t> texels = AlphaCoverage::Downsample(
+              image->constBits(), image->width(), Scene::kTextureSize);
+            alpha = std::make_unique<AlphaCoverage>(texels.data(),
+                                                    Scene::kTextureSize);
+          }
+          found = alpha_of_layer.emplace(layer, std::move(alpha)).first;
+        }
+        return found->second.get();
+      };
+      std::vector<int> roots = rt_roots_;
+      std::vector<const AlphaCoverage*> coverages(roots.size(), nullptr);
+      for(size_t m = 0; m < scene.meshes.size() && m < rt_roots_.size();
+          m++) {
+        coverages[m] = coverage(scene.meshes[m], scene.meshes[m].alpha_cutoff);
+      }
+      for(size_t m = 0; m < rt_lod_roots_.size(); m++) {
+        const std::vector<int>& levels = rt_lod_roots_[m];
+        for(size_t level = 0; level < levels.size(); level++) {
+          roots.push_back(levels[level]);
+          coverages.push_back(
+            coverage(LodMaterial(scene, int(m), int(level)),
+                     scene.meshes[m].alpha_cutoff));
+        }
+      }
+      hardware_scene_ = hardware_->BuildMeshes(pick_triangles_, pick_nodes_,
+                                               roots, coverages);
+    }
     rt_triangles_ = std::vector<RtTriangle>();
     rt_triangle_faces_ = std::vector<int32_t>();
     rt_nodes_ = std::vector<BvhNode>();
@@ -2480,40 +2752,74 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       plane /= std::max(plane.toVector3D().length(), 1e-20f);
     }
     const QVector3D eye = camera_.get_position();
-    std::vector<InstanceAttributes> instances(scene.instances.size());
+    // the pixels across the screen of a sphere of radius 1 at distance 1
+    const float pixels_per_slope =
+      camera_.get_projection_matrix(aspect)(1, 1) * float(size.height());
+    // each instance's level of detail (0 the mesh itself), -1 if not drawn
+    std::vector<int> levels(scene.instances.size(), 0);
+    std::vector<QMatrix4x4> models(scene.instances.size());
     for(auto& gpu : gpu_meshes_) {
-      gpu.drawn_count = 0;
+      std::fill(gpu.level_count.begin(), gpu.level_count.end(), 0u);
     }
-    for(size_t i = 0; i < instances.size(); i++) {
+    for(size_t i = 0; i < scene.instances.size(); i++) {
       const SceneInstance& instance = scene.instances[i];
+      const SceneMesh& mesh = scene.meshes[instance.mesh_index];
       GpuMesh& gpu = gpu_meshes_[instance.mesh_index];
       const int body = instance.body_index;
-      const QMatrix4x4 model = poses_.bodies[body] * instance.placement;
-      if(!instance.placement.isIdentity()) {
-        const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+      models[i] = poses_.bodies[body] * instance.placement;
+      const bool placed = !instance.placement.isIdentity();
+      if(placed || !mesh.lods.empty()) {
         const QVector3D center =
-          model.map(0.5f * (mesh.bounds_min + mesh.bounds_max));
+          models[i].map(0.5f * (mesh.bounds_min + mesh.bounds_max));
         const float radius =
           0.5f * (mesh.bounds_max - mesh.bounds_min).length() *
-          model.column(0).toVector3D().length();
-        bool shown = is_body_shown(body);
-        if(mesh.draw_distance > 0.f) {
-          shown = shown && (center - eye).length() - radius < mesh.draw_distance;
+          models[i].column(0).toVector3D().length();
+        const float distance = (center - eye).length();
+        if(placed) {
+          bool shown = is_body_shown(body);
+          if(mesh.draw_distance > 0.f) {
+            shown = shown && distance - radius < mesh.draw_distance;
+          }
+          for(const auto& plane : planes) {
+            shown = shown &&
+                    QVector3D::dotProduct(plane.toVector3D(), center) +
+                        plane.w() >= -radius;
+          }
+          if(!shown) {
+            levels[i] = -1;
+            continue;
+          }
         }
-        for(const auto& plane : planes) {
-          shown = shown && QVector3D::dotProduct(plane.toVector3D(), center) +
-                               plane.w() >= -radius;
-        }
-        if(!shown) {
-          continue;
-        }
+        levels[i] =
+          LodLevel(mesh, LodPixels(mesh, models[i], eye, pixels_per_slope),
+                   lod_tolerance_ / SceneMeshLod::kPixelError);
       }
-      // the drawn instances first; a hidden body's meshes collapse to a
-      // point, and draw nothing
-      InstanceAttributes& drawn = instances[gpu.first_instance +
-                                            gpu.drawn_count++];
-      if(is_body_shown(body)) {
-        CopyMatrix(model, drawn.model);
+      gpu.level_count[size_t(levels[i])]++;
+    }
+    // the drawn instances first in each mesh's range, by level; a hidden
+    // body's meshes collapse to a point, and draw nothing
+    for(auto& gpu : gpu_meshes_) {
+      uint32_t first = gpu.first_instance;
+      gpu.drawn_count = 0;
+      for(size_t l = 0; l < gpu.level_count.size(); l++) {
+        gpu.level_first[l] = first;
+        first += gpu.level_count[l];
+        gpu.drawn_count += gpu.level_count[l];
+      }
+      std::fill(gpu.level_count.begin(), gpu.level_count.end(), 0u);
+    }
+    std::vector<InstanceAttributes> instances(scene.instances.size());
+    for(size_t i = 0; i < scene.instances.size(); i++) {
+      if(levels[i] < 0) {
+        continue;
+      }
+      const SceneInstance& instance = scene.instances[i];
+      GpuMesh& gpu = gpu_meshes_[instance.mesh_index];
+      const size_t l = size_t(levels[i]);
+      InstanceAttributes& drawn =
+        instances[gpu.level_first[l] + gpu.level_count[l]++];
+      if(is_body_shown(instance.body_index)) {
+        CopyMatrix(models[i], drawn.model);
       } else {
         std::fill(drawn.model, drawn.model + 16, 0.f);
       }
@@ -2623,16 +2929,37 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
          (scene.meshes[i].opacity < 1.f) != transparent) {
         continue; // terrains are tessellated below
       }
-      const QRhiCommandBuffer::DynamicOffset offset(
-        1, quint32(i) * material_stride_);
-      cb->setShaderResources(raster_bindings_.get(), 1, &offset);
-      const QRhiCommandBuffer::VertexInput inputs[2] = {
-        {gpu.vertices.get(), 0},
-        {instance_buffer_.get(),
-         gpu.first_instance * quint32(sizeof(InstanceAttributes))}};
-      cb->setVertexInput(0, 2, inputs, gpu.indices.get(), 0,
-                         QRhiCommandBuffer::IndexUInt32);
-      cb->drawIndexed(gpu.index_count, gpu.drawn_count);
+      // the mesh, then each of its levels of detail, for its instances,
+      // each with its material (an impostor's its own)
+      int bound = -1;
+      for(size_t l = 0; l < gpu.level_count.size(); l++) {
+        if(gpu.level_count[l] == 0) {
+          continue;
+        }
+        const int material =
+          l == 0 || scene.meshes[i].lods[l - 1].material < 0
+            ? int(i)
+            : scene.meshes[i].lods[l - 1].material;
+        if(material != bound) {
+          const QRhiCommandBuffer::DynamicOffset offset(
+            1, quint32(material) * material_stride_);
+          cb->setShaderResources(raster_bindings_.get(), 1, &offset);
+          bound = material;
+        }
+        QRhiBuffer* vertices =
+          l == 0 ? gpu.vertices.get() : gpu.lods[l - 1].vertices.get();
+        QRhiBuffer* indices =
+          l == 0 ? gpu.indices.get() : gpu.lods[l - 1].indices.get();
+        const quint32 index_count =
+          l == 0 ? gpu.index_count : gpu.lods[l - 1].index_count;
+        const QRhiCommandBuffer::VertexInput inputs[2] = {
+          {vertices, 0},
+          {instance_buffer_.get(),
+           gpu.level_first[l] * quint32(sizeof(InstanceAttributes))}};
+        cb->setVertexInput(0, 2, inputs, indices, 0,
+                           QRhiCommandBuffer::IndexUInt32);
+        cb->drawIndexed(index_count, gpu.level_count[l]);
+      }
     }
   };
   if(have_poses) {
@@ -2698,6 +3025,12 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
     rt_previous_poses_.clear();
   }
   bool moved = false;
+  // the levels of detail of camera rays follow the camera; shadow and
+  // bounce rays choose their own (raytrace.comp, Trace)
+  const QVector3D eye = camera_.get_position();
+  const float pixels_per_slope =
+    camera_.get_projection_matrix(1.f)(1, 1) *
+    float(get_render_target()->pixelSize().height());
   std::vector<RtInstance> instances(std::max(instance_count, 1));
   const int mesh_count = static_cast<int>(scene.meshes.size());
   for(int i = 0; i < instance_count; i++) {
@@ -2749,6 +3082,44 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
                    instances[i].surface_layers, instances[i].surface);
     }
     instances[i].offsets[0] = rt_roots_[instance.mesh_index];
+    instances[i].lods[0] = 1;
+    for(int k = 1; k < 4; k++) {
+      instances[i].lods[k] = instances[i].offsets[k];
+    }
+    for(int k = 0; k < 4; k++) {
+      instances[i].lod_roots[k] = instances[i].offsets[0];
+      instances[i].lod_errors[k] = 0.f;
+    }
+    if(size_t(instance.mesh_index) < rt_lod_roots_.size()) {
+      const SceneMesh& mesh = scene.meshes[instance.mesh_index];
+      const std::vector<int>& roots = rt_lod_roots_[instance.mesh_index];
+      // camera rays: the level the rasterizer draws, with its textures (an
+      // impostor's its own)
+      const float pixels = LodPixels(mesh, pose, eye, pixels_per_slope);
+      const int level = LodLevel(mesh, pixels,
+                                 lod_tolerance_ / SceneMeshLod::kPixelError);
+      instances[i].offsets[0] = roots[size_t(level)];
+      float unused[4];
+      CopyMaterial(LodMaterial(scene, instance.mesh_index, level), unused,
+                   instances[i].offsets + 1);
+      // shadow and bounce rays: the mesh and its simplified levels (not
+      // the impostors, which show it to the camera only), with their errors
+      // in the world
+      const QVector3D sides = mesh.bounds_max - mesh.bounds_min;
+      const float extent =
+        std::max({sides.x(), sides.y(), sides.z()}) *
+        pose.column(0).toVector3D().length();
+      int count = 1;
+      for(size_t k = 0; k < mesh.lods.size() && count < 4; k++) {
+        if(mesh.lods[k].material >= 0) {
+          continue;
+        }
+        instances[i].lod_roots[count] = roots[k + 1];
+        instances[i].lod_errors[count] = mesh.lods[k].error * extent;
+        count++;
+      }
+      instances[i].lods[0] = count;
+    }
     if(!is_body_shown(instance.body_index)) {
       // far beyond anything a ray reaches: its triangles are never tested
       for(int k = 0; k < 3; k++) {
@@ -2759,6 +3130,30 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
   batch->uploadStaticBuffer(rt_instance_buffer_.get(), 0,
                             quint32(instances.size() * sizeof(RtInstance)),
                             instances.data());
+  if(hardware_scene_) {
+    // the camera's level and the mesh itself; opaque where AcceptHit in
+    // raytrace.comp would accept every hit
+    std::vector<HardwareInstance> hardware;
+    hardware.reserve(size_t(instance_count));
+    for(int i = 0; i < instance_count; i++) {
+      if(!is_body_shown(rt_instance_list_[i].body_index)) {
+        continue;
+      }
+      const RtInstance& r = instances[i];
+      const bool cad = rt_instance_list_[i].mesh_index >= mesh_count;
+      const bool solid = r.optical[0] >= 1.f && !cad;
+      const bool cut = r.variation[2] > 0.f;
+      HardwareInstance h;
+      std::copy(r.body_to_world, r.body_to_world + 16, h.body_to_world);
+      h.index = i;
+      h.camera_root = r.offsets[0];
+      h.full_root = r.lod_roots[0];
+      h.camera_opaque = solid && !(cut && r.offsets[1] >= 0);
+      h.full_opaque = solid && !(cut && r.lods[1] >= 0);
+      hardware.push_back(h);
+    }
+    hardware_->SetInstances(hardware);
+  }
   // the BVH over the instances' world boxes; the shader skips it without
   // instances
   std::vector<float> box_min(4 * instance_count), box_max(4 * instance_count);
@@ -2782,8 +3177,12 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
 
 void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
                                            QRhiResourceUpdateBatch* batch) {
-  const QSize size = get_render_target()->pixelSize();
-  const float aspect = float(size.width()) / float(std::max(size.height(), 1));
+  // the ray tracer's images, which the anti-aliasing pass scales up to the
+  // target's
+  const QSize size = rt_size_;
+  const QSize target_size = get_render_target()->pixelSize();
+  const float aspect =
+    float(target_size.width()) / float(std::max(target_size.height(), 1));
   const QMatrix4x4 view = camera_.get_view_matrix();
   const QMatrix4x4 projection =
     rhi_->clipSpaceCorrMatrix() * camera_.get_projection_matrix(aspect);
@@ -2795,6 +3194,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   if(camera_moved) {
     rt_last_view_projection_ = view_projection;
     rt_frame_ = 0;
+    rt_instances_dirty_ = true; // the levels of detail follow the camera
   }
   if(!rt_history_valid_) {
     rt_previous_view_projection_ = view_projection;
@@ -2842,20 +3242,54 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
                                    floor_extent_};
     CopyArray(floor_params, uniforms.floor_params);
     CopyFloorFrame(uniforms.floor_frame);
-    // angle subtended by a pixel, to select texture levels of detail and to
-    // scale the denoiser's depth tolerances
+    // angle subtended by a pixel, to scale the denoiser's depth tolerances
     const float spread =
       2.f * std::tan(0.5f * camera_.get_fov_y() * float(M_PI) / 180.f) /
       float(std::max(size.height(), 1));
+    // and by a pixel of the output, to select texture levels of detail:
+    // scaled up (set_render_scale), the anti-aliasing pass recovers the
+    // detail of the output's pixels from the jittered samples, as the
+    // meshes' levels of detail are chosen for them (UploadInstances)
+    const float output_spread =
+      spread * float(size.height()) / float(std::max(target_size.height(), 1));
     const float texture_params[4] = {
-      spread, float(texture_array_->pixelSize().width()),
+      output_spread, float(texture_array_->pixelSize().width()),
       std::log2(float(large_texture_array_->pixelSize().width()) /
                 float(texture_array_->pixelSize().width())),
-      0.f};
+      lod_tolerance_};
     CopyArray(texture_params, uniforms.texture_params);
     uniforms.control[0] = instance_count;
     uniforms.control[1] = rt_sample_;
     uniforms.control[2] = rt_frame_;
+    const bool profile = hardware_scene_ && hardware_->is_profiling();
+    int stamp = 0;
+    if(hardware_scene_) {
+      // the instances' acceleration structure, built ahead of the passes
+      cb->beginExternal();
+      const auto* native =
+        static_cast<const QRhiVulkanCommandBufferNativeHandles*>(
+          cb->nativeHandles());
+      if(profile) {
+        hardware_->Collect(rhi_->currentFrameSlot());
+        // in the viewer, every so often too
+        if(!is_offscreen() && ++profile_frames_ % 300 == 0) {
+          PrintGpuProfile();
+        }
+        hardware_->Stamp(native->commandBuffer, rhi_->currentFrameSlot(),
+                         stamp++);
+      }
+      const uint64_t address = hardware_->RecordTopLevel(
+        native->commandBuffer, rhi_->currentFrameSlot(),
+        rhi_->resourceLimit(QRhi::FramesInFlight));
+      if(profile) {
+        hardware_->Stamp(native->commandBuffer, rhi_->currentFrameSlot(),
+                         stamp++);
+      }
+      cb->endExternal();
+      uniforms.hardware[0] = uint32_t(address);
+      uniforms.hardware[1] = uint32_t(address >> 32);
+      uniforms.hardware[2] = address != 0 ? 1u : 0u;
+    }
     batch->updateDynamicBuffer(rt_ubo_.get(), 0, sizeof(uniforms), &uniforms);
 
     DenoiseUniforms denoise{};
@@ -2869,7 +3303,23 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     denoise.blend[0] = float(rt_frame_ + 1);
     denoise.blend[1] = kBlendStart;
     denoise.blend[2] = kBlendEnd;
+    // surfaces of bodies that did not move keep the history of a moving
+    // camera while others move, so that a still view of a running
+    // simulation settles where nothing moves
+    denoise.blend[3] = bodies_moved ? kHistoryCamera : denoise.params[1];
     denoise.control[0] = instance_count;
+    // the jitter of this frame's primary rays (raytrace.comp), from which
+    // the anti-aliasing pass places the samples in its larger image
+    const uint32_t halton_index = uint32_t(rt_sample_) + 1u;
+    denoise.upscale[0] = Halton(halton_index, 2u) - 0.5f;
+    denoise.upscale[1] = Halton(halton_index, 3u) - 0.5f;
+    denoise.upscale[2] = size == output_size_ ? 1.f
+                                              : float(size.width()) /
+                                                  float(output_size_.width());
+    denoise.upscale[3] = size == output_size_
+                           ? 1.f
+                           : float(size.height()) /
+                               float(output_size_.height());
     for(int i = 0; i <= kAtrousIterations; i++) {
       denoise.params[3] = i == 0 ? 0.f : float(1 << (i - 1));
       batch->updateDynamicBuffer(svgf_ubo_.get(), quint32(i) * svgf_ubo_stride_,
@@ -2882,16 +3332,34 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     const int groups_y = (size.height() + 7) / 8;
     auto dispatch = [&](QRhiComputePipeline* pipeline,
                         QRhiShaderResourceBindings* bindings,
-                        const QRhiCommandBuffer::DynamicOffset* offset) {
+                        const QRhiCommandBuffer::DynamicOffset* offset,
+                        bool output_size = false) {
       cb->beginComputePass(batch);
       batch = nullptr;
       cb->setComputePipeline(pipeline);
       cb->setShaderResources(bindings, offset ? 1 : 0, offset);
-      cb->dispatch(groups_x, groups_y, 1);
+      if(output_size) {
+        cb->dispatch((output_size_.width() + 7) / 8,
+                     (output_size_.height() + 7) / 8, 1);
+      } else {
+        cb->dispatch(groups_x, groups_y, 1);
+      }
       cb->endComputePass();
+      if(profile) {
+        // SHIFT_GPU_PROFILE: the GPU time of each pass
+        cb->beginExternal();
+        hardware_->Stamp(
+          static_cast<const QRhiVulkanCommandBufferNativeHandles*>(
+            cb->nativeHandles())
+            ->commandBuffer,
+          rhi_->currentFrameSlot(), stamp++);
+        cb->endExternal();
+      }
     };
     const int p = rt_parity_;
     dispatch(rt_pipeline_.get(), rt_bindings_[p].get(), nullptr);
+    dispatch(sun_shadow_pipeline_.get(), sun_shadow_bindings_[p].get(),
+             nullptr);
     dispatch(svgf_temporal_pipeline_.get(), svgf_temporal_bindings_[p].get(),
              nullptr);
     dispatch(svgf_variance_pipeline_.get(), svgf_variance_bindings_[p].get(),
@@ -2904,7 +3372,8 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     }
     dispatch(svgf_composite_pipeline_.get(),
              svgf_composite_bindings_[p].get(), nullptr);
-    dispatch(svgf_taa_pipeline_.get(), svgf_taa_bindings_[p].get(), nullptr);
+    dispatch(svgf_taa_pipeline_.get(), svgf_taa_bindings_[p].get(), nullptr,
+             true);
 
     rt_parity_ = 1 - p;
     rt_sample_++;
@@ -2915,7 +3384,8 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
 
   batch = UploadFrameAxes(batch, view_projection, true);
   cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
-  const QRhiViewport viewport(0, 0, float(size.width()), float(size.height()));
+  const QRhiViewport viewport(0, 0, float(target_size.width()),
+                              float(target_size.height()));
   cb->setGraphicsPipeline(blit_pipeline_.get());
   cb->setViewport(viewport);
   cb->setShaderResources(blit_bindings_.get());

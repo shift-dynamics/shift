@@ -66,17 +66,29 @@ float ExponentialDepth(vec3 c, vec3 p, float density, float scale) {
 // nm; Preetham, Shirley and Smits, 1999), the air's thinning with height
 // over 8 km and the aerosols' over 1.2 km. beta is Angstrom's coefficient
 // of the haze (shift::gui::AngstromBeta), negative for no air.
+const float kAerosolScale = 1200.0;
+const vec3 kAerosolDepth = vec3(1.651, 2.175, 2.910); // l^-1.3, l in um
+
 vec3 AirTransmittance(vec3 c, vec3 p, float beta) {
   if(beta < 0.0) {
     return vec3(1.0);
   }
-  const float kRayleighScale = 8000.0, kAerosolScale = 1200.0;
+  const float kRayleighScale = 8000.0;
   const vec3 kRayleighDepth = vec3(0.04108, 0.0973, 0.2428);
-  const vec3 kAerosolDepth = vec3(1.651, 2.175, 2.910); // l^-1.3, l in um
   float rayleigh = ExponentialDepth(c, p, 1.0 / kRayleighScale,
                                     kRayleighScale);
   float aerosol = ExponentialDepth(c, p, beta / kAerosolScale, kAerosolScale);
   return exp(-(kRayleighDepth * rayleigh + kAerosolDepth * aerosol));
+}
+
+// the optical depth of the aerosols of the haze (as in AirTransmittance) at
+// 550 nm along the segment from c to p; 0 for no air (beta < 0)
+float AerosolDepth(vec3 c, vec3 p, float beta) {
+  if(beta < 0.0) {
+    return 0.0;
+  }
+  return kAerosolDepth.g *
+         ExponentialDepth(c, p, beta / kAerosolScale, kAerosolScale);
 }
 
 // the direction of the horizon under the direction d (just above it); the

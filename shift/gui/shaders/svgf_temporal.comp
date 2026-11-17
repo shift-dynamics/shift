@@ -21,15 +21,22 @@ struct Instance { // keep in sync with raytrace.comp
   vec4 variation; // the same
   ivec4 surface_layers;
   vec4 surface[2];
+  ivec4 lods;         // x = the levels in lod_roots, yzw = the mesh's own
+                      // texture layers (as offsets), which they take
+  ivec4 lod_roots;    // root nodes of the mesh and of its simplified levels
+                      // of detail, finest first, for shadow and bounce rays
+  vec4 lod_errors;    // how far each level strays from the mesh (m, world)
 };
 
 layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   mat4 previous_view_projection;
   vec4 params;   // x = pixel spread angle, y = maximum history length,
                  // z = history valid, w = a-trous step
-  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  vec4 blend;    // x = progressive frames, y, z = blend start, end,
+                 // w = maximum history length of the unmoved
   ivec4 control; // x = instance count
   mat4 view_projection; // current frame
+  vec4 upscale;  // read by svgf_taa.comp
 } u;
 
 layout(std430, binding = 1) readonly buffer Instances {
@@ -138,7 +145,13 @@ void main() {
 
       if(weight_sum > 0.01) {
         float previous_length = sum_length / weight_sum;
-        history_length = min(previous_length + 1.0, u.params.y);
+        // the ground, and bodies that did not move, keep longer histories
+        // while others move
+        bool unmoved =
+          id == -2 || (id >= 0 && instances[id].previous_body_to_world ==
+                                    instances[id].body_to_world);
+        float longest = unmoved ? max(u.params.y, u.blend.w) : u.params.y;
+        history_length = min(previous_length + 1.0, longest);
         // exponential moving average, the cumulative mean for short histories
         float alpha = 1.0 / history_length;
         float alpha_moments = max(alpha, 0.2);

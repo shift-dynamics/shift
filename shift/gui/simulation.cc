@@ -8,6 +8,7 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
+#include "shift/core/log.h"
 #include "shift/core/environment/surface_material.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
@@ -16,6 +17,7 @@
 #include <QGenericMatrix>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -26,6 +28,7 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <thread>
 
 
 static double WallTime() {
@@ -605,6 +608,49 @@ void shift::gui::Simulation::LoadModel(
     for(const QMatrix4x4& placement : mesh_placements[m]) {
       scene_.instances.push_back({static_cast<int>(m), 0, placement});
     }
+  }
+  /* the levels of detail of the meshes, made on all the cores */
+  {
+    ReportLoad("Simplifying the meshes for the distance");
+    const auto start = std::chrono::steady_clock::now();
+    std::atomic<size_t> next{0};
+    // the foliage's impostors, baked beside its levels and added after
+    const size_t mesh_count = scene_.meshes.size();
+    std::vector<SceneMeshImpostor> impostors(mesh_count);
+    std::vector<uint8_t> baked(mesh_count, 0);
+    auto work = [&]() {
+      for(size_t m = next++; m < mesh_count; m = next++) {
+        BuildSceneMeshLods(scene_.meshes[m]);
+        baked[m] = BakeSceneMeshImpostor(scene_, scene_.meshes[m],
+                                         impostors[m]);
+      }
+    };
+    std::vector<std::thread> threads;
+    const unsigned count = std::max(1u, std::thread::hardware_concurrency());
+    for(unsigned t = 1; t < count; t++) {
+      threads.emplace_back(work);
+    }
+    work();
+    for(auto& thread : threads) {
+      thread.join();
+    }
+    size_t impostor_count = 0;
+    for(size_t m = 0; m < mesh_count; m++) {
+      if(baked[m]) {
+        AddSceneMeshImpostor(scene_, int(m), std::move(impostors[m]));
+        impostor_count++;
+      }
+    }
+    size_t levels = 0;
+    for(const auto& mesh : scene_.meshes) {
+      levels += mesh.lods.size();
+    }
+    SHIFT_INFO("Made " + std::to_string(levels) + " levels of detail (" +
+               std::to_string(impostor_count) + " impostors) in " +
+               std::to_string(std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - start)
+                                .count()) +
+               " s");
   }
   /* CAD geometry: one SceneCad per file read (geometry::Cad::get_asset),
   scale, color and opacity, drawn once per body */

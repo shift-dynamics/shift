@@ -3,6 +3,7 @@
 
 #include "shift/gui/bvh.h"
 #include "shift/gui/camera.h"
+#include "shift/gui/hardware_ray_tracing.h"
 #include "shift/gui/ocean_waves.h"
 #include "shift/gui/scene.h"
 
@@ -183,6 +184,22 @@ public:
   float get_joint_thickness() const {
     return joint_thickness_;
   }
+  /*! \brief the pixels across the screen that the error of a mesh's level
+   * of detail (SceneMesh::lods) may span where it is drawn; 0 draws the
+   * meshes themselves. The ray tracer's shadow and bounce rays allow four
+   * times as many. */
+  void set_lod_tolerance(float pixels);
+  float get_lod_tolerance() const {
+    return lod_tolerance_;
+  }
+  /*! \brief the share (0.25 to 1) of the window's width and height that the
+   * ray tracer renders, scaled up to the window by temporal upsampling
+   * (svgf_taa.comp); offscreen images
+   * (BeginOffscreen) are rendered at their full size */
+  void set_render_scale(float scale);
+  float get_render_scale() const {
+    return render_scale_;
+  }
   /*! \brief whether the meshes of each body, by index into the poses, are
    * hidden; bodies past its end are shown */
   void set_hidden_bodies(std::vector<bool> hidden);
@@ -247,6 +264,18 @@ private:
      * of the bodies, and the placed ones (scenery) in view and within the
      * mesh's draw distance */
     uint32_t drawn_count = 0;
+    /*! a level of detail (SceneMesh::lods) */
+    struct Lod {
+      std::unique_ptr<QRhiBuffer> vertices;
+      std::unique_ptr<QRhiBuffer> indices;
+      uint32_t index_count = 0;
+    };
+    std::vector<Lod> lods;
+    /*! of the drawn instances, those of the mesh (level 0) and of each of
+     * its levels of detail: the first in Scene::instances order and how
+     * many, one after the other from first_instance */
+    std::vector<uint32_t> level_first;
+    std::vector<uint32_t> level_count;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -279,6 +308,8 @@ private:
    * (Simulation::TakeTerrainUpdates) */
   void UploadTerrainUpdates(QRhiResourceUpdateBatch* batch);
   void InitializeRhi();
+  void PrintGpuProfile();
+  int profile_frames_ = 0; /*!< ray traced frames profiled */
   void ReleaseRhi();
   void RenderFrame();
   void initialize();
@@ -399,6 +430,12 @@ private:
   std::vector<JointAxis> joint_axes_;
   QVector3D joint_color_{0.63f, 0.25f, 0.88f};
   float joint_thickness_ = 0.0075f;
+  float lod_tolerance_ = SceneMeshLod::kPixelError; /*!< set_lod_tolerance */
+  float render_scale_ = 1.f;                         /*!< set_render_scale */
+  /*! the size of the ray tracer's images: the render target's, scaled by
+      render_scale_ but offscreen */
+  QSize rt_size_;
+  QSize RayTracedSize() const;
   uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
   uint32_t axes_frame_instance_count_ = 0;
   std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
@@ -484,11 +521,19 @@ private:
 
   // ray tracing
   bool ray_tracing_supported_ = false;
+  /*! the device, when it traces rays in hardware; made before QRhi, which
+      it is given to, and destroyed after it */
+  std::unique_ptr<HardwareRayTracing> hardware_;
+  /*! whether hardware_ holds the scene's acceleration structures */
+  bool hardware_scene_ = false;
   std::vector<RtTriangle> rt_triangles_;
   std::vector<int32_t> rt_triangle_faces_; /*!< -1 for meshes' triangles */
   std::vector<BvhNode> rt_nodes_;
   /*! root node of each mesh BVH, then of each SceneCad's */
   std::vector<int> rt_roots_;
+  /*! of each mesh, the root of its BVH and of those of its levels of detail
+   * (SceneMesh::lods) */
+  std::vector<std::vector<int>> rt_lod_roots_;
   /*! what ray tracing instances: the meshes' (Scene::instances), then the
    * CAD geometry's, mesh_index meshes.size() + its index in Scene::cads */
   std::vector<SceneInstance> rt_instance_list_;
@@ -522,6 +567,9 @@ private:
   std::unique_ptr<QRhiBuffer> rt_instance_node_buffer_;
   std::unique_ptr<QRhiTexture> rt_output_;
   std::unique_ptr<QRhiTexture> rt_accumulation_; /*!< progressive mean */
+  /*! the progressive mean at the output's size when the ray tracer's is
+      smaller (set_render_scale): rgb = sum, a = samples */
+  std::unique_ptr<QRhiTexture> rt_upscaled_mean_;
   std::unique_ptr<QRhiComputePipeline> rt_pipeline_;
 
   // SVGF denoiser. The G-buffer and the history alternate between two sets
@@ -530,14 +578,22 @@ private:
   std::unique_ptr<QRhiTexture> rt_illumination_; /*!< radiance / albedo */
   std::unique_ptr<QRhiTexture> rt_albedo_;
   std::unique_ptr<QRhiTexture> rt_direct_; /*!< sunlight, not denoised */
+  /*! unshadowed sunlight on the first surface, a = distance to the solid
+      that shadows it; sun_shadow.comp adds it to rt_direct_ */
+  std::unique_ptr<QRhiTexture> rt_sun_;
   std::unique_ptr<QRhiTexture> rt_position_[2]; /*!< xyz, w = instance */
+  /*! the share of the sunlight that passed, averaged over the penumbra
+      (sun_shadow.comp); svgf_taa.comp compares it with the previous frame's
+      to drop the history where a shadow moved */
+  std::unique_ptr<QRhiTexture> rt_sun_passed_[2];
   std::unique_ptr<QRhiTexture> rt_normal_[2];   /*!< xyz, w = distance */
   std::unique_ptr<QRhiTexture> rt_history_illumination_[2]; /*!< w = length */
   std::unique_ptr<QRhiTexture> rt_history_moments_[2];
   std::unique_ptr<QRhiTexture> rt_history_albedo_[2];
   std::unique_ptr<QRhiTexture> rt_filter_[2]; /*!< a-trous ping-pong */
   std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, tonemapped */
-  std::unique_ptr<QRhiTexture> rt_taa_[2]; /*!< anti-aliased history */
+  /*! anti-aliased history, at the output's size */
+  std::unique_ptr<QRhiTexture> rt_taa_[2];
   std::unique_ptr<QRhiBuffer> svgf_ubo_; /*!< one slot per pass/iteration */
   quint32 svgf_ubo_stride_ = 0;
   std::unique_ptr<QRhiShaderResourceBindings> rt_bindings_[2];
@@ -552,6 +608,8 @@ private:
   std::unique_ptr<QRhiComputePipeline> svgf_atrous_pipeline_;
   std::unique_ptr<QRhiComputePipeline> svgf_composite_pipeline_;
   std::unique_ptr<QRhiComputePipeline> svgf_taa_pipeline_;
+  std::unique_ptr<QRhiShaderResourceBindings> sun_shadow_bindings_[2];
+  std::unique_ptr<QRhiComputePipeline> sun_shadow_pipeline_;
   std::unique_ptr<QRhiSampler> sampler_;
   std::unique_ptr<QRhiShaderResourceBindings> blit_bindings_;
   std::unique_ptr<QRhiGraphicsPipeline> blit_pipeline_;
