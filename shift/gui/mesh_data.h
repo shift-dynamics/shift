@@ -58,6 +58,9 @@ namespace gui {
     std::string roughness_map;          /*!< single channel (OBJ map_Pr) */
     std::string normal_map;             /*!< tangent space */
     float normal_scale = 1.0; /*!< scales the normal map's x and y, as glTF */
+    /*! glTF alphaMode MASK: the surface is cut out where the base color
+     * texture's alpha is below this; 0 for an opaque surface */
+    float alpha_cutoff = 0.0;
 
     /*! map textures by triplanar projection in body coordinates instead of
      * texture coordinates, with one texture tile per texture_scale length */

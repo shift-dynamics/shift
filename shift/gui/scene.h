@@ -1,6 +1,7 @@
 #ifndef SHIFT_GUI_SCENE_H_
 #define SHIFT_GUI_SCENE_H_
 
+#include "shift/gui/environment.h"
 #include <QImage>
 
 #include <array>
@@ -9,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "shift/gui/bvh.h"
 #include "ksl/SE3.h"
 #include "ksl/vec3.h"
 #include "shift/gui/cad_scene.h"
@@ -28,6 +30,43 @@ struct Vertex {
   float position[3];
   float normal[3];
   float uv[2];
+};
+
+/*! \brief a simplified copy of a SceneMesh (BuildSceneMeshLods), drawn by
+ * the rasterizer in its place where the mesh covers few pixels */
+struct SceneMeshLod {
+  /*! \brief the pixels across the screen that the error of a level spans
+   * where it is drawn at max_pixels: in the forest (examples/forest) the
+   * levels cannot be told from the meshes at 8, and shrubs turn to blobs at
+   * 32. The viewer's level of detail tolerance scales max_pixels by its
+   * ratio to this. */
+  static constexpr float kPixelError = 8.f;
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices;
+  /*! drawn when the mesh's bounding sphere spans fewer pixels than this
+   * across the screen, at the tolerance kPixelError */
+  float max_pixels = 0.f;
+  /*! how far the level strays from the mesh, relative to the largest side
+   * of the mesh's box; no less than that of the level before */
+  float error = 0.f;
+  /*! the SceneMesh whose material and textures the level is drawn with (an
+   * impostor's, AddSceneMeshImpostor), -1 for the mesh's own */
+  int material = -1;
+};
+
+/*! \brief a few crossed cards that show a cut-out mesh (foliage) from afar,
+ * with its colors and normals baked into textures (BakeSceneMeshImpostor) */
+struct SceneMeshImpostor {
+  /*! the cards, in the mesh's coordinates; max_pixels from error */
+  SceneMeshLod lod;
+  /*! the views along x, y and z, in three quarters of a Scene::kTextureSize
+   * square: base color (sRGB, alpha 0 where empty) and tangent space
+   * normals */
+  QImage color;
+  QImage normal;
+  /*! how far the cards may be from the surfaces they show, relative to the
+   * largest side of the mesh's box */
+  double error = 0.0;
 };
 
 /*! \brief triangle mesh in body (origin frame) coordinates with its
@@ -54,7 +93,10 @@ struct SceneMesh {
   ksl_vec3f_t albedo = ksl_vec3f(0.6f, 0.6f, 0.6f);
   float roughness = 0.6f;
   float metallic = 0.f;
-  float opacity = 1.f; /*!< the ray tracer's; 0 lets all light through */
+  float opacity = 1.f; /*!< 0 lets all light through, 1 none */
+  /*! cut out where the base color texture's alpha is below this (leaves,
+   * blades of grass); 0 for none */
+  float alpha_cutoff = 0.f;
 
   // texture layers in Scene::texture_layers, -1 if none; texture values
   // multiply the factors above
@@ -84,6 +126,19 @@ struct SceneMesh {
    * diffuse color and intensity is added to its shading. Bodies that load
    * the same files share the mesh, and so the glow */
   int glow_light = -1;
+
+  /*! the material map (Scene::material_maps) of the terrain the mesh
+   * triangulates, -1 if none: its materials replace the mesh's own
+   * textures */
+  int material_map = -1;
+
+  /*! placed instances (scenery) farther than this from the camera are not
+   * drawn by the rasterizer (m); 0 for no limit */
+  float draw_distance = 0.f;
+
+  /*! simplified copies, each coarser than the one before, drawn far from
+   * the camera (BuildSceneMeshLods, AddSceneMeshImpostor) */
+  std::vector<SceneMeshLod> lods;
 
   /*! the terrain (Scene::terrains) the mesh triangulates, -1 if none: it is
    * drawn tessellated from the terrain's maps where the device can, and as
@@ -126,6 +181,36 @@ struct SceneParticles {
   float radius = 0.f;
 };
 
+/*! \brief a material of the ground (shift::core::environment::
+ * SurfaceMaterial), drawn by triplanar projection along the world axes */
+struct SceneGroundMaterial {
+  int base_color_layer = -1; /*!< sRGB, -1 for the color alone */
+  int normal_layer = -1;     /*!< tangent space, -1 if none */
+  int roughness_layer = -1;  /*!< G roughness, -1 if none */
+  int height_layer = -1;     /*!< R height (light high), -1 if none */
+  float texture_scale = 1.f; /*!< tile size (m) */
+  float normal_scale = 1.f;
+  float height_scale = 0.f;       /*!< m, depth of the height map's relief */
+  ksl_vec3f_t color = ksl_vec3f(1.f, 1.f, 1.f); /*!< linear factor of the texture */
+  float roughness = 0.9f;         /*!< factor of the roughness map */
+  std::string label;              /*!< what cameras label its pixels */
+};
+
+/*! \brief the surface materials of a terrain by area
+ * (shift::core::terrain::MaterialMap): the material of each sample, and
+ * the width over which neighbors blend */
+struct SceneMaterialMap {
+  ksl_SE3f_t world_to_map = Identity(); /*!< world to the terrain frame */
+  int width = 0;           /*!< samples along x */
+  int height = 0;          /*!< samples along y */
+  float x_scale = 1.f;     /*!< spacing of the samples (m) */
+  float y_scale = 1.f;
+  float blend_width = 0.5f; /*!< m, on either side of a boundary */
+  /*! index in materials of each sample, x fastest */
+  std::vector<uint8_t> indices;
+  std::vector<SceneGroundMaterial> materials;
+};
+
 /*! \brief a light of the model (shift::core::light), attached to a frame
  * of a body. Spot, directional and IES lights shine along the -z axis of
  * that frame; an IES light's horizontal angle 0 is its x axis. */
@@ -150,6 +235,16 @@ struct SceneLight {
 struct SceneInstance {
   int mesh_index = 0; /*!< in Scene::meshes */
   int body_index = 0;
+  /*! the mesh in the body's coordinates, scaled by scale about its origin
+   * and then placed (scenery placed over a fixed body) */
+  ksl_SE3f_t placement = Identity();
+  float scale = 1.f;
+  /*! whether the mesh is placed other than at the body's origin */
+  bool is_placed() const {
+    return scale != 1.f || placement.t.x != 0.f || placement.t.y != 0.f ||
+           placement.t.z != 0.f || placement.R.at[0][0] != 1.f ||
+           placement.R.at[1][1] != 1.f || placement.R.at[2][2] != 1.f;
+  }
 };
 
 /*! \brief renderable content of a model, in shift world coordinates (+z
@@ -157,6 +252,11 @@ struct SceneInstance {
  * drawn as instances of it. */
 struct Scene {
   static constexpr int kTextureSize = 1024;
+  /*! the side of the images larger than kTextureSize (large_texture_layers),
+   * as the detailed textures of a vehicle seen up close */
+  static constexpr int kLargeTextureSize = 4096;
+  /*! layers from this one on are large_texture_layers[layer - kLargeLayer] */
+  static constexpr int kLargeLayer = 1 << 16;
 
   std::vector<SceneMesh> meshes;
   /*! grouped by mesh: the instances of a mesh are contiguous */
@@ -168,7 +268,16 @@ struct Scene {
   int grain_count = 0;
   /*! texture images, all kTextureSize square, RGBA8888 */
   std::vector<QImage> texture_layers;
+  /*! the texture images larger than kTextureSize, all kLargeTextureSize
+   * square, RGBA8888: layers kLargeLayer and on */
+  std::vector<QImage> large_texture_layers;
   std::vector<SceneTerrain> terrains;
+  /*! the material maps of the terrains, at most kMaxMaterialMaps; their
+   * materials together at most kMaxGroundMaterials */
+  std::vector<SceneMaterialMap> material_maps;
+  static constexpr int kMaxMaterialMaps = 8;
+  static constexpr int kMaxGroundMaterials = 64;
+
   std::vector<SceneParticles> particles;
   /*! CAD geometry, tessellated from its exact surfaces where the device
    * can; not drawn otherwise, nor ray traced */
@@ -182,10 +291,59 @@ struct Scene {
   static constexpr int kIesVertical = 128;
   static constexpr int kIesHorizontal = 65;
   std::vector<std::vector<float>> ies_profiles;
+
+  /*! the sky, sun and fog */
+  SceneEnvironment environment;
 };
 
 /*!
-@brief Loads the texture images of a scene into its layers, once per file
+@brief the ray tracing triangles of a mesh in body coordinates and their
+bounding volume hierarchy (BuildBvh), node and triangle indices from 0
+*/
+struct SceneMeshBvh {
+  std::vector<RtTriangle> triangles;
+  /*! per triangle, in the order of triangles: its index in the mesh when
+   * tagged, else -1 */
+  std::vector<int32_t> faces;
+  std::vector<BvhNode> nodes; //!< empty if the mesh has no triangles
+};
+
+/*! \brief the triangles of mesh, with its texture coordinates in their
+ * spare components, and their hierarchy; tagged: each triangle's index in
+ * the mesh in faces, followed through the reordering */
+SceneMeshBvh BuildSceneMeshBvh(const SceneMesh& mesh, bool tagged);
+
+/*! \brief fills mesh.lods with its levels of detail when it has enough
+ * triangles to gain from them: each level about a quarter of the triangles
+ * of the one before, drawn where its error spans less than about two
+ * pixels.
+ * Cut-out cards (alpha_cutoff, foliage) are thinned by keeping a share of
+ * their parts, enlarged to the same area (geometry::PruneComponents);
+ * other meshes are simplified by quadric error collapses
+ * (geometry::SimplifyQuadric), or by clustering
+ * (geometry::SimplifyGrid) where those stop short. */
+void BuildSceneMeshLods(SceneMesh& mesh);
+
+/*! \brief the impostor of a cut-out mesh (alpha_cutoff, foliage) with a
+ * base color texture and levels of detail: three cards through the center
+ * of its box, across x, y and z, each showing the mesh as seen along its
+ * axis (from +x, +y, +z), the nearest surface that is not cut out at each
+ * texel. Returns false for other meshes. Reads only scene's textures, so
+ * meshes may be baked at once on many threads. */
+bool BakeSceneMeshImpostor(const Scene& scene, const SceneMesh& mesh,
+                           SceneMeshImpostor& impostor);
+
+/*! \brief add the impostor of scene.meshes[mesh] as its coarsest level of
+ * detail: its textures become layers of scene, and its material a SceneMesh
+ * of no instances (the mesh's, with the baked textures), which the level
+ * names */
+void AddSceneMeshImpostor(Scene& scene, int mesh, SceneMeshImpostor impostor);
+
+/*!
+@brief Loads the texture images of a scene into its layers, once per file,
+and once per embedded image of the same data (the same texture of the parts
+of a vehicle, each its own mesh file); an image larger than
+Scene::kTextureSize into Scene::large_texture_layers
 */
 class TextureLoader {
 public:
@@ -197,7 +355,8 @@ public:
   void AddEmbedded(const std::map<std::string, EmbeddedTexture>& images);
 
   /*! \brief layer holding an image file or embedded image, -1 if it can't
-   * be read */
+   * be read; Scene::kLargeLayer and on if it is larger than
+   * Scene::kTextureSize */
   int Load(const std::string& path);
 
   /*! \brief layer holding metallic (B) and roughness (G), from a packed
@@ -207,6 +366,12 @@ public:
                             const std::string& roughness);
 
 private:
+  /*! \brief the image of a file or embedded image as it is, null if it
+   * can't be read */
+  QImage ReadImage(const std::string& path);
+  /*! \brief the image scaled to size square, RGBA8888 */
+  static QImage Fit(QImage image, int size);
+  /*! \brief the image, kTextureSize square, RGBA8888 */
   QImage Read(const std::string& path);
 
   Scene& scene_;

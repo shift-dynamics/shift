@@ -494,6 +494,15 @@ void shift::core::geometry::Mesh::Import(const std::string& file,
                           &normal_scale) == AI_SUCCESS) {
       material_data.normal_scale = normal_scale;
     }
+    // glTF alphaMode MASK: leaves and blades of grass cut out of cards
+    aiString alpha_mode;
+    if(gltf && aiGetMaterialString(mtl, AI_MATKEY_GLTF_ALPHAMODE,
+                                   &alpha_mode) == AI_SUCCESS &&
+       std::string(alpha_mode.C_Str()) == "MASK") {
+      float cutoff = 0.5f;
+      aiGetMaterialFloat(mtl, AI_MATKEY_GLTF_ALPHACUTOFF, &cutoff);
+      material_data.alpha_cutoff = std::clamp(cutoff, 1e-3f, 1.f);
+    }
     material_data.triplanar = texture_mapping_ == "triplanar";
     material_data.texture_scale = static_cast<float>(texture_scale_);
 

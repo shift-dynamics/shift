@@ -13,6 +13,8 @@ test_sources = [
   'contact/contact_record.cc',
   'contact/test_collision_geometry_input.cc',
   'contact/test_contact_force.cc',
+  'contact/test_environment_contact.cc',
+  'test_environment.cc',
   'test_free_body.cc',
   'test_mass_properties.cc',
   'contact/test_contact_geometry.cc',
@@ -36,6 +38,7 @@ test_sources = [
   'test_beam.cc',
   'test_belt.cc',
   'test_mesh_scale.cc',
+  'test_simplify.cc',
   'test_applied_load.cc',
   'test_sensors.cc',
   'test_bushing.cc',
@@ -53,6 +56,9 @@ test_sources = [
   'terramechanics/test_terramechanics.cc',
   'test_schedule.cc',
   'test_map.cc',
+  'test_driver.cc',
+  'test_scenery.cc',
+  'test_load_progress.cc',
   'test_linearization.cc',
   'test_component_io.cc',
   'test_electric_motor.cc',
@@ -94,7 +100,9 @@ if not is_disabler(shift_gui_dep)
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
-                   'test_light_glow.cc']
+                   'test_opacity_micromap.cc',
+                   'test_light_glow.cc', 'test_sky.cc',
+                   'test_ocean_waves.cc']
   test_deps += [shift_gui_dep]
 endif
 

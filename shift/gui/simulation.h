@@ -12,6 +12,7 @@
 #include <condition_variable>
 #include <map>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -98,6 +99,16 @@ public:
    * model loaded. */
   void Reload(const Json::Value& model);
 
+  /*! \brief told what is being done while Load or Reload runs, by the
+   * model's context (Context::set_load_observer, of the same type) and while the scene is
+   * made from it; it may throw to stop the load, which they pass on,
+   * leaving no model loaded. Called on the thread that loads. */
+  using LoadObserver =
+    std::function<void(const std::string& stage, int done, int total)>;
+  void set_load_observer(LoadObserver observer) {
+    load_observer_ = std::move(observer);
+  }
+
   bool is_loaded() const {
     return context_ != nullptr;
   }
@@ -178,6 +189,13 @@ public:
    * call; Scene::terrains already holds them, for a viewport that uploads
    * the whole scene again */
   void TakeTerrainUpdates(std::vector<TerrainUpdate>& updates);
+
+  /*! \brief the ray tracing hierarchies of the scene's meshes, built while
+   * the model loaded (per mesh, a deformable terrain's tagged), handed
+   * over once: empty after */
+  std::vector<SceneMeshBvh> TakeMeshBvhs() {
+    return std::move(mesh_bvhs_);
+  }
 
   /*! \brief the particles of the SPH soils whose shown particles changed
    * since the previous call, or all */
@@ -278,6 +296,14 @@ private:
                  const Json::Value* model = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
+  /*! \brief tell the load observer, if any, what is being done */
+  void ReportLoad(const std::string& stage, int done = 0, int total = 0) {
+    if(load_observer_) {
+      load_observer_(stage, done, total);
+    }
+  }
+  LoadObserver load_observer_;
+  std::vector<SceneMeshBvh> mesh_bvhs_; //!< see TakeMeshBvhs
   void RemoveLogDirectory();
   void JoinWorker();
   void Work();

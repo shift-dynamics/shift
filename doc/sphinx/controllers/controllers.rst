@@ -352,6 +352,96 @@ Keys of ``map``:
 
 Tests: :source:`test/test_map.cc`.
 
+.. _driver:
+
+Driver
+------
+
+``"type": "driver"`` drives a vehicle along a path: it steers by pure
+pursuit (R. C. Coulter, *Implementation of the Pure Pursuit Path Tracking
+Algorithm*, Carnegie Mellon University, CMU-RI-TR-92-01, 1992) and works the throttle, the brakes and the gears for
+a speed that the bends of the path allow. The path is a line through the
+points ``path``, :math:`[x_0, y_0, x_1, y_1, \dots]` in the fixed frame,
+closed back to the first point if ``closed``. The vehicle is the frame
+``body_frame_pair``, at the middle of the rear axle with its x axis forward
+and z down.
+
+At each evaluation the driver finds the point of the path nearest the
+frame, and the goal point a look-ahead :math:`l` further along it,
+
+.. math::
+
+   l = l_0 + t_l \max(v, 0),
+
+with :math:`v` the speed of the frame along its x axis, :math:`l_0`
+``lookahead_distance`` and :math:`t_l` ``lookahead_time``. Pure pursuit
+steers on the arc from the frame through the goal point: with the goal at
+:math:`x_g, y_g` in the coordinates of the frame and the wheelbase
+:math:`w`, the front wheels of a bicycle model turn by
+
+.. math::
+
+   \delta = \arctan \frac{2 w y_g}{x_g^2 + y_g^2},
+
+positive about z, to the right, within :math:`\pm` ``max_steering_angle``.
+A longer look-ahead steers more smoothly and cuts bends more.
+
+The target speed :math:`v_t` is the speed profile of the path at the goal
+point, so that the driver brakes before a bend. At each point of the path
+the profile is the speed that keeps the lateral acceleration within
+``lateral_acceleration`` :math:`a_y`, at most ``speed``,
+
+.. math::
+
+   v = \min\left(v_{\max}, \sqrt{a_y / \kappa}\right),
+
+with :math:`\kappa` the curvature of the circle through the path a wheelbase
+before and after the point; then reduced so that the vehicle reaches each
+point from the one before at no more than ``acceleration`` :math:`a`, and
+slows to the next at no more than ``deceleration`` :math:`d`:
+:math:`v_k \le \sqrt{v_{k-1}^2 + 2 a \Delta s}` and
+:math:`v_k \le \sqrt{v_{k+1}^2 + 2 d \Delta s}` for points :math:`\Delta s`
+apart. An open path starts and ends at rest. From the error of the speed,
+:math:`e = v_t - v`, the throttle is :math:`k_t e` and the brake
+:math:`-k_b e`, each from 0 to 1, with :math:`k_t` ``throttle_gain`` and
+:math:`k_b` ``brake_gain``; once the goal point is past the end of an open
+path the target is 0 and the brake full. The gear is 1 plus the number of
+``shift_speeds`` below the speed.
+
+The driver sets nothing itself. Its outputs, ``steering``, ``throttle``,
+``brake`` and ``gear``, are read by :ref:`maps <map>` after it in the model
+file, which set the inputs of the vehicle through a curve: the steering angle
+to the target of the steering rack's controller, by the steering ratio; the
+throttle to the engine; the brake to the pressures of the brakes; the gear
+to the transmission. Its other outputs, ``target_speed``, ``vehicle_speed``,
+``station`` (the distance along the path) and ``lateral_error`` (the
+distance of the frame to the right of the path), are for the loggers.
+
+:source:`examples/forest/polo_r_wrc_forest.json` drives the Polo R WRC along
+the middle of a gravel road through a forest; the steering map turns the
+angle into the rack's travel, 0.135 m per radian of the front wheels, a
+positive rack position turning the car left:
+
+.. code:: javascript
+
+   {"type": "driver", "name": "driver",
+    "body_frame_pair": ["chassis", "rear_axle"], "wheelbase": 2.41,
+    "path": [-30, 0, -28, 0, ...], "speed": 30,
+    "lateral_acceleration": 3.5, "acceleration": 4, "deceleration": 5,
+    "lookahead_distance": 4, "lookahead_time": 0.35,
+    "max_steering_angle": 0.5, "throttle_gain": 0.4, "brake_gain": 0.25,
+    "shift_speeds": [17, 21, 25.5, 31, 37.5]},
+   {"type": "map", "name": "steering_wheel", "component": "driver",
+    "output": "steering", "points": [-0.5, 0.0675, 0.5, -0.0675],
+    "targets": ["controllers/steering/target"]}
+
+Keys of ``driver``:
+
+.. shift-parameters:: shift/core/controller/driver.cc
+   :exclude: name, type, active
+
+Tests: :source:`test/test_driver.cc`.
+
 Inverse kinematics
 ------------------
 

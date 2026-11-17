@@ -11,3 +11,5 @@ Regenerate the textures and the model from this directory::
 
   python3 make_bone_textures.py
   python3 make_strandbeest.py
+
+`../beach <../beach>`_ puts the walker on a sand beach by the sea, its feet in deformable sand.

@@ -1,10 +1,13 @@
 #include "shift/core/parameter/array.h"
 #include "shift/core/assembly.h"
+#include "shift/core/environment/scenery.h"
+#include "shift/core/environment/surface_material.h"
 #include "shift/core/force_module/contact.h"
 #include "shift/core/force_module/dem.h"
 #include "shift/core/force_module/powertrain.h"
 #include "shift/core/force_module/track.h"
 #include "shift/core/logger/base.h"
+#include "shift/core/terrain/material_map.h"
 #include "shift/core/terrain/soil_map.h"
 #include "shift/core/terrain/surface_texture.h"
 
@@ -39,6 +42,12 @@ template class shift::core::parameter::Array<
   shift::core::force_module::StickSlipPair>;
 template class shift::core::parameter::Array<
   shift::core::force_module::TrackSpan>;
+template class shift::core::parameter::Array<
+  shift::core::environment::Scenery>;
+template class shift::core::parameter::Array<
+  shift::core::environment::SurfaceMaterial>;
+template class shift::core::parameter::Array<
+  shift::core::terrain::MappedMaterial>;
 template class shift::core::parameter::Array<
   shift::core::terrain::MappedSoil>;
 template class shift::core::parameter::Array<

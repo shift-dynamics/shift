@@ -195,6 +195,14 @@ private:
    * keep_view leaves the camera and the selection as they were */
   bool LoadModel(const QString& filename, const Json::Value* model,
                  QString* error, bool keep_view);
+  /*! \brief Simulation::Load of filename, or Reload of model, on a worker
+   * thread, the window answering meanwhile with its controls disabled and
+   * a dialog showing what is being loaded, whose Cancel stops the load;
+   * what went wrong, or empty, and cancelled set if it was stopped */
+  std::string LoadInBackground(const QString& filename,
+                               const Json::Value* model, bool& cancelled);
+  /*! \brief no closing while a model loads */
+  void closeEvent(QCloseEvent* event) override;
   /*! \brief load the model again from model_json_, as edited; on failure,
    * load it as it was before the edit, previous, and give why in error */
   bool ReloadModel(const Json::Value& previous, QString& error);
@@ -290,6 +298,7 @@ private:
 
   /*! \brief advance playback and jogging, once per display frame */
   void Tick();
+  bool loading_ = false; //!< whether a model loads on a worker thread
   void Jog();
 
   /*! \brief increment the coordinate of a slider; for a joint in a

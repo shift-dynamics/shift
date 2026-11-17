@@ -351,12 +351,14 @@ void shift::core::parameter::Value::ReadJSON(Json::Value& object) {
     case PARAMETER_LIST: {
       if(object.isObject()) {
         std::any_cast<parameter::List*>(data_)->ReadJSON(object);
+        loaded_from_file_ = true;
       }
       break;
     }
     case PARAMETER_ARRAY: {
       if(object.isArray()) {
         std::any_cast<parameter::ArrayBase*>(data_)->ReadJSON(object);
+        loaded_from_file_ = true;
       }
       break;
     }

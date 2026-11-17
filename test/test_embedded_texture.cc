@@ -6,6 +6,7 @@ loader decodes it */
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -139,4 +140,46 @@ TEST(EmbeddedTexture, GlbBaseColor) {
   const QImage& image = scene.texture_layers[0];
   const QColor texel = image.pixelColor(image.width() / 2, image.height() / 2);
   EXPECT_EQ(texel.rgb(), color);
+}
+
+/* an encoded PNG of a size x size image of color */
+static shift::gui::EmbeddedTexture Png(int size, QRgb color) {
+  QImage image(size, size, QImage::Format_RGBA8888);
+  image.fill(QColor::fromRgb(color));
+  QByteArray png;
+  QBuffer buffer(&png);
+  buffer.open(QIODevice::WriteOnly);
+  image.save(&buffer, "PNG");
+  shift::gui::EmbeddedTexture texture;
+  texture.data.assign(png.begin(), png.end());
+  return texture;
+}
+
+/* the same image embedded in two mesh files (the parts of a vehicle) is one
+layer; an image larger than Scene::kTextureSize is a large layer, of
+Scene::kLargeTextureSize */
+TEST(EmbeddedTexture, SharedAndLarge) {
+  const QRgb red = qRgb(200, 30, 20), blue = qRgb(10, 40, 220);
+  std::map<std::string, shift::gui::EmbeddedTexture> images;
+  images["a.glb#0"] = Png(8, red);
+  images["b.glb#0"] = Png(8, red);
+  images["c.glb#0"] = Png(8, blue);
+  images["d.glb#0"] = Png(2 * shift::gui::Scene::kTextureSize, blue);
+  images["e.glb#0"] = Png(2 * shift::gui::Scene::kTextureSize, blue);
+
+  shift::gui::Scene scene;
+  shift::gui::TextureLoader textures(scene);
+  textures.AddEmbedded(images);
+  EXPECT_EQ(textures.Load("a.glb#0"), 0);
+  EXPECT_EQ(textures.Load("b.glb#0"), 0);
+  EXPECT_EQ(textures.Load("c.glb#0"), 1);
+  EXPECT_EQ(textures.Load("d.glb#0"), shift::gui::Scene::kLargeLayer);
+  EXPECT_EQ(textures.Load("e.glb#0"), shift::gui::Scene::kLargeLayer);
+  ASSERT_EQ(scene.texture_layers.size(), 2u);
+  ASSERT_EQ(scene.large_texture_layers.size(), 1u);
+  const QImage& large = scene.large_texture_layers[0];
+  EXPECT_EQ(large.width(), shift::gui::Scene::kLargeTextureSize);
+  EXPECT_EQ(large.height(), shift::gui::Scene::kLargeTextureSize);
+  EXPECT_EQ(large.pixelColor(100, 100).rgb(), blue);
+  EXPECT_EQ(scene.texture_layers[0].width(), shift::gui::Scene::kTextureSize);
 }

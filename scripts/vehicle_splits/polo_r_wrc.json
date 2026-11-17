@@ -1,5 +1,5 @@
 {
-  "comment": "bodies of examples/polo_r_wrc/polo_r_wrc.json from the Volkswagen Polo R WRC glTF (see examples/polo_r_wrc/readme.rst), for ../split_vehicle_gltf.py. The source is in meters, with its front at -y and its left at +x after Blender's import; the tires touch z = 0. The source's glow of the position lights, front and back, carries headlight beams that reach about 1 m ahead of the bumper; it goes to the body beams, which the model does not use (the tail lights keep their own glow). The glow of the brake lights goes to brake_lamps, from which generate_polo_r_wrc.py cuts the lenses that light up as the car brakes. The license plate texture is replaced with polo_r_wrc_plate.png, written by generate_polo_r_wrc.py.",
+  "comment": "bodies of examples/polo_r_wrc/polo_r_wrc.json from the Volkswagen Polo R WRC glTF (see examples/polo_r_wrc/readme.rst), for ../split_vehicle_gltf.py. The source is in meters, with its front at -y and its left at +x after Blender's import; the tires touch z = 0. The source's glow of the position lights, front and back, carries headlight beams that reach about 1 m ahead of the bumper; it goes to the body beams, which the model does not use, as do the cards of the tail lamps' glow, which stand off the lamps and fan out over the body: their glow is painted on the lenses of the tail lamps instead (decals). The textures are those redrawn at 4096 x 4096 by examples/polo_r_wrc/redraw_textures.py. The glow of all the lamps is painted on black, which would be drawn as black paint around the tail and reversing lamps, so its material is a cut-out where it is darker than 0.3. The glow of the brake lights, laid on the lenses of the lamps under their glass (projections), goes to brake_lamps, from which generate_polo_r_wrc.py cuts the lenses that light up as the car brakes. The license plate texture is replaced with polo_r_wrc_plate.png, written by generate_polo_r_wrc.py.",
   "scale": 1.0,
   "axes": [
     [
@@ -18,10 +18,36 @@
       -1
     ]
   ],
-  "max_texture_size": 1024,
+  "max_texture_size": 4096,
   "image_format": "JPEG",
+  "jpeg_quality": 95,
   "images": {
-    "Material.003_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_plate.png"
+    "Material.003_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_plate.png",
+    "material_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_livery.jpg",
+    "material_clearcoat.png": "../../examples/polo_r_wrc/polo_r_wrc_clearcoat.jpg",
+    "Material.001_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_details.jpg",
+    "Material.001_normal.png": "../../examples/polo_r_wrc/polo_r_wrc_details_normal.jpg",
+    "Material.002_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_lamps.jpg",
+    "Material.004_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_tires.jpg",
+    "Material.005_baseColor.png": "../../examples/polo_r_wrc/polo_r_wrc_underbody.jpg"
+  },
+  "projections": [
+    {
+      "mesh": "lights_brakes_glows",
+      "onto": "chassis_details|detach_trunk_75_pivot_details",
+      "distance": 0.06
+    }
+  ],
+  "decals": [
+    {
+      "mesh": "lights_position_back_glows",
+      "onto": "chassis_details",
+      "distance": 0.06,
+      "cutoff": 0.3
+    }
+  ],
+  "cutouts": {
+    "Material.002": 0.3
   },
   "default": "chassis",
   "mirror": [
@@ -136,7 +162,7 @@
     },
     {
       "body": "beams",
-      "mesh": "lights_position_front_and_back",
+      "mesh": "lights_position_front_and_back|lights_position_back_glows",
       "box": [
         -3.0,
         4.0,

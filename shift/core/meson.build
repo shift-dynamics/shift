@@ -16,6 +16,7 @@ core_src = files(
 )
 
 subdir('controller')
+subdir('environment')
 subdir('body')
 subdir('cad')
 subdir('collision_geometry')

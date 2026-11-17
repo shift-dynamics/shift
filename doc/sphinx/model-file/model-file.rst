@@ -40,6 +40,10 @@ Layout
      "frames": [...],             // frames on the fixed body (the ground)
      "lights": [...],             // lights of the 3D view
      "terrain": [...],            // elevation maps
+     "surface_materials": [...],  // the materials of the ground
+     "scenery": [...],            // trees, bushes, grass and rocks on the ground
+     "environment": {...},        // sky, sun, fog and water
+     "contact": {...},            // contact model of the environment
      "collision_geometry": [...], // collision geometry of the fixed body
      "assemblies": [              // the model itself
        {
@@ -59,6 +63,9 @@ The top level of the file is the fixed body. It has a frame named
 collision geometry are fixed in space.
 
 .. shift-parameters:: shift/core/context.cc
+
+.. shift-parameters:: shift/core/body/fixed.cc
+   :function: Fixed::DeclareParameters
 
 Names
 -----
@@ -442,8 +449,8 @@ collision geometry is fitted to the body's meshes (``fit_to``).
 Terrain
 -------
 
-A model has one terrain, on a frame of the fixed body. Tires drive on terrain
-(see :doc:`../force-modules/tire`).
+Terrains lie on frames of the fixed body. Tires drive on terrain (see
+:doc:`../force-modules/tire`).
 
 ``"type": "basic"``: an elevation map from a TIFF image.
 
@@ -611,6 +618,234 @@ Each soil of ``soils`` has the keys of a soil and its ``value``:
 
 .. shift-parameters:: shift/core/terrain/soil_map.cc
    :function: MappedSoil::DeclareParameters
+
+Surface materials and material maps
+************************************
+
+``surface_materials``, at the root of the model file, are the materials of
+the ground: what each looks like, what the cameras will label it, and its
+soil. A terrain's ``material_map`` lays them out by area: each sample of an
+8 or 16 bit integer TIFF is a value that selects a material from
+``materials``, by name. The materials replace the terrain's own texture. A
+material map takes the place of a soil map: the soil at a point is that of
+the material of the nearest sample, or the terrain's ``soil`` where the
+material has none. The samples are ``x_scale`` by ``y_scale`` apart from the
+origin of the terrain frame, laid out as the elevation map's
+(``coordinate_type``), and a region takes the map of the terrain that holds
+it.
+
+The viewer and the ray tracer blend neighboring materials over
+``blend_width`` on either side of a boundary. Where a material has a
+``height_map_filename`` (a displacement map, light where the surface stands
+up, as the stones of a gravel), the blend follows the heights: the
+material's stones stand out of its neighbor near the boundary and its
+hollows fill with it, instead of the two fading into each other. Each material's share of the
+nearby samples is smoothed, so that boundaries do not follow the grid in
+steps, and moved about by noise; the line where the share is one half is
+where the soil changes. A value with no material, two materials of one value
+or a material that is not among the surface materials stops the model from
+loading.
+
+.. code-block:: javascript
+
+   "surface_materials": [
+     {"name": "dry_sand", "label": "sand",
+      "texture_filename": "qrc:/textures/dry_sand.jpg",
+      "normal_map_filename": "qrc:/textures/dry_sand_normal.jpg",
+      "texture_scale": 1.5, "soil": {"name": "dry_sand"}},
+     {"name": "wet_sand", "label": "sand",
+      "texture_filename": "qrc:/textures/dry_sand.jpg",
+      "texture_scale": 1.5, "color": [0.6, 0.55, 0.48], "roughness": 0.35,
+      "soil": {"name": "lete_sand"}}],
+   "terrain": [{"type": "basic", "name": "beach", ...,
+                "material_map": {"filename": "beach_materials.tiff",
+                                 "x_scale": 0.25, "y_scale": 0.25,
+                                 "blend_width": 0.3,
+                                 "materials": [{"value": 0, "material": "dry_sand"},
+                                               {"value": 1, "material": "wet_sand"}]}}]
+
+.. shift-parameters:: shift/core/environment/surface_material.cc
+   :function: SurfaceMaterial::DeclareParameters
+
+.. shift-parameters:: shift/core/terrain/material_map.cc
+   :function: MaterialMap::DeclareParameters
+
+Each material of ``materials``:
+
+.. shift-parameters:: shift/core/terrain/material_map.cc
+   :function: MappedMaterial::DeclareParameters
+
+Scenery
+*******
+
+``scenery``, at the root of the model file, strews objects over a terrain:
+trees, bushes, grass, rocks. Each scenery is one kind of object, with one or
+more meshes in ``geometry``, each in its own coordinates with z down and the
+origin where it meets the ground. The items are tried at random over the
+terrain, ``density`` per square meter, and kept where the terrain's material
+map has one of ``materials`` (anywhere if none are given), with no other
+material within ``margin``, and no other item of the scenery, or of the
+sceneries named in ``avoid`` (given before it), nearer than ``spacing``.
+Each item is one of the meshes, chosen at random, turned at random about
+the vertical and scaled by a random factor in ``scale``; it stands on the
+surface with its origin ``depth`` below it, so that it does not stand clear
+of a slope, upright (``tilt`` 0, trees) or on the slope (``tilt`` 1, grass
+and stones). The same ``seed`` gives the same items every time.
+
+The scenery is drawn and seen by cameras, by the viewer and the ray tracer;
+it does not collide. A mesh is loaded once for all its items. The viewer's
+rasterizer leaves out the items beyond ``draw_distance`` from the camera,
+such as grass that would cover too few pixels to matter; the ray tracer
+draws them all. Meshes of foliage are cut out by the alpha of their textures
+(glTF's ``"alphaMode": "MASK"``).
+
+.. code-block:: javascript
+
+   "scenery": [
+     {"name": "trees", "terrain": "forest_stage",
+      "materials": ["forest_floor"], "margin": 2.0,
+      "density": 0.06, "spacing": 3.5, "scale": [0.75, 1.15], "depth": 0.25,
+      "seed": 1, "draw_distance": 250.0,
+      "geometry": [
+        {"type": "mesh", "filename": ["../../assets/scenery/fir_a.glb"]},
+        {"type": "mesh", "filename": ["../../assets/scenery/pine_a.glb"]}]},
+     {"name": "verge_grass", "terrain": "forest_stage",
+      "materials": ["verge"], "density": 6.0, "spacing": 0.3,
+      "scale": [1.4, 2.4], "tilt": 1.0, "seed": 4, "draw_distance": 45.0,
+      "geometry": [
+        {"type": "mesh", "filename": ["../../assets/scenery/grass_a.glb"]}]}]
+
+.. shift-parameters:: shift/core/environment/scenery.cc
+   :function: Scenery::DeclareParameters
+
+:source:`assets/scenery` holds trees, saplings, shrubs, ferns, grass and
+rocks to strew (CC0, from Poly Haven), and :source:`assets/environments`
+a beach and a forest rally stage built with them, to use in any model. Tests:
+:source:`test/test_scenery.cc`.
+
+Environment
+-----------
+
+``environment``, at the root of the model file, is what surrounds the model
+as the viewer and the cameras see it: the sky, the sun, haze and a body of
+water. None of it acts on the dynamics. Without it the viewer draws its own
+gradient sky and sun, and the sun gives way to the model's lights; with it,
+the sun shines along with them.
+
+.. code-block:: json
+
+   "environment": {
+     "sky": {"type": "physical", "turbidity": 2.5},
+     "sun": {"azimuth": 125.0, "elevation": 32.0},
+     "water": {"height": 0.0, "wave_height": 0.25, "wave_direction": 265.0,
+               "wind_speed": 5.0}
+   }
+
+The sky is a gradient (``"type": "gradient"``, the default), a clear sky
+computed for the sun and the haze (``"physical"``, the model of Preetham,
+Shirley and Smits, 1999), or an image of the whole sky (``"hdri"``, an
+OpenEXR file in the equirectangular projection; the viewer reads it when
+built with OpenEXR). The sky lights the scene too: the viewer and the ray
+tracer take their ambient light and reflections from it. Under a physical
+sky, sunlight reddens as the sun sets, and distant surfaces fade into the
+air: the light from a surface at distance :math:`s` is dimmed, in red,
+green and blue, by :math:`e^{-(\beta_R + \beta_A) s}`, with
+:math:`\beta_R` the Rayleigh scattering of the air and :math:`\beta_A`
+that of the aerosols of the haze, from the same optical depths as the sky
+and the sunlight (the turbidity :math:`T` gives Ångström's coefficient
+:math:`0.0461 T - 0.0459`, the aerosols' optical depth at 1 µm), the air
+thinning with height over 8 km and the aerosols over 1.2 km; and the air
+adds the light it scatters toward the camera, that of the sky at the
+horizon in the direction of view, which is the light a long level path
+through the air scatters (as the aerial perspective of Preetham, Shirley
+and Smits). Distant land and sea turn the color of the horizon under them,
+bluish away from the sun and brighter toward it: under a sky of turbidity
+2.5 a surface 3.6 km away, the horizon of the sea seen from 1 m up, keeps
+60 % of its light. Fog adds to the haze of the air.
+
+.. shift-parameters:: shift/core/environment/environment.cc
+   :function: Sky::DeclareParameters
+
+The sun's ``azimuth`` is measured from +x toward +y, its ``elevation`` above
+the horizon (the xy plane, +z down).
+
+.. shift-parameters:: shift/core/environment/environment.cc
+   :function: Sun::DeclareParameters
+
+The fog dims surfaces with distance toward its color, and thins with height:
+its density is :math:`\sigma(h) = \sigma_0 e^{-a (h - h_0)}` at height
+:math:`h` (upward) for ``density`` :math:`\sigma_0`, ``height_falloff``
+:math:`a` and ``height`` :math:`h_0`.
+
+.. shift-parameters:: shift/core/environment/environment.cc
+   :function: Fog::DeclareParameters
+
+The water is a level surface at ``height`` with waves, everywhere: the
+terrain stands out of it where it is higher. Light enters the water through
+the waves, by Fresnel's law, and is absorbed along its path below the
+surface at the rates of ``extinction``, red the fastest, so shallow water
+shows the ground below it, tinted, and deep water is the water's ``color``.
+The ray tracer refracts its rays into the water. The waves are a random
+sea of the spectrum of a sea grown by the wind (JONSWAP, Hasselmann et al.,
+1973) whose peak is at ``wavelength`` and whose significant height (the
+mean crest to trough height of the highest third of the waves) is
+``wave_height``, the longest close to ``wave_direction`` and the shorter
+spread wider about it, each moving at the speed of deep water waves of its
+length. A wind of ``wind_speed`` (10 m above the water) blowing toward
+``wave_direction`` raises a sea of shorter waves on top of this swell, of
+the same spectrum, its height and peak those that the wind grows over a
+fetch of 10 km (Hasselmann et al., 1973, as in the *Shore Protection
+Manual*, 1984), at most those of a sea fully grown (Pierson and Moskowitz,
+1964): 5 m/s raises a chop 0.25 m high of waves 8 m long. The viewer sums them by fast Fourier transforms over three square
+tiles of different sizes, from six peak wavelengths down to 1.6 m, which
+holds the ripples a few centimeters long whatever the swell (Tessendorf, *Simulating Ocean Water*, 2001), each tile with levels of
+detail that hold the mean height and slopes of the waves a pixel covers and
+the spread of those slopes. Near the camera the ray tracer finds where its rays meet the waves
+themselves, so that crests hide the troughs behind them and stand against
+the horizon; the viewer and the ray tracer beyond tilt the level surface by
+their slopes. A face of a wave turned away from a low camera is hidden by
+the crest in front of it, which is seen in its place. Waves too short for
+the pixels average out, and their slopes widen the reflection of the sky and
+the sun instead (as in Bruneton, Neyret and Holzschuch, *Real-time Realistic
+Ocean Lighting using Seamless Transitions from Geometry to BRDF*, 2010), so
+that the distant water blends into the horizon. Where the water is shallow
+over the terrain, the waves break, at a depth of their height over 0.78
+(McCowan, 1894), so that no wave is higher there than 0.78 of the depth,
+into bores of foam that run toward the shore once a wave
+period at the speed of shallow water waves, :math:`\sqrt{g d}` at depth
+:math:`d`, over the equilibrium profile of a sandy beach (Dean, 1977). The
+period is that of deep water waves of ``wavelength``,
+:math:`T = \sqrt{2 \pi \lambda / g}`: 2.1 s for waves 7 m long, 6.2 s for a
+swell 60 m long. Each bore that reaches the shore runs up the beach and back
+as a thrown body rises and falls, with a line of foam at its front, to a
+height of :math:`0.06 \sqrt{H \lambda}` (Stockdon et al., 2006) for the wave
+height :math:`H`, varying from wave to wave; the water thins out over the
+sand at its edge. The water is only seen:
+nothing in the dynamics acts on it yet.
+
+.. shift-parameters:: shift/core/environment/environment.cc
+   :function: Water::DeclareParameters
+
+Contact of the environment
+--------------------------
+
+``contact``, at the root of the model file, is the contact model of the
+environment, with the keys of a contact force module (see
+:doc:`../force-modules/contact`): the materials of the ground and of the
+objects around the model, and their pairs. It acts on its own when no
+assembly has a contact force module. A contact force module of an assembly
+overrides it: the materials and pairs it gives replace the environment's of
+the same names, the environment's others stay in use, and the settings it
+does not give (``damping_depth``, the combine rules, ...) are the
+environment's. So a model of a robot or a vehicle carries the materials of
+its own parts, and the environment those of the ground.
+
+.. code-block:: json
+
+   "contact": {"damping_depth": 1e-4,
+               "materials": [{"name": "sand", "youngs_modulus": 5e7,
+                              "poisson_ratio": 0.3, "restitution": 0.1,
+                              "friction": 0.8}]}
 
 Lights
 ------
