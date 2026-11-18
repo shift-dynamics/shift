@@ -110,7 +110,7 @@ if not is_disabler(shift_gui_dep)
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
                    'test_opacity_micromap.cc',
-                   'test_light_glow.cc', 'test_sky.cc',
+                   'test_light_glow.cc', 'test_sky.cc', 'test_scene_placement.cc',
                    'test_ocean_waves.cc', 'test_flex_playback.cc',
                    'test_flex_gpu.cc']
   test_deps += [shift_gui_dep]

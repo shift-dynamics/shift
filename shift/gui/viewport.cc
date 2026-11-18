@@ -2373,7 +2373,7 @@ RtInstanceList(const shift::gui::Scene& scene,
       continue;
     }
     for(int body : scene.cads[c].bodies) {
-      list.push_back({static_cast<int>(scene.meshes.size() + c), body, {}});
+      list.push_back({static_cast<int>(scene.meshes.size() + c), body});
     }
   }
   return list;

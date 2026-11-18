@@ -679,7 +679,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   t.mesh_index = static_cast<int>(scene.meshes.size());
   mesh.terrain = static_cast<int>(scene.terrains.size());
   scene.meshes.push_back(std::move(mesh));
-  scene.instances.push_back({t.mesh_index, 0, {}});
+  scene.instances.push_back({t.mesh_index, 0});
   scene.terrains.push_back(std::move(t));
   return static_cast<int>(scene.terrains.size()) - 1;
 }
