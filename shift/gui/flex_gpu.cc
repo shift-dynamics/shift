@@ -74,6 +74,11 @@ struct shift::gui::FlexGpu::Mesh {
   std::unique_ptr<QRhiBuffer> grids;
   std::unique_ptr<QRhiBuffer> field;
   std::unique_ptr<QRhiBuffer> jobs; /*!< flex_cad.comp's */
+  /*! a CAD's: SceneCad::sample_vertices and sample_weights (placeholders
+   * without), the stress at its samples from the mesh's vertices */
+  std::unique_ptr<QRhiBuffer> sample_vertices;
+  std::unique_ptr<QRhiBuffer> sample_weights;
+  bool stress_samples = false;
   ksl_vec3f_t centroid = ksl_vec3f(0.f, 0.f, 0.f);
   /*! undeformed */
   ksl_vec3f_t base_min = ksl_vec3f(0.f, 0.f, 0.f);
@@ -302,6 +307,21 @@ int shift::gui::FlexGpu::AddCad(int mesh_index, const SceneCad& cad,
   const std::vector<float> zero(4 * samples, 0.f);
   flex->field.reset(NewStorage(QRhiBuffer::Static, zero.size() * sizeof(float),
                                zero.data(), batch));
+  flex->stress_samples = cad.sample_vertices.size() == 6 * samples &&
+                         cad.sample_weights.size() == 6 * samples;
+  {
+    const std::vector<uint32_t> no_vertex(6, 0u);
+    const std::vector<float> no_weight(6, 0.f);
+    const auto& vertices =
+      flex->stress_samples ? cad.sample_vertices : no_vertex;
+    const auto& weights = flex->stress_samples ? cad.sample_weights : no_weight;
+    flex->sample_vertices.reset(NewStorage(QRhiBuffer::Immutable,
+                                           vertices.size() * sizeof(uint32_t),
+                                           vertices.data(), batch));
+    flex->sample_weights.reset(NewStorage(QRhiBuffer::Immutable,
+                                          weights.size() * sizeof(float),
+                                          weights.data(), batch));
+  }
   const auto stage = QRhiShaderResourceBinding::ComputeStage;
   flex->deform_bindings.reset(rhi_->newShaderResourceBindings());
   flex->deform_bindings->setBindings(
@@ -309,7 +329,12 @@ int shift::gui::FlexGpu::AddCad(int mesh_index, const SceneCad& cad,
      QRhiShaderResourceBinding::bufferLoad(1, stage, flex->reference.get()),
      QRhiShaderResourceBinding::bufferLoad(2, stage, flex->basis.get()),
      QRhiShaderResourceBinding::bufferLoad(3, stage, mesh.coefficients.get()),
-     QRhiShaderResourceBinding::bufferStore(4, stage, flex->field.get())});
+     QRhiShaderResourceBinding::bufferStore(4, stage, flex->field.get()),
+     QRhiShaderResourceBinding::bufferLoad(5, stage, mesh.vertices),
+     QRhiShaderResourceBinding::bufferLoad(6, stage,
+                                           flex->sample_vertices.get()),
+     QRhiShaderResourceBinding::bufferLoad(7, stage,
+                                           flex->sample_weights.get())});
   flex->deform_bindings->create();
   if(!field_pipeline_) {
     field_pipeline_.reset(
@@ -562,6 +587,10 @@ void shift::gui::FlexGpu::Update(int index, const SceneMesh& mesh,
     FlexParams params{};
     params.counts[0] = flex.vertex_count;
     params.counts[1] = flex.columns;
+    if(k != size_t(index) && updated.stress_drawn && flex.stress_samples) {
+      // a CAD's: its samples take the stress drawn on the mesh
+      params.stress[0] = 1.f;
+    }
     if(k == size_t(index) && updated.stress_drawn) {
       params.stress[0] =
         update.stress == FlexUpdate::Stress::kAutomatic ? 2.f : 1.f;
@@ -657,19 +686,23 @@ shift::gui::FlexGpu::Deform(QRhiCommandBuffer* cb,
         cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
       }
     }
-    if(field_pipeline_ && !pending_cads.empty()) {
-      cb->setComputePipeline(field_pipeline_.get());
-      for(Mesh* flex : pending_cads) {
-        cb->setShaderResources(flex->deform_bindings.get());
-        cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
-      }
-    }
     cb->endComputePass();
     if(normals_pipeline_ && !pending.empty()) {
       cb->beginComputePass();
       cb->setComputePipeline(normals_pipeline_.get());
       for(Mesh* flex : pending) {
         cb->setShaderResources(flex->normal_bindings.get());
+        cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
+      }
+      cb->endComputePass();
+    }
+    // the CADs' samples read the stress the normals' pass mapped on the
+    // mesh's vertices: a pass after it
+    if(field_pipeline_ && !pending_cads.empty()) {
+      cb->beginComputePass();
+      cb->setComputePipeline(field_pipeline_.get());
+      for(Mesh* flex : pending_cads) {
+        cb->setShaderResources(flex->deform_bindings.get());
         cb->dispatch(int((flex->vertex_count + 63) / 64), 1, 1);
       }
       cb->endComputePass();

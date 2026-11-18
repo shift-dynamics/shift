@@ -23,6 +23,8 @@ layout(location = 3) out vec3 body_normal;
 layout(location = 4) out vec2 uv;
 layout(location = 5) flat out mat3 body_rotation;
 layout(location = 8) flat out ivec2 cad_face; // face, flags
+// a flexible body's stress drawn, mapped to [0, 1] (flex_field.comp)
+layout(location = 9) out float cad_stress;
 
 #include "cad_common.glsl"
 #include "cad_uniforms.glsl"
@@ -44,7 +46,7 @@ void main() {
   CadPatch p = patches[out_patch];
   vec3 n;
   // a flexible body's surface displaced as it deforms
-  vec3 point = DeformedPatchPoint(out_patch, st, n);
+  vec3 point = DeformedPatchPoint(out_patch, st, n, cad_stress);
   mat4 model = mat4(pose_0, pose_1, pose_2, pose_3);
   vec4 world = model * vec4(point, 1.0);
   world_position = world.xyz;

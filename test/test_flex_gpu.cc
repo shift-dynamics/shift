@@ -467,10 +467,26 @@ TEST(FlexGpu, DeformsTheCadSurface) {
   std::vector<shift::gui::FlexUpdate> updates;
   simulation.TakeFlexUpdates(updates, true);
   ASSERT_EQ(updates.size(), 1u);
-  const shift::gui::FlexUpdate& update = updates[0];
+  /* with the stress drawn, over its automatic range */
+  shift::gui::FlexUpdate& update = updates[0];
+  update.stress = shift::gui::FlexUpdate::Stress::kAutomatic;
   shift::gui::FlexUpdate rest = update;
+  rest.stress = shift::gui::FlexUpdate::Stress::kNone;
   std::fill(rest.coefficients.begin(), rest.coefficients.end(), 0.f);
   rest.translation = rest.rotation = ksl_vec3f(0.f, 0.f, 0.f);
+  /* each sample's stress from 6 vertices of the mesh, their weights the
+  quadratic triangle's at it (summing to 1) */
+  const size_t samples = cad.sample_points.size() / 4;
+  ASSERT_EQ(cad.sample_vertices.size(), 6 * samples);
+  ASSERT_EQ(cad.sample_weights.size(), 6 * samples);
+  for(size_t k = 0; k < samples; k++) {
+    float sum = 0.f;
+    for(int a = 0; a < 6; a++) {
+      sum += cad.sample_weights[6 * k + size_t(a)];
+      EXPECT_LT(cad.sample_vertices[6 * k + size_t(a)], mesh.vertices.size());
+    }
+    EXPECT_NEAR(sum, 1.f, 1e-5f) << "sample " << k;
+  }
 
   /* the triangles of the patches' grids as cad_triangulate.comp makes them:
   the (u, v) of their corners (their points are written by the GPU) */
@@ -584,7 +600,7 @@ TEST(FlexGpu, DeformsTheCadSurface) {
 
   /* undeformed, then deformed */
   QRhiReadbackResult read_rest, read_field, read_triangles, read_nodes,
-    read_motion;
+    read_motion, read_vertices;
   flex.Update(mesh_id, mesh, rest, batch);
   batch = flex.Deform(cb, batch, true);
   batch->readBackBuffer(triangle_buffer.get(), 0, triangle_buffer->size(),
@@ -603,6 +619,7 @@ TEST(FlexGpu, DeformsTheCadSurface) {
                         &read_nodes);
   batch->readBackBuffer(motion_buffer.get(), 0, motion_buffer->size(),
                         &read_motion);
+  batch->readBackBuffer(vertices.get(), 0, vertices->size(), &read_vertices);
   cb->resourceUpdate(batch);
   ASSERT_EQ(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
 
@@ -613,10 +630,34 @@ TEST(FlexGpu, DeformsTheCadSurface) {
   ASSERT_GE(field.size(), expected_field.size());
   float largest = 0.f;
   for(size_t i = 0; i < expected_field.size(); i++) {
+    if(i % 4 == 3) {
+      continue; /* the stress, below */
+    }
     EXPECT_NEAR(field[i], expected_field[i], 1e-6f) << "sample " << i / 4;
     largest = std::max(largest, std::fabs(expected_field[i]));
   }
   EXPECT_GT(largest, 1e-3f); /* a deformation the test sees */
+
+  /* the samples' stress: that drawn on the mesh's vertices (mapped to
+  [0, 1] over the automatic range), weighted */
+  const auto drawn = Values<shift::gui::Vertex>(read_vertices);
+  ASSERT_GE(drawn.size(), mesh.vertices.size());
+  float stress_low = 1e30f, stress_high = -1e30f;
+  for(size_t k = 0; k < samples; k++) {
+    float expected = 0.f;
+    for(int a = 0; a < 6; a++) {
+      expected += cad.sample_weights[6 * k + size_t(a)] *
+                  drawn[cad.sample_vertices[6 * k + size_t(a)]].uv[0];
+    }
+    EXPECT_NEAR(field[4 * k + 3], expected, 1e-5f) << "sample " << k;
+    stress_low = std::min(stress_low, field[4 * k + 3]);
+    stress_high = std::max(stress_high, field[4 * k + 3]);
+  }
+  /* spread over the range, a little past it where the quadratic
+  interpolation overshoots */
+  EXPECT_GT(stress_high, 0.5f);
+  EXPECT_GT(stress_low, -0.1f);
+  EXPECT_LT(stress_high, 1.1f);
 
   /* the triangles: moved from the undeformed by the displacement at their
   corners, their motion that move */
@@ -645,6 +686,10 @@ TEST(FlexGpu, DeformsTheCadSurface) {
         EXPECT_NEAR(motion[12 * k + 4 * j + size_t(c)],
                     after[j][c] - before[j][c], 1e-7f);
       }
+      /* and in w the stress at the corner, as the samples' */
+      const float w = motion[12 * k + 4 * j + 3];
+      EXPECT_GE(w, stress_low - 0.05f);
+      EXPECT_LE(w, stress_high + 0.05f);
     }
   }
   /* the root's box holds them, as does the instance's */

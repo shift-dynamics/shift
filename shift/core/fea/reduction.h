@@ -3,6 +3,9 @@
 
 #include <vector>
 
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+
 #include "ksl/screw.h"
 #include "ksl/vec3.h"
 
@@ -102,6 +105,35 @@ Reduction ReduceKeepingAll(const TetMesh& mesh, const Assembled& assembled,
                            unsigned int reference,
                            const std::vector<int>& retained_nodes,
                            unsigned int modes_computed);
+
+/*!
+@brief the static compliance of a mesh held by its \p reference attachment
+at averaging (kRbe3) attachments: the motions (translation, then rotation,
+six per attachment in order) per unit load at each,
+\f$G K_h^{-1} G^T\f$ of their averaging matrices G (Attachment) and the
+inverse of the stiffness held by the reference. Exact for the finite
+element model, as the Guyan reduction to the same attachments (Guyan 1965),
+whose stiffness is its inverse; but as an averaging attachment does not
+stiffen its nodes, the attachments may share nodes, and the held stiffness
+is factored once for any number of them.
+*/
+class HeldCompliance {
+public:
+  /*! factor the stiffness of \p mesh held by \p reference; keeps a
+   * pointer to \p mesh */
+  HeldCompliance(const TetMesh& mesh, const Assembled& assembled,
+                 const Attachment& reference);
+  /*! the compliance at \p attachments, each kRbe3: (6 n)^2, row-major,
+   * symmetric */
+  std::vector<double>
+  Compliance(const std::vector<Attachment>& attachments) const;
+
+private:
+  const TetMesh* mesh_;
+  /*! the motions of the nodes, u = T u_o, of the free coordinates u_o */
+  Eigen::SparseMatrix<double> T_;
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt_;
+};
 
 /*!
 @brief the damping matrix \f$C^{\eta}\f$ of a reduced body (n^2, row-major)

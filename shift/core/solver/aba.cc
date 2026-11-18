@@ -86,13 +86,36 @@ void shift::core::solver::ABA::Setup() {
   y_.assign(dq_count_, 0.0);
   y_b_.assign(dq_count_, zero_coscrew);
   c_.assign(c_size, 0.0);
+
+  /* when nothing hangs at its node slots (no mass, no children), C_j is
+  M_ee, which does not change: factor it once */
+  const auto& has_mass = context_->get_has_mass_array();
+  constant_c_.assign(n, 0);
+  for(int i : context_->get_elastic_bodies()) {
+    constant_c_[bodies[i]->get_va_index()] = 1;
+  }
+  for(const auto& slot : context_->get_node_slots()) {
+    if(has_mass[slot.index] || has_children_[slot.index]) {
+      constant_c_[slot.body->get_va_index()] = 0;
+    }
+  }
+  for(size_t j = 0; j < n; j++) {
+    if(constant_c_[j]) {
+      const int m = elastic_count_[j];
+      double* C = &c_[c_offset_[j]];
+      const double* mass_ee = elastic_body_[j]->get_mass_ee();
+      std::copy(mass_ee, mass_ee + m * m, C);
+      /* if it is singular, SolveTrees reports it at each evaluation */
+      constant_c_[j] = CholeskyFactor(m, C);
+    }
+  }
 }
 
 bool shift::core::solver::ABA::EliminateElastic(int j) {
   const int n = elastic_count_[j];
   const int e = elastic_dq_[j];
   double* C = &c_[c_offset_[j]];
-  if(!CholeskyFactor(n, C)) {
+  if(!constant_c_[j] && !CholeskyFactor(n, C)) {
     return false;
   }
   /* y = C^-1 r, the rows of C^-1 B^T */
@@ -141,6 +164,9 @@ void shift::core::solver::ABA::AddNodeSlot(int k) {
   const int e = elastic_dq_[p];
   const auto& he = context_->get_dhva().he;
   const ksl_screw_t* E = &he[slot_he_[k]];
+  if(constant_c_[p]) {
+    return; // nothing hangs at the slot: C_p holds the factor of M_ee
+  }
   double* C = &c_[c_offset_[p]];
   const ksl_coscrew_t& zA = bias_a_[k];
   for(int m = 0; m < n; m++) {
@@ -233,8 +259,10 @@ bool shift::core::solver::ABA::SolveTrees() {
         r_[e + m] = f[e + m] + bias_e[e + m] -
                     ksl_dot_cs(&mass_be[e + m], &dhva.aq[j]);
       }
-      const double* mass_ee = elastic_body_[j]->get_mass_ee();
-      std::copy(mass_ee, mass_ee + n * n, &c_[c_offset_[j]]);
+      if(!constant_c_[j]) {
+        const double* mass_ee = elastic_body_[j]->get_mass_ee();
+        std::copy(mass_ee, mass_ee + n * n, &c_[c_offset_[j]]);
+      }
     }
   }
 

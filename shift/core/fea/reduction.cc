@@ -23,6 +23,121 @@ static Eigen::Vector3d Vec(const ksl_vec3_t& v) {
   return Eigen::Vector3d(v.x, v.y, v.z);
 }
 
+/* the averaging (RBE3) attachment a: G u = r_a (6 x 3m) of its m nodes'
+translations u (their 3m degrees of freedom dof), the least-squares mean
+motion about its position */
+static Eigen::MatrixXd
+AveragingMatrix(const shift::core::fea::TetMesh& mesh,
+                const shift::core::fea::Attachment& at, size_t a,
+                std::vector<Eigen::Index>* dof) {
+  const size_t m = at.nodes.size();
+  Eigen::Vector3d c = Eigen::Vector3d::Zero();
+  for(int node : at.nodes) {
+    c += Vec(mesh.nodes[node]) / static_cast<double>(m);
+  }
+  Eigen::Matrix3d S = Eigen::Matrix3d::Zero();
+  for(int node : at.nodes) {
+    const Eigen::Vector3d d = Vec(mesh.nodes[node]) - c;
+    S += d.squaredNorm() * Eigen::Matrix3d::Identity() - d * d.transpose();
+  }
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen(S);
+  if(eigen.eigenvalues()(0) <= 1e-9 * eigen.eigenvalues()(2) || m < 3) {
+    throw shift::core::Exception(
+      "Reduce: the nodes of attachment " + std::to_string(a) +
+      " lie on a line, so their mean rotation is not defined");
+  }
+  const Eigen::Matrix3d S_inverse = S.inverse();
+  const Eigen::Matrix3d E = Skew(Vec(at.position) - c);
+  Eigen::MatrixXd G(6, 3 * m);
+  dof->clear();
+  for(size_t i = 0; i < m; i++) {
+    const Eigen::Matrix3d rotation =
+      S_inverse * Skew(Vec(mesh.nodes[at.nodes[i]]) - c);
+    G.block<3, 3>(0, 3 * i) =
+      Eigen::Matrix3d::Identity() / static_cast<double>(m) - E * rotation;
+    G.block<3, 3>(3, 3 * i) = rotation;
+    for(int d = 0; d < 3; d++) {
+      dof->push_back(3 * Eigen::Index(at.nodes[i]) + d);
+    }
+  }
+  return G;
+}
+
+/* six columns of an averaging matrix G (positions in its columns) to
+eliminate, chosen by Gaussian elimination with complete pivoting */
+static std::vector<int> AveragingPivots(const Eigen::MatrixXd& G, size_t a) {
+  const Eigen::Index columns = G.cols();
+  Eigen::MatrixXd W = G;
+  std::vector<char> used(size_t(columns), 0);
+  std::vector<int> pivot;
+  for(int k = 0; k < 6; k++) {
+    Eigen::Index best_r = -1, best_c = -1;
+    double best = 0.0;
+    for(Eigen::Index r = k; r < 6; r++) {
+      for(Eigen::Index col = 0; col < columns; col++) {
+        if(!used[col] && std::fabs(W(r, col)) > best) {
+          best = std::fabs(W(r, col));
+          best_r = r;
+          best_c = col;
+        }
+      }
+    }
+    if(best_c < 0 || best <= 1e-12 * G.cwiseAbs().maxCoeff()) {
+      throw shift::core::Exception("Reduce: the motions of attachment " +
+                                   std::to_string(a) +
+                                   " are not set by its nodes");
+    }
+    W.row(k).swap(W.row(best_r));
+    for(Eigen::Index r = k + 1; r < 6; r++) {
+      W.row(r) -= W(r, best_c) / W(k, best_c) * W.row(k);
+    }
+    used[best_c] = 1;
+    pivot.push_back(static_cast<int>(best_c));
+  }
+  return pivot;
+}
+
+/* (K_oo - sigma M_oo)^-1 for Spectra's shift and invert at sigma = 0,
+held by the constraints Gh u_o = 0: K_oo^-1 - X C^-1 X^T, X = K_oo^-1 Gh^T
+and C = Gh X; its results satisfy the constraints */
+namespace shift {
+namespace core {
+namespace fea {
+class HeldInverse {
+public:
+  using Scalar = double;
+  HeldInverse(const Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>>& ldlt,
+              const Eigen::MatrixXd& X, const Eigen::LDLT<Eigen::MatrixXd>& c)
+    : ldlt_(ldlt), X_(X), c_(c) {}
+  Eigen::Index rows() const {
+    return X_.rows();
+  }
+  Eigen::Index cols() const {
+    return X_.rows();
+  }
+  void set_shift(double sigma) {
+    if(sigma != 0.0) {
+      throw shift::core::Exception("Reduce: the modes are found at shift 0");
+    }
+  }
+  void perform_op(const double* x_in, double* y_out) const {
+    const Eigen::Map<const Eigen::VectorXd> x(x_in, X_.rows());
+    Eigen::Map<Eigen::VectorXd> y(y_out, X_.rows());
+    y = ldlt_.solve(x);
+    if(X_.cols() > 0) {
+      y -= X_ * c_.solve(X_.transpose() * x);
+    }
+  }
+
+private:
+  const Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>>& ldlt_;
+  const Eigen::MatrixXd& X_;
+  const Eigen::LDLT<Eigen::MatrixXd>& c_;
+};
+} // namespace fea
+} // namespace core
+} // namespace shift
+
 /* Reduce, keeping modes_kept or, if keep_all, every mode found */
 static shift::core::fea::Reduction ReduceModes(
   const shift::core::fea::TetMesh& mesh,
@@ -114,70 +229,31 @@ static shift::core::fea::Reduction ReduceModes(
     Eigen::MatrixXd rest;               // 6 x 3m, zero at the pivots
   };
   std::vector<Average> averages(attachments.size());
+  /* the other averaging attachments are constraints G_c u = r_g (rows of
+  G_c in the order of their columns of r): eliminating their coordinates
+  as the reference's would couple all their nodes densely */
+  std::vector<Eigen::Triplet<double>> gc;
+  std::vector<Eigen::Index> g_column;
   for(size_t a = 0; a < attachments.size(); a++) {
     const shift::core::fea::Attachment& at = attachments[a];
     if(at.spider != shift::core::fea::Attachment::Spider::kRbe3) {
       continue;
     }
-    const size_t m = at.nodes.size();
-    Eigen::Vector3d c = Eigen::Vector3d::Zero();
-    for(int node : at.nodes) {
-      c += Vec(mesh.nodes[node]) / static_cast<double>(m);
-    }
-    Eigen::Matrix3d S = Eigen::Matrix3d::Zero();
-    for(int node : at.nodes) {
-      const Eigen::Vector3d d = Vec(mesh.nodes[node]) - c;
-      S += d.squaredNorm() * Eigen::Matrix3d::Identity() - d * d.transpose();
-    }
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen(S);
-    if(eigen.eigenvalues()(0) <= 1e-9 * eigen.eigenvalues()(2) ||
-       m < 3) {
-      throw shift::core::Exception(
-        "Reduce: the nodes of attachment " + std::to_string(a) +
-        " lie on a line, so their mean rotation is not defined");
-    }
-    const Eigen::Matrix3d S_inverse = S.inverse();
-    const Eigen::Matrix3d E = Skew(Vec(at.position) - c);
-    Eigen::MatrixXd G(6, 3 * m);
     Average& avg = averages[a];
-    for(size_t i = 0; i < m; i++) {
-      const Eigen::Matrix3d rotation =
-        S_inverse * Skew(Vec(mesh.nodes[at.nodes[i]]) - c);
-      G.block<3, 3>(0, 3 * i) =
-        Eigen::Matrix3d::Identity() / static_cast<double>(m) - E * rotation;
-      G.block<3, 3>(3, 3 * i) = rotation;
-      for(int d = 0; d < 3; d++) {
-        avg.dof.push_back(3 * at.nodes[i] + d);
-      }
-    }
-    /* complete pivoting on a copy, to choose six columns */
-    Eigen::MatrixXd W = G;
-    std::vector<char> used(3 * m, 0);
-    for(int k = 0; k < 6; k++) {
-      Eigen::Index best_r = -1, best_c = -1;
-      double best = 0.0;
-      for(Eigen::Index r = k; r < 6; r++) {
-        for(Eigen::Index col = 0; col < static_cast<Eigen::Index>(3 * m);
-            col++) {
-          if(!used[col] && std::fabs(W(r, col)) > best) {
-            best = std::fabs(W(r, col));
-            best_r = r;
-            best_c = col;
+    const Eigen::MatrixXd G = AveragingMatrix(mesh, at, a, &avg.dof);
+    if(a != reference) {
+      const Eigen::Index row = static_cast<Eigen::Index>(g_column.size());
+      for(int k = 0; k < 6; k++) {
+        g_column.push_back(column[a] + k);
+        for(size_t i = 0; i < avg.dof.size(); i++) {
+          if(G(k, Eigen::Index(i)) != 0.0) {
+            gc.emplace_back(row + k, avg.dof[i], G(k, Eigen::Index(i)));
           }
         }
       }
-      if(best_c < 0 || best <= 1e-12 * G.cwiseAbs().maxCoeff()) {
-        throw shift::core::Exception(
-          "Reduce: the motions of attachment " + std::to_string(a) +
-          " are not set by its nodes");
-      }
-      W.row(k).swap(W.row(best_r));
-      for(Eigen::Index r = k + 1; r < 6; r++) {
-        W.row(r) -= W(r, best_c) / W(k, best_c) * W.row(k);
-      }
-      used[best_c] = 1;
-      avg.pivot.push_back(static_cast<int>(best_c));
+      continue;
     }
+    avg.pivot = AveragingPivots(G, a);
     Eigen::Matrix<double, 6, 6> P;
     for(int k = 0; k < 6; k++) {
       P.col(k) = G.col(avg.pivot[k]);
@@ -225,6 +301,9 @@ static shift::core::fea::Reduction ReduceModes(
         }
       }
       continue;
+    }
+    if(static_cast<unsigned int>(a) != reference) {
+      continue; /* a constraint */
     }
     const Average& avg = averages[a];
     /* u_p = P^-1 (r_a - Rest u_rest) */
@@ -278,29 +357,58 @@ static shift::core::fea::Reduction ReduceModes(
       "(does the reference attachment hold the body still?)");
   }
 
-  /* the static modes */
-  Eigen::MatrixXd psi(dofs, 0);
-  if(r_count > 0) {
-    const Eigen::MatrixXd rhs =
-      -(T_o.transpose() * (K * Eigen::MatrixXd(T_r)));
-    const Eigen::MatrixXd x = ldlt.solve(rhs);
-    psi = Eigen::MatrixXd(T_r) + T_o * x;
+  /* the constraints on u_o, Gh = G_c T_o; X = K_oo^-1 Gh^T and the
+  compliance C = Gh X at the averaging attachments */
+  const Eigen::Index g_count = static_cast<Eigen::Index>(g_column.size());
+  Eigen::SparseMatrix<double> G_c(g_count, dofs);
+  G_c.setFromTriplets(gc.begin(), gc.end());
+  const Eigen::SparseMatrix<double> Gh = G_c * T_o;
+  Eigen::MatrixXd X(o_count, g_count);
+  Eigen::LDLT<Eigen::MatrixXd> c_ldlt;
+  if(g_count > 0) {
+    X = ldlt.solve(Eigen::MatrixXd(Gh.transpose()));
+    const Eigen::MatrixXd C = Gh * X;
+    c_ldlt.compute(0.5 * (C + C.transpose()));
+    if(c_ldlt.info() != Eigen::Success || !c_ldlt.isPositive()) {
+      throw shift::core::Exception(
+        "Reduce: the attachments' compliance is not positive definite");
+    }
   }
 
-  /* the fixed-interface modes */
+  /* the static modes, the least-energy deformations with the interface
+  r: u = T_r r_e + T_o u_o with G_c u = r_g; with B = T_o^T K T_r, Y =
+  K_oo^-1 B and E_g the rows of r_g, u_o = -Y r + X C^-1 (E_g - G_c T_r +
+  Gh Y) r */
+  Eigen::MatrixXd psi(dofs, 0);
+  if(r_count > 0) {
+    const Eigen::MatrixXd Y =
+      ldlt.solve(Eigen::MatrixXd(T_o.transpose() * (K * T_r)));
+    Eigen::MatrixXd u_o = -Y;
+    if(g_count > 0) {
+      Eigen::MatrixXd W = Gh * Y - Eigen::MatrixXd(G_c * T_r);
+      for(Eigen::Index g = 0; g < g_count; g++) {
+        W(g, g_column[size_t(g)]) += 1.0;
+      }
+      u_o += X * c_ldlt.solve(W);
+    }
+    psi = Eigen::MatrixXd(T_r) + T_o * u_o;
+  }
+
+  /* the fixed-interface modes: K_oo v = lambda M_oo v with Gh v = 0, by
+  shift and invert at 0 with the constrained inverse K_oo^-1 - X C^-1 X^T
+  (HeldInverse), so that the one factorization serves */
   shift::core::fea::Reduction reduction;
   Eigen::MatrixXd phi(dofs, 0);
   if(modes_computed > 0) {
-    const Eigen::Index nev =
-      std::min<Eigen::Index>(modes_computed, o_count - 1);
+    const Eigen::Index free = o_count - g_count;
+    const Eigen::Index nev = std::min<Eigen::Index>(modes_computed, free - 1);
     const Eigen::Index ncv =
-      std::min<Eigen::Index>(o_count, std::max<Eigen::Index>(2 * nev + 1, 20));
-    Spectra::SymShiftInvert<double, Eigen::Sparse, Eigen::Sparse> op(K_oo,
-                                                                     M_oo);
+      std::min<Eigen::Index>(free, std::max<Eigen::Index>(2 * nev + 1, 20));
+    shift::core::fea::HeldInverse op(ldlt, X, c_ldlt);
     Spectra::SparseSymMatProd<double> bop(M_oo);
-    Spectra::SymGEigsShiftSolver<
-      Spectra::SymShiftInvert<double, Eigen::Sparse, Eigen::Sparse>,
-      Spectra::SparseSymMatProd<double>, Spectra::GEigsMode::ShiftInvert>
+    Spectra::SymGEigsShiftSolver<shift::core::fea::HeldInverse,
+                                 Spectra::SparseSymMatProd<double>,
+                                 Spectra::GEigsMode::ShiftInvert>
       solver(op, bop, nev, ncv, 0.0);
     solver.init();
     solver.compute(Spectra::SortRule::LargestMagn, 1000, 1e-10);
@@ -405,6 +513,100 @@ shift::core::fea::Reduction shift::core::fea::Reduce(
   const std::vector<unsigned int>& modes_kept) {
   return ReduceModes(mesh, assembled, attachments, reference, retained_nodes,
                      modes_computed, modes_kept, false);
+}
+
+shift::core::fea::HeldCompliance::HeldCompliance(
+  const TetMesh& mesh, const Assembled& assembled, const Attachment& reference)
+  : mesh_(&mesh) {
+  const Eigen::Index dofs = 3 * static_cast<Eigen::Index>(mesh.nodes.size());
+  /* the reference holds its nodes (kRbe2) or eliminates six of their
+  coordinates, u_p = -P^-1 Rest u_rest, so that its mean motion is zero */
+  std::vector<char> held(size_t(dofs), 0);
+  std::vector<Eigen::Index> dof;
+  std::vector<int> pivot;
+  Eigen::MatrixXd coupling;
+  if(reference.spider == Attachment::Spider::kRbe2) {
+    for(int node : reference.nodes) {
+      for(int d = 0; d < 3; d++) {
+        held[size_t(3 * node + d)] = 1;
+      }
+    }
+  } else {
+    const Eigen::MatrixXd G = AveragingMatrix(mesh, reference, 0, &dof);
+    pivot = AveragingPivots(G, 0);
+    Eigen::Matrix<double, 6, 6> P;
+    Eigen::MatrixXd rest = G;
+    for(int k = 0; k < 6; k++) {
+      P.col(k) = G.col(pivot[k]);
+      rest.col(pivot[k]).setZero();
+      held[size_t(dof[size_t(pivot[k])])] = 1;
+    }
+    coupling = P.inverse() * rest;
+  }
+  std::vector<Eigen::Index> o_index(size_t(dofs), -1);
+  Eigen::Index o_count = 0;
+  std::vector<Eigen::Triplet<double>> t;
+  for(Eigen::Index d = 0; d < dofs; d++) {
+    if(!held[size_t(d)]) {
+      o_index[size_t(d)] = o_count;
+      t.emplace_back(d, o_count++, 1.0);
+    }
+  }
+  for(size_t k = 0; k < pivot.size(); k++) {
+    for(size_t i = 0; i < dof.size(); i++) {
+      const Eigen::Index o = o_index[size_t(dof[i])];
+      if(o >= 0 && coupling(Eigen::Index(k), Eigen::Index(i)) != 0.0) {
+        t.emplace_back(dof[size_t(pivot[k])], o,
+                       -coupling(Eigen::Index(k), Eigen::Index(i)));
+      }
+    }
+  }
+  T_.resize(dofs, o_count);
+  T_.setFromTriplets(t.begin(), t.end());
+  const Eigen::SparseMatrix<double> K_oo =
+    T_.transpose() * (assembled.stiffness * T_);
+  ldlt_.compute(K_oo);
+  if(ldlt_.info() != Eigen::Success ||
+     ldlt_.vectorD().minCoeff() <= 1e-12 * ldlt_.vectorD().maxCoeff()) {
+    throw shift::core::Exception(
+      "Compliance: the stiffness with the reference attachment held is "
+      "singular (does the reference attachment hold the body still?)");
+  }
+}
+
+std::vector<double> shift::core::fea::HeldCompliance::Compliance(
+  const std::vector<Attachment>& attachments) const {
+  const Eigen::Index n = 6 * static_cast<Eigen::Index>(attachments.size());
+  std::vector<Eigen::Triplet<double>> g;
+  for(size_t a = 0; a < attachments.size(); a++) {
+    if(attachments[a].spider != Attachment::Spider::kRbe3) {
+      throw shift::core::Exception(
+        "Compliance: attachment " + std::to_string(a) + " is not averaging");
+    }
+    std::vector<Eigen::Index> dof;
+    const Eigen::MatrixXd G = AveragingMatrix(*mesh_, attachments[a], a, &dof);
+    for(Eigen::Index r = 0; r < 6; r++) {
+      for(size_t i = 0; i < dof.size(); i++) {
+        if(G(r, Eigen::Index(i)) != 0.0) {
+          g.emplace_back(6 * Eigen::Index(a) + r, dof[i],
+                         G(r, Eigen::Index(i)));
+        }
+      }
+    }
+  }
+  Eigen::SparseMatrix<double> G_all(n, T_.rows());
+  G_all.setFromTriplets(g.begin(), g.end());
+  const Eigen::SparseMatrix<double> GT = G_all * T_;
+  const Eigen::MatrixXd rhs = Eigen::MatrixXd(GT.transpose());
+  const Eigen::MatrixXd x = ldlt_.solve(rhs);
+  const Eigen::MatrixXd c = GT * x;
+  std::vector<double> out(size_t(n * n));
+  for(Eigen::Index i = 0; i < n; i++) {
+    for(Eigen::Index j = 0; j < n; j++) {
+      out[size_t(i * n + j)] = 0.5 * (c(i, j) + c(j, i));
+    }
+  }
+  return out;
 }
 
 shift::core::fea::Reduction shift::core::fea::ReduceKeepingAll(

@@ -26,6 +26,7 @@ using shift
    installation
    getting-started/getting-started
    model-file/model-file
+   flexible-bodies/flexible-bodies
    force-modules/force-modules
    sensors/sensors
    controllers/controllers

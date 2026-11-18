@@ -18,6 +18,22 @@ namespace shift {
 namespace gui {
 
 /*! \brief the identity transform */
+/*! \brief the colors of a flexible body's attachments, as drawn by
+ * mesh_points.vert (which has the same table): the reference frame's
+ * attachment (held) the first, the others the rest in turn */
+static constexpr int kAttachmentColorCount = 8;
+static constexpr float kAttachmentColors[kAttachmentColorCount][3] = {
+  {0.90f, 0.10f, 0.10f}, // the reference: held
+  {1.00f, 0.55f, 0.10f}, {0.20f, 0.55f, 1.00f}, {0.25f, 0.80f, 0.30f},
+  {0.70f, 0.40f, 0.95f}, {0.95f, 0.85f, 0.20f}, {0.20f, 0.85f, 0.85f},
+  {1.00f, 0.45f, 0.75f}};
+
+/*! \brief the color (into kAttachmentColors) of attachment k of a flexible
+ * body (body::Flex::get_attachment_nodes) */
+inline int AttachmentColorIndex(size_t k) {
+  return k == 0 ? 0 : 1 + int((k - 1) % (kAttachmentColorCount - 1));
+}
+
 inline ksl_SE3f_t Identity() {
   ksl_SE3f_t d;
   ksl_SE3f_setIdentity(&d);
@@ -99,8 +115,15 @@ struct SceneMesh {
   std::vector<uint32_t> edge_indices;
   /*! of a deformable mesh: a vertex at each node an attachment ties to its
    * frame (body::Flex::get_attachment_nodes) that lies on the surface,
-   * drawn as points (Viewport::set_flex_constrained_nodes) */
+   * drawn as points (Viewport::set_flex_constrained_nodes), and a vertex
+   * at each attachment's frame. Each such vertex carries its attachment's
+   * color in uv[1], 1 + AttachmentColorIndex (0 elsewhere): a flexible
+   * mesh has no texture, and its uv[0] is the stress map's */
   std::vector<uint32_t> constrained_vertices;
+  /*! of a deformable mesh: the spider of each attachment, a line from its
+   * frame's vertex to each of its nodes on the surface, pairs of vertices
+   * (drawn with constrained_vertices) */
+  std::vector<uint32_t> spider_indices;
   /*! of a deformable mesh: the displacement of each vertex in each of
    * flex_columns shapes, x, y, z, the shapes of a vertex together
    * (3 (v flex_columns + j) + c) */

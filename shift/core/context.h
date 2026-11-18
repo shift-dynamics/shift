@@ -987,8 +987,7 @@ private:
   void AllocateRunTimeArrays();
 
   /*! \brief throw if a joint is attached to a flexible body at a frame that
-   * is not one of its nodes, or if a spherical joint is attached to a
-   * flexible body (not yet supported) */
+   * is not one of its nodes */
   void CheckElasticBodies() const;
 
   /*! \brief set -g for the fixed frame in the array of quadratic

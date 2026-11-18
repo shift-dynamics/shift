@@ -30,6 +30,8 @@ struct FlexCache {
   /*! the number of stations of each sliding attachment, in the order of
    * the sliding frames; their attachments follow the others' */
   std::vector<int> sliding_stations;
+  /*! the radius of each sliding attachment's bore, in the same order */
+  std::vector<double> sliding_radii;
   /*! the nodes of the boundary, ascending, and their stresses in each of
    * full's shapes (NodalStresses: 6 (i full.elastic_count + j) + c) */
   std::vector<int> surface_nodes;

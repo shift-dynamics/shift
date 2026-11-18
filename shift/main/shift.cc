@@ -130,8 +130,9 @@ int main(int argc, char* argv[]) {
      "with --image: draw the edges of the finite elements of flexible "
      "bodies"},
     {"stresses",
-     "with --image: draw the stress on flexible bodies' mesh surfaces: "
-     "the quantity, color map and range of Edit > Settings"},
+     "with --image: draw the stress on flexible bodies, on the surface "
+     "drawn (the CAD solid's, or the mesh's with --mesh-surface): the "
+     "quantity, color map and range of Edit > Settings"},
     {"constrained-nodes",
      "with --image: draw as points the nodes of flexible bodies that their "
      "joints' attachments tie to their frames"},

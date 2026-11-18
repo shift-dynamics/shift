@@ -35,3 +35,16 @@ image::
 
 ``scripts/make_flex_step.py`` writes the STEP files of the rod, the crank
 and the slider (in millimeters).
+
+Joints on flexible bodies
+=========================
+
+``attachments.json`` shows how the frames of flexible bodies are tied to
+their meshes, each body made from a triangle mesh
+(``scripts/make_flex_attachment_meshes.py``): a steel link hanging from a
+fixed ball by the spherical socket at its root, a weight on the ball at its
+tip (another spherical joint), and a puck on a float joint from a frame
+inside its shank; and a steel tube, mounted by a frame in its wall, with a
+plunger sliding in its bore (a prismatic joint, tied by a sliding
+attachment). View > Flexible bodies: constrained nodes shows the nodes of
+each attachment. See "Flexible Bodies" in the documentation.

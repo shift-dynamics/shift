@@ -133,8 +133,11 @@ static double FlexNodeSpacing(const shift::core::body::Flex& flex) {
 fixed-interface modes computed, as SceneMesh::flex_basis) at the samples of
 its CAD: those of the closest point of the mesh's surface, from the
 quadratic shape functions of its boundary triangle, nearest the closest
-node of the surface */
+node of the surface; and the vertices of the mesh drawn at that triangle's
+nodes (vertex_point: the point of each vertex) with the same weights, for
+the stress */
 static void FlexSampleBasis(const shift::core::body::Flex& flex,
+                            const std::vector<int>& vertex_point,
                             shift::gui::SceneCad& cad) {
   const auto& positions = flex.get_positions();
   const auto& shapes = flex.get_shapes();
@@ -145,8 +148,21 @@ static void FlexSampleBasis(const shift::core::body::Flex& flex,
   const auto& boundary = flex.get_mesh_boundary();
   const size_t samples = cad.sample_points.size() / 4;
   cad.sample_basis.assign(3 * columns * samples, 0.f);
+  cad.sample_vertices.clear();
+  cad.sample_weights.clear();
   if(boundary.empty() || samples == 0) {
     return;
+  }
+  /* a vertex drawn at each point (the faces' vertices at a node carry the
+  same stress) */
+  std::map<int, uint32_t> vertex_at;
+  for(size_t v = 0; v < vertex_point.size(); v++) {
+    vertex_at.emplace(vertex_point[v], uint32_t(v));
+  }
+  const bool stress = !vertex_at.empty();
+  if(stress) {
+    cad.sample_vertices.assign(6 * samples, 0u);
+    cad.sample_weights.assign(6 * samples, 0.f);
   }
   /* the boundary triangles of each surface node, and the nodes in cells of
   a grid */
@@ -236,6 +252,13 @@ static void FlexSampleBasis(const shift::core::body::Flex& flex,
     float* basis = cad.sample_basis.data() + 3 * columns * k;
     for(int a = 0; a < 6; a++) {
       const size_t node = size_t(boundary[triangle][a]);
+      if(stress) {
+        auto it = vertex_at.find(int(node));
+        if(it != vertex_at.end()) {
+          cad.sample_vertices[6 * k + size_t(a)] = it->second;
+          cad.sample_weights[6 * k + size_t(a)] = float(N[a]);
+        }
+      }
       for(size_t j = 0; j < n; j++) {
         for(int c = 0; c < 3; c++) {
           basis[3 * j + c] += float(N[a] * shapes[node * n + j].lin.at[c]);
@@ -909,7 +932,7 @@ void shift::gui::Simulation::LoadModel(
         scene_cad.opacity = float(cad->get_opacity());
         SampleCadPatches(cad->get_asset()->model, cad->get_asset()->bodies,
                          FlexNodeSpacing(*flex), scene_cad);
-        FlexSampleBasis(*flex, scene_cad);
+        FlexSampleBasis(*flex, view->vertex_point, scene_cad);
         scene_cad.flex_mesh = view->mesh;
         scene_cad.bodies.push_back(static_cast<int>(i));
         scene_.cads.push_back(std::move(scene_cad));
@@ -1416,13 +1439,29 @@ void shift::gui::Simulation::AddFlexViews() {
     for(const auto& [key, v] : vertex_of) {
       vertex_at_point.emplace(key.first, v);
     }
+    /* each attachment's color on its nodes' vertices and on a vertex of
+    its own at its frame (the point after the mesh nodes, which moves with
+    the shapes as the nodes do), and its spider from that vertex to them */
+    std::map<uint32_t, float> vertex_color;
     std::set<uint32_t> constrained;
-    for(const auto& nodes : flex->get_attachment_nodes()) {
-      for(int node : nodes) {
+    const auto& attachment_nodes = flex->get_attachment_nodes();
+    for(size_t k = 0; k < attachment_nodes.size(); k++) {
+      const float color = float(1 + AttachmentColorIndex(k));
+      const int frame_point = int(flex->get_mesh_node_count() + k);
+      const uint32_t centre = vertex(frame_point, -1);
+      vertex_color[centre] = color;
+      mesh.constrained_vertices.push_back(centre);
+      for(int node : attachment_nodes[k]) {
         auto it = vertex_at_point.find(node);
-        if(it != vertex_at_point.end() && constrained.insert(it->second).second) {
-          mesh.constrained_vertices.push_back(it->second);
+        if(it == vertex_at_point.end()) {
+          continue; // inside the material
         }
+        if(constrained.insert(it->second).second) {
+          mesh.constrained_vertices.push_back(it->second);
+          vertex_color[it->second] = color;
+        }
+        mesh.spider_indices.push_back(centre);
+        mesh.spider_indices.push_back(it->second);
       }
     }
     std::set<std::pair<int, int>> sides;
@@ -1489,16 +1528,21 @@ void shift::gui::Simulation::AddFlexViews() {
       for(int c = 0; c < 3; c++) {
         vertex.position[c] = float(positions[p].at[c]);
       }
-      vertex.uv[0] = vertex.uv[1] = 0.f;
+      vertex.uv[0] = 0.f;
+      auto color = vertex_color.find(uint32_t(v));
+      vertex.uv[1] = color != vertex_color.end() ? color->second : 0.f;
       for(size_t j = 0; j < n; j++) {
         for(int c = 0; c < 3; c++) {
           mesh.flex_basis.push_back(float(shapes[p * n + j].lin.at[c]));
         }
       }
+      /* an attachment's frame (a point after the mesh nodes) is held in
+      the fixed-interface modes */
+      const bool node = p < flex->get_mesh_node_count();
       for(size_t k = 0; k < computed; k++) {
         for(int c = 0; c < 3; c++) {
           mesh.flex_basis.push_back(
-            float(computed_shapes[3 * (p * computed + k) + c]));
+            node ? float(computed_shapes[3 * (p * computed + k) + c]) : 0.f);
         }
       }
     }
@@ -1511,6 +1555,12 @@ void shift::gui::Simulation::AddFlexViews() {
       mesh.flex_stress_basis.reserve(6 * columns * mesh.vertices.size());
       for(size_t v = 0; v < mesh.vertices.size(); v++) {
         const int p = view.vertex_point[v];
+        if(p >= int(flex->get_mesh_node_count())) {
+          /* an attachment's frame: no stress, never drawn on a surface */
+          mesh.flex_stress_basis.insert(mesh.flex_stress_basis.end(),
+                                        6 * columns, 0.f);
+          continue;
+        }
         auto it =
           std::lower_bound(surface_nodes.begin(), surface_nodes.end(), p);
         if(it == surface_nodes.end() || *it != p) {

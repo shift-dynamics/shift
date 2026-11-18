@@ -47,7 +47,7 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
                   'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
                   'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
-                  'mesh_points.vert', 'mesh_points.frag',
+                  'mesh_points.vert', 'mesh_points.frag', 'spider.frag',
                   'flex_deform.comp', 'flex_normals.comp', 'flex_peak.comp',
                   'flex_refit.comp',
                   'flex_field.comp']
@@ -119,9 +119,16 @@ shader_bundles += custom_target(
                       'shaders/hex_tiling.glsl'),
 )
 
-# rcc resolves the bundle paths relative to the qrc, so it lives next to them
-shader_qrc = configure_file(input: 'shaders/shaders.qrc', output: 'shaders.qrc',
-                            copy: true)
+# rcc resolves the bundle paths relative to the qrc, so it lives next to them;
+# it lists every bundle built above, so none can be left out of it
+shader_qrc_files = ''
+foreach bundle : shader_bundles
+  shader_qrc_files += ('    <file>' + bundle.full_path().split('/')[-1] +
+                       '</file>\n')
+endforeach
+shader_qrc = configure_file(input: 'shaders/shaders.qrc.in',
+                            output: 'shaders.qrc',
+                            configuration: {'FILES': shader_qrc_files})
 shader_resources = custom_target(
   'shader_resources',
   input: shader_qrc,

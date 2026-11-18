@@ -119,6 +119,12 @@ struct SceneCad {
   /*! the displacement of each sample in each shape of flex_mesh, as
    * SceneMesh::flex_basis: 3 (s columns + j) + c */
   std::vector<float> sample_basis;
+  /*! the stress drawn at each sample, from the vertices of flex_mesh
+   * (uv[0], as flex_normals.comp maps it): those of the quadratic
+   * boundary triangle the sample's displacement follows, 6 per sample, and
+   * their weights; empty if none */
+  std::vector<uint32_t> sample_vertices;
+  std::vector<float> sample_weights;
   /*! @} */
 };
 

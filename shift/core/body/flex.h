@@ -44,6 +44,32 @@ protected:
   virtual void DeclareParameters() override;
 };
 
+/*! \brief what an attachment of a flexible body built from a mesh ties,
+ * for the viewer: its frame, what uses the frame, its spider, and whether
+ * it holds the body (the reference frame's attachment, which has no static
+ * modes) */
+struct AttachmentInfo {
+  std::string frame;
+  std::string user; /*!< e.g. "spherical joint 'root'", "chord" */
+  bool rbe2 = false;
+  bool reference = false;
+  /*! of a sliding attachment: its station (from 0) of count; -1 otherwise */
+  int station = -1;
+  int station_count = 0;
+};
+
+/*! \brief where the child of a sliding node bears on the bore: the
+ * intervals [a, b] of offsets along the axis from the child's frame
+ * (none: at its frame alone), the radius of the bore, and its ends, along
+ * the axis from the sliding frame, beyond which the child bears on
+ * nothing */
+struct SlidingBearing {
+  std::vector<std::array<double, 2>> intervals;
+  double radius = 0.0;
+  double low = -1e300;
+  double high = 1e300;
+};
+
 /*!
 @brief A flexible body in the floating frame of reference: the rigid motion of
 its reference frame r plus a small elastic deformation, described by
@@ -180,12 +206,22 @@ public:
    * i \p spacing (i = 0, 1, ...) along \p axis (a unit vector in the frame's
    * coordinates) from the frame, their shapes interpolated in s by a natural
    * cubic spline, continued linearly beyond the first and the last (so that
-   * the interpolation has continuous first and second derivatives) */
+   * the interpolation has continuous first and second derivatives). The
+   * child moves with the mean of the interpolated shapes over the part of
+   * its \p bearing within the bore (SlidingCarry), at the middle of its
+   * bearing (BearingCenter). */
   void SetSlidingNode(const std::string& frame_name,
                       const std::vector<unsigned int>& stations, double first,
-                      double spacing, const ksl_vec3_t& axis);
+                      double spacing, const ksl_vec3_t& axis,
+                      const SlidingBearing& bearing = {});
   bool is_sliding_node(unsigned int k) const override {
     return k < node_sliding_.size() && node_sliding_[k] >= 0;
+  }
+  /*! \brief where the child of sliding node k bears on its bore, nullptr
+   * for a node that does not slide */
+  const SlidingBearing* get_sliding_bearing(unsigned int k) const {
+    return is_sliding_node(k) ? &sliding_[size_t(node_sliding_[k])].bearing
+                              : nullptr;
   }
   void EvaluateSlidingNode(unsigned int k, double s, double s_dot,
                            const double* eta, const double* eta_dot,
@@ -257,6 +293,12 @@ public:
    * from a mesh) */
   const std::vector<std::vector<int>>& get_attachment_nodes() const {
     return attachment_nodes_;
+  }
+  /*! \brief what each attachment ties, in the order of
+   * get_attachment_nodes; attachment k's frame is the point
+   * get_mesh_node_count() + k */
+  const std::vector<AttachmentInfo>& get_attachment_info() const {
+    return attachment_info_;
   }
   /*! \brief the nodes on the mesh's surface, ascending (built from a
    * mesh) */
@@ -380,6 +422,7 @@ protected:
   std::vector<int> mesh_boundary_face_;
   unsigned int mesh_node_count_ = 0;
   std::vector<std::vector<int>> attachment_nodes_;
+  std::vector<AttachmentInfo> attachment_info_;
   std::vector<int> surface_nodes_;
   std::vector<double> surface_stresses_;
   bool from_cache_ = false;
@@ -412,6 +455,9 @@ protected:
     double first = 0.0;
     double spacing = 0.0;
     ksl_vec3_t axis = {{0.0, 0.0, 1.0}};
+    SlidingBearing bearing;
+    /*! BearingCenter of the bearing */
+    double center = 0.0;
     std::vector<ksl_screw_t> curvature;
   };
   /*! the weights of the spline at s: the value is c0 Y_i + c1 Y_i1 + e0 M_i
@@ -424,6 +470,82 @@ protected:
     double g0 = 0.0, g1 = 0.0;
   };
   static SplineWeights Weights(const SlidingNode& node, double s);
+  /*! add \p scale times the spline's value (AddValue), its derivative
+   * (AddSlope), its integral from the first station (AddIntegral) or the
+   * integral of x times it (AddMoment) at \p x, as weights of the
+   * stations' values \p y and curvatures \p m */
+  static void AddValue(const SlidingNode& node, double x, double scale,
+                       std::vector<double>* y, std::vector<double>* m);
+  static void AddSlope(const SlidingNode& node, double x, double scale,
+                       std::vector<double>* y, std::vector<double>* m);
+  static void AddIntegral(const SlidingNode& node, double x, double scale,
+                          std::vector<double>* y, std::vector<double>* m);
+  static void AddMoment(const SlidingNode& node, double x, double scale,
+                        std::vector<double>* y, std::vector<double>* m);
+
+  /*! what carries the child of a sliding node at s, with first and second
+   * derivatives in s (k = 0, 1, 2), as weights of the stations' values
+   * \f$Y_i\f$ and curvatures \f$M_i\f$ of the spline \f$Y(x)\f$. With no
+   * bearing in contact (point), \f$\sum_i y_{k,i} Y_i + m_{k,i} M_i\f$ is
+   * the spline at the child's point x_c = s + center and its derivatives.
+   * Otherwise, over the parts of the bearing within the bore, it is the
+   * integral \f$F = \int Y\,dx\f$, and with py, pm the moment \f$P = \int
+   * x Y\,dx\f$; length, first and second the integrals of 1, x and
+   * \f$x^2\f$ (CarryShape) */
+  struct Carried {
+    bool point = true;
+    std::vector<double> y[3];
+    std::vector<double> m[3];
+    std::vector<double> py[3];
+    std::vector<double> pm[3];
+    double length[3] = {0.0, 0.0, 0.0};
+    double first[3] = {0.0, 0.0, 0.0};
+    double second[3] = {0.0, 0.0, 0.0};
+    double x_c = 0.0;
+  };
+  static Carried Carry(const SlidingNode& node, double s);
+  /*! the motion that carries the child, and its first and second
+   * derivatives in s, \p out[k], of one shape with values \p y and
+   * curvatures \p m at the stations, \p a the axis in their coordinates.
+   * In contact, the mean motion of the bore's wall under the bearing (as
+   * an averaging attachment of its nodes): a section at x of the wall, of
+   * radius r, moves with the spline's translation u(x) and turns with its
+   * rotation theta(x); over the bearing, of length l, middle \f$\bar{x}\f$
+   * and \f$I = \int (x - \bar{x})^2 dx\f$, the mean translation is
+   * \f$\bar{u} = \int u\,dx / l\f$ and the mean rotation, by least
+   * squares, along the axis \f$\int \theta_a dx / l\f$ and across it
+   * \f$(\underline{a} \times \int (x - \bar{x}) \underline{u}\,dx +
+   * \frac{r^2}{2} \int \underline{\theta}_\perp dx) / (I + \frac{r^2}{2}
+   * l)\f$; at the child's point, \f$\underline{u}_c = \bar{u} + (x_c -
+   * \bar{x})\,\underline{\theta} \times \underline{a}\f$. */
+  static void CarryShape(const SlidingNode& node, const Carried& carried,
+                         const ksl_vec3_t& a,
+                         const std::vector<ksl_screw_t>& y,
+                         const std::vector<ksl_screw_t>& m,
+                         ksl_screw_t out[3]);
+
+public:
+  /*! \brief the second derivatives M_i of the natural cubic spline through
+   * the \p y.size() values y_i at spacing \p h (M_0 = M_N-1 = 0, and zero
+   * throughout for fewer than three values) */
+  static std::vector<double> SplineCurvatures(const std::vector<double>& y,
+                                              double h);
+  /*! \brief how a sliding node of \p count stations, the first at \p
+   * first and \p spacing apart along the unit vector \p axis, carries a
+   * child at \p s with \p bearing: the \p derivative-th derivative in s
+   * (0, 1 or 2) of the child's motion (translation, then rotation) per
+   * unit motion of each station, 6 x 6 count, row-major (CarryShape).
+   * Linear beyond the ends, as EvaluateSlidingNode. */
+  static std::vector<double> SlidingMap(size_t count, double first,
+                                        double spacing, const ksl_vec3_t& axis,
+                                        double s,
+                                        const SlidingBearing& bearing = {},
+                                        int derivative = 0);
+  /*! \brief the middle of a bearing along the axis from the child's frame,
+   * weighted by length (0 for none) */
+  static double BearingCenter(const SlidingBearing& bearing);
+
+private:
   /*! for each node, its index in sliding_, or -1 */
   std::vector<int> node_sliding_;
   std::vector<SlidingNode> sliding_;

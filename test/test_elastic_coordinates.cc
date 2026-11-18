@@ -413,8 +413,6 @@ TEST(ElasticCoordinates, NodeSlotKinematics) {
   }
 }
 
-/* spherical joints next to a flexible body are not supported yet, before
-or after it */
 /* the power of a coscrew on a screw does not depend on the coordinates */
 static double Power(const ksl_coscrew_t& c, const ksl_screw_t& s) {
   return ksl_dot_vv(&c.lin, &s.lin) + ksl_dot_vv(&c.ang, &s.ang);
@@ -499,15 +497,34 @@ TEST(ElasticCoordinates, MassAndBiasInFixedCoordinates) {
   }
 }
 
-TEST(ElasticCoordinates, SphericalJointRejected) {
+/* spherical and float joints before and after a flexible body: the
+elastic coordinates follow the joint's quaternion coordinates (4 or 7) and
+its rates (3 or 6) */
+TEST(ElasticCoordinates, SphericalAndFloatJointsNextToFlexibleBody) {
   for(const auto& [j2, j3] : {std::pair<std::string, std::string>{
                                 "spherical", "revolute"},
-                              {"revolute", "spherical"}}) {
+                              {"revolute", "spherical"},
+                              {"spherical", "float"},
+                              {"float", "spherical"}}) {
     const std::string path =
-      WriteChain("elastic_spherical_" + j2, j2, j3, "tip");
+      WriteChain("elastic_ball_" + j2 + "_" + j3, j2, j3, "tip");
     shift::core::Context context;
-    EXPECT_THROW(context.LoadJSON(path), shift::core::Exception) << j2;
+    context.LoadJSON(path);
     std::remove(path.c_str());
+    bool found = false;
+    for(auto body : context.get_active_articulated_bodies()) {
+      if(body->get_name() == "s") {
+        found = true;
+        auto joint = body->get_parent_joint();
+        EXPECT_EQ(body->get_elastic_dq_index(),
+                  joint->get_dq_index() + (int)joint->get_dq_count())
+          << j2 << " " << j3;
+        EXPECT_EQ(body->get_elastic_q_index(),
+                  joint->get_q_index() + (int)joint->get_q_count())
+          << j2 << " " << j3;
+      }
+    }
+    EXPECT_TRUE(found);
   }
 }
 

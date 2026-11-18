@@ -34,6 +34,8 @@ layout(location = 0) out vec4 out_color;
 #define CAD_TRIM_ONLY
 #include "cad_common.glsl"
 layout(location = 8) flat in ivec2 cad_face; // face, flags (1: test trims)
+// a flexible body's stress drawn, mapped to [0, 1] (cad.tese)
+layout(location = 9) in float cad_stress;
 layout(std140, binding = 6) uniform Cad {
   vec4 tessellation;
   vec4 edges; // x = half width of edge lines (pixels), y = their darkening,
@@ -317,7 +319,13 @@ void main() {
 #endif
 #ifdef CAD
   vec4 face_color = faces[cad_face.x].color;
-  if(face_color.w > 0.5) {
+  if(mesh.variation.w > 0.5) {
+    // a flexible body's stress drawn, over the faces' colors
+    float t = clamp(cad_stress, 0.0, 1.0) * 15.0;
+    int k = min(int(t), 14);
+    albedo = SrgbToLinear(mix(frame.color_map[k].rgb,
+                              frame.color_map[k + 1].rgb, t - float(k)));
+  } else if(face_color.w > 0.5) {
     albedo = SrgbToLinear(face_color.rgb);
   }
 #endif

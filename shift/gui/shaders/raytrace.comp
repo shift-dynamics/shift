@@ -625,7 +625,19 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   int cad_face = triangle_faces[hit.triangle];
   if(cad_face >= 0) {
     vec4 color = faces[cad_face >> 1].color;
-    if(color.w > 0.5) {
+    if(instance.variation.w > 0.5 && instance.variation.z > 0.5) {
+      // a flexible body's CAD with its stress drawn: the stress at the
+      // corners in its triangles' motion (flex_cad.comp), over the faces'
+      // colors
+      uint m = 3u * uint(hit.triangle + int(instance.variation.y));
+      float stress = triangle_motion[m].w * b0 +
+                     triangle_motion[m + 1u].w * hit.bary.x +
+                     triangle_motion[m + 2u].w * hit.bary.y;
+      float t = clamp(stress, 0.0, 1.0) * 15.0;
+      int k = min(int(t), 14);
+      s.albedo = SrgbToLinear(
+        mix(u.color_map[k].rgb, u.color_map[k + 1].rgb, t - float(k)));
+    } else if(color.w > 0.5) {
       s.albedo = SrgbToLinear(color.rgb);
     }
   }

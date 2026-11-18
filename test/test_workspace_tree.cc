@@ -12,7 +12,9 @@ parameters panel lists every parameter of the selected object */
 #include <QApplication>
 #include <QColor>
 #include <QDoubleSpinBox>
+#include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QTreeWidgetItemIterator>
@@ -200,6 +202,155 @@ TEST(WorkspaceTree, EditReloadsTheModel) {
   EXPECT_EQ(FindItem(parameters, "pitch_radius_1")->text(1).toStdString(),
             "0.06");
 }
+
+#if SHIFT_HAVE_FEA
+/* the body panel of a flexible body built from a mesh: its mesh sizes and
+the modes checked in the mode window are applied together by its Apply,
+which loads the model again */
+TEST(WorkspaceTree, FlexApplyWritesMeshSizesAndModes) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  const std::string base = testing::TempDir() + "/flex_apply";
+  const std::string path = base + ".json";
+  {
+    std::ofstream file(path);
+    file << R"({"model_parameters": {"version": "0.2",
+      "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+                "time": "seconds"},
+      "gravity": [0, 9.81, 0], "solvers": [{"type": "rnca"}],
+      "include_directories": [")"
+         << SHIFT_EXAMPLES_DIR << R"(/cad"],
+      "integrators": [{"type": "ode113", "time_span": 0.002,
+                       "time_step": 0.001}]},
+      "assemblies": [{"name": "test", "bodies": [{"name": "plate",
+        "type": "modal", "mode_count": 2, "fe_cache": ")"
+         << base << R"(.fe.h5",
+        "density": 7850, "youngs_modulus": 2.1e11, "poisson_ratio": 0.3,
+        "fe_geometry": "solid", "element_size": 0.02,
+        "frames": [{"name": "pin", "T": [0, 0, 0.01]}],
+        "geometry": [{"name": "solid", "type": "cad",
+                      "filename": "plate_hole.step"}]}],
+      "joints": [{"name": "hinge", "type": "revolute",
+                  "parent": [["fixed"], "origin"],
+                  "child": [["plate"], "pin"], "axis": [0, 0, 1]}]}]})";
+  }
+  std::remove((base + ".fe.h5").c_str());
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(QString::fromStdString(path), &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  auto select_plate = [&]() {
+    for(QTreeWidgetItemIterator it(tree); *it; ++it) {
+      if((*it)->text(0).startsWith("plate")) {
+        tree->setCurrentItem(*it);
+        return;
+      }
+    }
+    FAIL() << "no plate";
+  };
+  select_plate();
+  QLineEdit* size = nullptr;
+  QLineEdit* minimum = nullptr;
+  QPushButton* apply = nullptr;
+  QPushButton* modes = nullptr;
+  auto find_widgets = [&]() {
+    for(auto* edit : workspace.findChildren<QLineEdit*>()) {
+      if(edit->toolTip().startsWith("element_size")) {
+        size = edit;
+      } else if(edit->toolTip().startsWith("minimum_element_size")) {
+        minimum = edit;
+      }
+    }
+    for(auto* button : workspace.findChildren<QPushButton*>()) {
+      if(button->toolTip().startsWith("write the changes to this flexible")) {
+        apply = button;
+      } else if(button->text() == "Modes...") {
+        modes = button;
+      }
+    }
+  };
+  find_widgets();
+  ASSERT_TRUE(size && minimum && apply && modes);
+  EXPECT_EQ(size->text().toStdString(), "0.02");
+  EXPECT_TRUE(minimum->text().isEmpty());
+  /* the legend of the attachments: the pin's holds the plate */
+  bool legend = false;
+  for(auto* label : workspace.findChildren<QLabel*>()) {
+    if(label->text().startsWith("<b>Attachments</b>")) {
+      legend = true;
+      EXPECT_TRUE(label->text().contains(
+        "<b>pin</b> (revolute joint &#x27;hinge&#x27;): averaging (RBE3)") ||
+        label->text().contains(
+        "<b>pin</b> (revolute joint 'hinge'): averaging (RBE3)"))
+        << label->text().toStdString();
+      EXPECT_TRUE(label->text().contains("the reference frame, held"));
+    }
+  }
+  EXPECT_TRUE(legend);
+  EXPECT_FALSE(apply->isEnabled());
+
+  // a minimum above the size, or no size, cannot be applied
+  size->setText("0.015");
+  EXPECT_TRUE(apply->isEnabled());
+  minimum->setText("0.03");
+  EXPECT_FALSE(apply->isEnabled());
+  minimum->setText("0.003");
+  EXPECT_TRUE(apply->isEnabled());
+
+  // one mode unchecked in the mode window, then one Apply for both
+  modes->click();
+  QListWidget* list = nullptr;
+  for(auto* widget : workspace.findChildren<QListWidget*>()) {
+    if(widget->window() != &workspace) {
+      list = widget;
+    }
+  }
+  ASSERT_TRUE(list);
+  QListWidgetItem* mode_1 = nullptr;
+  for(int row = 0; row < list->count(); row++) {
+    if(list->item(row)->text().startsWith("mode 1:")) {
+      mode_1 = list->item(row);
+    }
+  }
+  ASSERT_TRUE(mode_1);
+  EXPECT_EQ(mode_1->checkState(), Qt::Checked);
+  mode_1->setCheckState(Qt::Unchecked);
+  apply->click();
+
+  EXPECT_TRUE(workspace.windowTitle().contains("(edited)"));
+  ASSERT_TRUE(tree->currentItem());
+  EXPECT_TRUE(tree->currentItem()->text(0).startsWith("plate"));
+  ASSERT_TRUE(FindItem(parameters, "element_size"));
+  EXPECT_EQ(FindItem(parameters, "element_size")->text(1).toStdString(),
+            "0.015");
+  ASSERT_TRUE(FindItem(parameters, "minimum_element_size"));
+  EXPECT_EQ(
+    FindItem(parameters, "minimum_element_size")->text(1).toStdString(),
+    "0.003");
+  ASSERT_TRUE(FindItem(parameters, "modes_kept"));
+  EXPECT_EQ(FindItem(parameters, "modes_kept")->text(1).toStdString(), "[0]");
+
+  // the panel shows the model's values again, with nothing to apply
+  find_widgets();
+  EXPECT_EQ(size->text().toStdString(), "0.015");
+  EXPECT_EQ(minimum->text().toStdString(), "0.003");
+  EXPECT_FALSE(apply->isEnabled());
+
+  // the minimum cleared goes back to its default
+  minimum->setText("");
+  EXPECT_TRUE(apply->isEnabled());
+  apply->click();
+  find_widgets();
+  EXPECT_TRUE(minimum->text().isEmpty());
+  EXPECT_FALSE(apply->isEnabled());
+
+  std::remove(path.c_str());
+  std::remove((base + ".fe.h5").c_str());
+}
+#endif
 
 TEST(WorkspaceTree, EditOrientationAsRollPitchYaw) {
   EnsureWorkspaceApplication();

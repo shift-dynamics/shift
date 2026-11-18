@@ -117,6 +117,29 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
     }
   }
   EXPECT_FALSE(constrained.empty());
+  /* the pin's attachment holds the plate (the reference frame's): a vertex
+  at its frame and its nodes in the first color, and its spider, a line
+  from the frame to each node */
+  for(const auto& mesh : simulation.get_scene().meshes) {
+    if(!mesh.deformable) {
+      continue;
+    }
+    ASSERT_FALSE(mesh.spider_indices.empty());
+    EXPECT_EQ(mesh.spider_indices.size(),
+              2 * (mesh.constrained_vertices.size() - 1));
+    const uint32_t centre = mesh.spider_indices[0];
+    for(size_t i = 0; i < mesh.spider_indices.size(); i += 2) {
+      EXPECT_EQ(mesh.spider_indices[i], centre);
+      EXPECT_NE(mesh.spider_indices[i + 1], centre);
+    }
+    const float* x = mesh.vertices[centre].position;
+    EXPECT_NEAR(x[0], 0.0, 1e-6);
+    EXPECT_NEAR(x[1], 0.0, 1e-6);
+    EXPECT_NEAR(x[2], 0.01, 1e-6);
+    for(uint32_t v : mesh.constrained_vertices) {
+      EXPECT_EQ(mesh.vertices[v].uv[1], 1.0f) << v;
+    }
+  }
   {
     shift::gui::Simulation cached;
     cached.Load(path);
@@ -206,12 +229,20 @@ TEST(FlexPlayback, DrawsTheDeformedMeshSurface) {
   std::vector<float> field;
   shift::gui::FlexCadField(cad, mesh, updates[0], field);
   ASSERT_EQ(field.size(), cad.sample_points.size());
+  /* the vertices of the surface (not the attachments' frames) */
+  std::vector<bool> on_surface(undeformed.size(), false);
+  for(uint32_t v : mesh.indices) {
+    on_surface[v] = true;
+  }
   double largest_difference = 0.0;
   for(size_t k = 0; k < samples; k++) {
     const float* x = cad.sample_points.data() + 4 * k;
     size_t nearest = 0;
     double best = 1e300;
     for(size_t v = 0; v < undeformed.size(); v++) {
+      if(!on_surface[v]) {
+        continue;
+      }
       double d2 = 0.0;
       for(int c = 0; c < 3; c++) {
         const double d = undeformed[v].position[c] - x[c];

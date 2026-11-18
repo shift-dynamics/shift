@@ -35,33 +35,34 @@ void CatmullRom(float t, out vec4 w, out vec4 dw) {
                   1.0 + 8.0 * t - 9.0 * t2, -2.0 * t + 3.0 * t2);
 }
 
-vec3 FlexSample(CadSampleGrid g, int i, int j) {
-  return field[g.grid.z + j * (g.grid.x + 1) + i].xyz;
+// the displacement, and in w the stress drawn (flex_field.comp)
+vec4 FlexSample(CadSampleGrid g, int i, int j) {
+  return field[g.grid.z + j * (g.grid.x + 1) + i];
 }
 
 // a sample along the line of v index j, the grid extended linearly beyond
 // its ends along u (one beyond: 2 s_0 - s_1, 2 s_n - s_(n-1)); without
 // branches, which the shader compilers would otherwise duplicate the loads
 // of the samples for
-vec3 FlexAlongU(CadSampleGrid g, int i, int j) {
+vec4 FlexAlongU(CadSampleGrid g, int i, int j) {
   int c = clamp(i, 0, g.grid.x);
   int e = i - c; // -1, 0 or 1
-  vec3 at = FlexSample(g, c, j);
+  vec4 at = FlexSample(g, c, j);
   return at + float(abs(e)) * (at - FlexSample(g, c - e, j));
 }
 
 // and beyond its ends along v
-vec3 FlexAt(CadSampleGrid g, int i, int j) {
+vec4 FlexAt(CadSampleGrid g, int i, int j) {
   int c = clamp(j, 0, g.grid.y);
   int e = j - c;
-  vec3 at = FlexAlongU(g, i, c);
+  vec4 at = FlexAlongU(g, i, c);
   return at + float(abs(e)) * (at - FlexAlongU(g, i, c - e));
 }
 
 // the displacement (body coordinates) at uv of a patch, and its derivatives
-// along u and v
+// along u and v; the stress drawn there (flex_field.comp's w)
 vec3 FlexDisplacement(int patch_index, vec2 uv, out vec3 along_u,
-                      out vec3 along_v) {
+                      out vec3 along_v, out float stress) {
   CadSampleGrid g = sample_grids[patch_index];
   vec2 n = vec2(g.grid.xy);
   vec2 s = clamp((uv - g.uv.xy) / (g.uv.zw - g.uv.xy) * n, vec2(0.0), n);
@@ -69,24 +70,29 @@ vec3 FlexDisplacement(int patch_index, vec2 uv, out vec3 along_u,
   vec4 wu, dwu, wv, dwv;
   CatmullRom(s.x - float(i.x), wu, dwu);
   CatmullRom(s.y - float(i.y), wv, dwv);
-  vec3 x = vec3(0.0), xu = vec3(0.0), xv = vec3(0.0);
+  vec4 x = vec4(0.0);
+  vec3 xu = vec3(0.0), xv = vec3(0.0);
   // not unrolled: the samples' loads stay one copy
   [[dont_unroll]] for(int q = 0; q < 4; q++) {
     [[dont_unroll]] for(int p = 0; p < 4; p++) {
-      vec3 value = FlexAt(g, i.x - 1 + p, i.y - 1 + q);
+      vec4 value = FlexAt(g, i.x - 1 + p, i.y - 1 + q);
       x += wu[p] * wv[q] * value;
-      xu += dwu[p] * wv[q] * value;
-      xv += wu[p] * dwv[q] * value;
+      xu += dwu[p] * wv[q] * value.xyz;
+      xv += wu[p] * dwv[q] * value.xyz;
     }
   }
   along_u = xu * n.x / (g.uv.z - g.uv.x);
   along_v = xv * n.y / (g.uv.w - g.uv.y);
-  return x;
+  stress = x.w;
+  return x.xyz;
 }
 
 // the point of a patch's face at uv in CAD units, and its unit normal
-// (PatchPoint), displaced by the field where the patch deforms
-vec3 DeformedPatchPoint(int patch_index, vec2 uv, out vec3 normal) {
+// (PatchPoint), displaced by the field where the patch deforms; the stress
+// drawn there, 0 where it does not
+vec3 DeformedPatchPoint(int patch_index, vec2 uv, out vec3 normal,
+                        out float stress) {
+  stress = 0.0;
   float scale = FlexScale(patch_index);
   CadPatch p = patches[patch_index];
   CadFace f = faces[p.info.x];
@@ -96,7 +102,7 @@ vec3 DeformedPatchPoint(int patch_index, vec2 uv, out vec3 normal) {
   vec3 point = SurfacePoint(f, uv, p.info.zw, du, dv);
   if(scale > 0.0) {
     vec3 fu, fv;
-    point += FlexDisplacement(patch_index, uv, fu, fv) / scale;
+    point += FlexDisplacement(patch_index, uv, fu, fv, stress) / scale;
     du += fu / scale;
     dv += fv / scale;
   }

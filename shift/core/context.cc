@@ -217,6 +217,8 @@ void shift::core::Context::BuildElasticBodies() {
       }
       shift::core::body::Base::FrameUse u;
       u.frame = frame;
+      u.user = joint ? joint->get_type() + " joint '" + joint->get_name() + "'"
+                     : std::string("chord");
       if(joint) {
         if(auto revolute = dynamic_cast<shift::core::joint::Revolute*>(joint)) {
           u.joint = shift::core::body::Base::FrameUse::Joint::kRevolute;
@@ -230,6 +232,8 @@ void shift::core::Context::BuildElasticBodies() {
           if(frame == joint->get_system_parent_frame()) {
             u.joint = shift::core::body::Base::FrameUse::Joint::kPrismatic;
             u.axis = prismatic->get_axis();
+            u.child_body = joint->get_system_child_body();
+            u.child_frame = joint->get_system_child_frame();
           }
         }
       }
@@ -2735,9 +2739,28 @@ void shift::core::Context::EvaluateElasticBodies() {
   EvaluateElasticBodies(dhva_, q_.data(), dq_);
 }
 
+/* the flexible bodies are evaluated by threads that each take at least this
+many floating-point operations (about 50 us; a body of n_e coordinates takes
+about 40 n_e^2): starting threads costs more than it saves for less. Measured
+(2026-11-17): eight bodies of 36 coordinates gain from threads, four of 16
+lose. */
+static constexpr double kElasticGrain = 1e5;
+
 void shift::core::Context::EvaluateElasticBodies(
   const topology::DHVA& dhva, const double* q, const double* dq) {
+  const int count = static_cast<int>(elastic_bodies_.size());
+  double work = 0.0;
   for(int i : elastic_bodies_) {
+    const double n = active_articulated_bodies_[i]->get_elastic_count();
+    work += 40.0 * n * n;
+  }
+  const int threads = std::max(
+    1, std::min({omp_get_max_threads(), count,
+                 static_cast<int>(work / kElasticGrain)}));
+#pragma omp parallel for schedule(dynamic, 1) num_threads(threads) \
+  if(threads > 1)
+  for(int b = 0; b < count; b++) {
+    const int i = elastic_bodies_[b];
     auto body = active_articulated_bodies_[i];
     const unsigned int elastic_count = body->get_elastic_count();
     const int j = joint_lookup_[i];
@@ -3660,18 +3683,7 @@ void shift::core::Context::CheckElasticBodies() const {
   /* a joint on a flexible body must be at one of its nodes, which follow the
   deformation; any other frame would move with the undeformed body */
   for(auto& joint : active_joints_) {
-    /* spherical joints next to a flexible body are not supported yet */
-    auto child_body = joint->get_system_child_body();
     auto parent_body = joint->get_system_parent_body();
-    if(dynamic_cast<const shift::core::joint::Spherical*>(joint) &&
-       ((child_body && child_body->get_elastic_count()) ||
-        (parent_body && parent_body->get_elastic_count()))) {
-      const std::string message =
-        "Spherical joint '" + joint->get_name() +
-        "' is attached to a flexible body (not yet supported)";
-      SHIFT_ERROR(message);
-      throw shift::core::Exception(message);
-    }
     if(!parent_body || !parent_body->get_elastic_count()) {
       continue;
     }

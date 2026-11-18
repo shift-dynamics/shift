@@ -321,6 +321,10 @@ private:
      * constrained_vertices), drawn with vertices */
     std::unique_ptr<QRhiBuffer> point_indices;
     uint32_t point_index_count = 0;
+    /*! of a deformable mesh: the spiders of its attachments (SceneMesh::
+     * spider_indices), drawn with its constrained nodes */
+    std::unique_ptr<QRhiBuffer> spider_indices;
+    uint32_t spider_index_count = 0;
   };
 
   /*! the control points of a terrain (SceneTerrain) for the tessellation
@@ -563,6 +567,9 @@ private:
   std::vector<ksl_vec3f_t> color_map_;
   /*! the points of the constrained nodes (mesh_points.vert) */
   std::unique_ptr<QRhiGraphicsPipeline> points_pipeline_;
+  /*! the spiders of the attachments (mesh_points.vert, spider.frag): lines
+   * drawn over everything, so that those inside the material show */
+  std::unique_ptr<QRhiGraphicsPipeline> spider_pipeline_;
   /*! the lines of the edges of flexible bodies' elements (mesh_edges.vert) */
   std::unique_ptr<QRhiGraphicsPipeline> edges_pipeline_;
   /*! \brief whether the meshes of body are drawn */

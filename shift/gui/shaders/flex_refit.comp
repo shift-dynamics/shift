@@ -74,7 +74,10 @@ void main() {
   uint mode = params.range.z;
   if(mode == 3u) {
     uint m = 3u * (params.range.x + k);
-    motion[m] = motion[m + 1u] = motion[m + 2u] = vec4(0.0);
+    // the motion; w, a CAD's stress drawn (flex_cad.comp), kept
+    for(uint c = 0u; c < 3u; c++) {
+      motion[m + c] = vec4(0.0, 0.0, 0.0, motion[m + c].w);
+    }
     return;
   }
   if(mode == 0u) {

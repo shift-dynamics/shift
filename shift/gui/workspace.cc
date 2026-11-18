@@ -32,6 +32,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QSignalBlocker>
+#include <QColor>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDial>
@@ -324,8 +325,9 @@ void shift::gui::Workspace::InitializeMenus() {
     flex_constrained_node_bodies_);
   flex_stresses_action_ = flex_option(
     "Flexible bodies: &stresses",
-    "draw the stress on the mesh surface of flexible bodies: the "
-    "quantity, color map and range of Edit > Settings",
+    "draw the stress on flexible bodies, on the surface drawn (the CAD "
+    "solid's or the mesh's): the quantity, color map and range of "
+    "Edit > Settings",
     flex_stress_bodies_);
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
@@ -472,12 +474,62 @@ void shift::gui::Workspace::InitializeLeftPanel() {
     "draw as points the nodes the joints' attachments (RBE2/RBE3 spiders) "
     "tie to the body's frames (raster only)");
   body_layout->addWidget(body_panel_.constrained_nodes, 8, 0, 1, 4);
+  body_panel_.attachments = new QLabel;
+  body_panel_.attachments->setWordWrap(true);
+  body_panel_.attachments->setTextFormat(Qt::RichText);
+  body_panel_.attachments->setToolTip(
+    "each frame tied to the mesh, in the color its nodes and spider are "
+    "drawn in (Draw the constrained nodes): the reference frame's "
+    "attachment holds the body; each other gives six static modes, the "
+    "body's deflection when that frame alone moves");
+  body_layout->addWidget(body_panel_.attachments, 9, 0, 1, 4);
   body_panel_.stresses = new QCheckBox("Draw the stresses");
   body_panel_.stresses->setToolTip(
-    "color the mesh's surface by its stress: the quantity (von Mises, "
+    "color the surface drawn (the CAD solid's, or the mesh's) by its "
+    "stress: the quantity (von Mises, "
     "principal, a component or the safety factor), color map and range of "
     "Edit > Settings");
-  body_layout->addWidget(body_panel_.stresses, 9, 0, 1, 4);
+  body_layout->addWidget(body_panel_.stresses, 10, 0, 1, 4);
+  // of a flexible body built from a mesh: its mesh sizes
+  body_panel_.mesh = new QWidget;
+  auto* mesh_layout = new QFormLayout(body_panel_.mesh);
+  mesh_layout->setContentsMargins(0, 0, 0, 0);
+  body_panel_.element_size = new QLineEdit;
+  body_panel_.element_size->setValidator(
+    new QDoubleValidator(0.0, 1e300, 12, body_panel_.element_size));
+  body_panel_.element_size->setToolTip(
+    "element_size: the longest element edge of the mesh, in the model's "
+    "units of length; the surface also follows the exact geometry within "
+    "a twentieth of it");
+  mesh_layout->addRow("Element size", body_panel_.element_size);
+  body_panel_.minimum_element_size = new QLineEdit;
+  body_panel_.minimum_element_size->setValidator(
+    new QDoubleValidator(0.0, 1e300, 12, body_panel_.minimum_element_size));
+  body_panel_.minimum_element_size->setPlaceholderText("element size / 20");
+  body_panel_.minimum_element_size->setToolTip(
+    "minimum_element_size: the shortest edge that refinement at small "
+    "features may make; empty for a twentieth of the element size");
+  mesh_layout->addRow("Minimum size", body_panel_.minimum_element_size);
+  body_layout->addWidget(body_panel_.mesh, 11, 0, 1, 4);
+  body_panel_.apply = new QPushButton("Apply");
+  body_panel_.apply->setToolTip(
+    "write the changes to this flexible body (its mesh sizes, the modes "
+    "checked in the mode window) to the model and load it again; a new "
+    "mesh size meshes and analyses the body again. File > Save model as... "
+    "keeps them");
+  body_layout->addWidget(body_panel_.apply, 12, 0, 1, 4);
+  for(QLineEdit* edit :
+      {body_panel_.element_size, body_panel_.minimum_element_size}) {
+    connect(edit, &QLineEdit::textChanged, this,
+            &Workspace::UpdateApplyButton);
+    connect(edit, &QLineEdit::returnPressed, this, [this]() {
+      if(body_panel_.apply->isEnabled()) {
+        ApplyFlexChanges();
+      }
+    });
+  }
+  connect(body_panel_.apply, &QPushButton::clicked, this,
+          &Workspace::ApplyFlexChanges);
   auto toggle_flex = [this](std::set<QString>& bodies, bool on) {
     const int body = body_panel_.selected_body;
     if(body < 0 || body >= static_cast<int>(simulation_.get_bodies().size())) {
@@ -1307,6 +1359,7 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   if(mode_window_) {
     mode_window_->close();
   }
+  pending_modes_.clear();
   QApplication::setOverrideCursor(Qt::WaitCursor);
   viewport_->set_simulation(nullptr, !keep_view);
   playing_ = false;
@@ -1428,35 +1481,186 @@ void shift::gui::Workspace::OpenModeWindow() {
     }
     mode_window_->close();
   }
+  auto* flex =
+    dynamic_cast<shift::core::body::Flex*>(simulation_.get_bodies()[body]);
+  if(!flex) {
+    return;
+  }
+  const std::string name = flex->get_name();
+  std::vector<int> checked(flex->get_modes_kept().begin(),
+                           flex->get_modes_kept().end());
+  auto pending = pending_modes_.find(name);
+  if(pending != pending_modes_.end()) {
+    checked = pending->second;
+  }
   mode_window_ = new ModeWindow(
-    simulation_, body,
-    [this, body](const std::vector<int>& modes) {
-      // after the window has closed, from the event loop
-      QTimer::singleShot(0, this,
-                         [this, body, modes]() { ApplyModesKept(body, modes); });
+    simulation_, body, checked,
+    [this, name](const std::vector<int>& modes) {
+      pending_modes_[name] = modes;
+      UpdateApplyButton();
     },
     [this]() { viewport_->update(); }, this);
   mode_window_->show();
 }
 
-void shift::gui::Workspace::ApplyModesKept(int body,
-                                           const std::vector<int>& modes) {
-  if(!simulation_.is_loaded() ||
+Json::Value* shift::gui::Workspace::BodyJson(int body) {
+  if(!simulation_.is_loaded() || body < 0 ||
      body >= static_cast<int>(simulation_.get_bodies().size())) {
-    return;
-  }
-  if(modes.empty()) {
-    QMessageBox::warning(this, "Modes kept", "Check at least one mode.");
-    return;
+    return nullptr;
   }
   const std::vector<JsonStep>* path =
     FindObjectPath(simulation_.get_bodies()[body]);
   if(!path) {
+    return nullptr;
+  }
+  Json::Value* object = &model_json_;
+  for(const JsonStep& step : *path) {
+    object = step.index >= 0 ? &(*object)[step.index] : &(*object)[step.key];
+  }
+  return object;
+}
+
+void shift::gui::Workspace::UpdateMeshFields() {
+  const int body = body_panel_.selected_body;
+  auto* flex = body >= 0 && body < static_cast<int>(
+                                     simulation_.get_bodies().size())
+                 ? dynamic_cast<shift::core::body::Flex*>(
+                     simulation_.get_bodies()[body])
+                 : nullptr;
+  const Json::Value* object =
+    flex && flex->builds_model() ? BodyJson(body) : nullptr;
+  body_panel_.mesh->setVisible(object != nullptr);
+  body_panel_.apply->setVisible(object != nullptr);
+  body_panel_.attachments->setVisible(object != nullptr);
+  if(!object) {
+    return;
+  }
+  /* the attachments, a sliding frame's stations on one line */
+  QString legend = "<b>Attachments</b>";
+  const auto& info = flex->get_attachment_info();
+  const auto& nodes = flex->get_attachment_nodes();
+  auto swatch = [](size_t k) {
+    const float* c = kAttachmentColors[AttachmentColorIndex(k)];
+    return QString("<span style=\"color:%1\">&#9632;</span>")
+      .arg(QColor::fromRgbF(c[0], c[1], c[2]).name());
+  };
+  for(size_t k = 0; k < info.size() && k < nodes.size(); k++) {
+    const shift::core::body::AttachmentInfo& a = info[k];
+    QString line = "<br>" + swatch(k);
+    size_t node_count = nodes[k].size();
+    if(a.station >= 0) {
+      // the rest of this frame's stations
+      size_t last = k;
+      while(last + 1 < info.size() && info[last + 1].frame == a.frame &&
+            info[last + 1].station == info[last].station + 1) {
+        last++;
+        line += swatch(last);
+        node_count += nodes[last].size();
+      }
+      line += QString(" <b>%1</b> (%2): sliding, %3 stations along the "
+                      "bore, %4 nodes; 6 static modes each")
+                .arg(QString::fromStdString(a.frame).toHtmlEscaped(),
+                     QString::fromStdString(a.user).toHtmlEscaped())
+                .arg(a.station_count)
+                .arg(node_count);
+      k = last;
+    } else {
+      line += QString(" <b>%1</b> (%2): %3 to %4 nodes; %5")
+                .arg(QString::fromStdString(a.frame).toHtmlEscaped(),
+                     QString::fromStdString(a.user).toHtmlEscaped(),
+                     a.rbe2 ? "rigid (RBE2)" : "averaging (RBE3)")
+                .arg(node_count)
+                .arg(a.reference ? "the reference frame, held"
+                                 : "6 static modes");
+    }
+    legend += line;
+  }
+  body_panel_.attachments->setText(legend);
+  const QSignalBlocker block_size(body_panel_.element_size);
+  const QSignalBlocker block_minimum(body_panel_.minimum_element_size);
+  body_panel_.element_size->setText(
+    object->isMember("element_size")
+      ? QString::number((*object)["element_size"].asDouble(), 'g', 12)
+      : QString());
+  body_panel_.minimum_element_size->setText(
+    object->isMember("minimum_element_size")
+      ? QString::number((*object)["minimum_element_size"].asDouble(), 'g', 12)
+      : QString());
+  UpdateApplyButton();
+}
+
+shift::gui::Workspace::FlexChanges shift::gui::Workspace::ReadFlexChanges(
+  const Json::Value& object, const shift::core::body::Flex& flex) const {
+  const QString size_text = body_panel_.element_size->text();
+  const QString minimum_text_in = body_panel_.minimum_element_size->text();
+  const auto& pending = pending_modes_;
+  FlexChanges changes;
+  bool ok = false;
+  changes.element_size = size_text.toDouble(&ok);
+  if(!ok || !(changes.element_size > 0.0)) {
+    return changes;
+  }
+  const QString minimum_text = minimum_text_in.trimmed();
+  if(!minimum_text.isEmpty()) {
+    changes.minimum_element_size = minimum_text.toDouble(&ok);
+    if(!ok || !(changes.minimum_element_size > 0.0) ||
+       changes.minimum_element_size > changes.element_size) {
+      return changes;
+    }
+  }
+  changes.size =
+    !object.isMember("element_size") ||
+    object["element_size"].asDouble() != changes.element_size ||
+    (minimum_text.isEmpty()
+       ? object.isMember("minimum_element_size")
+       : !object.isMember("minimum_element_size") ||
+           object["minimum_element_size"].asDouble() !=
+             changes.minimum_element_size);
+  auto entry = pending.find(flex.get_name());
+  if(entry != pending.end()) {
+    changes.modes_kept = entry->second;
+    std::vector<int> kept(flex.get_modes_kept().begin(),
+                          flex.get_modes_kept().end());
+    changes.modes = changes.modes_kept != kept;
+    if(changes.modes && changes.modes_kept.empty()) {
+      return changes; // at least one mode
+    }
+  }
+  changes.valid = true;
+  return changes;
+}
+
+void shift::gui::Workspace::UpdateApplyButton() {
+  const int body = body_panel_.selected_body;
+  const Json::Value* object = BodyJson(body);
+  auto* flex = object ? dynamic_cast<shift::core::body::Flex*>(
+                          simulation_.get_bodies()[body])
+                      : nullptr;
+  if(!flex) {
+    body_panel_.apply->setEnabled(false);
+    return;
+  }
+  const FlexChanges changes = ReadFlexChanges(*object, *flex);
+  body_panel_.apply->setEnabled(changes.valid &&
+                                (changes.size || changes.modes));
+}
+
+void shift::gui::Workspace::ApplyFlexChanges() {
+  const int body = body_panel_.selected_body;
+  Json::Value* object = BodyJson(body);
+  auto* flex = object ? dynamic_cast<shift::core::body::Flex*>(
+                          simulation_.get_bodies()[body])
+                      : nullptr;
+  if(!flex) {
+    return;
+  }
+  const FlexChanges changes = ReadFlexChanges(*object, *flex);
+  if(!changes.valid || !(changes.size || changes.modes)) {
     return;
   }
   if((simulation_.has_results() || simulation_.is_computing()) &&
-     QMessageBox::question(this, "Modes kept",
-                           "Applying the modes kept loads the model again "
+     QMessageBox::question(this, "Apply",
+                           "Applying the changes loads the model again "
                            "and drops the computed results. Apply?") !=
        QMessageBox::Yes) {
     return;
@@ -1464,21 +1668,27 @@ void shift::gui::Workspace::ApplyModesKept(int body,
   const double end_time = simulation_.get_end_time();
   const double time_step = simulation_.get_time_step();
   const Json::Value previous = model_json_;
-  Json::Value* object = &model_json_;
-  for(const JsonStep& step : *path) {
-    object = step.index >= 0 ? &(*object)[step.index] : &(*object)[step.key];
+  if(changes.size) {
+    (*object)["element_size"] = changes.element_size;
+    if(changes.minimum_element_size > 0.0) {
+      (*object)["minimum_element_size"] = changes.minimum_element_size;
+    } else {
+      object->removeMember("minimum_element_size");
+    }
   }
-  // modes_kept replaces the other ways of choosing the modes
-  object->removeMember("mode_count");
-  object->removeMember("maximum_frequency");
-  Json::Value kept(Json::arrayValue);
-  for(int k : modes) {
-    kept.append(k);
+  if(changes.modes) {
+    // modes_kept replaces the other ways of choosing the modes
+    object->removeMember("mode_count");
+    object->removeMember("maximum_frequency");
+    Json::Value kept(Json::arrayValue);
+    for(int k : changes.modes_kept) {
+      kept.append(k);
+    }
+    (*object)["modes_kept"] = kept;
   }
-  (*object)["modes_kept"] = kept;
   QString error;
   if(!ReloadModel(previous, error)) {
-    QMessageBox::critical(this, "Modes kept", error);
+    QMessageBox::critical(this, "Apply", error);
     return;
   }
   simulation_.set_end_time(end_time);
@@ -2134,11 +2344,10 @@ void shift::gui::Workspace::UpdateVisibility() {
       const QString name =
         QString::fromStdString(simulation_.get_bodies()[body]->get_name());
       if(body < static_cast<int>(mesh_surface.size())) {
-        // the stress is drawn on the mesh's surface
+        // the stress is drawn on the surface shown, the CAD's or the
+        // mesh's
         mesh_surface[size_t(body)] =
-          flex_mesh_surface_bodies_.count(name) > 0 ||
-          (flex_stress_bodies_.count(name) > 0 &&
-           simulation_.has_flex_stresses(body));
+          flex_mesh_surface_bodies_.count(name) > 0;
         mesh_edges[size_t(body)] = flex_mesh_edge_bodies_.count(name) > 0;
         constrained_nodes[size_t(body)] =
           flex_constrained_node_bodies_.count(name) > 0;
@@ -3457,6 +3666,7 @@ void shift::gui::Workspace::SelectTreeItem() {
     body_panel_.mesh_edges->setVisible(flex);
     body_panel_.constrained_nodes->setVisible(flex);
     body_panel_.stresses->setVisible(flex && simulation_.has_flex_stresses(index));
+    UpdateMeshFields();
     {
       const QString name = QString::fromStdString(
         simulation_.get_bodies()[index]->get_name());

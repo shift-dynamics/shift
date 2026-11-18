@@ -1,6 +1,7 @@
 #ifndef SHIFT_CORE_FEA_FLEX_MODEL_H_
 #define SHIFT_CORE_FEA_FLEX_MODEL_H_
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -118,6 +119,22 @@ hits nothing (the wall does not go all the way round: an open guide, which
 is not supported) or a wall not parallel to the axis.
 */
 Bore FindBore(const TetMesh& mesh, const AttachmentRequest& request);
+
+/*!
+@brief where a part bears on a bore of \p radius round the axis through \p
+origin along the unit vector \p axis: the intervals [a, b] of offsets along
+the axis from origin covered by the triangles of the part's surface (\p
+points, \p triangles) that lie on the bore, their corners within 5% of
+radius of it and their normals at right angles to the axis (the cosine of
+the angle between them below 0.25, as FindBore), joined where they overlap
+or lie within 0.1% of radius of each other; in increasing order. Empty if no
+triangle lies on the bore.
+*/
+std::vector<std::array<double, 2>>
+BearingIntervals(const std::vector<ksl_vec3_t>& points,
+                 const std::vector<std::array<int, 3>>& triangles,
+                 const ksl_vec3_t& origin, const ksl_vec3_t& axis,
+                 double radius);
 
 /*! \brief the attachment of a frame that no faces carry: its node and the
  * nodes of the elements around it, or the nodes within a radius (see

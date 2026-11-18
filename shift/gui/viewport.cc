@@ -1225,6 +1225,7 @@ void shift::gui::Viewport::ReleaseAll() {
   sky_pipeline_.reset();
   edges_pipeline_.reset();
   points_pipeline_.reset();
+  spider_pipeline_.reset();
   mesh_pipeline_.reset();
   raster_bindings_.reset();
   instance_buffer_.reset();
@@ -1510,6 +1511,26 @@ void shift::gui::Viewport::CreatePipelines() {
     qWarning("Cannot create the pipeline of the constrained nodes of "
              "flexible bodies; they are not drawn");
     points_pipeline_.reset();
+  });
+  // the spiders of their attachments: lines from each attachment's frame to
+  // its nodes, over everything (many lie inside the material)
+  spider_pipeline_.reset(make_pipeline("mesh_points.vert.qsb", "spider.frag.qsb",
+                                       raster_bindings_.get(), false));
+  spider_pipeline_->setTopology(QRhiGraphicsPipeline::Lines);
+  {
+    QRhiGraphicsPipeline::TargetBlend blend;
+    blend.enable = true;
+    blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
+    blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+    blend.srcAlpha = QRhiGraphicsPipeline::One;
+    blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+    spider_pipeline_->setTargetBlends({blend});
+  }
+  spider_pipeline_->setVertexInputLayout(layout);
+  CreatePipeline(spider_pipeline_.get(), [this]() {
+    qWarning("Cannot create the pipeline of the spiders of flexible bodies' "
+             "attachments; they are not drawn");
+    spider_pipeline_.reset();
   });
 
   // particles: the meshes' vertices, and the centre of each instance
@@ -2552,6 +2573,15 @@ void shift::gui::Viewport::UploadScene(QRhiResourceUpdateBatch* batch) {
                                 mesh.constrained_vertices.data());
       gpu.point_index_count = quint32(mesh.constrained_vertices.size());
     }
+    if(!mesh.spider_indices.empty()) {
+      gpu.spider_indices.reset(rhi_->newBuffer(
+        QRhiBuffer::Immutable, QRhiBuffer::IndexBuffer,
+        quint32(mesh.spider_indices.size() * sizeof(uint32_t))));
+      gpu.spider_indices->create();
+      batch->uploadStaticBuffer(gpu.spider_indices.get(),
+                                mesh.spider_indices.data());
+      gpu.spider_index_count = quint32(mesh.spider_indices.size());
+    }
     gpu_meshes_.push_back(std::move(gpu));
   }
   // the instances of a mesh are contiguous (Scene::instances)
@@ -2984,6 +3014,13 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       material.layers[3] = 0; // no holes
       CopySurfaces(SceneMesh(), material.variation, material.surface_layers,
                    material.surface);
+      // a flexible body's with its stress drawn: colored by it (cad.tese)
+      if(gpu.flex >= 0 && cad.flex_mesh >= 0 &&
+         size_t(cad.flex_mesh) < gpu_meshes_.size() &&
+         gpu_meshes_[size_t(cad.flex_mesh)].flex_shown.stress !=
+           FlexUpdate::Stress::kNone) {
+        material.variation[3] = 1.f;
+      }
       batch->updateDynamicBuffer(
         material_ubo_.get(),
         quint32(scene.meshes.size() + gpu.cad_index) * material_stride_,
@@ -3205,6 +3242,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   };
   draw_over(edges_pipeline_.get(), &GpuMesh::edge_indices,
             &GpuMesh::edge_index_count, flex_mesh_edges_);
+  draw_over(spider_pipeline_.get(), &GpuMesh::spider_indices,
+            &GpuMesh::spider_index_count, flex_constrained_nodes_);
   draw_over(points_pipeline_.get(), &GpuMesh::point_indices,
             &GpuMesh::point_index_count, flex_constrained_nodes_);
 
@@ -3378,6 +3417,12 @@ bool shift::gui::Viewport::UploadInstances(QRhiResourceUpdateBatch* batch,
         if(flex >= 0 && rt.cad == c && flex_gpu_->is_ray_traced(flex)) {
           instances[i].variation[1] = float(rt.motion_base - rt.first_triangle);
           instances[i].variation[2] = 1.f;
+          // its stress drawn: colored by it (flex_cad.comp)
+          if(size_t(cad.flex_mesh) < gpu_meshes_.size() &&
+             gpu_meshes_[size_t(cad.flex_mesh)].flex_shown.stress !=
+               FlexUpdate::Stress::kNone) {
+            instances[i].variation[3] = 1.f;
+          }
         }
       }
     }

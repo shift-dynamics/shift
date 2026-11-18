@@ -466,3 +466,47 @@ shift::core::fea::Bore shift::core::fea::FindBore(
   }
   return bore;
 }
+
+std::vector<std::array<double, 2>> shift::core::fea::BearingIntervals(
+  const std::vector<ksl_vec3_t>& points,
+  const std::vector<std::array<int, 3>>& triangles, const ksl_vec3_t& origin,
+  const ksl_vec3_t& axis, double radius) {
+  std::vector<std::array<double, 2>> covered;
+  for(const auto& triangle : triangles) {
+    double low = 1e300, high = -1e300;
+    bool on = true;
+    for(int corner : triangle) {
+      ksl_vec3_t r;
+      ksl_subtract_vv(&points[size_t(corner)], &origin, &r);
+      const double along = ksl_dot_vv(&r, &axis);
+      ksl_axpy_vv(-along, &axis, &r);
+      on = on && std::abs(ksl_vec3_l2norm(&r) - radius) < 0.05 * radius;
+      low = std::min(low, along);
+      high = std::max(high, along);
+    }
+    if(!on || !(high > low)) {
+      continue;
+    }
+    ksl_vec3_t e1, e2, normal;
+    ksl_subtract_vv(&points[size_t(triangle[1])], &points[size_t(triangle[0])],
+                    &e1);
+    ksl_subtract_vv(&points[size_t(triangle[2])], &points[size_t(triangle[0])],
+                    &e2);
+    ksl_cross_vv(&e1, &e2, &normal);
+    const double size = ksl_vec3_l2norm(&normal);
+    if(!(size > 0.0) || std::abs(ksl_dot_vv(&normal, &axis)) >= 0.25 * size) {
+      continue;
+    }
+    covered.push_back({low, high});
+  }
+  std::sort(covered.begin(), covered.end());
+  std::vector<std::array<double, 2>> joined;
+  for(const auto& interval : covered) {
+    if(!joined.empty() && interval[0] <= joined.back()[1] + 1e-3 * radius) {
+      joined.back()[1] = std::max(joined.back()[1], interval[1]);
+    } else {
+      joined.push_back(interval);
+    }
+  }
+  return joined;
+}

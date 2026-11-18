@@ -163,6 +163,8 @@ private:
   std::vector<double> y_;          /*!< \f$C_j^{-1}\underline{r}_j\f$ */
   std::vector<ksl_coscrew_t> y_b_; /*!< rows of \f$C_j^{-1}B_j^T\f$ */
   std::vector<double> c_;          /*!< Cholesky factors of \f$C_j\f$ */
+  std::vector<char> constant_c_;   /*!< \f$C_j = M_{ee}\f$, factored once:
+                                       a flexible body without node slots */
 
   const std::string description_ =
     "Articulated-body algorithm (ABA):\n"

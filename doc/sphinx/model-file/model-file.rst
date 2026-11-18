@@ -291,8 +291,13 @@ placed by its own initial pose and velocity:
 
 .. shift-parameters:: shift/core/body/free.cc
 
+.. _model-file-flexible-bodies:
+
 Flexible bodies
 ***************
+
+:ref:`flexible-bodies` explains the elements, the meshing, the attachments
+and the viewer's displays with pictures; this section lists the keys.
 
 ``"type": "modal"`` and ``"type": "nodal"`` are flexible bodies made from a
 finite element model of one of their geometries (``fe_geometry``): a solid
@@ -325,15 +330,28 @@ and lumped mass matrices from ``density``, ``youngs_modulus`` and
 - a frame that holds the parent side of a ``prismatic`` joint (a frame on
   the axis of a bore of the body, whose child slides along the bore) is a
   *sliding attachment*: rays cast from it at right angles to the joint's
-  axis find the bore's wall, which is cut along the axis into lengths of
-  ``bearing_length`` (the bore's diameter by default), each tied to a
-  station on the axis at its middle. The joint's child is carried by the
-  bore at its position s: the stations' motions are interpolated in s by a
-  natural cubic spline, continued in a straight line beyond the first and
-  last stations, and the joint's influence coefficients and accelerations
-  include the attachment's motion through the deforming body. A load at the
-  sliding frame acts at the station at s. Only a closed bore round the axis
-  is found (not an open guide), and a joint has one sliding attachment;
+  axis find the bore's wall, which is cut along the axis into equal
+  lengths, each tied to a station on the axis at its middle. The stations'
+  motions are interpolated along the axis by a natural cubic spline,
+  continued in a straight line beyond the first and last stations. The
+  joint's child bears on the bore over its *bearing*: ``bearing_length``
+  centred on the child's frame if given, else where the surface of the
+  child's mesh or STEP geometry lies on the bore (within 5 % of its radius,
+  facing across the axis: two lands of a piston give two parts), else the
+  bore's diameter centred on the child's frame. The child moves with the
+  mean motion of the bore's wall under the part of its bearing within the
+  bore, as if those nodes were averaged into it: the mean of the
+  interpolated translation, and the rotation that best fits the motion of
+  the wall (from the change of the translation along the bearing and the
+  turn of the sections). The joint's influence coefficients and
+  accelerations include this motion through the deforming body. The
+  stations are the fewest (two or more, each at least ``element_size``
+  long) whose compliance at the child is within 1 % of the full finite
+  element model's at positions along its travel, or beyond which more
+  stations no longer lower that error by a tenth (then the mesh limits
+  it); the log gives the bearing, its source, the stations and that error.
+  Only a closed bore round the axis is found (not an open guide), and a
+  joint has one sliding attachment;
 - the frame of the body's parent joint holds the body (its reference frame),
   and each other tied frame gives six static modes: the deflection of the
   body when that frame alone moves;
@@ -393,13 +411,16 @@ magnifies the deformation (but not the part of it that moves the body as a
 whole). The body's panel can draw the surface of its mesh in place of the
 CAD, the edges of its elements over either surface and, as points, the nodes
 the joints' attachments tie to the body's frames (both in raster mode only),
-and the stress on the mesh's surface, which the View menu and the viewer's
+and the stress on the surface drawn, the CAD's or the mesh's, which the
+View menu and the viewer's
 ``--image`` options ``--mesh-surface``, ``--mesh-edges``,
 ``--constrained-nodes`` and ``--stresses`` do for every flexible body. The
 stress of each surface node in each shape is computed with the modes (at
 the node in each element around it, averaged by the elements' volumes) and
 kept in ``fe_cache``; as the body deforms, the GPU sums them with the
-elastic coordinates (not magnified by the deformation scale). Edit >
+elastic coordinates (not magnified by the deformation scale). On the CAD
+surface, each point takes the stress of the mesh's surface nearest it,
+interpolated over the element face it follows as it deforms. Edit >
 Settings chooses what is drawn: the von Mises or Tresca stress, a principal
 stress, a component in the body's coordinates, or the safety factor, the
 body's ``yield_strength`` over its von Mises stress (a body without one is
@@ -412,8 +433,10 @@ over its own range, the smallest factors at the map's end. The status bar
 shows the range, and the smallest safety factor. ``yield_strength`` can be
 changed in the body's panel as the model runs. The panel also opens
 the mode window, which lists the static modes and every vibration mode
-computed with its frequency, draws the one selected on the body, and writes
-the modes checked back to the model as ``modes_kept``. Meshing the solid and
+computed with its frequency and draws the one selected on the body; the
+panel's mesh sizes and the modes checked there are written to the model
+(as ``element_size``, ``minimum_element_size`` and ``modes_kept``) by the
+panel's Apply, which loads it again. Meshing the solid and
 computing its modes, when they are not read from ``fe_cache``, can take a
 while; the viewer loads the model in the background, showing what it is
 doing, and its Cancel stops the load.

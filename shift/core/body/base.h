@@ -220,6 +220,13 @@ public:
     Frame* frame = nullptr;
     Joint joint = Joint::kOther;
     ksl_vec3_t axis = {{0.0, 0.0, 1.0}};
+    /*! kPrismatic: the joint's child body and frame, whose surface on the
+     * bore is where the child bears on it */
+    Base* child_body = nullptr;
+    Frame* child_frame = nullptr;
+    /*! what uses the frame, for messages and the viewer, e.g. "revolute
+     * joint 'pin'" or "chord" */
+    std::string user;
   };
 
   /*! \brief build the elastic model of a flexible body from its own data

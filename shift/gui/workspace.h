@@ -42,6 +42,7 @@ class Base;
 }
 namespace body {
 class Base;
+class Flex;
 }
 class Assembly;
 namespace joint {
@@ -445,16 +446,54 @@ private:
     QCheckBox* mesh_surface = nullptr; /*!< of a flexible body */
     QCheckBox* mesh_edges = nullptr;   /*!< of a flexible body */
     QCheckBox* constrained_nodes = nullptr; /*!< of a flexible body */
+    /*! of a flexible body built from a mesh: each attachment in the color
+     * its nodes and spider are drawn in, its frame, what uses it, its
+     * spider and its role (held, or six static modes) */
+    QLabel* attachments = nullptr;
     QCheckBox* stresses = nullptr; /*!< of a flexible body */
+    /*! of a flexible body built from a mesh: its mesh sizes */
+    QWidget* mesh = nullptr;
+    QLineEdit* element_size = nullptr;
+    QLineEdit* minimum_element_size = nullptr; /*!< empty: the default */
+    /*! writes every change to the flexible body (its mesh sizes, the modes
+     * checked in the mode window) to the model and loads it again */
+    QPushButton* apply = nullptr;
     int selected_body = -1;
   } body_panel_;
   /*! the mode window open, closed when the model loads again */
   QPointer<ModeWindow> mode_window_;
   /*! \brief open the mode window of the selected flexible body */
   void OpenModeWindow();
-  /*! \brief write modes as modes_kept of flexible body body (an index in
-   * Simulation::get_bodies) and load the model again */
-  void ApplyModesKept(int body, const std::vector<int>& modes);
+  /*! the modes checked in the mode window and not yet applied, by the
+   * name of their body; cleared when the model loads */
+  std::map<std::string, std::vector<int>> pending_modes_;
+  /*! \brief the model file's object of body (an index in
+   * Simulation::get_bodies), or null if it was not read from the file */
+  Json::Value* BodyJson(int body);
+  /*! \brief fill the mesh sizes of the body panel from the model, shown for
+   * a flexible body built from a mesh */
+  void UpdateMeshFields();
+  /*! the changes to a flexible body's model that the body panel would
+   * apply: its mesh sizes as typed, and the modes checked in the mode
+   * window */
+  struct FlexChanges {
+    bool valid = false; /*!< the sizes typed (and modes) are valid */
+    bool size = false;  /*!< element_size or minimum_element_size changed */
+    bool modes = false; /*!< the modes checked differ from those kept */
+    double element_size = 0.0;
+    double minimum_element_size = 0.0; /*!< 0: the default (removed) */
+    std::vector<int> modes_kept;
+  };
+  FlexChanges ReadFlexChanges(const Json::Value& object,
+                              const shift::core::body::Flex& flex) const;
+  /*! \brief enable Apply when the selected flexible body has changes not
+   * yet in the model: mesh sizes typed, or modes checked in the mode
+   * window, and they are valid */
+  void UpdateApplyButton();
+  /*! \brief write the changes to the selected flexible body to the model
+   * (element_size, minimum_element_size, modes_kept) and load it again;
+   * a body whose mesh sizes changed is meshed and analysed again */
+  void ApplyFlexChanges();
   /*! \brief View > Deformation scale */
   void DeformationScaleDialog();
 

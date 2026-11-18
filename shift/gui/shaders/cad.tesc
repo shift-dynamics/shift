@@ -41,7 +41,8 @@ vec3 World(vec2 uv) {
   vec3 point = SurfacePoint(face, uv, span, du, dv);
   if(deforms) {
     vec3 fu, fv;
-    point += FlexDisplacement(patch_id, uv, fu, fv) /
+    float stress;
+    point += FlexDisplacement(patch_id, uv, fu, fv, stress) /
              sample_grids[patch_id].scale;
   }
   return (model * vec4(point, 1.0)).xyz;

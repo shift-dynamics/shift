@@ -1,14 +1,15 @@
 /* a prismatic joint sliding through a flexible body: a steel tube (outer
 radius 20 mm, bore 10 mm, 60 mm long, an OBJ written here) swings on a
 revolute joint about x at a frame inside its wall (tied to the nodes within
-4 mm, clear of the bore), and a rigid rod slides
-along its bore on a prismatic joint from a frame on the bore's axis. The
-bore is found from the frame, cut into stations a bearing length apart, and
-the rod's attachment slides between them: its velocity and quadratic
-acceleration match differences of its pose and velocity along a motion of
-every coordinate; the energy is kept while it slides past a station into
-the spline's linear continuation; and RNCA, ABA and DCA give the same
-accelerations. */
+4 mm, clear of the bore), and a rigid rod slides along its bore on a
+prismatic joint from a frame on the bore's axis. The rod (an OBJ written
+here) bears on the bore with two lands, 8 mm long and 16 mm apart, a groove
+between them. The bore is found from the frame and cut into stations, and
+the lands found from the rod's surface; the rod moves with the mean motion
+of the wall under its lands: its velocity and quadratic acceleration match
+differences of its pose and velocity along a motion of every coordinate;
+the energy is kept while a land slides out past the bore's end; and RNCA,
+ABA and DCA give the same accelerations. */
 
 #include <array>
 #include <cmath>
@@ -33,6 +34,10 @@ accelerations. */
 
 static const int kSides = 24;
 static const double kOuter = 0.02, kInner = 0.01, kLength = 0.06;
+/* the rod's lands, along its axis from its frame, their radius and that of
+the groove and ends */
+static const double kLands[2][2] = {{-0.012, -0.004}, {0.004, 0.012}};
+static const double kLand = 0.0095, kGroove = 0.008;
 
 /* the tube's triangles, each with its own three vertices, normals out */
 static void WriteTube(const std::string& path) {
@@ -83,8 +88,41 @@ static void WriteTube(const std::string& path) {
   file << vertices << faces;
 }
 
+/* the rod: rings along z from (z, r) and its two end caps */
+static void WriteRod(const std::string& path) {
+  const std::vector<std::array<double, 2>> rings = {
+    {kLands[0][0], kGroove}, {kLands[0][0], kLand}, {kLands[0][1], kLand},
+    {kLands[0][1], kGroove}, {kLands[1][0], kGroove}, {kLands[1][0], kLand},
+    {kLands[1][1], kLand},   {kLands[1][1], kGroove}};
+  std::ofstream file(path);
+  for(const auto& ring : rings) {
+    for(int i = 0; i < kSides; i++) {
+      const double a = 2.0 * M_PI * i / kSides;
+      file << "v " << ring[1] * std::cos(a) << " " << ring[1] * std::sin(a)
+           << " " << ring[0] << "\n";
+    }
+  }
+  const int ends = static_cast<int>(rings.size()) * kSides;
+  file << "v 0 0 " << rings.front()[0] << "\nv 0 0 " << rings.back()[0]
+       << "\n";
+  for(int k = 0; k + 1 < static_cast<int>(rings.size()); k++) {
+    for(int i = 0; i < kSides; i++) {
+      const int a = k * kSides + i + 1, b = k * kSides + (i + 1) % kSides + 1;
+      const int c = b + kSides, d = a + kSides;
+      file << "f " << a << " " << b << " " << c << "\nf " << a << " " << c
+           << " " << d << "\n";
+    }
+  }
+  for(int i = 0; i < kSides; i++) {
+    const int a = i + 1, b = (i + 1) % kSides + 1;
+    const int last = (static_cast<int>(rings.size()) - 1) * kSides;
+    file << "f " << ends + 1 << " " << b << " " << a << "\nf " << ends + 2
+         << " " << last + a << " " << last + b << "\n";
+  }
+}
+
 static std::string Model(const std::string& solver, const std::string& obj,
-                         const std::string& cache) {
+                         const std::string& rod, const std::string& cache) {
   return R"({"model_parameters": {"version": "0.2",
     "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
               "time": "seconds"},
@@ -107,7 +145,10 @@ static std::string Model(const std::string& solver, const std::string& obj,
          obj + R"("]}]},
       {"name": "rod", "center_of_mass": [0, 0, 0],
        "inertia": {"mass": 0.5, "Ixx": 1e-4, "Iyy": 1e-4, "Izz": 2e-5,
-                   "Ixy": 0, "Iyz": 0, "Izx": 0}}],
+                   "Ixy": 0, "Iyz": 0, "Izx": 0},
+       "geometry": [{"name": "lands", "type": "mesh",
+                     "filename": [")" +
+         rod + R"("]}]}],
     "joints": [
       {"name": "hinge", "type": "revolute", "axis": [1, 0, 0],
        "initial_velocity": 2.0,
@@ -122,11 +163,13 @@ that the first load writes and the others read */
 static std::unique_ptr<shift::core::Context> Load(const std::string& solver) {
   const std::string dir = testing::TempDir();
   const std::string obj = dir + "/sliding_tube.obj";
+  const std::string rod = dir + "/sliding_rod.obj";
   WriteTube(obj);
+  WriteRod(rod);
   const std::string path = dir + "/sliding_" + solver + ".json";
   {
     std::ofstream file(path);
-    file << Model(solver, obj, dir + "/sliding_tube.fe.h5");
+    file << Model(solver, obj, rod, dir + "/sliding_tube.fe.h5");
   }
   auto context = std::make_unique<shift::core::Context>();
   try {
@@ -177,13 +220,13 @@ static void State(shift::core::Context& context, std::vector<double>* q,
   auto barrel = Body(context, "barrel");
   const unsigned int e = barrel->get_elastic_q_index();
   for(unsigned int m = 0; m < barrel->get_elastic_count(); m++) {
-    (*q)[e + m] = 2e-6 * std::sin(1.0 + 0.7 * m);
+    (*q)[e + m] = 1e-7 * std::sin(1.0 + 0.7 * m);
   }
   for(unsigned int k = 0; k < dq->size(); k++) {
     (*dq)[k] = 0.4 * std::cos(2.0 + 1.3 * k);
   }
   for(unsigned int m = 0; m < barrel->get_elastic_count(); m++) {
-    (*dq)[barrel->get_elastic_dq_index() + m] = 2e-4 * std::cos(3.0 + m);
+    (*dq)[barrel->get_elastic_dq_index() + m] = 1e-5 * std::cos(3.0 + m);
   }
 }
 
@@ -193,13 +236,28 @@ TEST(FlexSliding, StationsAlongTheBore) {
   auto barrel = dynamic_cast<shift::core::body::Flex*>(Body(*context, "barrel"));
   ASSERT_NE(barrel, nullptr);
   EXPECT_FALSE(barrel->from_cache());
-  /* the bore, 60 mm long, in lengths of its diameter: three stations, six
-  static modes each (the hinge's frame holds the body) */
-  EXPECT_EQ(barrel->get_static_count(), 6u * 3);
+  /* the bore, 60 mm long, in as many stations as the mesh (10 mm) allows,
+  as on so coarse a mesh more keep lowering the error: six, six static
+  modes each (the hinge's frame holds the body) */
+  EXPECT_EQ(barrel->get_static_count(), 6u * 6);
   ASSERT_EQ(barrel->get_node_count(), 2u);
   int sliding = 0;
   for(unsigned int k = 0; k < barrel->get_node_count(); k++) {
     sliding += barrel->is_sliding_node(k) ? 1 : 0;
+    /* the rod's lands, from its surface (in single precision), and the
+    bore's radius (the mean distance of its nodes from the axis, on a wall
+    of 24 flats) and ends */
+    if(const auto* bearing = barrel->get_sliding_bearing(k)) {
+      ASSERT_EQ(bearing->intervals.size(), 2u);
+      for(int i = 0; i < 2; i++) {
+        EXPECT_NEAR(bearing->intervals[size_t(i)][0], kLands[i][0], 1e-7);
+        EXPECT_NEAR(bearing->intervals[size_t(i)][1], kLands[i][1], 1e-7);
+      }
+      EXPECT_GT(bearing->radius, 0.95 * kInner);
+      EXPECT_LT(bearing->radius, kInner);
+      EXPECT_NEAR(bearing->low, -0.01, 1e-7);
+      EXPECT_NEAR(bearing->high, kLength - 0.01, 1e-7);
+    }
   }
   EXPECT_EQ(sliding, 1);
   const auto& slots = context->get_node_slots();
@@ -260,8 +318,10 @@ TEST(FlexSliding, KinematicsMatchDifferences) {
   ksl_screw_t v, aq;
   pose_at(0.0, &v, &aq);
   /* the rotation of a node is linear in eta, its rate taken as
-  Upsilon^r eta_dot: they differ at second order in the deformation (1e-10
-  here, 1e-8 with eta and eta_dot ten times larger) */
+  Upsilon^r eta_dot: they differ at second order in the deformation (3e-10
+  here, 100 times more with eta and eta_dot ten times larger; the rod's
+  rotation, from the translations of the wall over its lands, is some
+  hundred times its stations' translations) */
   const double dt = 1e-6;
   const ksl_screw_t v_fd = SpatialVelocity(pose_at(-dt, nullptr, nullptr),
                                            pose_at(dt, nullptr, nullptr),
@@ -353,6 +413,195 @@ TEST(FlexSliding, SolversAgree) {
   }
   std::remove((testing::TempDir() + "/sliding_tube.fe.h5").c_str());
   std::remove((testing::TempDir() + "/sliding_tube.obj").c_str());
+  std::remove((testing::TempDir() + "/sliding_rod.obj").c_str());
 }
 
 #endif
+
+/* the weight of station i's translation along x in the child's at s, with
+no bearing: the cardinal weights of the sliding spline */
+static std::vector<double> Cardinal(size_t count, double first,
+                                    double spacing, double s) {
+  const std::vector<double> map = shift::core::body::Flex::SlidingMap(
+    count, first, spacing, ksl_vec3(0.0, 0.0, 1.0), s);
+  std::vector<double> w(count);
+  for(size_t i = 0; i < count; i++) {
+    w[i] = map[6 * i];
+  }
+  return w;
+}
+
+/* the cardinal weights of the sliding spline, with which the station
+spacing is checked against the full model: one at its own station, zero at
+the others; they sum to one and reproduce a line, inside and beyond the
+ends; and they give the spline's value through any data */
+TEST(FlexSliding, CardinalWeightsAreTheSplines) {
+  const size_t count = 5;
+  const double first = 0.01, spacing = 0.02;
+  for(size_t k = 0; k < count; k++) {
+    const std::vector<double> w =
+      Cardinal(count, first, spacing, first + spacing * double(k));
+    for(size_t i = 0; i < count; i++) {
+      EXPECT_NEAR(w[i], i == k ? 1.0 : 0.0, 1e-14);
+    }
+  }
+  const std::vector<double> y = {0.3, -0.1, 0.7, 0.2, 0.5};
+  const std::vector<double> m =
+    shift::core::body::Flex::SplineCurvatures(y, spacing);
+  EXPECT_EQ(m.front(), 0.0);
+  EXPECT_EQ(m.back(), 0.0);
+  for(double s : {-0.01, 0.017, 0.04, 0.063, 0.1}) {
+    const std::vector<double> w = Cardinal(count, first, spacing, s);
+    double sum = 0.0, line = 0.0, value = 0.0;
+    for(size_t i = 0; i < count; i++) {
+      sum += w[i];
+      line += w[i] * (2.0 - 3.0 * (first + spacing * double(i)));
+      value += w[i] * y[i];
+    }
+    EXPECT_NEAR(sum, 1.0, 1e-14) << s;
+    EXPECT_NEAR(line, 2.0 - 3.0 * s, 1e-14) << s;
+    /* the natural spline between stations 1 and 2 at s = 0.04 (t = 0.5):
+    the mean of the values less h^2 / 16 the mean of the curvatures */
+    if(s == 0.04) {
+      EXPECT_NEAR(value,
+                  0.5 * (y[1] + y[2]) -
+                    spacing * spacing / 16.0 * (m[1] + m[2]),
+                  1e-14);
+    }
+  }
+}
+
+/* the child carried by the mean motion of the bore's wall under its
+bearing (Flex::CarryShape), where the bearing lies within the bore,
+overhangs either end, and spans it: stations moving rigidly carry the
+child rigidly with them; for any motion of the stations, the child's is the
+least-squares mean of the interpolated sections (integrals by Simpson's
+rule on the point weights); and its derivatives in s are those of its
+motion (central differences, to their truncation error) */
+TEST(FlexSliding, BearingCarriesTheMeanMotion) {
+  const size_t count = 6;
+  const double first = 0.01, spacing = 0.02, radius = 0.008;
+  const ksl_vec3_t axis = ksl_vec3(0.0, 0.0, 1.0);
+  shift::core::body::SlidingBearing bearing;
+  bearing.intervals = {{-0.012, -0.004}, {0.003, 0.015}};
+  bearing.radius = radius;
+  bearing.low = first - 0.5 * spacing;
+  bearing.high = first + (double(count) - 0.5) * spacing;
+  EXPECT_NEAR(shift::core::body::Flex::BearingCenter(bearing),
+              (0.5 * (0.004 * 0.004 - 0.012 * 0.012) +
+               0.5 * (0.015 * 0.015 - 0.003 * 0.003)) /
+                0.020,
+              1e-15);
+  shift::core::body::SlidingBearing spanning = bearing;
+  spanning.intervals = {{-0.2, 0.2}};
+  /* a motion of the stations: their translations and rotations */
+  std::vector<double> motion(6 * count);
+  for(size_t k = 0; k < motion.size(); k++) {
+    motion[k] = std::sin(1.0 + 0.9 * double(k));
+  }
+  const size_t n = 6 * count;
+  auto apply = [&](const std::vector<double>& map,
+                   const std::vector<double>& u) {
+    std::array<double, 6> out = {};
+    for(size_t r = 0; r < 6; r++) {
+      for(size_t k = 0; k < n; k++) {
+        out[r] += map[r * n + k] * u[k];
+      }
+    }
+    return out;
+  };
+  for(const auto* b : {&bearing, &spanning}) {
+    const double center = shift::core::body::Flex::BearingCenter(*b);
+    for(double s : {0.043, 0.0057, 0.111, 0.0}) {
+      const std::vector<double> map = shift::core::body::Flex::SlidingMap(
+        count, first, spacing, axis, s, *b);
+      /* rigid: u_i = t + w x (x_i a), theta_i = w */
+      const double t[3] = {0.3, -0.2, 0.5}, w[3] = {0.7, -0.4, 0.25};
+      std::vector<double> rigid(n);
+      for(size_t i = 0; i < count; i++) {
+        const double x = first + spacing * double(i);
+        rigid[6 * i + 0] = t[0] + w[1] * x;
+        rigid[6 * i + 1] = t[1] - w[0] * x;
+        rigid[6 * i + 2] = t[2];
+        for(int c = 0; c < 3; c++) {
+          rigid[6 * i + 3 + size_t(c)] = w[c];
+        }
+      }
+      const double x_c = s + center;
+      const std::array<double, 6> carried = apply(map, rigid);
+      const double expected[6] = {t[0] + w[1] * x_c, t[1] - w[0] * x_c, t[2],
+                                  w[0], w[1], w[2]};
+      for(int r = 0; r < 6; r++) {
+        EXPECT_NEAR(carried[size_t(r)], expected[r], 1e-12) << s << " " << r;
+      }
+      /* the least-squares mean of the sections */
+      double l = 0.0, g = 0.0, h = 0.0;
+      double u[3] = {}, xu[3] = {}, th[3] = {};
+      for(const auto& interval : b->intervals) {
+        const double low = std::max(s + interval[0], b->low);
+        const double high = std::min(s + interval[1], b->high);
+        if(!(high > low)) {
+          continue;
+        }
+        const int panels = 2000;
+        const double step = (high - low) / panels;
+        for(int p = 0; p <= panels; p++) {
+          const double x = low + step * p;
+          const double weight =
+            step / 3.0 * (p == 0 || p == panels ? 1.0 : p % 2 ? 4.0 : 2.0);
+          const std::array<double, 6> at = apply(
+            shift::core::body::Flex::SlidingMap(count, first, spacing, axis,
+                                                x),
+            motion);
+          for(int c = 0; c < 3; c++) {
+            u[c] += weight * at[size_t(c)];
+            xu[c] += weight * x * at[size_t(c)];
+            th[c] += weight * at[3 + size_t(c)];
+          }
+        }
+        l += high - low;
+        g += 0.5 * (high * high - low * low);
+        h += (high * high * high - low * low * low) / 3.0;
+      }
+      const double middle = g / l;
+      const double d = h - g * middle + 0.5 * radius * radius * l;
+      /* across the axis z: (a x (int x u - xbar int u) + r^2/2 int theta) */
+      const double rotation[3] = {
+        (-(xu[1] - middle * u[1]) + 0.5 * radius * radius * th[0]) / d,
+        ((xu[0] - middle * u[0]) + 0.5 * radius * radius * th[1]) / d,
+        th[2] / l};
+      const double translation[3] = {
+        u[0] / l + (x_c - middle) * rotation[1],
+        u[1] / l - (x_c - middle) * rotation[0], u[2] / l};
+      const std::array<double, 6> mean = apply(map, motion);
+      for(int c = 0; c < 3; c++) {
+        EXPECT_NEAR(mean[size_t(c)], translation[c], 1e-9) << s << " " << c;
+        EXPECT_NEAR(mean[3 + size_t(c)], rotation[c], 1e-7) << s << " " << c;
+      }
+      /* the derivatives */
+      const double ds = 2e-6;
+      auto at = [&](double x, int derivative) {
+        return apply(shift::core::body::Flex::SlidingMap(
+                       count, first, spacing, axis, x, *b, derivative),
+                     motion);
+      };
+      const std::array<double, 6> d1 = at(s, 1), d2 = at(s, 2);
+      const std::array<double, 6> plus = at(s + ds, 0),
+                                  minus = at(s - ds, 0);
+      const std::array<double, 6> plus_1 = at(s + ds, 1),
+                                  minus_1 = at(s - ds, 1);
+      double size_1 = 1.0, size_2 = 1.0;
+      for(int r = 0; r < 6; r++) {
+        size_1 = std::max(size_1, std::abs(d1[size_t(r)]));
+        size_2 = std::max(size_2, std::abs(d2[size_t(r)]));
+      }
+      for(size_t r = 0; r < 6; r++) {
+        EXPECT_NEAR(d1[r], (plus[r] - minus[r]) / (2.0 * ds), 1e-6 * size_1)
+          << s << " " << r;
+        EXPECT_NEAR(d2[r], (plus_1[r] - minus_1[r]) / (2.0 * ds),
+                    1e-6 * size_2)
+          << s << " " << r;
+      }
+    }
+  }
+}

@@ -493,8 +493,10 @@ public:
   static constexpr int kPoints = 3;
   static constexpr int kCount = 4;
 
-  /* \p nodes makes the frames "tip" and "mid" nodes at points 0 and 1 */
-  explicit TestFlexRotating(bool nodes = false) {
+  /* \p nodes makes the frames "tip" and "mid" nodes at points 0 and 1;
+  without \p rotations the shapes only translate the points, so the nodes'
+  motion is exact rather than linear in the elastic coordinates */
+  explicit TestFlexRotating(bool nodes = false, bool rotations = true) {
     const ksl_vec3_t positions[kPoints] = {ksl_vec3(1.0, 0.0, 0.0),
                                            ksl_vec3(0.5, 0.2, -0.1),
                                            ksl_vec3(0.2, -0.3, 0.15)};
@@ -511,10 +513,11 @@ public:
       rotary[i].m01 = rotary[i].m10 = 0.002;
       for(int j = 0; j < kCount; j++) {
         const double a = 1.0 + 7 * i + j;
+        const double r = rotations ? 0.5 : 0.0;
         shapes[i * kCount + j] =
           ksl_screw(0.3 * std::sin(a), 0.3 * std::sin(2 * a),
-                    0.3 * std::sin(3 * a), 0.5 * std::cos(a),
-                    0.5 * std::cos(2 * a), 0.5 * std::cos(3 * a));
+                    0.3 * std::sin(3 * a), r * std::cos(a),
+                    r * std::cos(2 * a), r * std::cos(3 * a));
       }
     }
     /* symmetric, positive definite */
@@ -574,6 +577,11 @@ bool TestFlexRotating::registered_ =
     "test_flex_rotating_nodes",
     +[]() -> std::unique_ptr<shift::core::body::Base> {
       return std::make_unique<TestFlexRotating>(true);
+    }) &&
+  shift::core::Factory<shift::core::body::Base>::get()->RegisterModule(
+    "test_flex_translating_nodes",
+    +[]() -> std::unique_ptr<shift::core::body::Base> {
+      return std::make_unique<TestFlexRotating>(true, false);
     });
 
 /* the chain fixed -J1- a -J2- s with the rotating flexible body s, solved
@@ -1117,6 +1125,165 @@ TEST(FlexDca, TreeWithNodesMatchesRnca) {
   }
 }
 
+/* a load at a node with nothing attached there: the node slot has no mass,
+and the load still reaches the body (and ABA and DCA, with nothing at the
+node slots, still factor M_ee once) */
+/* RotatingTreeModel with a spherical joint into the first flexible body
+and one out of it at a node, and a float joint from a node of the first to
+the second */
+static std::string BallTreeModel(const std::string& solver, double time_span,
+                                 bool rotations = true) {
+  std::string model = RotatingTreeModel(solver, time_span);
+  auto swap = [&model](const std::string& from, const std::string& to) {
+    const size_t at = model.find(from);
+    EXPECT_NE(at, std::string::npos) << from;
+    if(at != std::string::npos) {
+      model.replace(at, from.size(), to);
+    }
+  };
+  if(!rotations) {
+    for(int k = 0; k < 2; k++) {
+      swap("test_flex_rotating_nodes", "test_flex_translating_nodes");
+    }
+  }
+  swap(R"({"name": "J2", "type": "revolute", "axis": [1, 0, 0],
+    "initial_displacement": 0.3, "initial_velocity": -2.0,)",
+       R"({"name": "J2", "type": "spherical",
+    "initial_displacement": {"R": [[1, 0, 0], [0, 0.8, -0.6], [0, 0.6, 0.8]]},
+    "initial_velocity": [-2.0, 0.6, 0.9],)");
+  swap(R"({"name": "J3", "type": "revolute", "axis": [0, 1, 0],
+    "initial_displacement": 0.2, "initial_velocity": 0.8,)",
+       R"({"name": "J3", "type": "spherical",
+    "initial_displacement": {"R": [[0.8, 0, 0.6], [0, 1, 0], [-0.6, 0, 0.8]]},
+    "initial_velocity": [0.4, 0.8, -0.5],)");
+  swap(R"({"name": "J4", "type": "revolute", "axis": [0, 0, 1],
+    "initial_displacement": -0.4, "initial_velocity": 1.1,)",
+       R"({"name": "J4", "type": "float",
+    "initial_displacement": {"T": [0.05, -0.02, 0.1],
+                             "R": [[0.8, -0.6, 0], [0.6, 0.8, 0], [0, 0, 1]]},
+    "initial_velocity": [0.3, -0.2, 0.1, 0.5, -0.4, 1.1],)");
+  return model;
+}
+
+/* spherical joints before and after a flexible body and a float joint
+between two: ABA and DCA give RNCA's state derivatives and kinetic energy,
+and DCA follows RNCA over a run */
+TEST(FlexDca, SphericalAndFloatJointsMatchRnca) {
+  auto rnca = FlexParticles::Load(BallTreeModel("rnca", 0.3), "ball_rnca");
+  const std::vector<double> dy_rnca = FlexParticles::Derivatives(*rnca);
+  for(const std::string solver : {"dca", "aba"}) {
+    auto context =
+      FlexParticles::Load(BallTreeModel(solver, 0.3), "ball_" + solver);
+    ExpectDerivativesNear(FlexParticles::Derivatives(*context), dy_rnca,
+                          solver);
+    EXPECT_NEAR(context->KineticEnergy(), rnca->KineticEnergy(),
+                1e-12 * rnca->KineticEnergy())
+      << solver;
+  }
+
+  auto dca = FlexParticles::Load(BallTreeModel("dca", 0.3), "ball_dca_run");
+  const std::vector<double> y_rnca = FlexParticles::Run(*rnca);
+  const std::vector<double> y_dca = FlexParticles::Run(*dca);
+  ASSERT_EQ(y_dca.size(), y_rnca.size());
+  for(size_t k = 0; k < y_dca.size(); k++) {
+    EXPECT_NEAR(y_dca[k], y_rnca[k], 1e-8 * std::fmax(1.0, std::fabs(y_rnca[k])))
+      << k;
+  }
+}
+
+/* the same tree with shapes that only translate the points, so that the
+nodes' motion is exact: over a run each solver keeps the energy (kinetic,
+gravitational and elastic) */
+TEST(FlexDca, SphericalAndFloatJointsKeepEnergy) {
+  auto energy = [](shift::core::Context& context) {
+    double elastic = 0.0;
+    const double* q = context.get_q().data();
+    for(int i : context.get_elastic_bodies()) {
+      auto body = dynamic_cast<shift::core::body::Flex*>(
+        context.get_active_articulated_bodies()[i]);
+      elastic += body->ElasticEnergy(q + body->get_elastic_q_index());
+    }
+    return context.KineticEnergy() + context.GravitationalPotentialEnergy() +
+           elastic;
+  };
+  for(const std::string solver : {"rnca", "aba", "dca"}) {
+    auto context = FlexParticles::Load(BallTreeModel(solver, 0.3, false),
+                                       "ball_energy_" + solver);
+    FlexParticles::Derivatives(*context);
+    const double initial = energy(*context);
+    const double kinetic = context->KineticEnergy();
+    const std::vector<double> y = FlexParticles::Run(*context);
+    std::copy(y.begin(), y.begin() + context->get_q_count(),
+              context->get_q().begin());
+    std::copy(y.begin() + context->get_q_count(), y.end(), context->get_dq());
+    auto solver_object = (*context)["model_parameters"]["solvers"][0]
+                           .get_data<shift::core::solver::Base>();
+    std::vector<double> y_full(y);
+    y_full.resize(context->get_state_count() +
+                  context->get_auxiliary_state_count());
+    std::vector<double> dy(y_full.size(), 0.0);
+    ASSERT_FALSE(solver_object->Solve(0.3, y_full, dy)) << solver;
+    EXPECT_GT(kinetic, 1.0) << solver;
+    EXPECT_NEAR(energy(*context), initial, 1e-7 * kinetic) << solver;
+  }
+}
+
+static std::string LoadedNodeModel(const std::string& solver) {
+  std::string model = RotatingModel(solver, 0.2);
+  const std::string body = R"("type": "test_flex_rotating", "geometry": [],
+    "frames": [{"name": "root", "T": [0.1, 0.05, 0.0],
+               "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]]}]})";
+  const size_t at = model.find(body);
+  EXPECT_NE(at, std::string::npos);
+  model.replace(at, body.size(),
+                R"("type": "test_flex_rotating_nodes", "geometry": [],
+    "frames": [{"name": "root", "T": [0.1, 0.05, 0.0],
+               "R": [[0, -1, 0], [1, 0, 0], [0, 0, 1]]},
+               {"name": "tip", "T": [1.0, 0.0, 0.0]},
+               {"name": "mid", "T": [0.5, 0.2, -0.1]}]})");
+  const std::string end = "]}]}";
+  const size_t last = model.rfind(end);
+  EXPECT_NE(last, std::string::npos);
+  model.replace(last, end.size(), R"(],
+  "force_modules": [{"type": "applied_load", "name": "l", "body": "s",
+                     "frame": "mid", "coordinates": "fixed",
+                     "force": [3.0, -2.0, 4.0], "moment": [0.5, 0.2, -0.3]}]}]})");
+  return model;
+}
+
+TEST(FlexDca, LoadAtAnEmptyNodeMatchesRnca) {
+  auto rnca = FlexParticles::Load(LoadedNodeModel("rnca"), "dca_load_rnca");
+  auto unloaded = FlexParticles::Load(RotatingModel("rnca", 0.2),
+                                      "dca_load_none");
+  const std::vector<double> dy_rnca = FlexParticles::Derivatives(*rnca);
+  const std::vector<double> dy_none = FlexParticles::Derivatives(*unloaded);
+  double change = 0.0;
+  for(size_t k = 0; k < dy_rnca.size(); k++) {
+    change = std::max(change, std::fabs(dy_rnca[k] - dy_none[k]));
+  }
+  EXPECT_GT(change, 0.1); // the load acts
+  for(const std::string solver : {"dca", "aba"}) {
+    auto context = FlexParticles::Load(LoadedNodeModel(solver),
+                                       "dca_load_" + solver);
+    ExpectDerivativesNear(FlexParticles::Derivatives(*context), dy_rnca,
+                          solver);
+  }
+}
+
+/* a flexible body without node slots: ABA and DCA factor its constant M_ee
+once, and DCA solves it by the Schur complement on its frame */
+TEST(FlexDca, BodyWithoutNodesMatchesRnca) {
+  auto rnca = FlexParticles::Load(RotatingModel("rnca", 0.2),
+                                  "dca_frame_rnca");
+  const std::vector<double> dy_rnca = FlexParticles::Derivatives(*rnca);
+  for(const std::string solver : {"dca", "aba"}) {
+    auto context = FlexParticles::Load(RotatingModel(solver, 0.2),
+                                       "dca_frame_" + solver);
+    ExpectDerivativesNear(FlexParticles::Derivatives(*context), dy_rnca,
+                          solver);
+  }
+}
+
 /* the particle body's shapes move its points in every direction, which
 repeats the rigid motion of its frame: free of its joint, its mass matrix
 is singular, and DCA reports it rather than solving it */
@@ -1201,7 +1368,13 @@ D, a loop member hanging from the node. \p deformed starts the coupler
 deformed and moving (test_flex_particles), the loop open */
 static std::string FourBarModel(bool flexible, double time_span,
                                 bool deep_pivot = false,
-                                bool deformed = false) {
+                                bool deformed = false,
+                                bool spherical = false) {
+  /* spherical B and D make it a spatial four-bar, the coupler free to spin
+  about the line through them */
+  const std::string coupler_joint =
+    spherical ? R"("type": "spherical")"
+              : R"("type": "revolute", "axis": [0, 1, 0])";
   const double theta = 0.5;
   const double length = 0.6;
   std::stringstream end;
@@ -1265,7 +1438,7 @@ static std::string FourBarModel(bool flexible, double time_span,
   "joints": [
    {"name": "A", "type": "revolute", "axis": [0, 1, 0],
     "parent": [["fixed"], "origin"], "child": [["c1"], "origin"]},
-   {"name": "B", "type": "revolute", "axis": [0, 1, 0],
+   {"name": "B", )" << coupler_joint << R"(,
     "parent": [["c1"], "end"], "child": [["s"], "origin"]},
    {"name": "C", "type": "revolute", "axis": [0, 1, 0],
     "parent": )" << (deep_pivot ? R"([["g2"], "origin"])"
@@ -1279,7 +1452,7 @@ static std::string FourBarModel(bool flexible, double time_span,
     "parent": [["g1"], "origin"], "child": [["g2"], "origin"]},)";
   }
   ss << R"(
-   {"name": "D", "type": "revolute", "axis": [0, 1, 0],
+   {"name": "D", )" << coupler_joint << R"(,
     "parent": )"
      << (flexible ? R"([["s"], "tip"])" : R"([["m0"], "origin"])")
      << R"(, "child": [["c2"], "end"]})";
@@ -1729,6 +1902,50 @@ TEST(FlexBridge, GivenRateKeptAtLoad) {
   const double fine = ConstraintErrorAfterStep(*context, 1e-4) / 1e-4;
   EXPECT_LT(fine, 1e-3);
   EXPECT_LT(fine, 0.2 * coarse + 1e-12);
+}
+
+/* the spatial four-bar (spherical B and D, at the coupler's frame and at
+its node) against its rigid twin: accelerations, and a run with every joint
+coordinate, quaternions included; the coupler's off-plane point makes it
+spin about the line through B and D */
+TEST(FlexFourBar, SphericalJointsMatchRigidModel) {
+  auto flexible = FlexParticles::Load(FourBarModel(true, 0.01, false, false, true),
+                                      "fourbar_flex_ball_a");
+  auto rigid = FlexParticles::Load(FourBarModel(false, 0.01, false, false, true),
+                                   "fourbar_rigid_ball_a");
+  const std::vector<double> dy_flexible = FlexParticles::Derivatives(*flexible);
+  const std::vector<double> dy_rigid = FlexParticles::Derivatives(*rigid);
+  CompareFourBars(*flexible, dy_flexible, *rigid, dy_rigid, true, 1e-9,
+                  {"A", "C"});
+  EXPECT_GT(std::fabs(dy_rigid[rigid->get_q_count() +
+                               FlexParticles::DqIndex(*rigid, "A")]),
+            0.1);
+
+  flexible = FlexParticles::Load(FourBarModel(true, 0.5, false, false, true),
+                                 "fourbar_flex_ball_t");
+  rigid = FlexParticles::Load(FourBarModel(false, 0.5, false, false, true),
+                              "fourbar_rigid_ball_t");
+  const std::vector<double> y_flexible = FlexParticles::Run(*flexible);
+  const std::vector<double> y_rigid = FlexParticles::Run(*rigid);
+  CompareFourBars(*flexible, y_flexible, *rigid, y_rigid, false, 1e-7,
+                  {"A", "C"});
+  CompareFourBars(*flexible, y_flexible, *rigid, y_rigid, true, 1e-6,
+                  {"A", "C"});
+  for(const std::string name : {"B", "D"}) {
+    const int f = FlexParticles::QIndex(*flexible, name);
+    const int r = FlexParticles::QIndex(*rigid, name);
+    for(int k = 0; k < 4; k++) {
+      EXPECT_NEAR(y_flexible[f + k], y_rigid[r + k], 1e-7) << name << " " << k;
+    }
+    const int fv = flexible->get_q_count() + FlexParticles::DqIndex(*flexible, name);
+    const int rv = rigid->get_q_count() + FlexParticles::DqIndex(*rigid, name);
+    for(int k = 0; k < 3; k++) {
+      EXPECT_NEAR(y_flexible[fv + k], y_rigid[rv + k], 1e-6)
+        << name << " rate " << k;
+    }
+  }
+  const int b = rigid->get_q_count() + FlexParticles::DqIndex(*rigid, "B");
+  EXPECT_GT(std::fabs(y_rigid[b]) + std::fabs(y_rigid[b + 2]), 0.1);
 }
 
 TEST(FlexFourBar, TrajectoryMatchesRigidModel) {

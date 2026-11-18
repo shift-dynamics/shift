@@ -4,6 +4,7 @@ common to Modal and Nodal, and BuildElastic */
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 
@@ -21,6 +22,7 @@ common to Modal and Nodal, and BuildElastic */
 #include <iterator>
 
 #include "shift/core/context.h"
+#include "shift/core/cad/triangulate.h"
 #include "shift/core/fea/cache.h"
 #include "shift/core/fea/element.h"
 #include "shift/core/fea/flex_model.h"
@@ -52,9 +54,9 @@ void shift::core::body::FlexAttachment::DeclareParameters() {
   DeclareParameter("bearing_length", &bearing_length,
                    "for the parent frame of a prismatic joint whose child "
                    "slides along a bore of the body: the length of the "
-                   "bore wall that carries the child at each position, and "
-                   "the spacing of the stations along the bore (default: "
-                   "the bore's diameter)",
+                   "bore wall that carries the child, centred on the "
+                   "child's frame (default: where the child's geometry lies "
+                   "on the bore, else the bore's diameter)",
                    false);
 }
 
@@ -116,6 +118,228 @@ void shift::core::body::Flex::DeclareFiniteElementParameters() {
                    false)
     .set_row_dim(-1);
 }
+
+#if SHIFT_HAVE_FEA
+/* the stations along a bore are the fewest that carry its sliding child
+within kSlidingTolerance of the full model (SlidingError), or beyond which
+more do not bring the error below kSlidingGain times it: there it is that
+of the mesh (the deformation of the wall under the bearing, which the
+stations, each averaging its own nodes, carry only in part) */
+static const double kSlidingTolerance = 0.01;
+static const double kSlidingGain = 0.9;
+
+/* count segments of a bore, centred spacing apart from first (along the
+axis from the sliding frame), each tied to the bore's nodes within half a
+spacing of its centre; with clamp the end segments reach the bore's ends,
+so that every node of the bore is tied */
+static std::vector<shift::core::fea::Attachment>
+BoreSegments(const shift::core::fea::TetMesh& mesh,
+             const shift::core::fea::AttachmentRequest& slide,
+             const shift::core::fea::Bore& bore, double first,
+             double spacing, int count, bool clamp) {
+  ksl_vec3_t axis = slide.axis;
+  ksl_vec3_normalize(&axis);
+  std::vector<shift::core::fea::Attachment> segments(
+    static_cast<size_t>(count));
+  for(int k = 0; k < count; k++) {
+    segments[size_t(k)].position = slide.position;
+    ksl_axpy_vv(first + k * spacing, &axis, &segments[size_t(k)].position);
+  }
+  for(int node : bore.nodes) {
+    ksl_vec3_t r;
+    ksl_subtract_vv(&mesh.nodes[size_t(node)], &slide.position, &r);
+    const double x = (ksl_dot_vv(&r, &axis) - first) / spacing + 0.5;
+    int k = static_cast<int>(std::floor(x));
+    if(clamp) {
+      k = std::clamp(k, 0, count - 1);
+    } else if(k < 0 || k >= count) {
+      continue;
+    }
+    segments[size_t(k)].nodes.push_back(node);
+  }
+  return segments;
+}
+
+/* the surface of a body's active mesh and STEP geometry, in its origin
+coordinates (a STEP solid triangulated with edges up to element_size) */
+static void BodySurface(shift::core::body::Base& body, double element_size,
+                        std::vector<ksl_vec3_t>* points,
+                        std::vector<std::array<int, 3>>* triangles) {
+  for(auto& geometry : body.get_geometry()) {
+    if(!geometry->is_active()) {
+      continue;
+    }
+    if(auto mesh =
+         dynamic_cast<shift::core::geometry::Mesh*>(geometry.get())) {
+      mesh->Load();
+      for(const auto& data : mesh->get_mesh_data()) {
+        const int base = static_cast<int>(points->size());
+        for(size_t i = 0; i + 2 < data.vertices.size(); i += 3) {
+          points->push_back(ksl_vec3(data.vertices[i], data.vertices[i + 1],
+                                     data.vertices[i + 2]));
+        }
+        for(size_t i = 0; i + 2 < data.faces.size(); i += 3) {
+          triangles->push_back({base + int(data.faces[i]),
+                                base + int(data.faces[i + 1]),
+                                base + int(data.faces[i + 2])});
+        }
+      }
+    } else if(auto cad =
+                dynamic_cast<shift::core::geometry::Cad*>(geometry.get())) {
+      cad->Load();
+      const shift::core::geometry::CadAsset* asset = cad->get_asset();
+      shift::core::cad::TriangulateOptions options;
+      options.element_size = element_size / cad->get_scale();
+      for(const auto& placed : asset->bodies) {
+        if(!asset->model.bodies[size_t(placed.body)].solid) {
+          continue;
+        }
+        const shift::core::cad::Triangulation t =
+          shift::core::cad::Triangulate(asset->model, placed.body, options);
+        const int base = static_cast<int>(points->size());
+        for(const auto& p : t.points) {
+          const shift::core::cad::Vec3 q = placed.transform.Apply(p);
+          points->push_back(ksl_vec3(cad->get_scale() * q[0],
+                                     cad->get_scale() * q[1],
+                                     cad->get_scale() * q[2]));
+        }
+        for(const auto& triangle : t.triangles) {
+          triangles->push_back(
+            {base + triangle[0], base + triangle[1], base + triangle[2]});
+        }
+      }
+    }
+  }
+}
+
+/* the nodes of a bore within the part of a bearing within it, the child
+at s, offsets along the axis from the sliding frame */
+static std::vector<int>
+BearingNodes(const shift::core::fea::TetMesh& mesh,
+             const shift::core::fea::AttachmentRequest& slide,
+             const shift::core::fea::Bore& bore,
+             const shift::core::body::SlidingBearing& bearing, double s) {
+  ksl_vec3_t axis = slide.axis;
+  ksl_vec3_normalize(&axis);
+  std::vector<int> nodes;
+  for(int node : bore.nodes) {
+    ksl_vec3_t r;
+    ksl_subtract_vv(&mesh.nodes[size_t(node)], &slide.position, &r);
+    const double x = ksl_dot_vv(&r, &axis);
+    for(const auto& interval : bearing.intervals) {
+      if(x >= std::max(s + interval[0], bearing.low) &&
+         x <= std::min(s + interval[1], bearing.high)) {
+        nodes.push_back(node);
+        break;
+      }
+    }
+  }
+  return nodes;
+}
+
+/* the full model's compliance at the child of a sliding frame, as it bears
+on the bore (BearingNodes tied to it as one attachment at its point s +
+center along the axis), at positions s spread along its travel (where it
+bears on 3 nodes or more): each 36 values, row-major, translation first */
+struct BearingCompliance {
+  double s = 0.0;
+  std::vector<double> compliance;
+};
+static std::vector<BearingCompliance>
+FullBearingCompliances(const shift::core::fea::TetMesh& mesh,
+                       const shift::core::fea::HeldCompliance& held,
+                       const shift::core::fea::AttachmentRequest& slide,
+                       const shift::core::fea::Bore& bore,
+                       const shift::core::body::SlidingBearing& bearing) {
+  ksl_vec3_t axis = slide.axis;
+  ksl_vec3_normalize(&axis);
+  double first = 1e300, last = -1e300;
+  for(const auto& interval : bearing.intervals) {
+    first = std::min(first, interval[0]);
+    last = std::max(last, interval[1]);
+  }
+  const double center = shift::core::body::Flex::BearingCenter(bearing);
+  const double from = bore.low - last, to = bore.high - first;
+  const int positions = 5;
+  std::vector<BearingCompliance> result;
+  for(int k = 0; k < positions; k++) {
+    BearingCompliance entry;
+    entry.s = from + (to - from) * (k + 1) / (positions + 1);
+    shift::core::fea::Attachment attachment;
+    attachment.nodes = BearingNodes(mesh, slide, bore, bearing, entry.s);
+    if(attachment.nodes.size() < 3) {
+      continue;
+    }
+    attachment.position = slide.position;
+    ksl_axpy_vv(entry.s + center, &axis, &attachment.position);
+    entry.compliance = held.Compliance({attachment});
+    result.push_back(entry);
+  }
+  return result;
+}
+
+/* how well count stations along a bore carry the child of a sliding frame
+as it bears on the bore: at each of the full model's positions, the
+compliance at the child as the stations carry it (the stations'
+compliance mapped by the cardinal weights of the bearing's mean, with its
+transport), against the full model's. The error of the translation block
+and of the rotation block (Frobenius norms), each the greatest over the
+positions relative to the greatest compliance there (near the parent
+frame, where the compliance is least, an error relative to each position's
+own would be dominated by the deformation of the bore under the bearing);
+the greater of the two. */
+static double SlidingError(const shift::core::fea::TetMesh& mesh,
+                           const shift::core::fea::HeldCompliance& held,
+                           const shift::core::fea::AttachmentRequest& slide,
+                           const shift::core::fea::Bore& bore, int count,
+                           const shift::core::body::SlidingBearing& bearing,
+                           const std::vector<BearingCompliance>& full) {
+  if(full.empty()) {
+    return 0.0;
+  }
+  ksl_vec3_t axis = slide.axis;
+  ksl_vec3_normalize(&axis);
+  const double spacing = (bore.high - bore.low) / count;
+  const double first = bore.low + 0.5 * spacing;
+  const std::vector<double> c_s = held.Compliance(
+    BoreSegments(mesh, slide, bore, first, spacing, count, true));
+  const size_t n = 6 * size_t(count);
+  double error_max[2] = {0.0, 0.0}, size_max[2] = {0.0, 0.0};
+  for(const BearingCompliance& entry : full) {
+    /* the child's motion u = T u_s of the stations' */
+    const std::vector<double> T = shift::core::body::Flex::SlidingMap(
+      size_t(count), first, spacing, axis, entry.s, bearing);
+    std::vector<double> TC(6 * n, 0.0);
+    for(size_t r = 0; r < 6; r++) {
+      for(size_t k = 0; k < n; k++) {
+        if(T[r * n + k] == 0.0) {
+          continue;
+        }
+        for(size_t c = 0; c < n; c++) {
+          TC[r * n + c] += T[r * n + k] * c_s[k * n + c];
+        }
+      }
+    }
+    for(int block = 0; block < 2; block++) {
+      double error = 0.0, size = 0.0;
+      for(int r = 3 * block; r < 3 * block + 3; r++) {
+        for(int c = 3 * block; c < 3 * block + 3; c++) {
+          double spline = 0.0;
+          for(size_t k = 0; k < n; k++) {
+            spline += TC[size_t(r) * n + k] * T[size_t(c) * n + k];
+          }
+          const double value = entry.compliance[size_t(r) * 6 + size_t(c)];
+          error += (spline - value) * (spline - value);
+          size += value * value;
+        }
+      }
+      error_max[block] = std::max(error_max[block], std::sqrt(error));
+      size_max[block] = std::max(size_max[block], std::sqrt(size));
+    }
+  }
+  return std::max(error_max[0] / size_max[0], error_max[1] / size_max[1]);
+}
+#endif
 
 void shift::core::body::Flex::BuildElastic(Frame* reference,
                                            const std::vector<FrameUse>& uses) {
@@ -302,6 +526,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   std::vector<shift::core::fea::AttachmentRequest> slides;
   std::vector<double> bearing_lengths;
   std::vector<size_t> sliding_frames;
+  std::vector<size_t> request_frames; /*!< the frame of each request */
   for(size_t f = 0; f < frames.size(); f++) {
     const FrameUse& use = frames[f];
     const ksl_SE3_t* D = use.frame->get_d_wrt_origin();
@@ -341,6 +566,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       request.radius = entry->second->radius;
     }
     requests.push_back(request);
+    request_frames.push_back(f);
   }
   if(retained_points_.size() % 3) {
     throw shift::core::Exception("Flexible body '" + get_name() +
@@ -373,6 +599,48 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       needed = mode_count_ > 0 ? static_cast<unsigned int>(mode_count_) : 10;
     }
   }
+
+  /* the surface of each sliding frame's child in its frame's coordinates
+  (which are the sliding frame's as the joint's coordinate is zero), where
+  it bears on the bore; none with a bearing_length */
+  std::vector<std::vector<ksl_vec3_t>> child_points(slides.size());
+  std::vector<std::vector<std::array<int, 3>>> child_triangles(slides.size());
+  for(size_t i = 0; i < slides.size(); i++) {
+    const FrameUse& use = frames[sliding_frames[i]];
+    if(bearing_lengths[i] > 0.0 || !use.child_body || !use.child_frame) {
+      continue;
+    }
+    BodySurface(*use.child_body, h, &child_points[i], &child_triangles[i]);
+    const ksl_SE3_t* D = use.child_frame->get_d_wrt_origin();
+    for(ksl_vec3_t& p : child_points[i]) {
+      ksl_vec3_t r;
+      ksl_subtract_vv(&p, &D->t, &r);
+      ksl_product_drinvv(&D->R, &r, &p);
+    }
+  }
+  /* where the child of sliding frame i bears on a bore of radius: over
+  bearing_length centred on its frame if given, else its surface on the
+  bore, else the bore's diameter centred on its frame */
+  auto bearing_of = [&](size_t i, double radius, std::string* source) {
+    shift::core::body::SlidingBearing bearing;
+    if(bearing_lengths[i] > 0.0) {
+      bearing.intervals = {{-0.5 * bearing_lengths[i], 0.5 * bearing_lengths[i]}};
+      *source = "its bearing_length";
+      return bearing;
+    }
+    ksl_vec3_t axis = frames[sliding_frames[i]].axis;
+    ksl_vec3_normalize(&axis);
+    bearing.intervals = shift::core::fea::BearingIntervals(
+      child_points[i], child_triangles[i], ksl_vec3(0.0, 0.0, 0.0), axis,
+      radius);
+    if(!bearing.intervals.empty()) {
+      *source = "its geometry";
+    } else {
+      bearing.intervals = {{-radius, radius}};
+      *source = "the bore's diameter: no surface of the child lies on the bore";
+    }
+    return bearing;
+  };
 
   /* what the analysis depends on, but for the modes chosen */
   std::stringstream fingerprint;
@@ -429,7 +697,15 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     fingerprint << "sliding '" << r.name << "' " << r.position.x << " "
                 << r.position.y << " " << r.position.z << " axis " << r.axis.x
                 << " " << r.axis.y << " " << r.axis.z << " bearing "
-                << bearing_lengths[i] << "\n";
+                << bearing_lengths[i] << " child " << std::hex
+                << shift::core::fea::Fnv1a(
+                     child_points[i].data(),
+                     child_points[i].size() * sizeof(ksl_vec3_t))
+                << " "
+                << shift::core::fea::Fnv1a(child_triangles[i].data(),
+                                           child_triangles[i].size() *
+                                             sizeof(child_triangles[i][0]))
+                << std::dec << "\n";
   }
 
   /* the cache file: fe_cache, or <model>.<body>.fe.h5, beside the model */
@@ -501,48 +777,78 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
       }
       ties << ";";
     }
-    /* the stations of each sliding frame: the bore cut into lengths of the
-    bearing, each tied to its frame-to-be at its middle on the axis */
+    /* the stations of each sliding frame: the bore cut into equal lengths,
+    each tied to its frame-to-be at its middle on the axis; 2 or more, each
+    a mesh size long or more, as kSlidingTolerance and kSlidingGain choose */
     std::vector<std::string> owners;
     for(const auto& request : requests) {
       owners.push_back(request.name);
     }
     cache.sliding_stations.clear();
+    cache.sliding_radii.clear();
+    std::unique_ptr<shift::core::fea::HeldCompliance> held;
     for(size_t i = 0; i < slides.size(); i++) {
       const auto& slide = slides[i];
+      report("placing the stations of its sliding frames");
       const shift::core::fea::Bore bore =
         shift::core::fea::FindBore(mesh, slide);
-      const double length =
-        bearing_lengths[i] > 0.0 ? bearing_lengths[i] : 2.0 * bore.radius;
+      std::string source;
+      shift::core::body::SlidingBearing bearing =
+        bearing_of(i, bore.radius, &source);
+      bearing.radius = bore.radius;
+      bearing.low = bore.low;
+      bearing.high = bore.high;
+      if(!held) {
+        held = std::make_unique<shift::core::fea::HeldCompliance>(
+          mesh, assembled, attachments[0]);
+      }
+      const std::vector<BearingCompliance> full =
+        FullBearingCompliances(mesh, *held, slide, bore, bearing);
       const double extent = bore.high - bore.low;
-      const int count =
-        std::max(1, static_cast<int>(std::lround(extent / length)));
+      const int most = std::max(2, static_cast<int>(extent / h));
+      int count = 2;
+      double error =
+        SlidingError(mesh, *held, slide, bore, count, bearing, full);
+      while(error > kSlidingTolerance && count < most) {
+        const int next = std::min(
+          most, std::max(count + 1, static_cast<int>(std::lround(1.5 * count))));
+        const double spacing = extent / next;
+        const auto segments = BoreSegments(
+          mesh, slide, bore, bore.low + 0.5 * spacing, spacing, next, true);
+        if(std::any_of(segments.begin(), segments.end(),
+                       [](const shift::core::fea::Attachment& a) {
+                         return a.nodes.empty();
+                       })) {
+          break;
+        }
+        const double next_error =
+          SlidingError(mesh, *held, slide, bore, next, bearing, full);
+        if(!(next_error < kSlidingGain * error)) {
+          break;
+        }
+        count = next;
+        error = next_error;
+      }
       const double spacing = extent / count;
-      ksl_vec3_t axis = slide.axis;
-      ksl_vec3_normalize(&axis);
-      std::vector<shift::core::fea::Attachment> stations(
-        static_cast<size_t>(count));
-      for(int k = 0; k < count; k++) {
-        stations[size_t(k)].position = slide.position;
-        ksl_axpy_vv(bore.low + (k + 0.5) * spacing, &axis,
-                    &stations[size_t(k)].position);
-      }
-      for(int node : bore.nodes) {
-        ksl_vec3_t r;
-        ksl_subtract_vv(&mesh.nodes[size_t(node)], &slide.position, &r);
-        const int k = std::clamp(
-          static_cast<int>((ksl_dot_vv(&r, &axis) - bore.low) / spacing), 0,
-          count - 1);
-        stations[size_t(k)].nodes.push_back(node);
-      }
+      std::vector<shift::core::fea::Attachment> stations =
+        BoreSegments(mesh, slide, bore, bore.low + 0.5 * spacing, spacing,
+                     count, true);
       for(auto& station : stations) {
         attachments.push_back(station);
         owners.push_back(slide.name);
       }
       cache.sliding_stations.push_back(count);
+      cache.sliding_radii.push_back(bore.radius);
       ties << " '" << slide.name << "' sliding along " << count
            << " stations " << spacing << " apart of a bore of radius "
-           << bore.radius << " (" << bore.nodes.size() << " nodes);";
+           << bore.radius << " (" << bore.nodes.size()
+           << " nodes), its child bearing on it over";
+      for(const auto& interval : bearing.intervals) {
+        ties << " [" << interval[0] << ", " << interval[1] << "]";
+      }
+      ties << " from its frame (from " << source
+           << "); the compliance at the child within " << error
+           << " of the full model's;";
     }
     /* a node in two attachments: name the frames */
     std::map<int, size_t> owner;
@@ -655,7 +961,8 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     station_count += size_t(std::max(count, 0));
   }
   if(reduction.attachment_points.size() != requests.size() + station_count ||
-     cache.sliding_stations.size() != slides.size()) {
+     cache.sliding_stations.size() != slides.size() ||
+     cache.sliding_radii.size() != slides.size()) {
     throw shift::core::Exception("Flexible body '" + get_name() +
                                  "': its cache does not match its frames");
   }
@@ -685,8 +992,16 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
     const double spacing =
       count > 1 ? (s_of(stations[count - 1]) - first) / double(count - 1)
                 : 0.0;
+    std::string source;
+    shift::core::body::SlidingBearing bearing =
+      bearing_of(i, cache.sliding_radii[i], &source);
+    bearing.radius = cache.sliding_radii[i];
+    if(count > 1) {
+      bearing.low = first - 0.5 * spacing;
+      bearing.high = first + (double(count) - 0.5) * spacing;
+    }
     SetSlidingNode(frames[sliding_frames[i]].frame->get_name(), stations,
-                   first, spacing, frames[sliding_frames[i]].axis);
+                   first, spacing, frames[sliding_frames[i]].axis, bearing);
   }
   const size_t n = reduction.elastic_count;
   if(!initial_elastic_coordinates_.empty() ||
@@ -708,6 +1023,29 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   mesh_boundary_face_ = cache.boundary_face;
   mesh_node_count_ = cache.node_count;
   attachment_nodes_ = cache.attachment_nodes;
+  attachment_info_.clear();
+  for(size_t a = 0; a < requests.size(); a++) {
+    const FrameUse& use = frames[request_frames[a]];
+    AttachmentInfo info;
+    info.frame = requests[a].name;
+    info.user = use.user.empty() ? std::string("listed in attachments")
+                                 : use.user;
+    info.rbe2 =
+      requests[a].spider == shift::core::fea::Attachment::Spider::kRbe2;
+    info.reference = a == 0;
+    attachment_info_.push_back(info);
+  }
+  for(size_t i = 0; i < slides.size(); i++) {
+    const int count = cache.sliding_stations[i];
+    for(int j = 0; j < count; j++) {
+      AttachmentInfo info;
+      info.frame = slides[i].name;
+      info.user = frames[sliding_frames[i]].user;
+      info.station = j;
+      info.station_count = count;
+      attachment_info_.push_back(info);
+    }
+  }
   /* the surface's stresses in the columns of the elastic coordinates
   (static modes, then the modes kept), then of the modes computed: full's
   static modes, then its modes */

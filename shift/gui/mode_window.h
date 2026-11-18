@@ -33,15 +33,17 @@ computed, with their frequencies, those kept checked
 The selected shape is drawn on the body in the viewport (Simulation::
 PreviewShape), its largest nodal displacement the amplitude set by the
 slider as a fraction of the body's size, still or moving back and forth.
-Apply gives the modes checked (indices into the modes computed, ascending
-in frequency) to apply, which writes them as modes_kept and loads the model
-again; it is offered only for a modal body. Closing the window draws the
-state shown again.
+The vibration modes of a modal body can be checked: each change gives the
+modes checked (indices into the modes computed, ascending in frequency) to
+changed, and the body panel's Apply writes them as modes_kept with its
+other changes. Closing the window draws the state shown again.
 */
 class ModeWindow : public QDialog {
 public:
-  ModeWindow(Simulation& simulation, int body,
-             std::function<void(const std::vector<int>&)> apply,
+  /*! \p checked: the modes shown checked at first (those kept, or a
+   * choice not yet applied) */
+  ModeWindow(Simulation& simulation, int body, const std::vector<int>& checked,
+             std::function<void(const std::vector<int>&)> changed,
              std::function<void()> redraw, QWidget* parent = nullptr);
   ~ModeWindow() override;
 
@@ -60,7 +62,7 @@ private:
   Simulation& simulation_;
   int body_;
   const shift::core::body::Flex* flex_ = nullptr;
-  std::function<void(const std::vector<int>&)> apply_;
+  std::function<void(const std::vector<int>&)> changed_;
   std::function<void()> redraw_;
   double size_ = 1.0; /*!< the diagonal of the body's undeformed box */
   QListWidget* list_ = nullptr;
