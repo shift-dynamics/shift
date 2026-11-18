@@ -1,5 +1,12 @@
-#version 450
+#version 460
 #extension GL_GOOGLE_include_directive : require
+// HARDWARE_RAY_QUERY: the variant for devices that trace rays in hardware
+// (VK_KHR_ray_query), compiled with glslc and run in place of the other
+// when the viewer made such a device (hardware_ray_tracing.h); it keeps the
+// BVH of the other for when it has no acceleration structure
+#ifdef HARDWARE_RAY_QUERY
+#extension GL_EXT_ray_query : require
+#endif
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // Path tracer over a two-level scene: one BVH per mesh in body coordinates,
@@ -44,11 +51,20 @@ struct Instance {
   mat4 previous_body_to_world; // pose in the previous frame (reprojection)
   vec4 optical;       // x = opacity, yzw = glow: factor of the albedo
                       // emitted (a lamp's lens, lit)
-  vec4 variation;     // x = 1: vary the tiles of triplanar textures; w = 1:
-                      // colored by the stress in u (flex_normals.comp)
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures, y =
+                      // material map + 1 (triplanar), z = alpha cutoff
   ivec4 surface_layers; // base color and normal of surfaces 0 and 1
   vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
                       // level, w = 1 / patch size
+  ivec4 lods;         // x = the levels in lod_roots, yzw = the mesh's own
+                      // texture layers (as offsets), which they take
+  ivec4 lod_roots;    // root nodes of the mesh and of its simplified levels
+                      // of detail, finest first, for shadow and bounce rays
+  vec4 lod_errors;    // how far each level strays from the mesh (m, world)
+  vec4 flex;          // x = 1: colored by the stress (a mesh's in u, from
+                      // flex_normals.comp; a CAD's in its motion's w), y =
+                      // a flexible body's CAD: the offset of its triangles'
+                      // motion from the triangles, z = 1 for such a CAD
 };
 
 // illumination of this frame's sample, radiance / albedo (sky: radiance)
@@ -63,14 +79,28 @@ layout(std140, binding = 1) uniform Uniforms {
   vec4 sky_zenith;
   vec4 sky_horizon;
     vec4 floor_params;  // y = grid spacing, z = enabled, w = extent
-  vec4 texture_params; // x = pixel spread angle, y = texture size
+  vec4 texture_params; // x = pixel spread angle, y = texture size, z =
+                       // log2 of the size of the large textures over it,
+                       // w = level of detail tolerance (pixels)
     ivec4 control;      // x = instance count, y = sample index (random
                       // numbers), z = frames accumulated since the view
                       // last changed
   mat4 floor_frame;   // columns: in-plane axes, normal up (out of the
                       // solid), origin
+  vec4 fog_params;    // density, height falloff, height, 1 if any fog
+  vec4 fog_color;
+  vec4 water_params;  // height (up), wave height, wavelength, 1 if water
+  vec4 water_wave;    // direction of travel (x, y), time
+  vec4 water_color;
+  vec4 water_extinction;
+  uvec4 hardware; // xy = device address of the top level acceleration
+                  // structure (low, high bits), z = 1 if there is one
   vec4 color_map[16]; // the stress's colors (sRGB), as in mesh.frag
 } u;
+
+// the radiance of the sky, equirectangular (see environment.glsl)
+layout(binding = 18) uniform sampler2D sky_radiance;
+#include "environment.glsl"
 
 layout(std430, binding = 2) readonly buffer Triangles {
   RtTriangle triangles[];
@@ -95,32 +125,54 @@ layout(rgba32f, binding = 5) uniform image2D accumulation;
 
 // texture layers of all materials
 layout(binding = 6) uniform sampler2DArray textures;
+// the layers larger than the others, from layer kLargeLayer on (scene.h:
+// Scene::large_texture_layers)
+layout(binding = 21) uniform sampler2DArray large_textures;
+const int kLargeLayer = 65536;
+
+// a texture layer at p, at the level of detail lod of a layer of the size
+// texture_params.y
+vec4 LayerTexel(int layer, vec2 p, float lod) {
+  if(layer >= kLargeLayer) {
+    return textureLod(large_textures, vec3(p, float(layer - kLargeLayer)),
+                      lod + u.texture_params.z);
+  }
+  return textureLod(textures, vec3(p, float(layer)), lod);
+}
 
 // G-buffer of the primary hit: world position and instance (-1 sky, with the
-// ray direction in xyz; -2 floor), normal and hit distance, albedo
+// ray direction in xyz; -2 floor; -3 deep water, at its surface), normal and
+// hit distance, albedo
 layout(rgba32f, binding = 7) uniform writeonly image2D gbuffer_position;
 layout(rgba16f, binding = 8) uniform writeonly image2D gbuffer_normal;
 layout(rgba16f, binding = 9) uniform writeonly image2D gbuffer_albedo;
-// direct sunlight: a delta light with hard shadows, so free of noise apart
-// from the sub-pixel jitter; it bypasses the denoiser's temporal history,
-// which would make moving shadows lag
+// direct light (the model's lights, and the sunlight past the first
+// surface), free of noise apart from the sub-pixel jitter; it bypasses the
+// denoiser's temporal history, which would make moving shadows lag
 layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
+// the sunlight on the first surface the camera sees, unshadowed (rgb), and
+// the distance to the solid that shadows its center (a, 0 if none); the
+// sun's share that passed is direct_light's alpha. sun_shadow.comp widens
+// the shadows of solids into their penumbrae and adds the sunlight.
+layout(rgba16f, binding = 22) uniform writeonly image2D sun_light;
 
 // the motion of the vertices of deforming triangles since the previous
 // frame, body coordinates, 3 per triangle: those whose TriangleFaces entry
 // f is -2 or less, at 3 (-f - 2)
-layout(std430, binding = 18) readonly buffer TriangleMotion {
+layout(std430, binding = 23) readonly buffer TriangleMotion {
   vec4 triangle_motion[];
 };
 // the motion of the primary hit's point of its body since the previous
 // frame, body coordinates (0 but on a deforming body), for reprojection
-layout(rgba16f, binding = 19) uniform writeonly image2D gbuffer_motion;
+layout(rgba16f, binding = 24) uniform writeonly image2D gbuffer_motion;
 
 // the lights of the model, sampled like the sun, with shadows
 #define LIGHTS_BINDING 12
 #define IES_BINDING 13
 #include "lights.glsl"
 #include "surfaces.glsl"
+#define GROUND_BINDING 19
+#include "ground.glsl"
 
 // CAD faces (cad_triangulate.comp): per triangle, -1 for a mesh's, else
 // face * 2 + 1 if a hit must be inside the face's trims, face * 2 otherwise;
@@ -197,19 +249,86 @@ vec3 CosineHemisphere(vec3 n) {
 
 // with_sun: false for bounce rays, since the sun is sampled explicitly
 vec3 Sky(vec3 d, bool with_sun) {
-  float altitude = -d.z;
-  vec3 color;
-  if(altitude >= 0.0) {
-    color = mix(u.sky_horizon.rgb, u.sky_zenith.rgb, pow(altitude, 0.5));
-  } else {
-    color = mix(u.sky_horizon.rgb, vec3(0.12, 0.11, 0.10),
-                clamp(-altitude * 4.0, 0.0, 1.0));
-  }
+  vec3 color = textureLod(sky_radiance, EquirectUv(d), 0.0).rgb;
   if(with_sun) {
     float s = max(dot(d, u.sun_direction.xyz), 0.0);
     color += u.sun_color.rgb * (pow(s, 1500.0) * 20.0 + pow(s, 30.0) * 0.15);
   }
   return color;
+}
+
+#define WATER_PARAMS u.water_params
+#define WATER_WAVE u.water_wave
+#define WATER_COLOR u.water_color
+#define WATER_EXTINCTION u.water_extinction
+#define SUN_DIRECTION u.sun_direction
+#define SUN_COLOR u.sun_color
+#define SKY_ZENITH u.sky_zenith
+vec3 WaterSky(vec3 d) {
+  return Sky(d, false);
+}
+#include "water.glsl"
+
+// the gap between the ray at t and the waves below it (m, positive above
+// them), for a pixel of pixel_angle (rad), the waves scaled by shoal
+float WaterGap(vec3 o, vec3 d, float t, vec2 along, float grazing,
+               float pixel_angle, float shoal) {
+  vec3 p = o + d * t;
+  vec2 slope;
+  float lost;
+  float h = WaterWaves(p.xy, along, t * pixel_angle / grazing,
+                       t * pixel_angle, false, shoal, slope, lost);
+  return WaterZ() - h - p.z;
+}
+
+// where the ray from o along d (a unit vector) first meets the water,
+// nearer than t_far, or -1: near the camera, where the waves are drawn, by
+// marching through the crests and troughs, each step no longer than the
+// gap to the waves allows for their steepest slope, then bisecting, so
+// that the crests hide the troughs behind them and stand against the
+// horizon; beyond, where the waves are too short for the pixels, the level
+// surface. bottom is the depth (m, of the level water) of what the ray
+// meets beyond, the bottom near where it crosses the surface in the
+// shallows, where the waves have broken (WaterShoal).
+float WaterMarch(vec3 o, vec3 d, float t_far, float pixel_angle,
+                 float bottom) {
+  float z = WaterZ();
+  if(!HasWater() || o.z >= z || d.z <= 1e-6) {
+    return -1.0;
+  }
+  float t_level = (z - o.z) / d.z;
+  float shoal = WaterShoal(bottom);
+  float crest = shoal * WaterCrest();
+  float horizontal = length(d.xy);
+  vec2 along = horizontal > 1e-6 ? -d.xy / horizontal : vec2(1.0, 0.0);
+  float grazing = max(d.z, 0.02);
+  // the waves of the peak are averaged out where the footprint along the
+  // view is as long as they are
+  float t_waves = WATER_PARAMS.z * grazing / max(pixel_angle, 1e-6);
+  // the steepest slope of the waves, without the ripples
+  float steepest = max(shoal * WATER_EXTINCTION.w, 0.05);
+  float t = max((z - crest - o.z) / d.z, 0.0);
+  float t_end = min(min((z + crest - o.z) / d.z, t_waves), t_far);
+  float before = t;
+  for(int i = 0; i < 64 && t <= t_end; i++) {
+    float gap = WaterGap(o, d, t, along, grazing, pixel_angle, shoal);
+    if(gap <= 0.0) {
+      // between the last point above the waves and this one below
+      float a = before, b = t;
+      for(int k = 0; k < 8; k++) {
+        float m = 0.5 * (a + b);
+        if(WaterGap(o, d, m, along, grazing, pixel_angle, shoal) > 0.0) {
+          a = m;
+        } else {
+          b = m;
+        }
+      }
+      return b < t_far ? b : -1.0;
+    }
+    before = t;
+    t += max(gap / (d.z + steepest * horizontal), 0.005);
+  }
+  return t_level < t_far ? t_level : -1.0;
 }
 
 // exact line coverage: jittered samples accumulated over frames filter the
@@ -274,23 +393,117 @@ struct Hit {
   int instance;  // -1: none, -2: floor
   int triangle;
   vec2 bary;
+  bool coarse;   // through the instance's coarse level (Instance::lods)
 };
 
 // the share of light left by the transparent surfaces an any_hit Trace passed
 float light_passed;
 
-// closest hit when any_hit is false, otherwise stops at the first hit that is
-// opaque, or that leaves too little light, and dims light_passed by the
-// transparent ones before it. Both levels of BVH are traversed nearest box
-// first, and a box farther than the closest hit so far is skipped, so a
-// closest hit mostly tests the triangles around it.
-bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
-           out Hit hit) {
-  hit.t = t_max;
-  hit.instance = -1;
-  hit.triangle = -1;
-  hit.bary = vec2(0.0);
+// the width of the cone of a coarse ray (shadow or bounce) at its origin,
+// and its growth per unit length: where it meets a cut-out card, the card's
+// texture is read at the level of detail of that width (ray cones), so that
+// the far and the blurred see the coarse levels, which the cache holds
+float ray_footprint;
+float ray_spread;
+// a shadow ray toward the sun also stands for the share ray_halo_share of
+// the light that the haze scatters into the aureole, a cone that grows by
+// ray_halo_spread per unit length: cut-out cards dim it by their coverage
+// at the width of each cone, read from the texture's levels of detail
+float ray_halo_share = 0.0;
+// set for the first surface the camera sees: SunLight leaves out its light
+// and keeps it, its share that passed and the shadow's distance, here
+bool split_sun = false;
+vec3 sun_split = vec3(0.0);
+float sun_passed = 1.0;
+float sun_blocker = 0.0;
+// the distance to the solid that stopped the last LightPassed, 0 if none
+float light_blocker = 0.0;
+float ray_halo_spread = 0.0;
 
+// the level of detail of the texture of triangle k of an instance of scale
+// where a coarse ray meets it at t
+float CoarseLod(int k, float t, float scale, float spread) {
+  RtTriangle r = triangles[k];
+  vec2 a = vec2(r.v0.w, r.n0.w);
+  vec2 b = vec2(r.v1.w, r.n1.w);
+  vec2 c = vec2(r.v2.w, r.n2.w);
+  float uv_area = abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
+  float area = length(cross(r.v1.xyz - r.v0.xyz, r.v2.xyz - r.v0.xyz)) *
+               scale * scale;
+  float texels_per_length =
+    sqrt(uv_area / max(area, 1e-12)) * u.texture_params.y;
+  return max(log2((ray_footprint + t * spread) * texels_per_length), 0.0);
+}
+
+// whether a ray's hit at t of triangle k of instance i counts: not where a
+// card is cut out, or a CAD face trimmed; a shadow ray (any_hit) passes the
+// transparent surfaces, dimming light_passed by them, until too little
+// light is left
+bool AcceptHit(int i, int k, float t, vec2 bary, bool any_hit, bool coarse) {
+  // a leaf or a blade of grass: where it is cut out of its card
+  int color_layer =
+    coarse ? instances[i].lods.y : instances[i].offsets.y;
+  float cutoff = instances[i].variation.z;
+  if(cutoff > 0.0 && color_layer >= 0) {
+    vec2 uv = TriangleUv(k, bary);
+    if(!coarse) {
+      if(LayerTexel(color_layer, uv, 0.0).a < cutoff) {
+        return false;
+      }
+    } else {
+      float scale = length(instances[i].body_to_world[0].xyz);
+      float lod = CoarseLod(k, t, scale, ray_spread);
+      float alpha = LayerTexel(color_layer, uv, lod).a;
+      if(!any_hit) {
+        if(alpha < cutoff) {
+          return false;
+        }
+      } else {
+        // a shadow ray: where the cone covers several texels,
+        // their mean alpha is the share of it the card covers
+        // (the cut, sharp at one texel, fades into it over the
+        // first level), for the disk and for the aureole
+        float cover = mix(step(cutoff, alpha), alpha,
+                          clamp(lod, 0.0, 1.0));
+        if(ray_halo_share > 0.0) {
+          float halo_lod =
+            CoarseLod(k, t, scale, ray_halo_spread);
+          float halo_alpha =
+            LayerTexel(color_layer, uv, halo_lod).a;
+          float halo_cover =
+            mix(step(cutoff, halo_alpha), halo_alpha,
+                clamp(halo_lod, 0.0, 1.0));
+          cover = mix(cover, halo_cover, ray_halo_share);
+        }
+        if(cover < 1.0) {
+          light_passed *= 1.0 - cover;
+          if(light_passed >= kLeastLight) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  // a CAD face's triangle sticking out of its trims
+  int face = triangle_faces[k];
+  if(face >= 0 && (face & 1) != 0 &&
+     !InsideTrims(face >> 1, TriangleUv(k, bary))) {
+    return false;
+  }
+  if(any_hit) {
+    light_passed *= 1.0 - instances[i].optical.x;
+    if(light_passed >= kLeastLight) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// the instances' meshes along a ray, through the BVHs of the instances and
+// of the meshes (see Trace); coarse: through the coarsest level of detail
+// of each mesh that strays from it less than the ray blurs it
+bool TraceBvh(vec3 origin, vec3 direction, float t_max, bool any_hit,
+              bool coarse, inout Hit hit) {
   vec3 inverse_world_direction = 1.0 / direction;
   // nodes and the distances to their boxes; nearer child first, a stack
   // holds at most one deferred node per level, so 32 covers kBvhMaxDepth of
@@ -348,18 +561,38 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
       continue;
     }
     int i = instance_node.right_or_first;
-    // rigid transform: the ray parameter t is the same in both frames
+    // rigid transform and uniform scale: the ray parameter t is the same in
+    // both frames, the direction d not of unit length when scaled
     vec3 o = (instances[i].world_to_body * vec4(origin, 1.0)).xyz;
     vec3 d = mat3(instances[i].world_to_body) * direction;
     vec3 inverse_d = 1.0 / d;
 
     int sp = 0;
+    int root = instances[i].offsets.x;
+    if(coarse) {
+      // the coarsest level that strays from the mesh less than the ray
+      // blurs it: by its cone (a shadow ray's the sun's disk) where it
+      // reaches the instance, and by the tolerance's pixels where the
+      // camera sees its origin
+      vec3 center = 0.5 * (instances[i].box_min.xyz + instances[i].box_max.xyz);
+      float near = max(length(center - origin) -
+                         0.5 * length(instances[i].box_max.xyz -
+                                      instances[i].box_min.xyz),
+                       0.0);
+      float allowed = ray_footprint * u.texture_params.w + near * ray_spread;
+      root = instances[i].lod_roots.x;
+      for(int k = 1; k < instances[i].lods.x; k++) {
+        if(instances[i].lod_errors[k] <= allowed) {
+          root = instances[i].lod_roots[k];
+        }
+      }
+    }
     {
-      BvhNode root = nodes[instances[i].offsets.x];
-      float d_root =
-        BoxDistance(o, inverse_d, root.box_min, root.box_max, hit.t);
+      BvhNode root_node = nodes[root];
+      float d_root = BoxDistance(o, inverse_d, root_node.box_min,
+                                 root_node.box_max, hit.t);
       if(d_root < kInfinity) {
-        stack[0] = instances[i].offsets.x;
+        stack[0] = root;
         distance[sp++] = d_root;
       }
     }
@@ -378,22 +611,14 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
           if(TriangleHit(o, d, triangles[k].v0.xyz, triangles[k].v1.xyz,
                          triangles[k].v2.xyz, t, bary) &&
              t < hit.t) {
-            // a CAD face's triangle sticking out of its trims
-            int face = triangle_faces[k];
-            if(face >= 0 && (face & 1) != 0 &&
-               !InsideTrims(face >> 1, TriangleUv(k, bary))) {
+            if(!AcceptHit(i, k, t, bary, any_hit, coarse)) {
               continue;
-            }
-            if(any_hit) {
-              light_passed *= 1.0 - instances[i].optical.x;
-              if(light_passed >= kLeastLight) {
-                continue;
-              }
             }
             hit.t = t;
             hit.instance = i;
             hit.triangle = k;
             hit.bary = bary;
+            hit.coarse = coarse;
             if(any_hit) {
               return true;
             }
@@ -429,7 +654,78 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
     }
   }
 
-    // the floor is hit from above, its free side
+  return hit.instance != -1;
+}
+
+#ifdef HARDWARE_RAY_QUERY
+// the instances' meshes along a ray, through the device's acceleration
+// structure: an instance of each mesh as the camera sees it (mask 1) and
+// one of the mesh itself for bounce rays (mask 2) and for shadow rays (mask
+// 4), one instance where they are the same, its custom index the
+// instance's, its shader binding table offset the index of its first
+// triangle in triangles[]. Instances that need no test of their hits
+// (AcceptHit) are opaque, so that the device alone decides; for camera and
+// bounce rays, the opacity micromaps of cut-out cards decide where the
+// texture is wholly opaque or transparent, and AcceptHit the rest.
+bool TraceHardware(vec3 origin, vec3 direction, float t_max, bool any_hit,
+                   bool coarse, inout Hit hit) {
+  rayQueryEXT query;
+  rayQueryInitializeEXT(query, accelerationStructureEXT(u.hardware.xy),
+                        any_hit ? gl_RayFlagsTerminateOnFirstHitEXT
+                                : gl_RayFlagsNoneEXT,
+                        coarse ? (any_hit ? 4u : 2u) : 1u, origin, 0.0,
+                        direction, t_max);
+  while(rayQueryProceedEXT(query)) {
+    int i = rayQueryGetIntersectionInstanceCustomIndexEXT(query, false);
+    int k = int(rayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetEXT(
+              query, false)) +
+            rayQueryGetIntersectionPrimitiveIndexEXT(query, false);
+    float t = rayQueryGetIntersectionTEXT(query, false);
+    vec2 bary = rayQueryGetIntersectionBarycentricsEXT(query, false);
+    if(AcceptHit(i, k, t, bary, any_hit, coarse)) {
+      rayQueryConfirmIntersectionEXT(query);
+    }
+  }
+  if(rayQueryGetIntersectionTypeEXT(query, true) ==
+     gl_RayQueryCommittedIntersectionTriangleEXT) {
+    hit.t = rayQueryGetIntersectionTEXT(query, true);
+    hit.instance = rayQueryGetIntersectionInstanceCustomIndexEXT(query, true);
+    hit.triangle =
+      int(rayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetEXT(
+        query, true)) +
+      rayQueryGetIntersectionPrimitiveIndexEXT(query, true);
+    hit.bary = rayQueryGetIntersectionBarycentricsEXT(query, true);
+    hit.coarse = coarse;
+  }
+  return hit.instance != -1;
+}
+#endif
+
+// closest hit when any_hit is false, otherwise stops at the first hit that
+// is opaque, or that leaves too little light, and dims light_passed by the
+// transparent ones before it; coarse: shadow and bounce rays, which the eye
+// does not follow (their levels of detail, the textures they read)
+bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
+           bool coarse, out Hit hit) {
+  hit.t = t_max;
+  hit.instance = -1;
+  hit.coarse = false;
+  hit.triangle = -1;
+  hit.bary = vec2(0.0);
+  bool found = false;
+#ifdef HARDWARE_RAY_QUERY
+  if(u.hardware.z != 0u) {
+    found = u.control.x > 0 &&
+            TraceHardware(origin, direction, t_max, any_hit, coarse, hit);
+  } else
+#endif
+  {
+    found = TraceBvh(origin, direction, t_max, any_hit, coarse, hit);
+  }
+  if(found && any_hit) {
+    return true;
+  }
+  // the floor is hit from above, its free side
   float toward_floor = dot(direction, u.floor_frame[2].xyz);
   if(u.floor_params.z > 0.5 && toward_floor < -1e-6) {
     float t = dot(u.floor_frame[3].xyz - origin, u.floor_frame[2].xyz) /
@@ -446,7 +742,9 @@ bool Trace(vec3 origin, vec3 direction, float t_max, bool any_hit,
 float LightPassed(vec3 origin, vec3 direction, float t_max) {
   light_passed = 1.0;
   Hit hit;
-  return Trace(origin, direction, t_max, true, hit) ? 0.0 : light_passed;
+  bool blocked = Trace(origin, direction, t_max, true, true, hit);
+  light_blocker = blocked ? hit.t : 0.0;
+  return blocked ? 0.0 : light_passed;
 }
 
 float Opacity(Hit hit) {
@@ -459,10 +757,12 @@ vec3 PastSurface(vec3 origin, vec3 direction, float t) {
 }
 
 // closest hit of a bounce ray, which passes a transparent surface with the
-// probability of the light that does; origin becomes that of the hit
-bool TraceBounce(inout vec3 origin, vec3 direction, out Hit hit) {
+// probability of the light that does; origin becomes that of the hit;
+// coarse as in Trace
+bool TraceBounce(inout vec3 origin, vec3 direction, bool coarse,
+                 out Hit hit) {
   for(int layer = 0; layer < kMostBounceLayers; layer++) {
-    if(!Trace(origin, direction, kInfinity, false, hit)) {
+    if(!Trace(origin, direction, kInfinity, false, coarse, hit)) {
       return false;
     }
     if(Random() < Opacity(hit)) {
@@ -470,7 +770,7 @@ bool TraceBounce(inout vec3 origin, vec3 direction, out Hit hit) {
     }
     origin = PastSurface(origin, direction, hit.t);
   }
-  return Trace(origin, direction, kInfinity, false, hit);
+  return Trace(origin, direction, kInfinity, false, coarse, hit);
 }
 
 struct Surface {
@@ -492,7 +792,7 @@ vec3 SrgbToLinear(vec3 c) {
 }
 
 vec4 SampleLayer(int layer, vec2 p, float lod) {
-  return textureLod(textures, vec3(p, float(layer)), lod);
+  return LayerTexel(layer, p, lod);
 }
 
 // the level of detail of the hex-tiled lookups (hex_tiling.glsl), which
@@ -557,6 +857,60 @@ vec3 TriplanarNormal(int layer, vec3 p, vec3 n, vec3 w, float scale, float lod,
   return normalize(sum);
 }
 
+// the depth below the surface (m) of the relief of the ground materials k,
+// of weights weight, at the body position b (as in mesh.frag)
+float GroundDepth(int count, ivec4 k, vec4 weight, vec3 b, vec3 w, float lod,
+                  float body_scale, bool vary) {
+  float depth = 0.0;
+  for(int e = 0; e < count; e++) {
+    GroundMaterial g = ground_materials[k[e]];
+    if(g.layers.w >= 0 && g.scale.z > 0.0) {
+      float scale = g.scale.x;
+      float ground_lod = max(lod + log2(scale / max(body_scale, 1e-20)), 0.0);
+      float h = SampleTriplanar(g.layers.w, b * scale, w, ground_lod, vary).r;
+      depth += weight[e] * g.scale.z * (1.0 - h);
+    }
+  }
+  return depth;
+}
+
+// parallax occlusion mapping of the ground materials, as GroundParallax in
+// mesh.frag: the point of the relief that the ray toward view (a unit vector
+// in the body frame) through the surface at b of normal nb (toward the ray's
+// origin) meets first; pixel is the size of the ray's footprint (m)
+vec3 GroundParallax(int count, ivec4 k, vec4 weight, vec3 b, vec3 view,
+                    vec3 nb, vec3 w, float lod, float body_scale, float pixel,
+                    bool vary) {
+  float deepest = 0.0;
+  for(int e = 0; e < count; e++) {
+    GroundMaterial g = ground_materials[k[e]];
+    if(g.layers.w >= 0) {
+      deepest += weight[e] * g.scale.z;
+    }
+  }
+  float fade = 1.0 - smoothstep(0.5 * deepest, 2.0 * deepest, pixel);
+  if(deepest <= 0.0 || fade <= 0.0) {
+    return b;
+  }
+  float c = max(-dot(view, nb), 0.15);
+  int steps = int(mix(32.0, 8.0, c));
+  float ds = deepest / c / float(steps);
+  float s = 0.0;
+  float gap = GroundDepth(count, k, weight, b, w, lod, body_scale, vary);
+  for(int i = 0; i < steps; i++) {
+    float next = GroundDepth(count, k, weight, b + view * (s + ds), w, lod,
+                             body_scale, vary) -
+                 (s + ds) * c;
+    if(next <= 0.0) {
+      s += ds * gap / max(gap - next, 1e-6);
+      return b + fade * view * s;
+    }
+    gap = next;
+    s += ds;
+  }
+  return b + fade * view * s;
+}
+
 Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   Surface s;
   s.position = origin + direction * hit.t;
@@ -573,6 +927,9 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   }
 
   Instance instance = instances[hit.instance];
+  if(hit.coarse) {
+    instance.offsets.yzw = instance.lods.yzw; // the coarse level's textures
+  }
   RtTriangle tri = triangles[hit.triangle];
   float b0 = 1.0 - hit.bary.x - hit.bary.y;
   vec3 e1 = tri.v1.xyz - tri.v0.xyz;
@@ -583,7 +940,9 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
     nb = face;
   }
   nb = normalize(nb);
-  mat3 rotation = mat3(instance.body_to_world);
+  // the instance's rotation, without the uniform scale of a placed mesh
+  mat3 rotation = mat3(instance.body_to_world) /
+                  max(length(instance.body_to_world[0].xyz), 1e-20);
   // two sided: seen from behind, the surface is lit as its back face, whose
   // normal (normal mapped too) is the opposite of the front face's
   float side = dot(rotation * nb, direction) > 0.0 ? -1.0 : 1.0;
@@ -616,7 +975,7 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   HexPlanes hex_planes = HexPlanesSetup(p, w, vec3(0.0), vec3(0.0));
 
   s.albedo = instance.albedo.rgb;
-  if(instance.variation.w > 0.5) {
+  if(instance.flex.x > 0.5) {
     float t = clamp(uv.x, 0.0, 1.0) * 15.0;
     int k = min(int(t), 14);
     s.albedo = SrgbToLinear(
@@ -625,11 +984,11 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   int cad_face = triangle_faces[hit.triangle];
   if(cad_face >= 0) {
     vec4 color = faces[cad_face >> 1].color;
-    if(instance.variation.w > 0.5 && instance.variation.z > 0.5) {
+    if(instance.flex.x > 0.5 && instance.flex.z > 0.5) {
       // a flexible body's CAD with its stress drawn: the stress at the
       // corners in its triangles' motion (flex_cad.comp), over the faces'
       // colors
-      uint m = 3u * uint(hit.triangle + int(instance.variation.y));
+      uint m = 3u * uint(hit.triangle + int(instance.flex.y));
       float stress = triangle_motion[m].w * b0 +
                      triangle_motion[m + 1u].w * hit.bary.x +
                      triangle_motion[m + 2u].w * hit.bary.y;
@@ -646,7 +1005,72 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   bool vary = instance.variation.x > 0.5;
   vec3 body_position = (instance.world_to_body * vec4(s.position, 1.0)).xyz;
   float below_brightness = 0.5; // of the texture, for the surfaces' edges
-  if(instance.offsets.y >= 0) {
+  // the materials of a material map in place of the mesh's own textures
+  // (as in mesh.frag)
+  int ground_map = triplanar ? int(instance.variation.y + 0.5) - 1 : -1;
+  if(ground_map >= 0) {
+    ivec4 k;
+    vec4 weight;
+    int count = GroundWeights(ground_map, s.position, k, weight);
+    // the point of the relief seen, sunk into the surface
+    vec3 relief = GroundParallax(
+      count, k, weight, body_position,
+      normalize(mat3(instance.world_to_body) * direction), nb, w, lod,
+      instance.material.w, hit.t * u.texture_params.x, vary);
+    vec4 height = vec4(0.5);
+    for(int e = 0; e < count; e++) {
+      GroundMaterial g = ground_materials[k[e]];
+      if(g.layers.w >= 0) {
+        float scale = g.scale.x;
+        float ground_lod =
+          max(lod + log2(scale / max(instance.material.w, 1e-20)), 0.0);
+        height[e] = SampleTriplanar(g.layers.w, relief * scale, w,
+                                    ground_lod, vary).r;
+      }
+    }
+    weight = GroundHeightBlend(count, k, weight, height);
+    vec3 albedo_sum = vec3(0.0);
+    vec3 normal_sum = vec3(0.0);
+    float roughness_sum = 0.0;
+    float brightness_sum = 0.0;
+    for(int e = 0; e < count; e++) {
+      GroundMaterial g = ground_materials[k[e]];
+      float scale = g.scale.x;
+      vec3 q = relief * scale;
+      // its own level of detail, for its own tile size
+      float ground_lod =
+        max(lod + log2(scale / max(instance.material.w, 1e-20)), 0.0);
+      vec3 c = g.color.rgb;
+      float brightness = 0.5;
+      if(g.layers.x >= 0) {
+        vec4 t = SampleTriplanar(g.layers.x, q, w, ground_lod, vary);
+        brightness = dot(t.rgb, vec3(0.333));
+        c *= SrgbToLinear(t.rgb);
+      }
+      float r = g.color.w;
+      if(g.layers.z >= 0) {
+        r *= SampleTriplanar(g.layers.z, q, w, ground_lod, vary).g;
+      }
+      vec3 ng = geometric;
+      if(g.layers.y >= 0) {
+        ng = side * TriplanarNormal(g.layers.y, q, side * geometric, w,
+                                    g.scale.y, ground_lod, vary);
+      }
+      albedo_sum += weight[e] * c;
+      roughness_sum += weight[e] * r;
+      normal_sum += weight[e] * ng;
+      brightness_sum += weight[e] * brightness;
+    }
+    s.albedo = albedo_sum;
+    s.roughness = roughness_sum;
+    s.metallic = 0.0;
+    nb = normalize(normal_sum);
+    below_brightness = brightness_sum;
+    if(vary) {
+      s.albedo *= MacroBrightness(body_position.xy);
+    }
+  }
+  if(ground_map < 0 && instance.offsets.y >= 0) {
     vec4 t = hex ? HexPlanesColor(hex_planes, instance.offsets.y)
              : triplanar
                ? SampleTriplanar(instance.offsets.y, p, w, lod, vary)
@@ -654,10 +1078,10 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
     below_brightness = dot(t.rgb, vec3(0.333));
     s.albedo *= SrgbToLinear(t.rgb);
   }
-  if(triplanar && vary) {
+  if(ground_map < 0 && triplanar && vary) {
     s.albedo *= MacroBrightness(body_position.xy);
   }
-  if(instance.offsets.z >= 0) {
+  if(ground_map < 0 && instance.offsets.z >= 0) {
     vec4 t = hex ? HexPlanesSample(hex_planes, instance.offsets.z)
              : triplanar
                ? SampleTriplanar(instance.offsets.z, p, w, lod, vary)
@@ -665,7 +1089,7 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
     s.roughness *= t.g;
     s.metallic *= t.b;
   }
-  if(instance.offsets.w >= 0) {
+  if(ground_map < 0 && instance.offsets.w >= 0) {
     if(triplanar) {
       nb = side * (hex ? HexPlanesNormal(hex_planes, instance.offsets.w,
                                          side * nb, instance.albedo.w)
@@ -765,17 +1189,65 @@ vec3 Brdf(Surface s, vec3 v, vec3 l, vec3 diffuse_light,
   return (diffuse * diffuse_light + specular * specular_light) * n_dot_l;
 }
 
+// the sun's angular radius (rad), 0.2666 degrees at its mean distance
+const float kSunRadius = 0.004653;
+// haze and fog scatter part of the sunlight into a narrow lobe about the
+// sun, the solar aureole: particles as large as the wavelength or larger
+// diffract about half of the light they remove into a forward peak about
+// wavelength / diameter wide (the extinction paradox; van de Hulst, "Light
+// Scattering by Small Particles", 1957, sections 8.22 and 12.21). The lobe
+// is taken as a Gaussian of kAureoleWidth (rad), about 3 degrees, as for
+// droplets and aerosols of 5 to 10 um.
+const float kForwardShare = 0.5;
+const float kAureoleWidth = 0.05;
+// how far toward the sun the fog is counted (m), and the air (to space)
+const float kFogReach = 5000.0;
+const float kAirReach = 100000.0;
+
+// the share of the sunlight toward l from p that the haze and the fog
+// scatter into the aureole, all of it with the sun below the horizon. A
+// shadow ray toward the sun's center stands for both cones (see Trace): the
+// disk's, whose penumbra widens with the distance to what casts it, and the
+// aureole's, wider in haze. Without random directions the shadows are the
+// same from frame to frame, and need no denoising; a solid occluder's edge
+// stays sharp, its penumbra being at most centimeters near the ground.
+float SunHaloShare(vec3 p, vec3 l) {
+  float depth = 20.0;
+  if(l.z < -1e-3) {
+    depth = AerosolDepth(p, p + l * kAirReach, u.fog_color.w) -
+            log(max(FogTransmittance(p, p + l * kFogReach, u.fog_params),
+                    1e-9));
+  }
+  return 1.0 - exp(-kForwardShare * min(depth, 20.0));
+}
+
 vec3 SunLight(Surface s, vec3 v, float epsilon) {
+  bool split = split_sun;
+  split_sun = false;
   vec3 l = u.sun_direction.xyz;
   if(dot(s.normal, l) <= 0.0) {
     return vec3(0.0);
   }
-  float passed = LightPassed(s.position + s.normal * epsilon, l, kInfinity);
+  ray_footprint = length(u.camera_position.xyz - s.position) *
+                  u.texture_params.x;
+  ray_spread = 2.0 * kSunRadius; // the penumbra: the sun's disk
+  ray_halo_share = SunHaloShare(s.position, l);
+  ray_halo_spread = 2.0 * kAureoleWidth;
+  float passed =
+    LightPassed(s.position + s.normal * epsilon, l, kInfinity);
+  ray_halo_share = 0.0;
+  vec3 sun = u.sun_color.rgb * u.sun_direction.w;
+  if(split) {
+    // the light as if unshadowed, which the shadow's penumbra may let in
+    sun_split = Brdf(s, v, l, sun, sun);
+    sun_passed = passed;
+    sun_blocker = light_blocker;
+    return vec3(0.0);
+  }
   if(passed <= 0.0) {
     return vec3(0.0);
   }
-  vec3 sun = passed * u.sun_color.rgb * u.sun_direction.w;
-  return Brdf(s, v, l, sun, sun);
+  return Brdf(s, v, l, passed * sun, passed * sun);
 }
 
 // the lights of the model at s, with a shadow ray each, and their ambient
@@ -790,6 +1262,9 @@ vec3 ModelLights(Surface s, vec3 v, float epsilon) {
       continue;
     }
     vec3 origin = s.position + s.normal * epsilon;
+    ray_footprint = length(u.camera_position.xyz - s.position) *
+                    u.texture_params.x;
+    ray_spread = 0.0;
     float passed =
       LightPassed(origin, l, min(distance, kInfinity) - 2.0 * epsilon);
     if(passed <= 0.0) {
@@ -857,7 +1332,12 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
   vec3 bounce_origin = s.position + s.normal * epsilon;
   Hit bounce;
   vec3 incoming;
-  if(TraceBounce(bounce_origin, bounce_direction, bounce)) {
+  // a bounce ray spreads as its lobe, about a tenth of a radian wide for
+  // the glossy and a radian for the diffuse
+  ray_footprint = length(u.camera_position.xyz - s.position) *
+                  u.texture_params.x;
+  ray_spread = mix(0.1, 1.0, s.roughness);
+  if(TraceBounce(bounce_origin, bounce_direction, true, bounce)) {
     Surface b = GetSurface(bounce_origin, bounce_direction, bounce);
     // second surface: unshadowed sun plus a constant sky term
     float n_dot_l = max(dot(b.normal, u.sun_direction.xyz), 0.0);
@@ -913,9 +1393,98 @@ void main() {
   vec3 direct = vec3(0.0);
   vec3 albedo = vec3(0.0);
   float through = 1.0;
+  vec4 first_sun = vec4(0.0);
+  float first_passed = 1.0;
+
+  // water ahead of anything else: its reflection is exact, as the sun's,
+  // and the ray goes on refracted into the water, which dims (tint) what it
+  // reaches and adds the light the water scatters back
+  vec3 tint = vec3(1.0);
+  bool in_water = false;
+  vec3 crossing = origin;
+  float water_through = 0.0; // share of light the surface lets in
+  vec3 water_normal = vec3(0.0, 0.0, -1.0);
+  vec3 water_reflected = vec3(0.0); // light the surface reflects
+  // the sky at the horizon under the view, the light of the air on the way
+  vec3 horizon = Sky(HorizonDirection(direction), false);
+  Hit first;
+  bool first_hit = Trace(origin, direction, kInfinity, false, false, first);
+  // the depth of the bottom the ray meets, if it meets one
+  float bottom = first_hit ? origin.z + direction.z * first.t - WaterZ()
+                           : 1e6;
+  float t_water = WaterMarch(origin, direction,
+                             first_hit ? first.t : kInfinity,
+                             u.texture_params.x, bottom);
+  if(t_water > 0.0) {
+    {
+      crossing = origin + direction * t_water;
+      float roughness;
+      vec3 n = WaterNormal(crossing.xy, origin,
+                           t_water * u.texture_params.x, bottom, roughness);
+      vec3 v = -direction;
+      vec3 m = WaterVisibleNormal(n, v);
+      float f = WaterFresnel(max(dot(m, v), 0.0));
+      // the sky over one of the slopes too short to draw, a frame: the
+      // frames average them
+      vec3 reflected = WaterReflection(n, v, roughness, true,
+                                       vec2(Random(), Random()));
+      // what the water reflects, if not the sky
+      vec3 r = reflect(direction, m);
+      if(r.z < 0.0) {
+        vec3 r_origin = crossing;
+        Hit mirror;
+        if(TraceBounce(r_origin, r, false, mirror)) {
+          Surface ms = GetSurface(r_origin, r, mirror);
+          float n_dot_l = max(dot(ms.normal, u.sun_direction.xyz), 0.0);
+          reflected = f * (ms.albedo * (u.sun_color.rgb * u.sun_direction.w *
+                                          n_dot_l / PI +
+                                        0.3 * u.sky_zenith.rgb +
+                                        ModelLightsDiffuse(ms.position,
+                                                           ms.normal)) +
+                           ms.emission);
+        }
+      }
+      // added once the bottom is found, as the water thins out over it
+      vec3 haze;
+      vec3 clear = Haze(origin, crossing, u.fog_params, u.fog_color, horizon,
+                        haze);
+      water_reflected = clear * reflected + f * haze;
+      vec3 refracted = refract(direction, m, 1.0 / 1.33);
+      if(dot(refracted, refracted) > 0.0) {
+        in_water = true;
+        water_through = 1.0 - f;
+        water_normal = n;
+        origin = crossing;
+        direction = normalize(refracted);
+      } else {
+        direct += water_reflected;
+        through = 0.0;
+      }
+    }
+  }
+
   for(int layer = 0; layer < kMostLayers && through >= kLeastLight; layer++) {
     Hit hit;
-    if(!Trace(origin, direction, kInfinity, false, hit)) {
+    if(in_water && !Trace(origin, direction, kInfinity, false, false, hit)) {
+      // deep water: its own color
+      vec3 haze;
+      vec3 clear = Haze(u.camera_position.xyz, crossing, u.fog_params,
+                        u.fog_color, horizon, haze);
+      direct += water_reflected +
+                through * water_through * (clear * WaterInscatter() + haze);
+      albedo += through;
+      through = 0.0;
+      if(layer == 0) {
+        // the water's surface, instance -3, which the denoiser follows
+        imageStore(gbuffer_position, pixel, vec4(crossing, -3.0));
+        imageStore(gbuffer_normal, pixel,
+                   vec4(0.0, 0.0, -1.0,
+                        distance(u.camera_position.xyz, crossing)));
+      }
+      break;
+    }
+    if(!in_water &&
+       !Trace(origin, direction, kInfinity, false, false, hit)) {
       color += through * Sky(direction, true);
       albedo += through;
       through = 0.0;
@@ -928,13 +1497,53 @@ void main() {
     }
     Surface s = GetSurface(origin, direction, hit);
     vec3 surface_direct;
+    sun_split = vec3(0.0);
+    sun_passed = 1.0;
+    sun_blocker = 0.0;
+    split_sun = layer == 0 && !in_water;
     vec3 surface_color = Shade(s, direction, hit.t, surface_direct);
+    split_sun = false;
     float weight = through * Opacity(hit);
-    color += weight * surface_color;
+    if(in_water) {
+      // dimmed on the way down to the surface and back up to the camera,
+      // with the water's own light on the way up
+      vec3 view = exp(-u.water_extinction.rgb * distance(crossing, s.position));
+      vec3 down = exp(-u.water_extinction.rgb *
+                      max(s.position.z - WaterZ(), 0.0));
+      // foam over shallow water hides what is below it; at the edge of
+      // the swash the water thins out over the sand
+      float depth = max(s.position.z - WaterZ(), 0.0);
+      float foam = WaterFoam(crossing.xy, depth);
+      float sheet = layer == 0 ? WaterSheet(crossing.xy, depth) : 1.0;
+      tint = (1.0 - foam) *
+             mix(vec3(1.0), water_through * view * down, sheet);
+      vec3 haze;
+      vec3 clear = Haze(u.camera_position.xyz, crossing, u.fog_params,
+                        u.fog_color, horizon, haze);
+      direct += (1.0 - foam) * sheet * water_reflected +
+                weight * clear *
+                  ((1.0 - foam) * sheet * water_through * WaterInscatter() *
+                     (1.0 - view) +
+                   foam * WaterFoamLight(water_normal, crossing.xy, foam));
+      water_reflected = vec3(0.0);
+    }
+    // the air and the fog between the camera and the surface dim its light
+    // and add their own, which is exact and so not denoised
+    vec3 haze;
+    vec3 clear = Haze(u.camera_position.xyz, s.position, u.fog_params,
+                      u.fog_color, horizon, haze);
+    color += weight * clear * tint * surface_color;
+    if(layer == 0 && !in_water) {
+      first_sun = vec4(weight * clear * tint * sun_split, sun_blocker);
+      first_passed = sun_passed;
+    }
     // a glowing surface's own light is exact, as the sun's: not denoised
-    direct += weight * (surface_direct + s.emission);
+    direct += weight * (clear * tint * (surface_direct + s.emission) +
+                        haze * (in_water ? water_through : 1.0));
     // demodulation keeps texture detail out of the denoiser's blur; a floor
     // on the albedo avoids amplifying noise on black surfaces
+    // (the water's tint is left in the illumination: as an albedo it could
+    // be small enough for the illumination to overflow its half floats)
     albedo += weight * max(s.albedo, vec3(0.02));
     through -= weight;
     if(layer == 0) {
@@ -944,11 +1553,11 @@ void main() {
       vec3 motion = vec3(0.0);
       if(hit.instance >= 0) {
         // a flexible body's mesh: the motion's entry in its face; its CAD:
-        // offset from the triangle by its instance's variation.y
+        // offset from the triangle by its instance's flex.y
         int face = triangle_faces[hit.triangle];
-        vec4 variation = instances[hit.instance].variation;
+        vec4 flex = instances[hit.instance].flex;
         int entry = face <= -2 ? -face - 2
-                    : variation.z > 0.5 ? hit.triangle + int(variation.y)
+                    : flex.z > 0.5 ? hit.triangle + int(flex.y)
                                         : -1;
         if(entry >= 0) {
           uint m = 3u * uint(entry);
@@ -964,7 +1573,8 @@ void main() {
   albedo += through; // what the last layer let through is dropped
   imageStore(illumination, pixel, vec4(color / albedo, 1.0));
   imageStore(gbuffer_albedo, pixel, vec4(albedo, 1.0));
-  imageStore(direct_light, pixel, vec4(direct, 1.0));
+  imageStore(direct_light, pixel, vec4(direct, first_passed));
+  imageStore(sun_light, pixel, first_sun);
 
   vec3 radiance = color + direct;
   vec3 mean = radiance;

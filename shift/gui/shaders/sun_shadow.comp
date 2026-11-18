@@ -1,0 +1,148 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// Penumbrae of the sun's shadows. The ray tracer traces one shadow ray to
+// the center of the sun's disk, so the shadows of solids are hard and the
+// same from frame to frame. Here the share of the sunlight that passed is
+// averaged over the disk on the surface that the penumbra of the solid
+// casting it would span: its radius is the distance to the solid times the
+// sun's angular radius, as for percentage-closer soft shadows (Fernando,
+// SIGGRAPH 2005 sketches), with the distances found by the ray tracer in
+// place of a shadow map. Pixels count where they lie on the same surface,
+// by normal and plane. The sunlight is then added to the direct light and
+// to the progressive mean.
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end,
+                 // w = maximum history length of the unmoved
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+  vec4 upscale;  // read by svgf_taa.comp
+} u;
+
+layout(rgba32f, binding = 1) uniform readonly image2D position;
+layout(rgba16f, binding = 2) uniform readonly image2D normal;
+// unshadowed sunlight (rgb), distance to the solid shadowing the center (a)
+layout(rgba16f, binding = 3) uniform readonly image2D sun_light;
+// the direct light without the sun's (rgb), the sun's share that passed (a)
+layout(rgba16f, binding = 4) uniform image2D direct_light;
+layout(rgba32f, binding = 5) uniform image2D accumulation;
+// the share that passed, for svgf_taa.comp to find the shadows that moved
+layout(r32f, binding = 6) uniform writeonly image2D sun_passed;
+
+// the sun's angular radius (rad), as in raytrace.comp
+const float kSunRadius = 0.004653;
+// the farthest solid whose penumbra is searched for (m)
+const float kFarthestBlocker = 40.0;
+// taps each side of the center, for the search and for the average
+const int kTaps = 5;
+// what counts as the same surface: normals within about 35 degrees, and the
+// plane within this share of the distance between the points
+const float kSameNormal = 0.8;
+const float kSamePlane = 0.25;
+
+// whether pixel q, at p_q with normal n_q, lies on the surface of p, n
+bool SameSurface(ivec2 q, vec3 p, vec3 n, out vec3 p_q, out float blocker,
+                 out float passed) {
+  vec4 position_q = imageLoad(position, q);
+  if(position_q.w < -1.5 && position_q.w > -2.5) {
+    // the floor, instance -2, is a surface too
+  } else if(position_q.w < 0.0) {
+    return false;
+  }
+  p_q = position_q.xyz;
+  vec3 n_q = imageLoad(normal, q).xyz;
+  vec3 d = p_q - p;
+  if(dot(n, n_q) < kSameNormal ||
+     abs(dot(n, d)) > kSamePlane * length(d) + 1e-3) {
+    return false;
+  }
+  blocker = imageLoad(sun_light, q).a;
+  passed = imageLoad(direct_light, q).a;
+  return true;
+}
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(direct_light);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+  vec4 sun = imageLoad(sun_light, pixel);
+  vec4 direct = imageLoad(direct_light, pixel);
+  float passed = direct.a;
+  if(dot(sun.rgb, vec3(1.0)) > 0.0) {
+    vec4 position_p = imageLoad(position, pixel);
+    vec4 normal_p = imageLoad(normal, pixel);
+    vec3 p = position_p.xyz;
+    vec3 n = normal_p.xyz;
+    // the width of a pixel facing the camera at the surface (m)
+    float pixel_size = max(normal_p.w * u.params.x, 1e-6);
+
+    // the mean distance to the solids whose penumbrae reach p
+    float reach = kFarthestBlocker * kSunRadius / pixel_size;
+    int step = max(int(ceil(reach / float(kTaps))), 1);
+    float blockers = 0.0;
+    float count = 0.0;
+    for(int j = -kTaps; j <= kTaps; j++) {
+      for(int i = -kTaps; i <= kTaps; i++) {
+        ivec2 q = pixel + ivec2(i, j) * step;
+        if(any(lessThan(q, ivec2(0))) || any(greaterThanEqual(q, size))) {
+          continue;
+        }
+        vec3 p_q;
+        float blocker_q, passed_q;
+        if(!SameSurface(q, p, n, p_q, blocker_q, passed_q) ||
+           blocker_q <= 0.0) {
+          continue;
+        }
+        if(distance(p_q, p) <= blocker_q * kSunRadius) {
+          blockers += blocker_q;
+          count += 1.0;
+        }
+      }
+    }
+
+    if(count > 0.0) {
+      // the share that passed, averaged over the penumbra's disk
+      float radius = blockers / count * kSunRadius;
+      float radius_pixels = radius / pixel_size;
+      if(radius_pixels >= 0.5) {
+        int filter_step =
+          max(int(ceil(radius_pixels / float(kTaps))), 1);
+        float sum = 0.0;
+        float weight = 0.0;
+        for(int j = -kTaps; j <= kTaps; j++) {
+          for(int i = -kTaps; i <= kTaps; i++) {
+            ivec2 q = pixel + ivec2(i, j) * filter_step;
+            if(any(lessThan(q, ivec2(0))) ||
+               any(greaterThanEqual(q, size))) {
+              continue;
+            }
+            vec3 p_q;
+            float blocker_q, passed_q;
+            if(!SameSurface(q, p, n, p_q, blocker_q, passed_q) ||
+               distance(p_q, p) > radius) {
+              continue;
+            }
+            sum += passed_q;
+            weight += 1.0;
+          }
+        }
+        passed = sum / max(weight, 1.0);
+      }
+    }
+  }
+
+  imageStore(sun_passed, pixel, vec4(passed));
+  vec3 light = sun.rgb * passed;
+  // the alpha stays as it was, for the neighbors still reading it
+  imageStore(direct_light, pixel, vec4(direct.rgb + light, direct.a));
+  // the ray tracer has taken its frame into the mean without the sun
+  vec4 mean = imageLoad(accumulation, pixel);
+  imageStore(accumulation, pixel,
+             vec4(mean.rgb + light / max(u.blend.x, 1.0), mean.a));
+}

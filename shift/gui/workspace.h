@@ -207,7 +207,7 @@ private:
    * keep_view leaves the camera and the selection as they were */
   bool LoadModel(const QString& filename, const Json::Value* model,
                  QString* error, bool keep_view);
-  /*! \brief Simulation::Load filename, or Reload model, on a worker
+  /*! \brief Simulation::Load of filename, or Reload of model, on a worker
    * thread, the window answering meanwhile with its controls disabled and
    * a dialog showing what is being loaded, whose Cancel stops the load;
    * what went wrong, or empty, and cancelled set if it was stopped */

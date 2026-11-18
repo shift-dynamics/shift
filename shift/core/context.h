@@ -949,6 +949,12 @@ private:
    * file from other data sources */
   void LoadData();
   void LoadExactShapes();
+  /*! \brief check the environment and find the image of its sky */
+  void LoadEnvironment();
+  /*! \brief check the surface materials and find their images */
+  void LoadSurfaceMaterials();
+  /*! \brief places the items of the scenery on their terrains */
+  void PlaceScenery();
 
   /*! \brief add a floating joint from the fixed body to each part of the
    * model that no path of joints joins to the fixed body */

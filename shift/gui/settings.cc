@@ -71,6 +71,31 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
      !positive("joint_thickness", joint_thickness)) {
     return false;
   }
+  double lod_tolerance = kDefaultLodTolerance;
+  if(json.isMember("lod_tolerance")) {
+    const Json::Value& number = json["lod_tolerance"];
+    if(!number.isNumeric() || number.asDouble() < 0.0) {
+      if(error) {
+        *error = path + ": lod_tolerance must be a number of pixels, 0 or "
+                        "more";
+      }
+      return false;
+    }
+    lod_tolerance = number.asDouble();
+  }
+  double render_scale = kDefaultRenderScale;
+  if(json.isMember("render_scale")) {
+    const Json::Value& number = json["render_scale"];
+    if(!number.isNumeric() || number.asDouble() < kMinimumRenderScale ||
+       number.asDouble() > 1.0) {
+      if(error) {
+        *error = path + ": render_scale must be a number from " +
+                 std::to_string(kMinimumRenderScale) + " to 1";
+      }
+      return false;
+    }
+    render_scale = number.asDouble();
+  }
   QColor joint_color = get_default_joint_color();
   if(json.isMember("joint_color")) {
     const Json::Value& color = json["joint_color"];
@@ -131,6 +156,8 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
   frame_scale_ = frame_scale;
   joint_color_ = joint_color;
   joint_thickness_ = joint_thickness;
+  lod_tolerance_ = lod_tolerance;
+  render_scale_ = render_scale;
   json_ = json;
   return true;
 }
@@ -157,6 +184,8 @@ bool shift::gui::Settings::Save(const std::string& path,
   json["stress_peak"] = stress_peak_;
   json["safety_factor_minimum"] = safety_minimum_;
   json["safety_factor_maximum"] = safety_maximum_;
+  json["lod_tolerance"] = lod_tolerance_;
+  json["render_scale"] = render_scale_;
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  ";
   std::ofstream file(path);

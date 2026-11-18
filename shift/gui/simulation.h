@@ -192,6 +192,13 @@ public:
    * the whole scene again */
   void TakeTerrainUpdates(std::vector<TerrainUpdate>& updates);
 
+  /*! \brief the ray tracing hierarchies of the scene's meshes, built while
+   * the model loaded (per mesh, a deformable terrain's tagged), handed
+   * over once: empty after */
+  std::vector<SceneMeshBvh> TakeMeshBvhs() {
+    return std::move(mesh_bvhs_);
+  }
+
   /*! \brief the particles of the SPH soils whose shown particles changed
    * since the previous call, or all */
   void TakeParticleUpdates(std::vector<ParticleUpdate>& updates,
@@ -380,6 +387,7 @@ private:
     }
   }
   LoadObserver load_observer_;
+  std::vector<SceneMeshBvh> mesh_bvhs_; //!< see TakeMeshBvhs
   void RemoveLogDirectory();
   void JoinWorker();
   void Work();

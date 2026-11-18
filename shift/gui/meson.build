@@ -17,6 +17,14 @@ ffmpeg_dep = [
   dependency('libswscale'),
 ]
 
+# HDR sky images (OpenEXR), optional: without it a sky image is drawn as the
+# gradient sky
+openexr_dep = dependency('OpenEXR', required: false)
+gui_cpp_args = []
+if openexr_dep.found()
+  gui_cpp_args += '-DSHIFT_HAVE_OPENEXR'
+endif
+
 # The RHI headers live in a versioned private include directory
 qt_include_dir = run_command('pkg-config', '--variable=includedir', 'Qt6Core',
                              check: true).stdout().strip()
@@ -45,7 +53,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'fullscreen.vert', 'sky.frag',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
-                  'svgf_composite.comp', 'svgf_taa.comp', 'axes.vert',
+                  'svgf_composite.comp', 'svgf_taa.comp', 'sun_shadow.comp',
+                  'axes.vert',
                   'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
                   'mesh_points.vert', 'mesh_points.frag', 'spider.frag',
                   'flex_deform.comp', 'flex_normals.comp', 'flex_peak.comp',
@@ -57,7 +66,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
     output: shader + '.qsb',
     command: [qsb, '--glsl', '310 es,430', '-o', '@OUTPUT@', '@INPUT@'],
     depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
-                        'shaders/surfaces.glsl',
+                        'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                        'shaders/ground.glsl', 'shaders/water.glsl',
                         'shaders/fluid_common.glsl',
                         'shaders/hex_tiling.glsl',
                         'shaders/flex_common.glsl'),
@@ -115,9 +125,30 @@ shader_bundles += custom_target(
   output: 'cad.frag.qsb',
   command: [qsb, '-DCAD', '-o', '@OUTPUT@', '@INPUT@'],
   depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl',
-                      'shaders/surfaces.glsl',
+                      'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                      'shaders/ground.glsl', 'shaders/water.glsl',
                       'shaders/hex_tiling.glsl'),
 )
+
+# ray tracing in hardware (hardware_ray_tracing.h): raytrace.comp with ray
+# queries, compiled to SPIR-V as a C initializer that the source includes;
+# without glslc the viewer traces rays in compute shaders only
+gui_sources = []
+if glslc.found()
+  gui_sources += custom_target(
+    'raytrace_hardware_spirv',
+    input: 'shaders/raytrace.comp',
+    output: 'raytrace_hardware.comp.inc',
+    command: [glslc, '--target-env=vulkan1.2', '-O', '-mfmt=c',
+              '-DHARDWARE_RAY_QUERY', '-fshader-stage=compute',
+              '-o', '@OUTPUT@', '@INPUT@'],
+    depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
+                        'shaders/surfaces.glsl', 'shaders/environment.glsl',
+                        'shaders/ground.glsl', 'shaders/water.glsl',
+                        'shaders/flex_common.glsl'),
+  )
+  gui_cpp_args += '-DSHIFT_HAVE_HARDWARE_RAY_TRACING'
+endif
 
 # rcc resolves the bundle paths relative to the qrc, so it lives next to them;
 # it lists every bundle built above, so none can be left out of it
@@ -165,7 +196,10 @@ shift_gui_lib = static_library(
   'camera.cc',
   'environment.cc',
   'flex_gpu.cc',
+  'hardware_ray_tracing.cc',
   'mode_window.cc',
+  'opacity_micromap.cc',
+  'ocean_waves.cc',
   'playback_slider.cc',
   'scene.cc',
   'color_map.cc',
@@ -176,9 +210,11 @@ shift_gui_lib = static_library(
   'viewport.cc',
   'workspace.cc',
   gui_moc,
+  gui_sources,
   include_directories: [shift_inc, rhi_inc],
   implicit_include_directories: false,
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
+  cpp_args: gui_cpp_args,
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
 )
 
 # resources are compiled into the executable so their static initializers
@@ -187,5 +223,6 @@ shift_gui_dep = declare_dependency(
   sources: [shader_resources, icon_resources, asset_resources],
   link_with: shift_gui_lib,
   include_directories: [shift_inc, rhi_inc],
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
+  compile_args: gui_cpp_args, # SHIFT_HAVE_OPENEXR for the tests
 )

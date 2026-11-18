@@ -13,6 +13,8 @@ test_sources = [
   'contact/contact_record.cc',
   'contact/test_collision_geometry_input.cc',
   'contact/test_contact_force.cc',
+  'contact/test_environment_contact.cc',
+  'test_environment.cc',
   'test_free_body.cc',
   'test_mass_properties.cc',
   'contact/test_contact_geometry.cc',
@@ -45,6 +47,7 @@ test_sources = [
   'test_beam.cc',
   'test_belt.cc',
   'test_mesh_scale.cc',
+  'test_simplify.cc',
   'test_applied_load.cc',
   'test_sensors.cc',
   'test_bushing.cc',
@@ -62,6 +65,9 @@ test_sources = [
   'terramechanics/test_terramechanics.cc',
   'test_schedule.cc',
   'test_map.cc',
+  'test_driver.cc',
+  'test_scenery.cc',
+  'test_load_progress.cc',
   'test_linearization.cc',
   'test_component_io.cc',
   'test_electric_motor.cc',
@@ -103,7 +109,9 @@ if not is_disabler(shift_gui_dep)
                    'terramechanics/test_scm_playback.cc', 'test_shader_layouts.cc',
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
-                   'test_light_glow.cc', 'test_flex_playback.cc',
+                   'test_opacity_micromap.cc',
+                   'test_light_glow.cc', 'test_sky.cc',
+                   'test_ocean_waves.cc', 'test_flex_playback.cc',
                    'test_flex_gpu.cc']
   test_deps += [shift_gui_dep]
 endif
@@ -123,9 +131,26 @@ heavy_contact_tests = [
   'CadContact.TrackBenchmarksDoNotStall',
   'CadContact.LinksSettleOnTheSprocket',
   'CadRound.CornerOffAnEdgeHasNoStep',
+]
+
+# the DEM's simulations of grains settling, of a plate settling on them and
+# of a wedge splitting them (2 s to 45 s each in a debug build): run as the
+# benchmark dem_heavy. The regular tests keep the DEM's checks of single
+# contacts, of the GPU against the CPU over a few steps, and a short run of
+# a plate resting on grains in a model (DemModel.PlateRestsOnGrains)
+heavy_dem_tests = [
+  'Dem.GrainsSettleInBox',
+  'DemNsc.GrainsSettleInBox',
+  'DemNsc.StackRestsWithoutOverlap',
+  'DemNsc.GpuGrainsSettleInBox',
+  'DemHull.RocksSettleInBox',
+  'DemModel.PlateSettlesOnGrains',
+  'DemModel.NscPlateSettlesOnGrains',
   'DemModel.GpuNscPlateSettlesOnGrains',
   'DemModel.GpuMatchesCpu',
-  'DemNsc.GpuGrainsSettleInBox',
+  'DemModel.SettledGrainsStayAtRest',
+  'DemModel.WedgeHullSplitsGrains',
+  'DemModel.NscWedgeHullSplitsGrains',
 ]
 
 # the SPH soil's long runs on the GPU (10 s to 75 s each, in a release
@@ -149,7 +174,8 @@ shift_test_shards = 24
 foreach k : range(shift_test_shards)
   test('shift-test-@0@'.format(k), shift_test,
        args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
-              + ':'.join(heavy_contact_tests + heavy_sph_tests)],
+              + ':'.join(heavy_contact_tests + heavy_dem_tests
+                       + heavy_sph_tests)],
        env: ['GTEST_TOTAL_SHARDS=@0@'.format(shift_test_shards),
              'GTEST_SHARD_INDEX=@0@'.format(k)],
        suite: 'unit',
@@ -158,6 +184,9 @@ endforeach
 
 benchmark('contact_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
+          timeout: 0)
+benchmark('dem_heavy', shift_test,
+          args: ['--gtest_filter=' + ':'.join(heavy_dem_tests)],
           timeout: 0)
 benchmark('sph_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_sph_tests)],

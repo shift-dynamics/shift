@@ -12,6 +12,8 @@
 #include "shift/core/log.h"
 #include "shift/core/light/ies.h"
 #include "shift/core/light/spot.h"
+#include "shift/core/log.h"
+#include "shift/core/environment/surface_material.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/terrain/scm.h"
 #include "shift/core/terrain/sph.h"
@@ -25,6 +27,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -36,6 +39,7 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <thread>
 
 
 static double WallTime() {
@@ -314,6 +318,7 @@ MakeSceneMesh(const shift::gui::MeshData& data,
     const auto& material = materials[data.material_index];
     mesh.albedo = ksl_vec3f(material.Kd[0], material.Kd[1], material.Kd[2]);
     mesh.opacity = std::clamp(material.opacity, 0.f, 1.f);
+    mesh.alpha_cutoff = material.alpha_cutoff;
     // use the metallic-roughness value if given, otherwise map the
     // Blinn-Phong exponent to an approximately equivalent GGX roughness
     const float roughness = material.roughness >= 0.f
@@ -334,6 +339,11 @@ MakeSceneMesh(const shift::gui::MeshData& data,
   return mesh;
 }
 
+
+/* a KSL single precision vector of a double precision one */
+static ksl_vec3f_t ToVec3f(const ksl_vec3_t& v) {
+  return ksl_vec3f(float(v.x), float(v.y), float(v.z));
+}
 
 /* a sphere of center c and radius r in mesh, of segments around its z axis
 and rings from pole to pole, its triangles wound counterclockwise seen from
@@ -500,6 +510,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   }
   /* the terrain's pose, its origin moved to (x0, y0) in its frame */
   ksl_SE3f_t pose = ToPose(terrain.get_pose());
+  const ksl_SE3f_t terrain_frame = pose; // the material map's origin
   const ksl_vec3f_t corner = ksl_vec3f(float(x0), float(y0), 0.f);
   ksl_vec3f_t origin;
   ksl_product_dvf(&pose, &corner, &origin);
@@ -535,6 +546,49 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
     s.level = shift::gui::SurfaceNoiseLevel(
       static_cast<int>(mesh.surfaces.size()), surface->get_coverage());
     mesh.surfaces.push_back(s);
+  }
+  /* the surface materials by area, in place of the terrain's texture */
+  if(const auto* map = terrain.get_material_map()) {
+    int materials = 0;
+    for(const auto& m : scene.material_maps) {
+      materials += int(m.materials.size());
+    }
+    if(int(scene.material_maps.size()) ==
+         shift::gui::Scene::kMaxMaterialMaps ||
+       materials + int(map->get_materials().size()) >
+         shift::gui::Scene::kMaxGroundMaterials) {
+      qWarning("Terrain %s: more than %d material maps or %d surface "
+               "materials in the scene; drawn with its own texture",
+               terrain.get_name().c_str(),
+               shift::gui::Scene::kMaxMaterialMaps,
+               shift::gui::Scene::kMaxGroundMaterials);
+    } else {
+      shift::gui::SceneMaterialMap m;
+      ksl_SE3f_inverted(&terrain_frame, &m.world_to_map);
+      m.width = int(map->get_x_samples());
+      m.height = int(map->get_y_samples());
+      m.x_scale = float(map->get_x_scale());
+      m.y_scale = float(map->get_y_scale());
+      m.blend_width = float(map->get_blend_width());
+      m.indices = map->get_indices();
+      for(const auto* material : map->get_materials()) {
+        shift::gui::SceneGroundMaterial g;
+        g.base_color_layer = textures.Load(material->get_texture_path());
+        g.normal_layer = textures.Load(material->get_normal_map_path());
+        g.roughness_layer = textures.LoadMetallicRoughness(
+          "", "", material->get_roughness_map_path());
+        g.height_layer = textures.Load(material->get_height_map_path());
+        g.texture_scale = float(material->get_texture_scale());
+        g.normal_scale = float(material->get_normal_scale());
+        g.height_scale = float(material->get_height_scale());
+        g.color = ToVec3f(material->get_color());
+        g.roughness = float(material->get_roughness());
+        g.label = material->get_label();
+        m.materials.push_back(g);
+      }
+      mesh.material_map = int(scene.material_maps.size());
+      scene.material_maps.push_back(std::move(m));
+    }
   }
   /* the regions drawn as surfaces of their own are holes in this one */
   for(const auto* region : terrain.get_regions()) {
@@ -625,7 +679,7 @@ static int AddTerrain(const shift::core::terrain::Basic& terrain,
   t.mesh_index = static_cast<int>(scene.meshes.size());
   mesh.terrain = static_cast<int>(scene.terrains.size());
   scene.meshes.push_back(std::move(mesh));
-  scene.instances.push_back({t.mesh_index, 0});
+  scene.instances.push_back({t.mesh_index, 0, {}});
   scene.terrains.push_back(std::move(t));
   return static_cast<int>(scene.terrains.size()) - 1;
 }
@@ -697,6 +751,57 @@ static int AddParticles(const shift::core::terrain::Sph& sph,
 }
 
 /* a light of the model, if its frame is on one of the bodies drawn */
+
+/* the sky, sun, fog and water of the model, or the viewer's own if it gives none */
+static shift::gui::SceneEnvironment
+MakeEnvironment(const shift::core::environment::Environment* model) {
+  shift::gui::SceneEnvironment e;
+  if(!model) {
+    return e;
+  }
+  e.given = true;
+  const auto& sky = model->get_sky();
+  e.sky_type = sky.get_type() == "physical"
+                 ? shift::gui::SceneEnvironment::kPhysical
+                 : (sky.get_type() == "hdri" && !sky.get_path().empty()
+                      ? shift::gui::SceneEnvironment::kImage
+                      : shift::gui::SceneEnvironment::kGradient);
+  e.zenith = ToVec3f(sky.get_zenith_color());
+  e.horizon = ToVec3f(sky.get_horizon_color());
+  e.ground = ToVec3f(sky.get_ground_color());
+  e.turbidity = float(sky.get_turbidity());
+  e.image_path = sky.get_path();
+  e.image_rotation = float(sky.get_rotation() * M_PI / 180.0);
+  e.sky_intensity = float(sky.get_intensity());
+  const auto& sun = model->get_sun();
+  e.sun_direction = ToVec3f(sun.Direction());
+  ksl_vec3f_normalize(&e.sun_direction);
+  e.sun_intensity = float(sun.get_intensity());
+  e.sun_color_given = sun.has_color();
+  if(e.sun_color_given) {
+    e.sun_color = ToVec3f(sun.get_color());
+  }
+  const auto& fog = model->get_fog();
+  e.fog_density = float(fog.get_density());
+  e.fog_height_falloff = float(fog.get_height_falloff());
+  e.fog_height = float(fog.get_height());
+  e.fog_color_given = fog.has_color();
+  if(e.fog_color_given) {
+    e.fog_color = ToVec3f(fog.get_color());
+  }
+  if(const auto* water = model->get_water()) {
+    e.water = true;
+    e.water_height = float(water->get_height());
+    e.water_color = ToVec3f(water->get_color());
+    e.water_extinction = ToVec3f(water->get_extinction());
+    e.wave_height = float(water->get_wave_height());
+    e.wavelength = float(water->get_wavelength());
+    e.wave_direction = float(water->get_wave_direction() * M_PI / 180.0);
+    e.wind_speed = float(water->get_wind_speed());
+  }
+  return e;
+}
+
 static void AddLight(const shift::core::light::Base& light,
                      const std::vector<shift::core::body::Base*>& bodies,
                      shift::gui::Scene& scene,
@@ -775,6 +880,7 @@ void shift::gui::Simulation::Unload() {
   bodies_.clear();
   light_sources_.clear();
   scene_ = Scene();
+  mesh_bvhs_.clear();
   ClearResults();
 }
 
@@ -885,10 +991,100 @@ void shift::gui::Simulation::LoadModel(
       geometry_meshes[geometry.get()] = it->second;
     }
   }
+  /* the scenery: its meshes placed on the fixed body (bodies_[0]), each
+  item an instance of the meshes of its variant */
+  std::vector<std::vector<SceneInstance>> mesh_placements(mesh_bodies.size());
+  for(auto& scenery : context_->get_scenery()) {
+    ReportLoad("Preparing the scenery for drawing");
+    std::vector<std::vector<int>> variant_meshes;
+    for(auto& geometry : scenery->get_geometry()) {
+      variant_meshes.emplace_back();
+      auto mesh = dynamic_cast<shift::core::geometry::Mesh*>(geometry.get());
+      if(!mesh || !mesh->is_active()) {
+        continue;
+      }
+      auto [it, inserted] = asset_meshes.try_emplace(mesh->get_asset());
+      if(inserted) {
+        textures.AddEmbedded(mesh->get_asset()->embedded_textures);
+        for(const auto& data : mesh->get_mesh_data()) {
+          if(data.faces.empty()) {
+            continue;
+          }
+          it->second.push_back(static_cast<int>(scene_.meshes.size()));
+          scene_.meshes.push_back(
+            MakeSceneMesh(data, mesh->get_material_data(), textures));
+          scene_.meshes.back().draw_distance =
+            float(scenery->get_draw_distance());
+          mesh_bodies.emplace_back();
+          mesh_placements.emplace_back();
+        }
+      }
+      variant_meshes.back() = it->second;
+    }
+    for(const auto& item : scenery->get_items()) {
+      SceneInstance placed;
+      placed.body_index = 0;
+      placed.placement = ToPose(item.pose);
+      placed.scale = float(item.scale);
+      for(int mesh_index : variant_meshes[size_t(item.variant)]) {
+        placed.mesh_index = mesh_index;
+        mesh_placements[size_t(mesh_index)].push_back(placed);
+      }
+    }
+  }
   for(size_t m = 0; m < mesh_bodies.size(); m++) {
     for(int body : mesh_bodies[m]) {
-      scene_.instances.push_back({static_cast<int>(m), body});
+      SceneInstance instance;
+      instance.mesh_index = static_cast<int>(m);
+      instance.body_index = body;
+      scene_.instances.push_back(instance);
     }
+    for(const SceneInstance& placed : mesh_placements[m]) {
+      scene_.instances.push_back(placed);
+    }
+  }
+  /* the levels of detail of the meshes, made on all the cores */
+  {
+    ReportLoad("Simplifying the meshes for the distance");
+    const auto start = std::chrono::steady_clock::now();
+    std::atomic<size_t> next{0};
+    // the foliage's impostors, baked beside its levels and added after
+    const size_t mesh_count = scene_.meshes.size();
+    std::vector<SceneMeshImpostor> impostors(mesh_count);
+    std::vector<uint8_t> baked(mesh_count, 0);
+    auto work = [&]() {
+      for(size_t m = next++; m < mesh_count; m = next++) {
+        BuildSceneMeshLods(scene_.meshes[m]);
+        baked[m] = BakeSceneMeshImpostor(scene_, scene_.meshes[m],
+                                         impostors[m]);
+      }
+    };
+    std::vector<std::thread> threads;
+    const unsigned count = std::max(1u, std::thread::hardware_concurrency());
+    for(unsigned t = 1; t < count; t++) {
+      threads.emplace_back(work);
+    }
+    work();
+    for(auto& thread : threads) {
+      thread.join();
+    }
+    size_t impostor_count = 0;
+    for(size_t m = 0; m < mesh_count; m++) {
+      if(baked[m]) {
+        AddSceneMeshImpostor(scene_, int(m), std::move(impostors[m]));
+        impostor_count++;
+      }
+    }
+    size_t levels = 0;
+    for(const auto& mesh : scene_.meshes) {
+      levels += mesh.lods.size();
+    }
+    SHIFT_INFO("Made " + std::to_string(levels) + " levels of detail (" +
+               std::to_string(impostor_count) + " impostors) in " +
+               std::to_string(std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - start)
+                                .count()) +
+               " s");
   }
   ReportLoad("Preparing the flexible bodies for drawing");
   AddFlexViews();
@@ -959,6 +1155,7 @@ void shift::gui::Simulation::LoadModel(
   }
   /* terrains, on the fixed body (body 0) */
   scm_views_.clear();
+  ReportLoad("Preparing the terrain for drawing");
   sph_views_.clear();
   /* the terrains and their regions: a region drawn as a surface of its
   own (e.g. SCM sand in rigid ground) is a hole in the terrain that holds
@@ -987,6 +1184,7 @@ void shift::gui::Simulation::LoadModel(
   for(auto light : context_->get_active_lights()) {
     AddLight(*light, bodies_, scene_, light_sources_);
   }
+  scene_.environment = MakeEnvironment(context_->get_environment());
   /* the meshes that glow with the lights */
   for(size_t k = 0; k < light_sources_.size(); k++) {
     for(const auto& name : light_sources_[k]->get_glow()) {
@@ -1003,6 +1201,22 @@ void shift::gui::Simulation::LoadModel(
     }
   }
   scene_.body_count = static_cast<int>(bodies_.size());
+  /* the meshes' ray tracing hierarchies, the longest part of making the
+  scene ready to draw, here rather than in the viewer as it draws */
+  mesh_bvhs_.clear();
+  mesh_bvhs_.resize(scene_.meshes.size());
+  for(size_t m = 0; m < scene_.meshes.size(); m++) {
+    ReportLoad("Preparing the meshes for ray tracing", int(m),
+               int(scene_.meshes.size()));
+    const SceneMesh& mesh = scene_.meshes[m];
+    // a deformable terrain's triangles tagged, and a flexible body's mesh's,
+    // for the viewer to follow
+    const bool deformable =
+      mesh.terrain >= 0 &&
+      mesh.terrain < static_cast<int>(scene_.terrains.size()) &&
+      scene_.terrains[mesh.terrain].deformable;
+    mesh_bvhs_[m] = BuildSceneMeshBvh(mesh, deformable || mesh.deformable);
+  }
   /* the grains, their poses after the bodies' */
   dem_views_.clear();
   grain_records_ = 0;

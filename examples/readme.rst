@@ -47,6 +47,17 @@ Forces, contact and geometry
 * `Terrain modeling <terrain>`_
 * `Discrete element method <dem>`_
 
+Environments
+------------
+
+* `Strandbeest on a sand beach <beach>`_
+* `Polo R WRC on a gravel rally stage through a forest <forest>`_
+
+The beach and the forest stage themselves, and the trees, shrubs, grass and
+rocks strewn over them, are in `../assets/environments
+<../assets/environments>`_ and `../assets/scenery <../assets/scenery>`_, to
+use in other models.
+
 Building models
 ---------------
 

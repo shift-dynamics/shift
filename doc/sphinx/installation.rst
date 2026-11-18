@@ -61,8 +61,9 @@ in ``examples/`` (enough to check that each loads and runs), except for a few
 long collision models that are kept as benchmarks (``meson test -C build
 --benchmark``, which simulates them in full). So are the
 contact tests that take longest, a dozen of 15 s to 2 minutes each in a
-release build, and the long runs of the SPH soil: run them with ``meson
-test -C build --benchmark contact_heavy`` and ``--benchmark sph_heavy``
+release build, and the long runs of the DEM and of the SPH soil: run them
+with ``meson test -C build --benchmark contact_heavy``, ``--benchmark
+dem_heavy`` and ``--benchmark sph_heavy``
 (they are listed in :source:`test/meson.build`).
 
 ``build/`` is a debug build (``-O0``, with asserts). The test suite runs

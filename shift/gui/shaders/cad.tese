@@ -28,8 +28,8 @@ layout(location = 9) out float cad_stress;
 
 #include "cad_common.glsl"
 #include "cad_uniforms.glsl"
-#define FLEX_GRIDS_BINDING 17
-#define FLEX_FIELD_BINDING 18
+#define FLEX_GRIDS_BINDING 22
+#define FLEX_FIELD_BINDING 23
 #include "flex_field.glsl"
 
 // a + (b - a) t, exactly a and b at the ends, so that patches sharing an

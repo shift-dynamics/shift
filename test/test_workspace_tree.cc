@@ -794,6 +794,27 @@ TEST(WorkspaceTree, SettingsPersist) {
             shift::gui::Settings::kDefaultJointThickness);
   EXPECT_EQ(json["from_a_later_version"].asInt(), 7);
 
+  EXPECT_EQ(json["lod_tolerance"].asDouble(),
+            shift::gui::Settings::kDefaultLodTolerance);
+
+  // the level of detail tolerance, 0 (the meshes themselves) allowed
+  read.set_lod_tolerance(0.0);
+  ASSERT_TRUE(read.Save(path));
+  shift::gui::Settings full;
+  ASSERT_TRUE(full.Load(path));
+  EXPECT_EQ(full.get_lod_tolerance(), 0.0);
+  read.set_lod_tolerance(shift::gui::Settings::kDefaultLodTolerance);
+
+  // the ray tracer's render scale, from kMinimumRenderScale to 1
+  EXPECT_EQ(json["render_scale"].asDouble(),
+            shift::gui::Settings::kDefaultRenderScale);
+  read.set_render_scale(0.5);
+  ASSERT_TRUE(read.Save(path));
+  shift::gui::Settings scaled;
+  ASSERT_TRUE(scaled.Load(path));
+  EXPECT_EQ(scaled.get_render_scale(), 0.5);
+  read.set_render_scale(shift::gui::Settings::kDefaultRenderScale);
+
   // the joint color, as #rrggbb
   read.set_joint_color(QColor(0x20, 0x80, 0x40));
   ASSERT_TRUE(read.Save(path));
@@ -817,6 +838,22 @@ TEST(WorkspaceTree, SettingsPersist) {
   std::string thickness_error;
   EXPECT_FALSE(bad_thickness.Load(path, &thickness_error));
   EXPECT_NE(thickness_error.find("joint_thickness"), std::string::npos);
+
+  std::ofstream(path) << "{\"lod_tolerance\": -1}";
+  shift::gui::Settings bad_tolerance;
+  std::string tolerance_error;
+  EXPECT_FALSE(bad_tolerance.Load(path, &tolerance_error));
+  EXPECT_NE(tolerance_error.find("lod_tolerance"), std::string::npos);
+
+  for(const char* scale : {"0.1", "1.5", "\"half\""}) {
+    std::ofstream(path) << "{\"render_scale\": " << scale << "}";
+    shift::gui::Settings bad_scale;
+    std::string scale_error;
+    EXPECT_FALSE(bad_scale.Load(path, &scale_error)) << scale;
+    EXPECT_NE(scale_error.find("render_scale"), std::string::npos);
+    EXPECT_EQ(bad_scale.get_render_scale(),
+              shift::gui::Settings::kDefaultRenderScale);
+  }
 
   // a bad value is reported and the defaults kept
   std::ofstream(path) << "{\"frame_scale\": -1}";

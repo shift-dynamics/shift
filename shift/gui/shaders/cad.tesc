@@ -24,8 +24,8 @@ layout(location = 5) patch out vec4 pose_3;
 
 #include "cad_common.glsl"
 #include "cad_uniforms.glsl"
-#define FLEX_GRIDS_BINDING 17
-#define FLEX_FIELD_BINDING 18
+#define FLEX_GRIDS_BINDING 22
+#define FLEX_FIELD_BINDING 23
 #include "flex_field.glsl"
 
 mat4 model;

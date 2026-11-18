@@ -3,7 +3,8 @@
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_uv;
-// per instance: the body origin pose (rigid), column by column
+// per instance: the body origin pose times the mesh's placement in the body
+// (a rotation, translation and uniform scale), column by column
 layout(location = 3) in vec4 in_model_0;
 layout(location = 4) in vec4 in_model_1;
 layout(location = 5) in vec4 in_model_2;
@@ -38,13 +39,15 @@ layout(std140, binding = 1) uniform Material {
   vec4 surface[2];
   vec4 emission;      // as in mesh.frag
   vec4 holes[4];      // of a terrain, in its uv: x0, y0, x1, y1
+  vec4 flex;          // as in mesh.frag
 } mesh;
 
 void main() {
   mat4 model = mat4(in_model_0, in_model_1, in_model_2, in_model_3);
   vec4 world = model * vec4(in_position, 1.0);
   world_position = world.xyz;
-  body_rotation = mat3(model);
+  // a hidden body's model is zero
+  body_rotation = mat3(model) / max(length(model[0].xyz), 1e-20);
   world_normal = body_rotation * in_normal;
   body_position = in_position;
   body_normal = in_normal;

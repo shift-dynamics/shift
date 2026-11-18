@@ -20,6 +20,18 @@ layout(local_size_x = 8, local_size_y = 8) in;
 // cumulative mean: the image settles instead of flickering at a constant
 // level, as an exponential average with a fixed weight would. The result is
 // then blended into the exact progressive mean of the radiance.
+//
+// Where the ray tracer's images are smaller than the output (a render scale
+// below 1), this pass also scales them up, temporally: it runs at the
+// output's size and keeps its history there. Each frame's samples lie at
+// their pixels' centers shifted by the frame's jitter; the current color at
+// an output pixel is resampled at that position (Catmull-Rom), and it is
+// blended into the history by how close the nearest sample lies to the
+// pixel's center, so that over the jitter sequence each output pixel
+// gathers the samples that fell on it (temporal upsampling, as in Unreal's
+// TAAU or AMD's FSR 2). The progressive mean is gathered the same way: each
+// sample is added to the output pixel it fell in, which yields the exact
+// mean at the output's resolution once the view has been still.
 
 struct Instance { // keep in sync with raytrace.comp
   mat4 body_to_world;
@@ -34,15 +46,24 @@ struct Instance { // keep in sync with raytrace.comp
   vec4 variation; // the same
   ivec4 surface_layers;
   vec4 surface[2];
+  ivec4 lods;         // x = the levels in lod_roots, yzw = the mesh's own
+                      // texture layers (as offsets), which they take
+  ivec4 lod_roots;    // root nodes of the mesh and of its simplified levels
+                      // of detail, finest first, for shadow and bounce rays
+  vec4 lod_errors;    // how far each level strays from the mesh (m, world)
+  vec4 flex;          // as in raytrace.comp
 };
 
 layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   mat4 previous_view_projection;
   vec4 params;   // x = pixel spread angle, y = maximum history length,
                  // z = history valid, w = a-trous step
-  vec4 blend;    // x = progressive frames, y, z = blend start, end
+  vec4 blend;    // x = progressive frames, y, z = blend start, end,
+                 // w = maximum history length of the unmoved
   ivec4 control; // x = instance count
   mat4 view_projection; // current frame
+  vec4 upscale;  // xy = the primary rays' jitter (ray traced pixels),
+                 // zw = ray traced size / output size (1 = not scaled)
 } u;
 
 layout(std430, binding = 1) readonly buffer Instances {
@@ -58,14 +79,55 @@ layout(rgba32f, binding = 7) uniform readonly image2D accumulation;
 layout(rgba32f, binding = 8) uniform readonly image2D previous_position;
 layout(rgba16f, binding = 9) uniform readonly image2D normal;
 layout(rgba16f, binding = 10) uniform readonly image2D previous_normal;
+// for the progressive mean at the output's size: this frame's radiance is
+// illumination * albedo + direct light
+layout(rgba16f, binding = 11) uniform readonly image2D illumination;
+layout(rgba16f, binding = 12) uniform readonly image2D albedo;
+layout(rgba16f, binding = 13) uniform readonly image2D direct_light;
+layout(rgba32f, binding = 14) uniform image2D upscaled_mean; // a = samples
+// the share of the sunlight that passed (sun_shadow.comp), this frame's and
+// the previous frame's, at the ray traced size
+layout(r32f, binding = 15) uniform readonly image2D sun_passed;
+layout(r32f, binding = 16) uniform readonly image2D previous_sun_passed;
 // the motion of the hit's point of its body since the previous frame, body
 // coordinates (raytrace.comp)
-layout(rgba16f, binding = 11) uniform readonly image2D motion;
+layout(rgba16f, binding = 17) uniform readonly image2D motion;
 
 // while the view changes, an exponential history of ~10 frames; the
 // cumulative mean of a static view starts from it
 const float kHistoryFrames = 10.0;
+// while bodies move under a still camera, the pixels of the ground and of
+// the bodies that did not move count their frames (the history's alpha) and
+// take an exponential history of up to kHistoryFrames + kStillFrames, still
+// clamped, so that the shadows of the moving bodies do not trail
+const float kStillFrames = 64.0;
+const float kStillClipGamma = 3.0;
+// while bodies move in view, the history of a still pixel is kept for
+// kHistoryFrames, in a range of kMovingClipGamma: the shadow and the
+// darkened indirect light of a body that moved off would otherwise stay on
+// the ground behind it for kStillFrames, a darker box and outline around
+// where it started
+const float kMovingClipGamma = 1.5;
+// where the share of the sunlight that passed changed by more than
+// 1 / kShadowWeight since the previous frame, a shadow moved over the
+// surface (one cast by a moving body, or by a still one onto a body that
+// moves): its history held the old light, and the neighborhood's range at
+// the edge of the shadow spans both, so the current frame takes its place.
+// The shadows are the same from frame to frame where nothing moves (one
+// ray to the center of the sun's disk, then filtered over the penumbra).
+const float kShadowWeight = 2.0;
 const float kClipGamma = 1.25;    // neighborhood range in standard deviations
+// While the view moves, each frame resamples the history between its pixels,
+// which blurs it a little; over the exponential history of kHistoryFrames
+// the blur adds up to a smear of the textures, sharp only where the history
+// starts afresh (the ground a moving car has just uncovered, which then
+// shows as a sharp outline of the car). The current frame's weight grows by
+// kMotionWeight per pixel the surface moved, up to kMaxMotionWeight.
+const float kMotionWeight = 0.05;
+const float kMaxMotionWeight = 0.5;
+// scaled up: how far from an output pixel's center a sample still counts
+// fully, as the standard deviation of a Gaussian (output pixels)
+const float kSampleSigma = 0.5;
 
 vec3 ToYCoCg(vec3 c) {
   return vec3(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b,
@@ -98,58 +160,187 @@ bool SameSurface(ivec2 tap, int id, vec3 previous_world, vec3 previous_n,
          abs(dot(previous_n, p.xyz - previous_world)) <= tolerance;
 }
 
-// The previous color at window coordinate c, resampled with a Catmull-Rom
-// filter, and whether any previous pixel within 1.5 pixels of c saw the
-// surface of instance id (SameSurface). None did where a moving body uncovered
-// what was behind it: the history there is the body's, and must not be
-// reprojected onto the ground it uncovered. Where some did, at the edges of a
-// surface, the history is resampled from all of the pixels, as primary rays
-// are jittered within their pixels and the anti-aliased color of an edge is
-// the mean over the surfaces that its samples see.
-vec3 SampleHistory(vec2 c, ivec2 size, int id, vec3 previous_world,
-                   vec3 previous_n, float tolerance, out bool seen) {
+// whether the surface of instance id (or the sky, -1, or the ground, -2)
+// stayed where it was since the previous frame
+bool Unmoved(int id) {
+  if(id >= 0) {
+    return instances[id].previous_body_to_world ==
+           instances[id].body_to_world;
+  }
+  return id == -1 || id == -2;
+}
+
+// The Catmull-Rom weights along one axis for the fraction f
+void CatmullRomWeights(vec2 f, out vec2 w[4]) {
+  w[0] = f * (-0.5 + f * (1.0 - 0.5 * f));
+  w[1] = 1.0 + f * f * (-2.5 + 1.5 * f);
+  w[2] = f * (0.5 + f * (2.0 - 1.5 * f));
+  w[3] = f * f * (-0.5 + 0.5 * f);
+}
+
+// The previous color at window coordinate c (output pixels), resampled with
+// a Catmull-Rom filter
+vec3 SampleHistory(vec2 c, ivec2 size) {
   vec2 q = c - 0.5;
   ivec2 base = ivec2(floor(q));
-  vec2 f = q - vec2(base);
-  vec2 w[4] = vec2[](f * (-0.5 + f * (1.0 - 0.5 * f)),
-                     1.0 + f * f * (-2.5 + 1.5 * f),
-                     f * (0.5 + f * (2.0 - 1.5 * f)),
-                     f * f * (-0.5 + 0.5 * f));
+  vec2 w[4];
+  CatmullRomWeights(q - vec2(base), w);
   vec3 sum = vec3(0.0);
   float weight_sum = 0.0;
-  seen = false;
   for(int j = 0; j < 4; j++) {
     for(int i = 0; i < 4; i++) {
-      ivec2 tap = base + ivec2(i - 1, j - 1);
-      bool inside = all(greaterThanEqual(tap, ivec2(0))) &&
-                    all(lessThan(tap, size));
-      tap = clamp(tap, ivec2(0), size - 1);
-      vec3 color = imageLoad(previous_color, tap).rgb;
-      sum += w[i].x * w[j].y * color;
+      ivec2 tap = clamp(base + ivec2(i - 1, j - 1), ivec2(0), size - 1);
+      sum += w[i].x * w[j].y * imageLoad(previous_color, tap).rgb;
       weight_sum += w[i].x * w[j].y;
-      vec2 d = abs(vec2(tap) + 0.5 - c);
-      if(!seen && inside && max(d.x, d.y) < 1.5) {
-        seen = SameSurface(tap, id, previous_world, previous_n, tolerance);
-      }
     }
   }
   return sum / weight_sum;
 }
 
+// The current color at coordinate c of the ray tracer's image, resampled
+// with a Catmull-Rom filter
+vec3 SampleCurrent(vec2 c, ivec2 size) {
+  vec2 q = c - 0.5;
+  ivec2 base = ivec2(floor(q));
+  vec2 w[4];
+  CatmullRomWeights(q - vec2(base), w);
+  vec3 sum = vec3(0.0);
+  float weight_sum = 0.0;
+  for(int j = 0; j < 4; j++) {
+    for(int i = 0; i < 4; i++) {
+      ivec2 tap = clamp(base + ivec2(i - 1, j - 1), ivec2(0), size - 1);
+      sum += w[i].x * w[j].y * imageLoad(current_color, tap).rgb;
+      weight_sum += w[i].x * w[j].y;
+    }
+  }
+  return sum / weight_sum;
+}
+
+// Whether any previous pixel of the ray tracer within radius pixels of its
+// coordinate c saw the surface of instance id (SameSurface). None did where
+// a moving body uncovered what was behind it: the history there is the
+// body's, and must not be reprojected onto the ground it uncovered. Where
+// some did, at the edges of a surface, the history is resampled from all of
+// the pixels, as primary rays are jittered within their pixels and the
+// anti-aliased color of an edge is the mean over the surfaces that its
+// samples see.
+// The share of the sunlight that passed, averaged over the 3x3 ray traced
+// pixels around pixel: the shadows of the foliage's needles, thinner than a
+// pixel, change with the jitter of the primary rays from frame to frame,
+// which the mean hides, while the edge of a shadow that moved still shows.
+float MeanSunPassed(ivec2 pixel, ivec2 size, bool previous) {
+  float sum = 0.0;
+  for(int dy = -1; dy <= 1; dy++) {
+    for(int dx = -1; dx <= 1; dx++) {
+      ivec2 tap = clamp(pixel + ivec2(dx, dy), ivec2(0), size - 1);
+      sum += previous ? imageLoad(previous_sun_passed, tap).r
+                      : imageLoad(sun_passed, tap).r;
+    }
+  }
+  return sum / 9.0;
+}
+
+// Whether a body that moved was seen within radius of c (ray traced pixels)
+// in the previous frame
+bool MovedNear(vec2 c, ivec2 size, float radius) {
+  ivec2 base = ivec2(floor(c - 0.5));
+  for(int j = 0; j < 4; j++) {
+    for(int i = 0; i < 4; i++) {
+      ivec2 tap = base + ivec2(i - 1, j - 1);
+      if(any(lessThan(tap, ivec2(0))) || any(greaterThanEqual(tap, size))) {
+        continue;
+      }
+      vec2 d = abs(vec2(tap) + 0.5 - c);
+      if(max(d.x, d.y) < radius &&
+         !Unmoved(int(round(imageLoad(previous_position, tap).w)))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool SeenBefore(vec2 c, ivec2 size, float radius, int id,
+                vec3 previous_world, vec3 previous_n, float tolerance) {
+  ivec2 base = ivec2(floor(c - 0.5));
+  for(int j = 0; j < 4; j++) {
+    for(int i = 0; i < 4; i++) {
+      ivec2 tap = base + ivec2(i - 1, j - 1);
+      if(any(lessThan(tap, ivec2(0))) || any(greaterThanEqual(tap, size))) {
+        continue;
+      }
+      vec2 d = abs(vec2(tap) + 0.5 - c);
+      if(max(d.x, d.y) < radius &&
+         SameSurface(tap, id, previous_world, previous_n, tolerance)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void main() {
   ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
-  ivec2 size = imageSize(current_color);
+  ivec2 size = imageSize(history_color); // the output's
   if(pixel.x >= size.x || pixel.y >= size.y) {
     return;
   }
+  ivec2 low_size = imageSize(current_color); // the ray tracer's
+  bool upscaling = u.upscale.z != 1.0 || u.upscale.w != 1.0;
+  vec2 scale = upscaling ? u.upscale.zw : vec2(1.0);
+  vec2 jitter = u.upscale.xy;
+  // the ray tracer's pixel whose area holds this pixel's center
+  vec2 center_low = (vec2(pixel) + 0.5) * scale;
+  ivec2 low = upscaling
+                ? clamp(ivec2(floor(center_low)), ivec2(0), low_size - 1)
+                : pixel;
 
-  vec3 current = imageLoad(current_color, pixel).rgb;
-  vec3 result = current;
+  vec3 current;
+  // scaled up, the color resampled at this pixel's center, for where there
+  // is no history; the history takes the nearest sample itself, as the
+  // resampled color is as blurred as the smaller image
+  vec3 resampled = vec3(0.0);
+  // how fully this frame's color counts here: scaled up, by the distance
+  // from the pixel's center to the nearest sample
+  float confidence = 1.0;
+  if(upscaling) {
+    // a sample lies at its pixel's center plus the jitter
+    resampled = SampleCurrent(center_low - jitter, low_size);
+    float nearest = 1e9;
+    ivec2 nearest_tap = low;
+    for(int dy = -1; dy <= 1; dy++) {
+      for(int dx = -1; dx <= 1; dx++) {
+        ivec2 tap = low + ivec2(dx, dy);
+        if(any(lessThan(tap, ivec2(0))) ||
+           any(greaterThanEqual(tap, low_size))) {
+          continue;
+        }
+        vec2 d = (vec2(tap) + 0.5 + jitter) / scale - (vec2(pixel) + 0.5);
+        if(dot(d, d) < nearest) {
+          nearest = dot(d, d);
+          nearest_tap = tap;
+        }
+      }
+    }
+    current = imageLoad(current_color, nearest_tap).rgb;
+    // per sample, as a share of the samples an output pixel gets per frame
+    // (scale^2), so that the history is renewed as fast on average as at
+    // full size; less, and old colors trail behind moving bodies and the
+    // repeated resampling of the history smears the textures
+    confidence =
+      min(exp(-0.5 * nearest / (kSampleSigma * kSampleSigma)) /
+            (scale.x * scale.y),
+          kHistoryFrames);
+  } else {
+    current = imageLoad(current_color, pixel).rgb;
+  }
+  vec3 result = upscaling ? resampled : current;
   // frames since the view last changed, 1 for a changing view
   float frames = u.blend.x;
+  float still = 1.0; // frames this pixel has been still
 
   if(u.params.z > 0.5) {
-    vec4 g = imageLoad(position, pixel);
+    vec4 g = imageLoad(position, low);
     int id = int(round(g.w));
     vec4 point = id == -1 ? vec4(g.xyz, 0.0) : vec4(g.xyz, 1.0);
     vec4 previous_point = point;
@@ -170,7 +361,7 @@ void main() {
     vec3 previous_n = vec3(0.0);
     float tolerance = 0.0;
     if(id >= 0) {
-      vec4 gn = imageLoad(normal, pixel);
+      vec4 gn = imageLoad(normal, low);
       mat4 to_previous =
         instances[id].previous_body_to_world * instances[id].world_to_body;
       previous_n = normalize(mat3(to_previous) * gn.xyz);
@@ -182,7 +373,7 @@ void main() {
     vec3 hi = vec3(-1e9);
     for(int dy = -1; dy <= 1; dy++) {
       for(int dx = -1; dx <= 1; dx++) {
-        ivec2 tap = clamp(pixel + ivec2(dx, dy), ivec2(0), size - 1);
+        ivec2 tap = clamp(low + ivec2(dx, dy), ivec2(0), low_size - 1);
         vec3 y = ToYCoCg(imageLoad(current_color, tap).rgb);
         m1 += y;
         m2 += y * y;
@@ -192,31 +383,170 @@ void main() {
     }
     m1 /= 9.0;
     m2 /= 9.0;
+    if(upscaling) {
+      // the Catmull-Rom filter overshoots at edges
+      resampled = FromYCoCg(clamp(ToYCoCg(resampled), lo, hi));
+    }
     bool seen = false;
     vec3 history = vec3(0.0);
-    if(visible) {
-      history = SampleHistory(c, size, id, previous_point.xyz, previous_n,
-                              tolerance, seen);
+    // under a still camera, a pixel whose surface did not move, and which
+    // saw a surface that did not move in the previous frame, keeps its own
+    // history whichever surfaces its jittered samples see: a needle thinner
+    // than a pixel is seen in some frames and not in others, which would
+    // otherwise discard the history each time and leave it flickering
+    // bodies move in view: the denoiser keeps a longer history for the
+    // surfaces that did not move (viewport.cc)
+    bool bodies_moving = u.blend.w != u.params.y;
+    bool still_pixel = false;
+    if(u.view_projection == u.previous_view_projection && Unmoved(id)) {
+      // nor where a body that moved was in the 3x3 neighborhood in the
+      // previous frame: the pixels along its edge hold its color, mixed in
+      // by the jitter, which the wide clamp would keep, an outline of the
+      // body left on the ground at each position it moved from
+      still_pixel = true;
+      for(int dy = -1; dy <= 1 && still_pixel; dy++) {
+        for(int dx = -1; dx <= 1 && still_pixel; dx++) {
+          ivec2 tap = clamp(low + ivec2(dx, dy), ivec2(0), low_size - 1);
+          still_pixel =
+            Unmoved(int(round(imageLoad(previous_position, tap).w)));
+        }
+      }
+    }
+    // the history's alpha: frames still (1 to kStillFrames), or, negative,
+    // minus the frames since the pixel was uncovered
+    float previous_count = 1.0;
+    ivec2 previous_low = low;
+    if(!still_pixel) {
+      previous_low = clamp(ivec2(floor(c * scale)), ivec2(0), low_size - 1);
+    }
+    // shadows move only with the bodies
+    float shadow_change =
+      bodies_moving ? abs(MeanSunPassed(low, low_size, false) -
+                          MeanSunPassed(previous_low, low_size, true))
+                    : 0.0;
+    if(still_pixel) {
+      vec4 h = imageLoad(previous_color, pixel);
+      history = h.rgb;
+      previous_count = h.a;
+      seen = true;
+    } else if(visible) {
+      // within 1.5 output pixels, or where the ray tracer's pixels are
+      // larger, the one or more nearest
+      float radius = max(1.5 * min(scale.x, scale.y), 0.75);
+      seen = SeenBefore(c * scale, low_size, radius, id, previous_point.xyz,
+                        previous_n, tolerance);
+      // where neither this surface nor those seen there before moved, the
+      // others are parallax between surfaces that stand still, mostly the
+      // foliage's needles and leaves in front of each other: the history
+      // is kept, limited to the range of this frame's neighborhood (below),
+      // which a disocclusion between still surfaces needs no more than an
+      // edge does. Discarded, a fifth to a half of the foliage's pixels
+      // would start over from a single noisy frame in every frame of a
+      // moving view.
+      bool parallax = !seen && Unmoved(id) &&
+                      !MovedNear(c * scale, low_size, radius);
+      if(seen || parallax) {
+        history = SampleHistory(c, size);
+        // the frames since the pixel was uncovered (young, below)
+        ivec2 nearest = clamp(ivec2(floor(c)), ivec2(0), size - 1);
+        previous_count = imageLoad(previous_color, nearest).a;
+        seen = true;
+      }
     }
     if(!seen) {
-      // newly uncovered: no history; the mean of the neighborhood, as the
-      // single denoised frame is noisy
-      result = FromYCoCg(m1);
+      // newly uncovered: no history; the current color, which the frames
+      // that follow average with (young, below). The mean of the
+      // neighborhood would be less noisy, but blurred, and it would stay in
+      // that average: behind a car moving under a still camera, the strips
+      // it uncovers at each position would show as blurred bands.
+      result = upscaling ? resampled : current;
+      still = -1.0;
     } else {
       vec3 sigma = sqrt(max(m2 - m1 * m1, vec3(0.0)));
       lo = max(lo, m1 - kClipGamma * sigma);
       hi = min(hi, m1 + kClipGamma * sigma);
+      float n = frames;
+      // a pixel uncovered under a still camera, the frames since (young)
+      float young = 0.0;
       if(frames < 1.5) {
+        if(still_pixel && previous_count < 0.0) {
+          // its history is the few frames since it was uncovered, not the
+          // kHistoryFrames of the others: their cumulative mean, until it
+          // has as many (taken as one, its first frame would stay, and the
+          // strips that a car uncovers at each position it moves from would
+          // show as bands behind it)
+          young = 1.0 - previous_count;
+          still = young >= kHistoryFrames ? 1.0 : -young;
+        } else if(still_pixel) {
+          still = min(previous_count + 1.0, kStillFrames);
+          n = bodies_moving ? min(still, kHistoryFrames) : still;
+        }
+        if(still_pixel) {
+          // a wider range: the foliage's sub-pixel needles flicker beyond
+          // the narrow one, while a shadow passing over is still caught
+          float gamma = bodies_moving ? kMovingClipGamma : kStillClipGamma;
+          vec3 sigma_still = sqrt(max(m2 - m1 * m1, vec3(0.0)));
+          lo = m1 - gamma * sigma_still;
+          hi = m1 + gamma * sigma_still;
+        }
         history = FromYCoCg(clamp(ToYCoCg(history), lo, hi));
+      } else {
+        still = min(frames, kStillFrames);
       }
-      result = mix(history, current, 1.0 / (frames + kHistoryFrames - 1.0));
+      // uncovered under a moving view: the cumulative mean of the frames
+      // since, as under a still one; its first frame would otherwise stay
+      // in the exponential history for about kHistoryFrames frames, a
+      // noisy band along each edge that a moving body uncovers road behind
+      if(!still_pixel && frames < 1.5 && previous_count < 0.0) {
+        young = 1.0 - previous_count;
+        still = young >= kHistoryFrames ? 1.0 : -young;
+      }
+      float weight = young > 0.0 ? min(confidence, 1.0) / young
+                                 : confidence / (n + kHistoryFrames - 1.0);
+      if(!still_pixel && frames < 1.5) {
+        float motion = length(c - (vec2(pixel) + 0.5));
+        weight = max(weight, min(kMotionWeight * motion, kMaxMotionWeight) *
+                               min(confidence, 1.0));
+      }
+      weight = max(weight, min(kShadowWeight * shadow_change, 1.0) *
+                             min(confidence, 1.0));
+      result = mix(history, current, weight);
     }
   }
   result = max(result, vec3(0.0));
-  imageStore(history_color, pixel, vec4(result, 1.0));
+  imageStore(history_color, pixel, vec4(result, still));
 
-  vec3 mean = imageLoad(accumulation, pixel).rgb;
   float k = clamp((frames - u.blend.y) / (u.blend.z - u.blend.y), 0.0, 1.0);
+  vec3 mean;
+  if(upscaling) {
+    // this frame's samples that fell in this pixel, added to the sum since
+    // the view last changed; each lies in exactly one output pixel
+    vec4 sum = frames > 1.5 ? imageLoad(upscaled_mean, pixel) : vec4(0.0);
+    ivec2 first = clamp(ivec2(floor(vec2(pixel) * scale)), ivec2(0),
+                        low_size - 1);
+    ivec2 last = clamp(ivec2(floor((vec2(pixel) + 1.0) * scale)), ivec2(0),
+                       low_size - 1);
+    for(int y = first.y; y <= last.y; y++) {
+      for(int x = first.x; x <= last.x; x++) {
+        ivec2 q = ivec2(x, y);
+        if(ivec2(floor((vec2(q) + 0.5 + jitter) / scale)) != pixel) {
+          continue;
+        }
+        vec3 radiance = imageLoad(illumination, q).rgb *
+                          imageLoad(albedo, q).rgb +
+                        imageLoad(direct_light, q).rgb;
+        sum += vec4(radiance, 1.0);
+      }
+    }
+    imageStore(upscaled_mean, pixel, sum);
+    mean = sum.rgb / max(sum.a, 1.0);
+    // by the samples gathered here, fewer than the frames
+    k = sum.a > 0.0
+          ? clamp((sum.a - u.blend.y) / (u.blend.z - u.blend.y), 0.0, 1.0)
+          : 0.0;
+  } else {
+    mean = imageLoad(accumulation, pixel).rgb;
+  }
   vec3 display = mix(result, mean / (mean + vec3(1.0)), k);
   imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
 }

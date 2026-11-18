@@ -30,9 +30,10 @@ const std::vector<StressQuantity>& StressQuantities();
 @brief The viewer's settings, kept from one session to the next
 
 They are the length of the arrows of the coordinate frames, the
-thickness and color of the lines of the joint axes, and the quantity, color
-map and range of the stress drawn on flexible bodies. They are read from and
-written to a JSON file,
+thickness and color of the lines of the joint axes, the tolerance of the
+meshes' levels of detail, and the quantity, color map and range of the
+stress drawn on flexible bodies. They are read from and written to a JSON
+file,
 ~/.shift/settings.json (get_default_path). Keys the file has that this
 version does not know are kept when it is written again.
 */
@@ -46,6 +47,14 @@ public:
   static QColor get_default_joint_color() {
     return QColor(0xa0, 0x40, 0xe0);
   }
+
+  /*! \brief the pixels the error of a level of detail may span
+   * (SceneMeshLod::kPixelError) */
+  static constexpr double kDefaultLodTolerance = 8.0;
+  /*! \brief the share of the window's width and height that the ray tracer
+   * renders in the viewer: all of it */
+  static constexpr double kDefaultRenderScale = 1.0;
+  static constexpr double kMinimumRenderScale = 0.25;
 
   /*! \brief ~/.shift/settings.json */
   static std::string get_default_path();
@@ -141,8 +150,31 @@ public:
     safety_maximum_ = maximum;
   }
 
+  /*! \brief the pixels across the screen that the error of a mesh's level
+   * of detail may span where it is drawn, 0 for the meshes themselves;
+   * "lod_tolerance" in the file */
+  double get_lod_tolerance() const {
+    return lod_tolerance_;
+  }
+  void set_lod_tolerance(double pixels) {
+    lod_tolerance_ = pixels;
+  }
+
+  /*! \brief the share (kMinimumRenderScale to 1) of the window's width and
+   * height that the ray tracer renders in the viewer, scaled up to it;
+   * images and videos are rendered at their full size. "render_scale" in
+   * the file */
+  double get_render_scale() const {
+    return render_scale_;
+  }
+  void set_render_scale(double scale) {
+    render_scale_ = scale;
+  }
+
 private:
   double frame_scale_ = kDefaultFrameScale;
+  double lod_tolerance_ = kDefaultLodTolerance;
+  double render_scale_ = kDefaultRenderScale;
   QColor joint_color_ = get_default_joint_color();
   double joint_thickness_ = kDefaultJointThickness;
   std::string stress_color_map_ = DefaultColorMap();

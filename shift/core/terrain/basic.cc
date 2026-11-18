@@ -88,6 +88,14 @@ void shift::core::terrain::Basic::DeclareParameters() {
                    "with the \"value\" of the samples that select it "
                    "(see terrain::SoilMap); optional",
                    false);
+  DeclareParameter("material_map", &material_map_,
+                   "surface materials by area from an integer TIFF: "
+                   "\"filename\", \"x_scale\", \"y_scale\", "
+                   "\"blend_width\" and \"materials\", each the name of a "
+                   "surface material with the \"value\" of the samples that "
+                   "select it (see terrain::MaterialMap); in place of a "
+                   "soil_map; optional",
+                   false);
 }
 
 void shift::core::terrain::Base::Load() {}
@@ -165,9 +173,10 @@ void shift::core::terrain::Basic::Load() {
   base_soil_ = -1;
   if(parent_basic_ && parent_basic_->soils_.empty()) {
     /* a region of ground without soil, e.g. rigid ground: its own */
-    if(soil_map_.is_given()) {
-      throw shift::core::Exception(prefix + "a region takes the soil map of "
-                                            "the terrain that holds it");
+    if(soil_map_.is_given() || material_map_.is_given()) {
+      throw shift::core::Exception(prefix + "a region takes the soil and "
+                                            "material maps of the terrain "
+                                            "that holds it");
     }
     if(soil_.is_given()) {
       soils_.push_back(
@@ -175,9 +184,10 @@ void shift::core::terrain::Basic::Load() {
       base_soil_ = 0;
     }
   } else if(parent_basic_) {
-    if(soil_map_.is_given()) {
-      throw shift::core::Exception(prefix + "a region takes the soil map of "
-                                            "the terrain that holds it");
+    if(soil_map_.is_given() || material_map_.is_given()) {
+      throw shift::core::Exception(prefix + "a region takes the soil and "
+                                            "material maps of the terrain "
+                                            "that holds it");
     }
     soils_ = parent_basic_->soils_;
     base_soil_ = parent_basic_->base_soil_;
@@ -189,6 +199,15 @@ void shift::core::terrain::Basic::Load() {
   } else if(soil_.is_given()) {
     soils_.push_back(soil_.Resolve("Terrain " + get_name(), requires_bekker()));
     base_soil_ = 0;
+  }
+  if(soil_map_.is_given() && material_map_.is_given()) {
+    throw shift::core::Exception(prefix + "give a soil_map or a material_map, "
+                                          "not both");
+  }
+  if(material_map_.is_given() && !parent_basic_) {
+    material_map_.Load(FindFile(material_map_.get_filename()), sae,
+                       context_->get_surface_materials(), base_soil_,
+                       requires_bekker(), "Terrain " + get_name(), soils_);
   }
   if(soil_map_.is_given() && !parent_basic_) {
     soil_map_.Load(FindFile(soil_map_.get_filename()), sae, base_soil_,
@@ -489,6 +508,9 @@ int shift::core::terrain::Basic::LocalSoilIndex(double x, double y) const {
   /* a region's soils are its parent's, unless the parent has none */
   if(parent_basic_ && !parent_basic_->soils_.empty()) {
     return parent_basic_->LocalSoilIndex(x, y);
+  }
+  if(material_map_.is_given()) {
+    return material_map_.SoilIndex(x, y);
   }
   return soil_map_.is_given() ? soil_map_.Index(x, y) : base_soil_;
 }

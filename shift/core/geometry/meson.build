@@ -5,5 +5,6 @@ core_src += files(
   'mass_properties.cc',
   'mesh.cc',
   'point_cloud.cc',
+  'simplify.cc',
   'sphere.cc',
 )

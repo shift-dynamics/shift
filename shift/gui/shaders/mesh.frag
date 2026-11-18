@@ -53,6 +53,12 @@ layout(std140, binding = 0) uniform Frame {
   vec4 sky_horizon;
   vec4 floor_params;
   mat4 floor_frame;
+  vec4 fog_params;
+  vec4 fog_color;
+  vec4 water_params;     // height (up), wave height, wavelength, 1 if water
+  vec4 water_wave;       // direction of travel (x, y), time
+  vec4 water_color;
+  vec4 water_extinction;
   // the colors of the stress drawn on flexible bodies, sRGB, at 16 even
   // steps from 0 to 1 (Viewport::set_color_map)
   vec4 color_map[16];
@@ -65,30 +71,53 @@ layout(std140, binding = 1) uniform Material {
                       // w = 1 / texture scale
   ivec4 layers;       // base color, metallic roughness, normal; -1: none;
                       // w = holes used
-  vec4 variation;     // x = 1: vary the tiles of triplanar textures;
-                      // w = 1: a flexible body's stress, its color map at
-                      // uv.x
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures, y =
+                      // material map (ground.glsl) + 1, 0 for none, z = alpha
+                      // cutoff, w = opacity: below 1, blended over what is
+                      // behind (viewport.cc: transparent_pipeline_)
   ivec4 surface_layers; // base color and normal of surfaces 0 and 1
   vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
                       // level, w = 1 / patch size
   vec4 emission;      // rgb: factor of the base color emitted (a lamp's
                       // lens, lit)
   vec4 holes[4];      // of a terrain, in its uv: x0, y0, x1, y1
+  vec4 flex;          // x = 1: a flexible body's stress drawn, its color
+                      // map at uv.x (a CAD's: at cad_stress)
 } mesh;
 
-// image based lighting of the sky, indexed by the z component of a direction
-// (the sky is symmetric about z); see environment.h
-layout(binding = 2) uniform sampler2D environment_specular;   // z, roughness
-layout(binding = 3) uniform sampler2D environment_irradiance; // z
+// image based lighting of the sky, equirectangular; see environment.h
+layout(binding = 2) uniform sampler2D environment_specular;   // per roughness
+layout(binding = 3) uniform sampler2D environment_irradiance;
 layout(binding = 4) uniform sampler2D environment_brdf;       // n.v, roughness
+#define ENVIRONMENT_TABLES
+#include "environment.glsl"
+// the radiance of the sky, equirectangular, for the water's reflections
+layout(binding = 18) uniform sampler2D sky_radiance;
+#define WATER_SKY sky_radiance
 
-// texture layers of all materials
+// texture layers of all materials, and those larger than the others, from
+// layer kLargeLayer on (scene.h: Scene::large_texture_layers)
 layout(binding = 5) uniform sampler2DArray textures;
+layout(binding = 21) uniform sampler2DArray large_textures;
+const int kLargeLayer = 65536;
 
 #define LIGHTS_BINDING 8
 #define IES_BINDING 9
 #include "lights.glsl"
 #include "surfaces.glsl"
+#define GROUND_BINDING 17
+#include "ground.glsl"
+#define WATER_PARAMS frame.water_params
+#define WATER_WAVE frame.water_wave
+#define WATER_COLOR frame.water_color
+#define WATER_EXTINCTION frame.water_extinction
+#define SUN_DIRECTION frame.sun_direction
+#define SUN_COLOR frame.sun_color
+#define SKY_ZENITH frame.sky_zenith
+vec3 WaterSky(vec3 d) {
+  return textureLod(WATER_SKY, EquirectUv(d), 0.0).rgb;
+}
+#include "water.glsl"
 
 const float PI = 3.14159265358979;
 
@@ -113,7 +142,24 @@ vec3 SrgbToLinear(vec3 c) {
 }
 
 vec4 SampleLayer(int layer, vec2 p) {
+  if(layer >= kLargeLayer) {
+    return texture(large_textures, vec3(p, float(layer - kLargeLayer)));
+  }
   return texture(textures, vec3(p, float(layer)));
+}
+
+vec4 SampleLayerGrad(int layer, vec2 p, vec2 dx, vec2 dy) {
+  if(layer >= kLargeLayer) {
+    return textureGrad(large_textures, vec3(p, float(layer - kLargeLayer)),
+                       dx, dy);
+  }
+  return textureGrad(textures, vec3(p, float(layer)), dx, dy);
+}
+
+// the level of detail of a layer at p
+float LayerLod(int layer, vec2 p) {
+  return layer >= kLargeLayer ? textureQueryLod(large_textures, p).y
+                              : textureQueryLod(textures, p).y;
 }
 
 // one plane of a triplanar projection, q in texture tiles with its screen
@@ -121,12 +167,11 @@ vec4 SampleLayer(int layer, vec2 p) {
 // at random if vary
 vec4 SamplePlane(int layer, vec2 q, vec2 dx, vec2 dy, bool vary) {
   if(!vary) {
-    return textureGrad(textures, vec3(q, float(layer)), dx, dy);
+    return SampleLayerGrad(layer, q, dx, dy);
   }
   TileShift t = TileVariation(q, true);
-  return BlendTiles(textureGrad(textures, vec3(q + t.a, float(layer)), dx, dy),
-                    textureGrad(textures, vec3(q + t.b, float(layer)), dx, dy),
-                    t.f);
+  return BlendTiles(SampleLayerGrad(layer, q + t.a, dx, dy),
+                    SampleLayerGrad(layer, q + t.b, dx, dy), t.f);
 }
 
 // the weights of the three planes, without those too small to see
@@ -217,6 +262,65 @@ vec3 DirectLight(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic,
   return (diffuse * diffuse_light + specular * specular_light) * n_dot_l;
 }
 
+// the depth below the surface (m) of the relief of the ground materials k,
+// of weights weight, at the body position b: each sunk by its height scale
+// where its height map is dark
+float GroundDepth(int count, ivec4 k, vec4 weight, vec3 b, vec3 w, vec3 dbx,
+                  vec3 dby, bool vary) {
+  float depth = 0.0;
+  for(int e = 0; e < count; e++) {
+    GroundMaterial g = ground_materials[k[e]];
+    if(g.layers.w >= 0 && g.scale.z > 0.0) {
+      float scale = g.scale.x;
+      float h = SampleTriplanar(g.layers.w, b * scale, w, dbx * scale,
+                                dby * scale, vary).r;
+      depth += weight[e] * g.scale.z * (1.0 - h);
+    }
+  }
+  return depth;
+}
+
+// parallax occlusion mapping (Tatarchuk, Practical Parallax Occlusion
+// Mapping, 2006): the point of the relief of the ground materials that the
+// view ray, toward view (a unit vector in the body frame) through the
+// surface at b of normal nb (toward the camera), meets first, found by
+// stepping down the ray and refining between the last steps above and below
+// the relief. It fades out where a pixel spans more than the relief, which
+// would only shimmer.
+vec3 GroundParallax(int count, ivec4 k, vec4 weight, vec3 b, vec3 view,
+                    vec3 nb, vec3 w, vec3 dbx, vec3 dby, bool vary) {
+  float deepest = 0.0;
+  for(int e = 0; e < count; e++) {
+    GroundMaterial g = ground_materials[k[e]];
+    if(g.layers.w >= 0) {
+      deepest += weight[e] * g.scale.z;
+    }
+  }
+  float pixel = max(length(dbx), length(dby));
+  float fade = 1.0 - smoothstep(0.5 * deepest, 2.0 * deepest, pixel);
+  if(deepest <= 0.0 || fade <= 0.0) {
+    return b;
+  }
+  float c = max(-dot(view, nb), 0.15); // the cosine of the view to the normal
+  int steps = int(mix(32.0, 8.0, c));
+  float ds = deepest / c / float(steps);
+  float s = 0.0;
+  float gap = GroundDepth(count, k, weight, b, w, dbx, dby, vary);
+  for(int i = 0; i < steps; i++) {
+    float next = GroundDepth(count, k, weight, b + view * (s + ds), w, dbx,
+                             dby, vary) -
+                 (s + ds) * c;
+    if(next <= 0.0) {
+      // between the last step above the relief and this one below it
+      s += ds * gap / max(gap - next, 1e-6);
+      return b + fade * view * s;
+    }
+    gap = next;
+    s += ds;
+  }
+  return b + fade * view * s;
+}
+
 #ifdef FLUID
 // the surface's point at pixel p, with depth d; false where there is none
 bool FluidPoint(ivec2 p, vec2 size, out vec3 point) {
@@ -292,6 +396,17 @@ void main() {
     discard;
   }
 #endif
+  // a leaf or a blade of grass cut out of its card where the base color's
+  // alpha is below the cutoff; the cutoff is lowered at coarser levels of
+  // detail, whose texels average the leaves with the clear texels between
+  // them, so that foliage does not thin out in the distance
+  if(mesh.variation.z > 0.0 && mesh.layers.x >= 0) {
+    float lod = LayerLod(mesh.layers.x, uv);
+    float cutoff = mesh.variation.z * max(1.0 - 0.15 * lod, 0.4);
+    if(SampleLayer(mesh.layers.x, uv).a < cutoff) {
+      discard;
+    }
+  }
   vec3 v = normalize(frame.camera_position.xyz - world_position);
   vec3 n = normalize(world_normal);
   vec3 nb = normalize(body_normal);
@@ -310,7 +425,7 @@ void main() {
 
   vec3 albedo = mesh.albedo.rgb;
 #if !defined(CAD) && !defined(FLUID)
-  if(mesh.variation.w > 0.5) {
+  if(mesh.flex.x > 0.5) {
     float t = clamp(uv.x, 0.0, 1.0) * 15.0;
     int k = min(int(t), 14);
     albedo = SrgbToLinear(mix(frame.color_map[k].rgb,
@@ -319,7 +434,7 @@ void main() {
 #endif
 #ifdef CAD
   vec4 face_color = faces[cad_face.x].color;
-  if(mesh.variation.w > 0.5) {
+  if(mesh.flex.x > 0.5) {
     // a flexible body's stress drawn, over the faces' colors
     float t = clamp(cad_stress, 0.0, 1.0) * 15.0;
     int k = min(int(t), 14);
@@ -347,7 +462,70 @@ void main() {
   HexPlanes hex_planes = HexPlanesSetup(p, w, dFdx(p), dFdy(p));
 
   float below_brightness = 0.5; // of the texture, for the surfaces' edges
-  if(mesh.layers.x >= 0) {
+  int ground_map = triplanar ? int(mesh.variation.y + 0.5) - 1 : -1;
+  if(ground_map >= 0) {
+    // the materials of the map in place of the mesh's own textures
+    ivec4 k;
+    vec4 weight;
+    int count = GroundWeights(ground_map, world_position, k, weight);
+    // the point of the relief seen, sunk into the surface
+    vec3 relief = GroundParallax(
+      count, k, weight, body_position,
+      normalize(transpose(body_rotation) * -v), nb, w, dbx, dby, vary);
+    vec4 height = vec4(0.5);
+    for(int e = 0; e < count; e++) {
+      GroundMaterial g = ground_materials[k[e]];
+      if(g.layers.w >= 0) {
+        float scale = g.scale.x;
+        height[e] = SampleTriplanar(g.layers.w, relief * scale, w,
+                                    dbx * scale, dby * scale, vary).r;
+      }
+    }
+    weight = GroundHeightBlend(count, k, weight, height);
+    vec3 albedo_sum = vec3(0.0);
+    vec3 normal_sum = vec3(0.0);
+    float roughness_sum = 0.0;
+    float brightness_sum = 0.0;
+    vec3 seen = normalize(body_rotation * nb);
+    for(int e = 0; e < count; e++) {
+      GroundMaterial g = ground_materials[k[e]];
+      float scale = g.scale.x;
+      vec3 q = relief * scale;
+      vec3 c = g.color.rgb;
+      float brightness = 0.5;
+      if(g.layers.x >= 0) {
+        vec4 t = SampleTriplanar(g.layers.x, q, w, dbx * scale, dby * scale,
+                                 vary);
+        brightness = dot(t.rgb, vec3(0.333));
+        c *= SrgbToLinear(t.rgb);
+      }
+      float r = g.color.w;
+      if(g.layers.z >= 0) {
+        r *= SampleTriplanar(g.layers.z, q, w, dbx * scale, dby * scale,
+                             vary).g;
+      }
+      vec3 ng = seen;
+      if(g.layers.y >= 0) {
+        ng = side * normalize(body_rotation *
+                              TriplanarNormal(g.layers.y, q, side * nb, w,
+                                              g.scale.y, dbx * scale,
+                                              dby * scale, vary));
+      }
+      albedo_sum += weight[e] * c;
+      roughness_sum += weight[e] * r;
+      normal_sum += weight[e] * ng;
+      brightness_sum += weight[e] * brightness;
+    }
+    albedo = albedo_sum;
+    roughness = roughness_sum;
+    metallic = 0.0;
+    n = normalize(normal_sum);
+    below_brightness = brightness_sum;
+    if(vary) {
+      albedo *= MacroBrightness(body_position.xy);
+    }
+  }
+  if(ground_map < 0 && mesh.layers.x >= 0) {
     vec4 s = hex ? HexPlanesColor(hex_planes, mesh.layers.x)
              : triplanar
                ? SampleTriplanar(mesh.layers.x, p, w, dpx, dpy, vary)
@@ -355,10 +533,10 @@ void main() {
     below_brightness = dot(s.rgb, vec3(0.333));
     albedo *= SrgbToLinear(s.rgb);
   }
-  if(triplanar && vary) {
+  if(ground_map < 0 && triplanar && vary) {
     albedo *= MacroBrightness(body_position.xy);
   }
-  if(mesh.layers.y >= 0) {
+  if(ground_map < 0 && mesh.layers.y >= 0) {
     vec4 s = hex ? HexPlanesSample(hex_planes, mesh.layers.y)
              : triplanar
                ? SampleTriplanar(mesh.layers.y, p, w, dpx, dpy, vary)
@@ -366,7 +544,7 @@ void main() {
     roughness *= s.g;
     metallic *= s.b;
   }
-  if(mesh.layers.z >= 0) {
+  if(ground_map < 0 && mesh.layers.z >= 0) {
     if(triplanar) {
       // the bumps of the front face; the back face has the opposite normal
       n = side * normalize(
@@ -436,11 +614,9 @@ void main() {
 
   // sky light, split sum approximation
   vec3 r = reflect(-v, n);
-  vec3 prefiltered =
-    texture(environment_specular, vec2(0.5 + 0.5 * r.z, roughness)).rgb;
+  vec3 prefiltered = SpecularLight(environment_specular, r, roughness);
   vec2 brdf = texture(environment_brdf, vec2(n_dot_v, roughness)).rg;
-  vec3 irradiance =
-    texture(environment_irradiance, vec2(0.5 + 0.5 * n.z, 0.5)).rgb;
+  vec3 irradiance = DiffuseLight(environment_irradiance, n);
   vec3 f_ambient = f0 + (max(vec3(1.0 - roughness), f0) - f0) *
                    pow(1.0 - n_dot_v, 5.0);
   color += (1.0 - f_ambient) * (1.0 - metallic) * albedo * irradiance +
@@ -453,6 +629,24 @@ void main() {
                                      edge_pixels));
 #endif
   color += mesh.emission.rgb * albedo;
+  // seen through water: the size of a pixel here, scaled to the surface
+  float pixel = length(fwidth(world_position));
+  vec3 crossing;
+  if(WaterCrossing(frame.camera_position.xyz, world_position, crossing)) {
+    // the size of the pixel across the view at the crossing (the size of
+    // the pixel on a surface it grazes is the size along the view)
+    vec3 to_camera = normalize(frame.camera_position.xyz - crossing);
+    float footprint =
+      pixel * max(-to_camera.z, 0.02) *
+      distance(frame.camera_position.xyz, crossing) /
+      max(distance(frame.camera_position.xyz, world_position), 1e-6);
+    color = WaterOver(frame.camera_position.xyz, crossing, world_position,
+                      color, false, footprint);
+  }
+  color = Aerial(frame.camera_position.xyz, world_position, color,
+                 frame.fog_params, frame.fog_color,
+                 WaterSky(HorizonDirection(world_position -
+                                           frame.camera_position.xyz)));
   color = color / (color + vec3(1.0));
-  out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
+  out_color = vec4(pow(color, vec3(1.0 / 2.2)), mesh.variation.w);
 }

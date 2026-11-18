@@ -20,7 +20,8 @@ the rotation from those coordinates to vehicle coordinates.
 
 Each body is written as <output_directory>/<body>.glb, with its textures
 embedded (at most "max_texture_size" pixels across, in "image_format":
-"AUTO" keeps PNG, "JPEG" is smaller), in the coordinates of
+"AUTO" keeps PNG, "JPEG" is smaller, of "jpeg_quality" from 0 to 100,
+90 if not given), in the coordinates of
 the body: vehicle coordinates less the body's origin given in "bodies". A
 listing of every piece, with its body, goes to pieces.txt.
 
@@ -39,6 +40,28 @@ image files, by
 paths relative to the configuration file, e.g. a license plate drawn by the
 example's generator. The replacement is mapped as the image it replaces, so it
 must be laid out the same way.
+
+"projections" (optional) move the vertices of the meshes whose node or
+mesh name matches "mesh" onto the nearest surface of the meshes matching
+"onto", where that is within "distance" (m), e.g. the glow of a lamp painted
+on cards that stand off its lens, laid on the lens under the lamp's glass.
+
+"decals" (optional) paint the image of the meshes whose node or mesh name
+matches "mesh" onto the images of the meshes matching "onto", where they lie
+within "distance" (m) of each other: each texel of the faces of "onto" takes
+the color of the nearest point of the faces of "mesh" that lie wholly within
+"distance" of "onto", over its own where that is brighter than "cutoff" (the
+largest of red, green and blue, from 0 to 1, blended over 0.2 about it), e.g.
+the glow of a lamp painted on cards that stand off its lens, painted on the
+lens, so that the cards can be left out. The images painted are those after
+"images" replaces them.
+
+"cutouts" (optional) make materials of the source, by name, cut-outs: the
+alpha of the image of the material's base color becomes the brightness of
+its color (the largest of red, green and blue), and the material is cut out
+where that is below the cutoff (glTF's "alphaMode": "MASK"), e.g. the glow of
+lamps painted on black, whose black would otherwise be drawn as black paint
+around them. Their images are written as PNG, with the alpha.
 
 {
   "scale": 1.0,
@@ -60,7 +83,10 @@ import sys
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
+from mathutils.geometry import barycentric_transform
 
 
 def mirrored(rule, mirror):
@@ -105,6 +131,201 @@ def split_loose(obj):
     bpy.ops.mesh.separate(type="LOOSE")
     bpy.ops.object.mode_set(mode="OBJECT")
     return list(bpy.context.selected_objects)
+
+
+def base_image(material):
+    """the image node of the base color of material"""
+    shader = next(n for n in material.node_tree.nodes
+                  if n.type == "BSDF_PRINCIPLED")
+    color = shader.inputs["Base Color"]
+    if not color.links or color.links[0].from_node.type != "TEX_IMAGE":
+        raise SystemExit("material " + material.name +
+                         " has no image as base color")
+    return color.links[0].from_node
+
+
+def image_array(image):
+    """the pixels of image, rows from the bottom, RGBA from 0 to 1"""
+    w, h = image.size
+    a = np.empty(w * h * 4, np.float32)
+    image.pixels.foreach_get(a)
+    return a.reshape(h, w, 4)
+
+
+def bilinear(pixels, u, v):
+    """the RGB of image pixels (rows from the bottom) at texture coordinates
+    u, v, interpolated bilinearly, wrapping round"""
+    h, w = pixels.shape[:2]
+    x, y = u * w - 0.5, v * h - 0.5
+    x0, y0 = int(np.floor(x)), int(np.floor(y))
+    fx, fy = x - x0, y - y0
+    c = [[pixels[(y0 + j) % h, (x0 + i) % w, :3] for i in (0, 1)]
+         for j in (0, 1)]
+    return ((1 - fy) * ((1 - fx) * c[0][0] + fx * c[0][1]) +
+            fy * ((1 - fx) * c[1][0] + fx * c[1][1]))
+
+
+def project(meshes, rule):
+    """moves the vertices of the meshes matching rule["mesh"] onto the
+    nearest surface of the meshes matching rule["onto"] within
+    rule["distance"]"""
+    onto = [o for o in meshes if re.search(rule["onto"], o["source"])]
+    if not onto:
+        raise SystemExit("projections: no mesh matches " + rule["onto"])
+    b = bmesh.new()
+    for o in onto:
+        b.from_mesh(o.data)
+    surface = BVHTree.FromBMesh(b)
+    b.free()
+    for o in meshes:
+        if not re.search(rule["mesh"], o["source"]):
+            continue
+        moved = 0
+        for v in o.data.vertices:
+            hit = surface.find_nearest(v.co, rule["distance"])[0]
+            if hit is not None:
+                v.co = hit
+                moved += 1
+        print("projections: %d of %d vertices of %s onto %s" %
+              (moved, len(o.data.vertices), o["source"], rule["onto"]))
+
+
+def decal(meshes, rule):
+    """paints the image of the meshes matching rule["mesh"] onto the images
+    of the meshes matching rule["onto"] (see "decals" above)"""
+    distance = rule["distance"]
+    onto = [o for o in meshes if re.search(rule["onto"], o["source"])]
+    cards = [o for o in meshes if re.search(rule["mesh"], o["source"])]
+    if not onto or not cards:
+        raise SystemExit("decals: no mesh matches " + rule["onto"] + " or " +
+                         rule["mesh"])
+
+    def tree(objects):
+        b = bmesh.new()
+        for o in objects:
+            b.from_mesh(o.data)
+        t = BVHTree.FromBMesh(b)
+        b.free()
+        return t
+
+    def near(t, point):
+        return t.find_nearest(point, distance)[0] is not None
+
+    # the faces of the cards wholly near the meshes painted on, triangles
+    # with their texture coordinates and the card's image
+    onto_tree = tree(onto)
+    triangles, uvs, images = [], [], []
+    for o in cards:
+        picture = image_array(base_image(o.data.materials[0]).image)
+        o.data.calc_loop_triangles()
+        layer = o.data.uv_layers.active.data
+        for t in o.data.loop_triangles:
+            corners = [o.data.vertices[v].co for v in t.vertices]
+            if all(near(onto_tree, c) for c in corners):
+                triangles.append(corners)
+                uvs.append([Vector(tuple(layer[k].uv) + (0.0,))
+                            for k in t.loops])
+                images.append(picture)
+    b = bmesh.new()
+    for corners in triangles:
+        verts = [b.verts.new(c) for c in corners]
+        b.faces.new(verts)
+    b.verts.ensure_lookup_table()
+    b.faces.ensure_lookup_table()
+    card_tree = BVHTree.FromBMesh(b)
+    b.free()
+
+    painted = {}
+    low, high = rule["cutoff"] - 0.1, rule["cutoff"] + 0.1
+    for o in onto:
+        o.data.calc_loop_triangles()
+        layer = o.data.uv_layers.active.data
+        for t in o.data.loop_triangles:
+            corners = [o.data.vertices[v].co for v in t.vertices]
+            if not all(near(card_tree, c) for c in corners):
+                continue
+            node = base_image(o.data.materials[t.material_index])
+            if node.image.name not in painted:
+                painted[node.image.name] = (node.image,
+                                            image_array(node.image))
+            pixels = painted[node.image.name][1]
+            h, w = pixels.shape[:2]
+            uv = np.array([tuple(layer[k].uv) for k in t.loops]) * (w, h)
+            lo = np.floor(uv.min(axis=0) - 1).astype(int)
+            hi = np.ceil(uv.max(axis=0) + 1).astype(int)
+            xs, ys = np.meshgrid(np.arange(lo[0], hi[0]),
+                                 np.arange(lo[1], hi[1]))
+            p = np.stack([xs.ravel(), ys.ravel()], axis=-1) + 0.5
+            m = np.array([uv[1] - uv[0], uv[2] - uv[0]]).T
+            if abs(np.linalg.det(m)) < 1e-12:
+                continue
+            l12 = np.linalg.solve(m, (p - uv[0]).T).T
+            bary = np.column_stack([1.0 - l12.sum(axis=1), l12])
+            # the texels of the triangle, and half a texel beyond its edges
+            slack = 0.5 / max(1.0, np.abs(np.linalg.det(m)) ** 0.5)
+            for (x, y), weights in zip(p.astype(int),
+                                       bary):
+                if weights.min() < -slack or not (0 <= x < w and
+                                                   0 <= y < h):
+                    continue
+                point = sum((float(c) * v for c, v in zip(weights, corners)),
+                            Vector())
+                hit, _, index, _ = card_tree.find_nearest(point, distance)
+                if hit is None:
+                    continue
+                q = barycentric_transform(hit, *triangles[index],
+                                          *uvs[index])
+                picture = images[index]
+                ph, pw = picture.shape[:2]
+                color = bilinear(picture, q.x, q.y)
+                a = min(1.0, max(0.0, (color.max() - low) / (high - low)))
+                pixels[y, x, :3] += a * (color - pixels[y, x, :3])
+    for name, (image, pixels) in painted.items():
+        # a new image, packed: the source's, read from a file, would be
+        # written from the file
+        w, h = image.size
+        new = bpy.data.images.new(name + "_decal", w, h)
+        new.pixels.foreach_set(pixels.ravel())
+        new.pack()
+        image.user_remap(new)
+        print("decals: %s painted on %s" % (rule["mesh"], name))
+
+
+def cut_out(name, cutoff):
+    """makes the material name a cut-out where the brightness of its base
+    color is below cutoff: the alpha of its image is the brightness, fed to
+    the alpha of the shader through alpha < cutoff and 1 - that, which the
+    glTF exporter writes as "alphaMode": "MASK" with alphaCutoff cutoff"""
+    material = bpy.data.materials.get(name)
+    if material is None or not material.use_nodes:
+        raise SystemExit("no material " + name + " with nodes in the source")
+    nodes, links = material.node_tree.nodes, material.node_tree.links
+    shader = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
+    color = shader.inputs["Base Color"]
+    if not color.links or color.links[0].from_node.type != "TEX_IMAGE":
+        raise SystemExit("material " + name + " has no image as base color")
+    texture = color.links[0].from_node
+    source = texture.image
+    pixels = list(source.pixels)
+    for k in range(0, len(pixels), 4):
+        pixels[k + 3] = max(pixels[k], pixels[k + 1], pixels[k + 2])
+    # a new image with an alpha channel: the source's, read from a file
+    # without one, would be written without it
+    width, height = source.size
+    image = bpy.data.images.new(source.name, width, height, alpha=True)
+    image.pixels[:] = pixels
+    image.alpha_mode = "STRAIGHT"
+    image.pack()
+    texture.image = image
+    below = nodes.new("ShaderNodeMath")
+    below.operation = "LESS_THAN"
+    below.inputs[1].default_value = cutoff
+    keep = nodes.new("ShaderNodeMath")
+    keep.operation = "SUBTRACT"
+    keep.inputs[0].default_value = 1.0
+    links.new(texture.outputs["Alpha"], below.inputs[0])
+    links.new(below.outputs[0], keep.inputs[1])
+    links.new(keep.outputs[0], shader.inputs["Alpha"])
 
 
 def main():
@@ -194,6 +415,15 @@ def main():
         bpy.data.images[name].user_remap(bpy.data.images.load(os.path.join(
             os.path.dirname(os.path.abspath(config_path)), path)))
 
+    for r in config.get("projections", []):
+        project([o for o in bpy.data.objects if o.type == "MESH"], r)
+
+    for d in config.get("decals", []):
+        decal([o for o in bpy.data.objects if o.type == "MESH"], d)
+
+    for name, cutoff in config.get("cutouts", {}).items():
+        cut_out(name, cutoff)
+
     largest = config.get("max_texture_size", 0)
     for image in bpy.data.images:
         w, h = image.size
@@ -222,7 +452,7 @@ def main():
             filepath=os.path.join(output, name + ".glb"),
             export_format="GLB",
             export_image_format=config.get("image_format", "AUTO"),
-            export_jpeg_quality=90,
+            export_jpeg_quality=config.get("jpeg_quality", 90),
             use_selection=True, export_yup=False, export_apply=True,
             export_animations=False, export_cameras=False,
             export_lights=False)

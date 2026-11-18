@@ -45,7 +45,9 @@
 #include <QEventLoop>
 #include <QFormLayout>
 #include <QFileDialog>
+#include <QCloseEvent>
 #include <QDir>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -86,6 +88,8 @@
 #include <set>
 #include <sstream>
 #include <tuple>
+#include <atomic>
+#include <mutex>
 #include <stdexcept>
 #include <thread>
 
@@ -2494,6 +2498,8 @@ void shift::gui::Workspace::SetAllFlexBodies(std::set<QString>& bodies,
 void shift::gui::Workspace::ApplySettings() {
   viewport_->set_frame_axes_scale(float(settings_.get_frame_scale()));
   viewport_->set_joint_thickness(float(settings_.get_joint_thickness()));
+  viewport_->set_lod_tolerance(float(settings_.get_lod_tolerance()));
+  viewport_->set_render_scale(float(settings_.get_render_scale()));
   const QColor& color = settings_.get_joint_color();
   viewport_->set_joint_color(ksl_vec3f(
     float(color.redF()), float(color.greenF()), float(color.blueF())));
@@ -2537,16 +2543,71 @@ void shift::gui::Workspace::SettingsDialog() {
   joint_thickness->setValue(settings_.get_joint_thickness());
   joint_thickness->setToolTip("the diameter of the lines of the joint axes");
   layout->addRow("Joint axis thickness", joint_thickness);
+  auto* lod_tolerance = new QDoubleSpinBox;
+  // beyond 64 the coarsest levels of a vehicle's body, clustered, lose its
+  // textures' layout
+  lod_tolerance->setRange(0.0, 64.0);
+  lod_tolerance->setDecimals(1);
+  lod_tolerance->setSingleStep(1.0);
+  lod_tolerance->setSuffix(" px");
+  lod_tolerance->setSpecialValueText("off (full detail)");
+  lod_tolerance->setValue(settings_.get_lod_tolerance());
+  lod_tolerance->setToolTip(
+    "<p>Lower is sharper, higher is faster.</p>"
+    "<p>The viewer draws simplified copies of meshes (levels of detail) "
+    "where they cannot be told apart from the mesh itself. This is the "
+    "largest error, in pixels on the screen, that a copy may show; far away "
+    "meshes get the coarsest copies.</p>"
+    "<ul><li><b>0</b>: always the meshes themselves (slowest; for final "
+    "renders)</li>"
+    "<li><b>8</b> (default): the copies cannot be told apart</li>"
+    "<li><b>above 8</b>: faster, with visible simplification and switching "
+    "of copies</li></ul>"
+    "<p>Shadows and reflected light allow four times as much.</p>");
+  layout->addRow("Level of detail tolerance", lod_tolerance);
+  auto* render_scale = new QSpinBox;
+  render_scale->setRange(int(std::lround(Settings::kMinimumRenderScale * 100)),
+                         100);
+  render_scale->setSingleStep(5);
+  render_scale->setSuffix(" %");
+  render_scale->setValue(int(std::lround(settings_.get_render_scale() * 100)));
+  render_scale->setToolTip(
+    "<p>Higher is sharper, lower is faster.</p>"
+    "<p>The share of the window's width and height that the ray traced "
+    "view is rendered at. The time per frame goes about as the square of "
+    "it: 50 % renders a quarter of the pixels. Each frame's rays are "
+    "shifted a little within their pixels, and the frames are combined into "
+    "the window's full resolution, so detail comes back over a few frames "
+    "once the view holds still; while it moves, the view is softer.</p>"
+    "<ul><li><b>100 %</b> (default): full resolution</li>"
+    "<li><b>75 %</b>: close to full resolution, about twice as fast</li>"
+    "<li><b>50 %</b>: softer while moving, about three times as fast</li>"
+    "</ul>"
+    "<p>Images and videos are always rendered at their full size.</p>");
+  layout->addRow("Ray tracing resolution", render_scale);
+  // each label shows the hint of its field
+  for(int row = 0; row < layout->rowCount(); row++) {
+    QLayoutItem* label = layout->itemAt(row, QFormLayout::LabelRole);
+    QLayoutItem* field = layout->itemAt(row, QFormLayout::FieldRole);
+    if(label && label->widget() && field && field->widget()) {
+      label->widget()->setToolTip(field->widget()->toolTip());
+    }
+  }
   // the viewport shows the settings as they are changed
-  auto preview = [this, frame_scale, joint_thickness, &joint_color] {
+  auto preview = [this, frame_scale, joint_thickness, lod_tolerance,
+                  render_scale, &joint_color] {
     viewport_->set_frame_axes_scale(float(frame_scale->value()));
     viewport_->set_joint_thickness(float(joint_thickness->value()));
+    viewport_->set_lod_tolerance(float(lod_tolerance->value()));
+    viewport_->set_render_scale(float(render_scale->value()) / 100.f);
     viewport_->set_joint_color(ksl_vec3f(float(joint_color.redF()),
                                          float(joint_color.greenF()),
                                          float(joint_color.blueF())));
   };
   connect(frame_scale, &QDoubleSpinBox::valueChanged, &dialog, preview);
   connect(joint_thickness, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(lod_tolerance, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(render_scale, &QSpinBox::valueChanged, &dialog, preview);
   connect(color_button, &QPushButton::clicked, &dialog, [&] {
     const QColor color =
       QColorDialog::getColor(joint_color, &dialog, "Joint color");
@@ -2678,6 +2739,8 @@ void shift::gui::Workspace::SettingsDialog() {
   settings_.set_frame_scale(frame_scale->value());
   settings_.set_joint_color(joint_color);
   settings_.set_joint_thickness(joint_thickness->value());
+  settings_.set_lod_tolerance(lod_tolerance->value());
+  settings_.set_render_scale(render_scale->value() / 100.0);
   ApplySettings();
   std::string error;
   if(!settings_.Save(Settings::get_default_path(), &error)) {
@@ -4354,7 +4417,7 @@ void shift::gui::Workspace::UpdateStatus() {
 
   QString text;
   if(compiling_pipelines_) {
-    text = "Compiling the shaders of the view…";
+    text = "Compiling shaders…";
   } else if(!loaded) {
     text = "Open a model (Ctrl+O)";
   } else if(computing) {
