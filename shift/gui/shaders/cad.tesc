@@ -1,5 +1,6 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_control_flow_attributes : require
 // Tessellation levels of a CAD patch from the size of its edges on screen
 // and from how far they bend away from their chords (sagitta s: n segments
 // leave s / n^2 between them and the surface). A level depends only on the
@@ -23,14 +24,28 @@ layout(location = 5) patch out vec4 pose_3;
 
 #include "cad_common.glsl"
 #include "cad_uniforms.glsl"
+#define FLEX_GRIDS_BINDING 22
+#define FLEX_FIELD_BINDING 23
+#include "flex_field.glsl"
 
 mat4 model;
 CadFace face;
 ivec2 span;
+int patch_id;
+bool deforms; // a flexible body's patch: its points displaced
 
+// the point of the surface at uv in world coordinates, displaced where the
+// patch deforms (the surface evaluated once, its displacement added)
 vec3 World(vec2 uv) {
   vec3 du, dv;
-  return (model * vec4(SurfacePoint(face, uv, span, du, dv), 1.0)).xyz;
+  vec3 point = SurfacePoint(face, uv, span, du, dv);
+  if(deforms) {
+    vec3 fu, fv;
+    float stress;
+    point += FlexDisplacement(patch_id, uv, fu, fv, stress) /
+             sample_grids[patch_id].scale;
+  }
+  return (model * vec4(point, 1.0)).xyz;
 }
 
 float Pixels(vec3 a, vec3 b, vec3 at) {
@@ -44,10 +59,8 @@ float Level(float length_pixels, float sagitta_pixels) {
   return clamp(n, 1.0, cad.tessellation.z);
 }
 
-float EdgeLevel(vec2 a, vec2 b) {
-  vec3 p = World(a);
-  vec3 q = World(b);
-  vec3 m = World(0.5 * (a + b));
+// the level of an edge from its ends p, q and middle m
+float EdgeLevel(vec3 p, vec3 q, vec3 m) {
   return Level(Pixels(p, m, m) + Pixels(m, q, m),
                Pixels(0.5 * (p + q), m, m));
 }
@@ -61,21 +74,42 @@ void main() {
     pose_2 = model_2[0];
     pose_3 = model_3[0];
     model = mat4(model_0[0], model_1[0], model_2[0], model_3[0]);
-    CadPatch p = patches[patch_index[0]];
+    patch_id = patch_index[0];
+    CadPatch p = patches[patch_id];
     face = faces[p.info.x];
     span = p.info.zw;
-    // corners: 0 (0, 0), 1 (1, 0), 2 (0, 1), 3 (1, 1); outer levels of the
-    // edges u = 0, v = 0, u = 1, v = 1
-    float u0 = EdgeLevel(corner_uv[0], corner_uv[2]);
-    float v0 = EdgeLevel(corner_uv[0], corner_uv[1]);
-    float u1 = EdgeLevel(corner_uv[1], corner_uv[3]);
-    float v1 = EdgeLevel(corner_uv[2], corner_uv[3]);
+    deforms = FlexScale(patch_id) > 0.0;
+    // corners: 0 (0, 0), 1 (1, 0), 2 (0, 1), 3 (1, 1). The points of a
+    // 3 x 3 grid over the patch, k = 3 j + i at (i/2, j/2), each evaluated
+    // once at one place in the shader (World is long; a loop not unrolled
+    // keeps one copy of it)
+    vec2 lo = corner_uv[0], hi = corner_uv[3];
+    vec3 points[9];
+    [[dont_unroll]] for(int k = 0; k < 9; k++) {
+      vec2 f = 0.5 * vec2(float(k % 3), float(k / 3));
+      points[k] = World(mix(lo, hi, f));
+    }
+    // outer levels of the edges u = 0, v = 0, u = 1, v = 1
+    float u0 = EdgeLevel(points[0], points[6], points[3]);
+    float v0 = EdgeLevel(points[0], points[2], points[1]);
+    float u1 = EdgeLevel(points[2], points[8], points[5]);
+    float v1 = EdgeLevel(points[6], points[8], points[7]);
     // the middle may bend more than the edges (e.g. a dome)
-    vec2 c = 0.5 * (corner_uv[0] + corner_uv[3]);
-    vec3 center = World(c);
-    vec3 bilinear = 0.25 * (World(corner_uv[0]) + World(corner_uv[1]) +
-                            World(corner_uv[2]) + World(corner_uv[3]));
+    vec3 center = points[4];
+    vec3 bilinear =
+      0.25 * (points[0] + points[2] + points[6] + points[8]);
     float inner = Level(0.0, Pixels(bilinear, center, center));
+    // a flexible body's patch: at least the intervals of its grid of
+    // samples, which a flat face bends between
+    if(deforms) {
+      ivec3 grid = sample_grids[patch_id].grid;
+      float nu = min(float(grid.x), cad.tessellation.z);
+      float nv = min(float(grid.y), cad.tessellation.z);
+      u0 = max(u0, nv);
+      u1 = max(u1, nv);
+      v0 = max(v0, nu);
+      v1 = max(v1, nu);
+    }
     gl_TessLevelOuter[0] = u0;
     gl_TessLevelOuter[1] = v0;
     gl_TessLevelOuter[2] = u1;

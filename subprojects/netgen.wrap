@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/NGSolve/netgen.git
+revision = v6.2.2608
+depth = 1
+method = cmake
+diff_files = netgen-nglib.patch

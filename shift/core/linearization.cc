@@ -21,17 +21,40 @@ shift::core::Linearization::Linearization(shift::core::Context& context)
   : context_(context) {}
 
 void shift::core::Linearization::NameStates() {
-  std::vector<std::string> coordinates;
+  /* each name at the index of its velocity: the joints' coordinates, and the
+  elastic coordinates of the flexible bodies as <body>__eta_<i> */
+  std::vector<std::string> coordinates(dq_count_);
+  unsigned int named = 0;
+  auto name = [&](int index, const std::string& text) {
+    if(index < 0 || (unsigned int)index >= dq_count_ ||
+       !coordinates[index].empty()) {
+      throw shift::core::Exception("Linearization: " + text +
+                                   " has no velocity of its own");
+    }
+    coordinates[index] = text;
+    named++;
+  };
   for(auto joint : context_.get_active_joints()) {
     for(size_t i = 0; i < joint->get_dq_count(); i++) {
-      coordinates.push_back(joint->FullyQualifiedName(joint->get_name()) +
-                            "__dq_" + std::to_string(i));
+      name(joint->get_dq_index() + (int)i,
+           joint->FullyQualifiedName(joint->get_name()) + "__dq_" +
+             std::to_string(i));
     }
   }
-  if(coordinates.size() != dq_count_) {
+  const auto& bodies = context_.get_active_articulated_bodies();
+  for(int b : context_.get_elastic_bodies()) {
+    shift::core::body::Base* body = bodies[b];
+    for(unsigned int i = 0; i < body->get_elastic_count(); i++) {
+      name(body->get_elastic_dq_index() + (int)i,
+           body->FullyQualifiedName(body->get_name()) + "__eta_" +
+             std::to_string(i));
+    }
+  }
+  if(named != dq_count_) {
     throw shift::core::Exception(
-      "Linearization: the joints have " + std::to_string(coordinates.size()) +
-      " velocities, the model " + std::to_string(dq_count_));
+      "Linearization: the joints and flexible bodies have " +
+      std::to_string(named) + " velocities, the model " +
+      std::to_string(dq_count_));
   }
   std::vector<std::string> others;
   for(auto body : context_.get_free_bodies()) {

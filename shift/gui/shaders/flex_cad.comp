@@ -1,0 +1,67 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_control_flow_attributes : require
+// the ray tracer's triangles of a flexible body's CAD surface, deformed: the
+// corners of each (their (u, v) as cad_triangulate.comp made them) on the
+// exact surface of their patch displaced by the field (flex_field.glsl),
+// written in the BVH's order with the motion of their vertices since they
+// were last written (and in w the stress drawn at them), as flex_refit.comp
+// mode 0 for a mesh; the BVH is then
+// refitted by flex_refit.comp
+
+layout(local_size_x = 64) in;
+
+#include "cad_common.glsl"
+#define FLEX_GRIDS_BINDING 17
+#define FLEX_FIELD_BINDING 18
+#include "flex_field.glsl"
+
+struct RtTriangle {
+  vec4 v0, v1, v2; // body coordinates; w: u at the corner
+  vec4 n0, n1, n2; // unit normals; w: v at the corner
+};
+
+layout(std140, binding = 0) uniform Step {
+  // x: the first of the CAD's triangles in Motion, y: count, w: the first of
+  // its triangles in Triangles
+  uvec4 range;
+} params;
+
+// per triangle in the BVH's order: (u, v) of corners 0 and 1, of corner 2
+// and the patch
+layout(std430, binding = 1) readonly buffer Jobs {
+  vec4 jobs[];
+};
+layout(std430, binding = 5) buffer Triangles {
+  RtTriangle triangles[];
+};
+layout(std430, binding = 7) buffer Motion {
+  vec4 motion[];
+};
+
+void main() {
+  uint k = gl_GlobalInvocationID.x;
+  if(k >= params.range.y) {
+    return;
+  }
+  vec4 a = jobs[2u * k], b = jobs[2u * k + 1u];
+  int patch_index = floatBitsToInt(b.z);
+  float scale = FlexScale(patch_index);
+  vec2 uv[3] = vec2[3](a.xy, a.zw, b.xy);
+  vec4 v[3], n[3];
+  float stress[3];
+  for(int c = 0; c < 3; c++) {
+    vec3 normal;
+    vec3 point = DeformedPatchPoint(patch_index, uv[c], normal, stress[c]);
+    v[c] = vec4(point * scale, uv[c].x);
+    n[c] = vec4(normal, uv[c].y);
+  }
+  uint t = params.range.w + k;
+  RtTriangle before = triangles[t];
+  uint m = 3u * (params.range.x + k);
+  // in w the stress drawn at the corner (raytrace.comp colors by it)
+  motion[m] = vec4(v[0].xyz - before.v0.xyz, stress[0]);
+  motion[m + 1u] = vec4(v[1].xyz - before.v1.xyz, stress[1]);
+  motion[m + 2u] = vec4(v[2].xyz - before.v2.xyz, stress[2]);
+  triangles[t] = RtTriangle(v[0], v[1], v[2], n[0], n[1], n[2]);
+}

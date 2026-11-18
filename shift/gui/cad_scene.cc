@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <array>
 #include <map>
+#include <tuple>
 #include <utility>
 
 namespace shift {
@@ -99,7 +101,8 @@ public:
     : model_(model), scale_(scale), size_(size), tolerance_(tolerance),
       out_(out) {}
 
-  void AddBody(const cad::PlacedBody& placed);
+  /* index: of placed in the bodies packed */
+  void AddBody(const cad::PlacedBody& placed, int index);
 
 private:
   int AddCurve(const cad::Curve3& c, const cad::Transform& t);
@@ -560,11 +563,15 @@ void CadPacker::AddFace(int fi, const cad::Transform& t,
   SetGrids(s, first_patch);
 }
 
-void CadPacker::AddBody(const cad::PlacedBody& placed) {
+void CadPacker::AddBody(const cad::PlacedBody& placed, int index) {
   const cad::Body& body = model_.bodies[placed.body];
   for(int shell : body.shells) {
     for(int face : model_.shells[shell].faces) {
+      const size_t faces = out_.faces.size();
       AddFace(face, placed.transform, body.color);
+      if(out_.faces.size() > faces) {
+        out_.face_sources.insert(out_.face_sources.end(), {face, index});
+      }
     }
   }
 }
@@ -601,8 +608,8 @@ SceneCad MakeSceneCad(const cad::Model& model,
     tolerance = 2e-5 * size;
   }
   CadPacker packer(model, scale, size, tolerance, out);
-  for(const auto& placed : bodies) {
-    packer.AddBody(placed);
+  for(size_t b = 0; b < bodies.size(); b++) {
+    packer.AddBody(bodies[b], static_cast<int>(b));
   }
   if(out.patches.empty()) {
     out.bounds_min = out.bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
@@ -611,6 +618,86 @@ SceneCad MakeSceneCad(const cad::Model& model,
 }
 
 /* the inside test of the fragment shader on the records of a face */
+void SampleCadPatches(const cad::Model& model,
+                      const std::vector<cad::PlacedBody>& bodies,
+                      double spacing, SceneCad& out) {
+  out.sample_grids.clear();
+  out.sample_points.clear();
+  if(!(spacing > 0.0) || out.face_sources.size() != 2 * out.faces.size()) {
+    return;
+  }
+  auto point = [&](const CadGpuPatch& p, double u, double v) {
+    const int face = p.info[0];
+    const cad::Surface& s =
+      model.surfaces[model.faces[out.face_sources[2 * face]].surface];
+    const cad::Transform& t = bodies[out.face_sources[2 * face + 1]].transform;
+    const cad::Vec3 x = t.Apply(cad::SurfacePoint(model, s, u, v));
+    return cad::Vec3{out.scale * x[0], out.scale * x[1], out.scale * x[2]};
+  };
+  /* the intervals of each patch along u and v: its length along them (at
+  three lines across) over spacing, the most of the patches of its column
+  (row) of its face, which share their edges along v (u) */
+  std::map<std::tuple<int, float, float>, int> columns, rows;
+  for(const CadGpuPatch& p : out.patches) {
+    std::array<int, 2> n{1, 1};
+    for(int dim = 0; dim < 2; ++dim) {
+      double length = 0.0;
+      for(int line = 0; line <= 2; ++line) {
+        double along = 0.0;
+        cad::Vec3 previous;
+        for(int i = 0; i <= 8; ++i) {
+          const double a = p.uv[dim] + (p.uv[dim + 2] - p.uv[dim]) * i / 8.0;
+          const double b = p.uv[1 - dim] +
+                           (p.uv[3 - dim] - p.uv[1 - dim]) * 0.5 * line;
+          const cad::Vec3 x = dim == 0 ? point(p, a, b) : point(p, b, a);
+          if(i > 0) {
+            along += cad::Distance(previous, x);
+          }
+          previous = x;
+        }
+        length = std::max(length, along);
+      }
+      n[dim] = std::clamp(int(std::ceil(length / spacing)), 1, 64);
+    }
+    int& nu = columns[{p.info[0], p.uv[0], p.uv[2]}];
+    nu = std::max(nu, n[0]);
+    int& nv = rows[{p.info[0], p.uv[1], p.uv[3]}];
+    nv = std::max(nv, n[1]);
+  }
+  for(const CadGpuPatch& p : out.patches) {
+    CadGpuSampleGrid g{};
+    std::copy(p.uv, p.uv + 4, g.uv);
+    g.grid[0] = columns[{p.info[0], p.uv[0], p.uv[2]}];
+    g.grid[1] = rows[{p.info[0], p.uv[1], p.uv[3]}];
+    g.grid[2] = static_cast<int32_t>(out.sample_points.size() / 4);
+    g.scale = out.scale;
+    // the same (u, v) as the shaders take
+    for(int j = 0; j <= g.grid[1]; ++j) {
+      const double v = j == g.grid[1]
+                         ? p.uv[3]
+                         : p.uv[1] + (p.uv[3] - p.uv[1]) * j / g.grid[1];
+      for(int i = 0; i <= g.grid[0]; ++i) {
+        const double u = i == g.grid[0]
+                           ? p.uv[2]
+                           : p.uv[0] + (p.uv[2] - p.uv[0]) * i / g.grid[0];
+        const cad::Vec3 x = point(p, u, v);
+        out.sample_points.insert(out.sample_points.end(),
+                                 {float(x[0]), float(x[1]), float(x[2]), 0.f});
+      }
+    }
+    out.sample_grids.push_back(g);
+  }
+  /* the ray tracer's triangles (cad_triangulate.comp): at least the
+  intervals of the samples, which a flat face bends between */
+  for(size_t p = 0; p < out.patches.size(); p++) {
+    out.grids[2 * p] = std::max(out.grids[2 * p], out.sample_grids[p].grid[0]);
+    out.grids[2 * p + 1] =
+      std::max(out.grids[2 * p + 1], out.sample_grids[p].grid[1]);
+    out.first_triangles[p + 1] =
+      out.first_triangles[p] + 2 * out.grids[2 * p] * out.grids[2 * p + 1];
+  }
+}
+
 static bool Inside(const CadGpuFace& f, const std::vector<float>& segments,
                    const std::vector<int32_t>& trim_index, float u, float v) {
   const int band = std::clamp(int(std::floor((v - f.trim_box[0]) /

@@ -39,6 +39,7 @@ layout(std140, binding = 1) uniform Material {
   vec4 surface[2];
   vec4 emission;      // as in mesh.frag
   vec4 holes[4];      // of a terrain, in its uv: x0, y0, x1, y1
+  vec4 flex;          // as in mesh.frag
 } mesh;
 
 void main() {

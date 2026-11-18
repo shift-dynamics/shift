@@ -16,3 +16,5 @@ option('step', type: 'feature', value: 'auto',
        description: 'Read STEP CAD files (ISO 10303) with STEPcode and its AP242 schema, which also reads AP203 and AP214 files')
 option('gpu', type: 'feature', value: 'auto',
        description: 'GPU calculations in core (the SPH soil) with Vulkan compute: needs the Vulkan headers and loader and glslc')
+option('fea', type: 'feature', value: 'auto',
+       description: 'Finite element models of modal and nodal flexible bodies from STEP solids: Eigen and Spectra (eigenmodes), and Netgen (tetrahedral meshes, LGPL, built from subprojects/netgen.wrap as a shared library)')

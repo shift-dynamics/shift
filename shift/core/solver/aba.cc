@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "shift/core/body/base.h"
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
@@ -50,6 +51,138 @@ void shift::core::solver::ABA::Setup() {
     if(pcl_compressed[j] > -1) {
       has_children_[pcl_compressed[j]] = 1;
     }
+  }
+
+  /* the flexible bodies and their node slots */
+  const auto& elastic_count_compressed =
+    context_->get_elastic_count_compressed();
+  const auto& bodies = context_->get_active_articulated_bodies();
+  elastic_count_.assign(n, 0);
+  elastic_dq_.assign(n, -1);
+  c_offset_.assign(n, -1);
+  slot_he_.assign(n, -1);
+  elastic_body_.assign(n, nullptr);
+  int c_size = 0;
+  for(int i : context_->get_elastic_bodies()) {
+    const auto body = bodies[i];
+    const int j = body->get_va_index();
+    assert(j > -1 && j < (int)n);
+    elastic_body_[j] = body;
+    elastic_count_[j] = (int)body->get_elastic_count();
+    assert(elastic_count_[j] == (int)elastic_count_compressed[j]);
+    elastic_dq_[j] = body->get_elastic_dq_index();
+    c_offset_[j] = c_size;
+    c_size += elastic_count_[j] * elastic_count_[j];
+  }
+  for(const auto& slot : context_->get_node_slots()) {
+    slot_he_[slot.index] = slot.he_offset;
+  }
+  dense_.assign(n, 0);
+  for(size_t j = 0; j < n; j++) {
+    dense_[j] = has_children_[j] || elastic_count_[j] > 0;
+  }
+  b_.assign(dq_count_, zero_coscrew);
+  r_.assign(dq_count_, 0.0);
+  y_.assign(dq_count_, 0.0);
+  y_b_.assign(dq_count_, zero_coscrew);
+  c_.assign(c_size, 0.0);
+
+  /* when nothing hangs at its node slots (no mass, no children), C_j is
+  M_ee, which does not change: factor it once */
+  const auto& has_mass = context_->get_has_mass_array();
+  constant_c_.assign(n, 0);
+  for(int i : context_->get_elastic_bodies()) {
+    constant_c_[bodies[i]->get_va_index()] = 1;
+  }
+  for(const auto& slot : context_->get_node_slots()) {
+    if(has_mass[slot.index] || has_children_[slot.index]) {
+      constant_c_[slot.body->get_va_index()] = 0;
+    }
+  }
+  for(size_t j = 0; j < n; j++) {
+    if(constant_c_[j]) {
+      const int m = elastic_count_[j];
+      double* C = &c_[c_offset_[j]];
+      const double* mass_ee = elastic_body_[j]->get_mass_ee();
+      std::copy(mass_ee, mass_ee + m * m, C);
+      /* if it is singular, SolveTrees reports it at each evaluation */
+      constant_c_[j] = CholeskyFactor(m, C);
+    }
+  }
+}
+
+bool shift::core::solver::ABA::EliminateElastic(int j) {
+  const int n = elastic_count_[j];
+  const int e = elastic_dq_[j];
+  double* C = &c_[c_offset_[j]];
+  if(!constant_c_[j] && !CholeskyFactor(n, C)) {
+    return false;
+  }
+  /* y = C^-1 r, the rows of C^-1 B^T */
+  for(int m = 0; m < n; m++) {
+    y_[e + m] = r_[e + m];
+  }
+  CholeskySolve(n, C, &y_[e]);
+  for(int c = 0; c < 6; c++) {
+    double t[64];
+    std::vector<double> big;
+    double* column = t;
+    if(n > 64) {
+      big.resize(n);
+      column = big.data();
+    }
+    for(int m = 0; m < n; m++) {
+      column[m] = b_[e + m].at[c];
+    }
+    CholeskySolve(n, C, column);
+    for(int m = 0; m < n; m++) {
+      y_b_[e + m].at[c] = column[m];
+    }
+  }
+  /* M^A -= B C^-1 B^T, z^A += B C^-1 r */
+  double* M = &inertia_a_[36 * j];
+  ksl_coscrew_t& zA = bias_a_[j];
+  for(int r = 0; r < 6; r++) {
+    for(int m = 0; m < n; m++) {
+      zA.at[r] += b_[e + m].at[r] * y_[e + m];
+    }
+    for(int c = 0; c < 6; c++) {
+      double sum = 0.0;
+      for(int m = 0; m < n; m++) {
+        sum += b_[e + m].at[r] * y_b_[e + m].at[c];
+      }
+      M[r * 6 + c] -= sum;
+    }
+  }
+  return true;
+}
+
+void shift::core::solver::ABA::AddNodeSlot(int k) {
+  const int p = context_->get_pcl_compressed()[k];
+  assert(p > -1 && elastic_count_[p] > 0);
+  const int n = elastic_count_[p];
+  const int e = elastic_dq_[p];
+  const auto& he = context_->get_dhva().he;
+  const ksl_screw_t* E = &he[slot_he_[k]];
+  if(constant_c_[p]) {
+    return; // nothing hangs at the slot: C_p holds the factor of M_ee
+  }
+  double* C = &c_[c_offset_[p]];
+  const ksl_coscrew_t& zA = bias_a_[k];
+  for(int m = 0; m < n; m++) {
+    /* M^A_k E_km, with the ten terms of M_k and the dense rest */
+    ksl_coscrew_t me;
+    ksl_product_is(&inertia_[k], &E[m], &me);
+    if(dense_[k]) {
+      AddProduct(&inertia_a_[36 * k], E[m], true, &me);
+    }
+    for(int r = 0; r < 6; r++) {
+      b_[e + m].at[r] += me.at[r];
+    }
+    for(int l = 0; l < n; l++) {
+      C[l * n + m] += ksl_dot_cs(&me, &E[l]);
+    }
+    r_[e + m] -= ksl_dot_cs(&zA, &E[m]);
   }
 }
 
@@ -110,10 +243,26 @@ bool shift::core::solver::ABA::SolveTrees() {
 
   /* M^A_j and z^A_j start from the body alone; the dense part of M^A_j holds
   only what the children add, so a tip uses the ten terms of M_j */
+  const auto& mass_be = context_->get_elastic_mass_be();
+  const auto& bias_e = context_->get_elastic_bias_e();
   for(int j : bodies_) {
     ksl_coscrew_inverted(&z_[j], &bias_a_[j]);
-    if(has_children_[j]) {
+    if(dense_[j]) {
       std::fill(&inertia_a_[36 * j], &inertia_a_[36 * j] + 36, 0.0);
+    }
+    /* a flexible body's B = M_be, C = M_ee, r = f_e + b_e - M_be^T aq */
+    const int n = elastic_count_[j];
+    if(n > 0) {
+      const int e = elastic_dq_[j];
+      for(int m = 0; m < n; m++) {
+        b_[e + m] = mass_be[e + m];
+        r_[e + m] = f[e + m] + bias_e[e + m] -
+                    ksl_dot_cs(&mass_be[e + m], &dhva.aq[j]);
+      }
+      if(!constant_c_[j]) {
+        const double* mass_ee = elastic_body_[j]->get_mass_ee();
+        std::copy(mass_ee, mass_ee + n * n, &c_[c_offset_[j]]);
+      }
     }
   }
 
@@ -124,6 +273,11 @@ bool shift::core::solver::ABA::SolveTrees() {
     const int j = *it;
     const int nd = dof_[j];
     const int l0 = dq_lookup_compressed[j];
+    if(elastic_count_[j] > 0 && !EliminateElastic(j)) {
+      SHIFT_ERROR("ABA: the elastic mass matrix of the flexible body of "
+                  "joint " + std::to_string(j) + " is singular");
+      return true;
+    }
     const double* C = &inertia_a_[36 * j];
     const ksl_coscrew_t& zA = bias_a_[j];
     double* D = &d_factor_[36 * j];
@@ -140,7 +294,7 @@ bool shift::core::solver::ABA::SolveTrees() {
         h.m5 = 0.0;
       }
       ksl_product_is(&inertia_[j], &h, &U);
-      if(has_children_[j]) {
+      if(dense_[j]) {
         AddProduct(C, h, is_rotation[l], &U);
       }
       u_[l] = f[l] - ksl_dot_cs(&zA, &h);
@@ -170,6 +324,10 @@ bool shift::core::solver::ABA::SolveTrees() {
     const int i = pcl_compressed[j];
     if(i < 0) {
       continue;
+    }
+    /* a node slot moves its body's elastic coordinates too */
+    if(slot_he_[j] > -1) {
+      AddNodeSlot(j);
     }
 
     /* M^A_i += M^A_j - U D^{-1} U^T, z^A_i += z^A_j + U D^{-1} u */
@@ -208,7 +366,7 @@ bool shift::core::solver::ABA::SolveTrees() {
       zAi.at[r] += s;
       /* the update is symmetric: form the lower triangle, mirror it */
       for(int c = 0; c <= r; c++) {
-        double m = has_children_[j] ? C[r * 6 + c] : 0.0;
+        double m = dense_[j] ? C[r * 6 + c] : 0.0;
         for(int k = 0; k < nd; k++) {
           m -= u_matrix_[l0 + k].at[r] * y[k * 6 + c];
         }
@@ -242,6 +400,21 @@ bool shift::core::solver::ABA::SolveTrees() {
     for(int k = 0; k < nd; k++) {
       ddq[l0 + k] = x[k];
       ksl_axpy_ss(x[k], &h_[l0 + k], &aj);
+    }
+    /* a node slot: a_k = a_i + E_k eta_ddot_i */
+    if(slot_he_[j] > -1) {
+      const int e = elastic_dq_[i];
+      const ksl_screw_t* E = &dhva.he[slot_he_[j]];
+      for(int m = 0; m < elastic_count_[i]; m++) {
+        ksl_axpy_ss(ddq[e + m], &E[m], &aj);
+      }
+    }
+    /* a flexible body: eta_ddot = C^-1 (r - B^T a_j) */
+    if(elastic_count_[j] > 0) {
+      const int e = elastic_dq_[j];
+      for(int m = 0; m < elastic_count_[j]; m++) {
+        ddq[e + m] = y_[e + m] - ksl_dot_cs(&y_b_[e + m], &aj);
+      }
     }
   }
   return false;

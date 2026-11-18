@@ -44,9 +44,9 @@ static std::vector<std::string> Fields(const std::string& shader,
 TEST(ShaderLayouts, InstancesMatchTheRayTracer) {
   const auto fields = Fields("raytrace.comp", "Instance");
   ASSERT_FALSE(fields.empty());
-  /* mat4 x 3 (48 floats), vec4 x 7, ivec4 x 4 and vec4[2] (52): 400 bytes,
+  /* mat4 x 3 (48 floats), vec4 x 8, ivec4 x 4 and vec4[2] (56): 416 bytes,
   the size of RtInstance */
-  EXPECT_EQ(fields.size(), 15u);
+  EXPECT_EQ(fields.size(), 16u);
   for(const char* shader : {"svgf_temporal.comp", "svgf_taa.comp"}) {
     EXPECT_EQ(Fields(shader, "Instance"), fields) << shader;
   }
@@ -75,8 +75,8 @@ TEST(ShaderLayouts, MaterialsMatchInBothStages) {
     return fields;
   };
   const auto fields = block("mesh.frag");
-  /* vec4 x 4, ivec4 x 2, vec4[2] and vec4[4]: 192 bytes, MaterialUniforms */
-  EXPECT_EQ(fields.size(), 8u);
+  /* vec4 x 5, ivec4 x 2, vec4[2] and vec4[4]: 208 bytes, MaterialUniforms */
+  EXPECT_EQ(fields.size(), 9u);
   EXPECT_EQ(block("mesh.vert"), fields);
   EXPECT_EQ(block("particle.vert"), fields);
 }
@@ -106,12 +106,15 @@ static std::vector<std::string> Block(const std::string& shader,
 }
 
 /* the frame (FrameUniforms in viewport.cc) as the fragment shaders that
-draw the water over what they draw declare it: all of it, the water's
-parameters at its end */
+draw the water over what they draw declare it: all of it up to the water's
+parameters; after them only mesh.frag declares the colors of the stress
+drawn on flexible bodies */
 TEST(ShaderLayouts, FramesMatchInTheFragmentShaders) {
-  const auto fields = Block("mesh.frag", "Frame");
-  /* mat4 x 2, vec4 x 6, mat4, vec4 x 6 */
-  ASSERT_EQ(fields.size(), 15u);
+  const auto all = Block("mesh.frag", "Frame");
+  /* mat4 x 2, vec4 x 6, mat4, vec4 x 6, vec4[16] */
+  ASSERT_EQ(all.size(), 16u);
+  EXPECT_EQ(all.back(), "vec4 color_map[16]");
+  const std::vector<std::string> fields(all.begin(), all.end() - 1);
   EXPECT_EQ(fields.back(), "vec4 water_extinction");
   for(const char* shader : {"floor.frag", "sky.frag"}) {
     EXPECT_EQ(Block(shader, "Frame"), fields) << shader;

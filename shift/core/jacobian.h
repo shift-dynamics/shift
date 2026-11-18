@@ -16,6 +16,7 @@ namespace shift {
 namespace core {
 
 class Context;
+class Frame;
 
 /*!
 @brief Shift Jacobian class
@@ -50,6 +51,32 @@ public:
 
   const std::vector<Substructure>& get_substructures() const {
     return substructures_;
+  }
+
+  /*! \brief the generalized velocities on the positive and negative side of
+   * each chord constraint's loop */
+  const std::vector<std::vector<int>>&
+  get_positive_loop_members_compressed() const {
+    return positive_loop_members_compressed_;
+  }
+  const std::vector<std::vector<int>>&
+  get_negative_loop_members_compressed() const {
+    return negative_loop_members_compressed_;
+  }
+
+  /*! \brief the source of each loop member's Jacobian column, in the order
+   * of get_positive_loop_members_compressed() (and negative): -1 for a joint
+   * velocity, whose column is its influence coefficient dhva.h at the
+   * velocity; for an elastic coordinate of a flexible body, the index in
+   * dhva.he of the influence coefficient of the node by which the loop
+   * leaves the body (Substructure::Column) */
+  const std::vector<std::vector<int>>&
+  get_positive_loop_columns_compressed() const {
+    return positive_loop_columns_compressed_;
+  }
+  const std::vector<std::vector<int>>&
+  get_negative_loop_columns_compressed() const {
+    return negative_loop_columns_compressed_;
   }
 
   std::vector<Substructure>& get_substructures() {
@@ -161,6 +188,34 @@ private:
   void SetupLookup();
   void MallocEquations();
   void CompressLoopMembers();
+  /*! \brief the frame by which the loop leaves the child body of \p
+   * member on \p side: the parent frame of the next member down the side,
+   * or \p end_frame, the chord's frame, at the end of the side */
+  const Frame* LoopExitFrame(int member, const std::vector<int>& side,
+                             const Frame* end_frame) const;
+  /*! \brief the generalized velocities of the joints of one side of loop
+   * \p loop, and of the elastic coordinates of their flexible child bodies,
+   * with the sources of their Jacobian columns */
+  void CompressLoopSide(int loop, const std::vector<int>& side,
+                        const Frame* end_frame, std::vector<int>& members,
+                        std::vector<int>& columns) const;
+  /*! \brief the joint whose child body both sides of loop \p loop hang
+   * from (-1 for the fixed body), and the frames by which the positive and
+   * negative sides leave it: the parent frame of the side's first member, or
+   * the chord's frame on a side with no members */
+  int LoopAncestor(int loop, const Frame* exits[2]) const;
+  /*! \brief the elastic coordinates of the flexible body both sides of loop
+   * \p loop hang from, on each side that leaves it by a node, with that
+   * node's influence coefficients as their columns: the loop's Jacobian
+   * column of each is the difference of the two nodes' (the body's joint is
+   * not a member of the loop) */
+  void AppendAncestorColumns(int loop, std::vector<int> members[2],
+                             std::vector<int> columns[2]) const;
+  /*! \brief the number of elastic coordinates of the head of substructure
+   * \p substructure (the joint all its loops hang from) that move its loops:
+   * all of them when a loop leaves the head's flexible child body by a node,
+   * else 0. They lie just below the members' coordinates */
+  unsigned int HeadElasticCount(size_t substructure) const;
 
   bool newton_raphson_failure_ = false;
 
@@ -199,6 +254,8 @@ private:
 
   std::vector<std::vector<int>> positive_loop_members_compressed_;
   std::vector<std::vector<int>> negative_loop_members_compressed_;
+  std::vector<std::vector<int>> positive_loop_columns_compressed_;
+  std::vector<std::vector<int>> negative_loop_columns_compressed_;
 
   std::vector<Substructure> substructures_;
 

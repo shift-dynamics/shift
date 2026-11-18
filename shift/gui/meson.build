@@ -55,7 +55,11 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
                   'svgf_composite.comp', 'svgf_taa.comp', 'sun_shadow.comp',
                   'axes.vert',
-                  'axes.frag']
+                  'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
+                  'mesh_points.vert', 'mesh_points.frag', 'spider.frag',
+                  'flex_deform.comp', 'flex_normals.comp', 'flex_peak.comp',
+                  'flex_refit.comp',
+                  'flex_field.comp']
   shader_bundles += custom_target(
     shader.replace('.', '_') + '_qsb',
     input: 'shaders' / shader,
@@ -65,7 +69,8 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                         'shaders/surfaces.glsl', 'shaders/environment.glsl',
                         'shaders/ground.glsl', 'shaders/water.glsl',
                         'shaders/fluid_common.glsl',
-                        'shaders/hex_tiling.glsl'),
+                        'shaders/hex_tiling.glsl',
+                        'shaders/flex_common.glsl'),
   )
 endforeach
 
@@ -101,9 +106,19 @@ foreach shader : ['cad.vert', 'cad.tesc', 'cad.tese', 'cad_triangulate.comp']
     input: 'shaders' / shader,
     output: shader + '.qsb',
     command: [qsb, '-o', '@OUTPUT@', '@INPUT@'],
-    depend_files: files('shaders/cad_common.glsl', 'shaders/cad_uniforms.glsl'),
+    depend_files: files('shaders/cad_common.glsl', 'shaders/cad_uniforms.glsl',
+                        'shaders/flex_field.glsl'),
   )
 endforeach
+# the ray tracer's triangles of a flexible body's CAD, deformed; with GLSL
+# for the GPU test on OpenGL
+shader_bundles += custom_target(
+  'flex_cad_comp_qsb',
+  input: 'shaders/flex_cad.comp',
+  output: 'flex_cad.comp.qsb',
+  command: [qsb, '--glsl', '430', '-o', '@OUTPUT@', '@INPUT@'],
+  depend_files: files('shaders/cad_common.glsl', 'shaders/flex_field.glsl'),
+)
 shader_bundles += custom_target(
   'cad_frag_qsb',
   input: 'shaders/mesh.frag',
@@ -129,14 +144,22 @@ if glslc.found()
               '-o', '@OUTPUT@', '@INPUT@'],
     depend_files: files('shaders/lights.glsl', 'shaders/cad_common.glsl',
                         'shaders/surfaces.glsl', 'shaders/environment.glsl',
-                        'shaders/ground.glsl', 'shaders/water.glsl'),
+                        'shaders/ground.glsl', 'shaders/water.glsl',
+                        'shaders/flex_common.glsl'),
   )
   gui_cpp_args += '-DSHIFT_HAVE_HARDWARE_RAY_TRACING'
 endif
 
-# rcc resolves the bundle paths relative to the qrc, so it lives next to them
-shader_qrc = configure_file(input: 'shaders/shaders.qrc', output: 'shaders.qrc',
-                            copy: true)
+# rcc resolves the bundle paths relative to the qrc, so it lives next to them;
+# it lists every bundle built above, so none can be left out of it
+shader_qrc_files = ''
+foreach bundle : shader_bundles
+  shader_qrc_files += ('    <file>' + bundle.full_path().split('/')[-1] +
+                       '</file>\n')
+endforeach
+shader_qrc = configure_file(input: 'shaders/shaders.qrc.in',
+                            output: 'shaders.qrc',
+                            configuration: {'FILES': shader_qrc_files})
 shader_resources = custom_target(
   'shader_resources',
   input: shader_qrc,
@@ -172,11 +195,14 @@ shift_gui_lib = static_library(
   'cad_scene.cc',
   'camera.cc',
   'environment.cc',
+  'flex_gpu.cc',
   'hardware_ray_tracing.cc',
+  'mode_window.cc',
   'opacity_micromap.cc',
   'ocean_waves.cc',
   'playback_slider.cc',
   'scene.cc',
+  'color_map.cc',
   'settings.cc',
   'simulation.cc',
   'video_encoder.cc',

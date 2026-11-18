@@ -1,0 +1,4 @@
+<RCC>
+  <qresource prefix="/shaders">
+@FILES@  </qresource>
+</RCC>

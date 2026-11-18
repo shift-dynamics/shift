@@ -263,3 +263,33 @@ shift::gui::BuildBoxBvh(const std::vector<float>& box_min,
   BuildBoxNode(nodes, boxes, order, 0, count);
   return nodes;
 }
+
+void shift::gui::RefitBvh(const std::vector<RtTriangle>& triangles,
+                          std::vector<BvhNode>& nodes, int first, int count) {
+  // children come after their node: from the last node back
+  for(int i = first + count - 1; i >= first; i--) {
+    BvhNode& node = nodes[size_t(i)];
+    std::fill(node.box_min, node.box_min + 3, 1e30f);
+    std::fill(node.box_max, node.box_max + 3, -1e30f);
+    auto grow = [&](const float* lo, const float* hi) {
+      for(int c = 0; c < 3; c++) {
+        node.box_min[c] = std::min(node.box_min[c], lo[c]);
+        node.box_max[c] = std::max(node.box_max[c], hi[c]);
+      }
+    };
+    if(node.triangle_count < 0) {
+      const BvhNode& left = nodes[size_t(i) + 1];
+      const BvhNode& right = nodes[size_t(node.right_or_first)];
+      grow(left.box_min, left.box_max);
+      grow(right.box_min, right.box_max);
+      continue;
+    }
+    for(int t = 0; t < node.triangle_count; t++) {
+      const RtTriangle& triangle =
+        triangles[size_t(node.right_or_first + t)];
+      for(const float* v : {triangle.v0, triangle.v1, triangle.v2}) {
+        grow(v, v);
+      }
+    }
+  }
+}

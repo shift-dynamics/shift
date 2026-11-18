@@ -1,0 +1,51 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// the greatest (in magnitude) of the quantity of the stress drawn at each
+// vertex of a flexible body's mesh surface over the states recorded: the
+// states not folded in yet (FlexUpdate::peak_samples) folded in, before
+// flex_deform.comp draws the peak where it is greater than the stress now
+
+layout(local_size_x = 64) in;
+
+#include "flex_common.glsl"
+
+// the stress of each vertex in each shape: 6 (v columns + j) + c
+layout(std430, binding = 9) readonly buffer StressBasis {
+  float stress_basis[];
+};
+layout(std430, binding = 11) buffer Peak {
+  float peak[];
+};
+// the stress coefficients of each state, params.peak.y each
+layout(std430, binding = 12) readonly buffer Samples {
+  float samples[];
+};
+
+void main() {
+  uint v = gl_GlobalInvocationID.x;
+  if(v >= params.counts.x) {
+    return;
+  }
+  uint columns = params.counts.y;
+  uint n = params.peak.y;
+  uint quantity = uint(params.quantity.x);
+  float greatest = params.peak.z > 0u ? 0.0 : peak[v];
+  uint base = 6u * v * columns;
+  for(uint k = 0u; k < params.peak.x; k++) {
+    float s[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    for(uint j = 0u; j < n; j++) {
+      float b = samples[k * n + j];
+      if(b != 0.0) {
+        uint i = base + 6u * j;
+        for(uint c = 0u; c < 6u; c++) {
+          s[c] += b * stress_basis[i + c];
+        }
+      }
+    }
+    float value = StressValue(s, quantity);
+    if(abs(value) > abs(greatest)) {
+      greatest = value;
+    }
+  }
+  peak[v] = greatest;
+}

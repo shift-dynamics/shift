@@ -3,6 +3,7 @@
 #include <QtDebug>
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -250,6 +251,315 @@ float shift::gui::SurfaceNoiseLevel(int surface, double coverage) {
                             size_t((1.0 - coverage) * samples.size()));
   std::nth_element(samples.begin(), samples.begin() + k, samples.end());
   return samples[k];
+}
+
+void shift::gui::ComputeNormals(std::vector<Vertex>& vertices,
+                                const std::vector<uint32_t>& indices) {
+  for(auto& vertex : vertices) {
+    std::fill(vertex.normal, vertex.normal + 3, 0.f);
+  }
+  for(size_t i = 0; i + 2 < indices.size(); i += 3) {
+    shift::gui::Vertex* v[3] = {&vertices[indices[i]],
+                                &vertices[indices[i + 1]],
+                                &vertices[indices[i + 2]]};
+    ksl_vec3f_t p[3];
+    for(int k = 0; k < 3; k++) {
+      p[k] = ksl_vec3f(v[k]->position[0], v[k]->position[1],
+                       v[k]->position[2]);
+    }
+    ksl_vec3f_t e1, e2, n;
+    ksl_subtract_vvf(&p[1], &p[0], &e1);
+    ksl_subtract_vvf(&p[2], &p[0], &e2);
+    ksl_cross_vvf(&e1, &e2, &n);
+    for(auto vertex : v) {
+      for(int k = 0; k < 3; k++) {
+        vertex->normal[k] += n.at[k];
+      }
+    }
+  }
+  /* divided by the length, however small the triangles; a vertex of no
+  area keeps its zero normal */
+  for(auto& vertex : vertices) {
+    ksl_vec3f_t n = ksl_vec3f(vertex.normal[0], vertex.normal[1],
+                              vertex.normal[2]);
+    const float length = ksl_vec3f_l2norm(&n);
+    if(length > 0.f) {
+      ksl_vec3f_scale(&n, 1.f / length);
+    }
+    for(int k = 0; k < 3; k++) {
+      vertex.normal[k] = n.at[k];
+    }
+  }
+}
+
+bool shift::gui::FlexStressSigned(FlexUpdate::Quantity quantity) {
+  return quantity != FlexUpdate::Quantity::kVonMises &&
+         quantity != FlexUpdate::Quantity::kTresca &&
+         quantity != FlexUpdate::Quantity::kSafetyFactor;
+}
+
+void shift::gui::FlexPrincipalStresses(const float s[6], float principal[3]) {
+  /* A = q I + p B: the eigenvalues are q + 2 p cos(phi + 2 pi k / 3), phi =
+  acos(det(B) / 2) / 3 */
+  const float q = (s[0] + s[1] + s[2]) / 3.f;
+  const float a = s[0] - q, b = s[1] - q, c = s[2] - q;
+  const float off = s[3] * s[3] + s[4] * s[4] + s[5] * s[5];
+  const float p2 = a * a + b * b + c * c + 2.f * off;
+  if(!(p2 > 0.f)) {
+    principal[0] = principal[1] = principal[2] = q;
+    return;
+  }
+  const float p = std::sqrt(p2 / 6.f);
+  /* det(A - q I) / p^3; B's diagonal a, b, c, its xy, yz, zx s[3..5] */
+  const float det = a * b * c + 2.f * s[3] * s[4] * s[5] - a * s[4] * s[4] -
+                    b * s[5] * s[5] - c * s[3] * s[3];
+  const float r = std::clamp(0.5f * det / (p * p * p), -1.f, 1.f);
+  const float phi = std::acos(r) / 3.f;
+  principal[0] = q + 2.f * p * std::cos(phi);
+  principal[2] = q + 2.f * p * std::cos(phi + 2.f * float(M_PI) / 3.f);
+  principal[1] = 3.f * q - principal[0] - principal[2];
+}
+
+float shift::gui::FlexStressValue(const float s[6],
+                                  FlexUpdate::Quantity quantity) {
+  switch(quantity) {
+  case FlexUpdate::Quantity::kTresca:
+  case FlexUpdate::Quantity::kMaxPrincipal:
+  case FlexUpdate::Quantity::kMiddlePrincipal:
+  case FlexUpdate::Quantity::kMinPrincipal: {
+    float principal[3];
+    FlexPrincipalStresses(s, principal);
+    if(quantity == FlexUpdate::Quantity::kTresca) {
+      return principal[0] - principal[2];
+    }
+    return principal[int(quantity) - int(FlexUpdate::Quantity::kMaxPrincipal)];
+  }
+  case FlexUpdate::Quantity::kXx:
+  case FlexUpdate::Quantity::kYy:
+  case FlexUpdate::Quantity::kZz:
+  case FlexUpdate::Quantity::kXy:
+  case FlexUpdate::Quantity::kYz:
+  case FlexUpdate::Quantity::kZx:
+    return s[int(quantity) - int(FlexUpdate::Quantity::kXx)];
+  default: {
+    const float d0 = s[0] - s[1], d1 = s[1] - s[2], d2 = s[2] - s[0];
+    return std::sqrt(0.5f * (d0 * d0 + d1 * d1 + d2 * d2) +
+                     3.f * (s[3] * s[3] + s[4] * s[4] + s[5] * s[5]));
+  }
+  }
+}
+
+float shift::gui::FlexStressAt(const SceneMesh& mesh,
+                               const float* coefficients, size_t count,
+                               size_t vertex, FlexUpdate::Quantity quantity) {
+  const size_t columns = mesh.flex_columns;
+  if(count > columns ||
+     mesh.flex_stress_basis.size() != 6 * columns * mesh.vertices.size()) {
+    return 0.f;
+  }
+  float s[6] = {};
+  const float* b = mesh.flex_stress_basis.data() + 6 * columns * vertex;
+  for(size_t j = 0; j < count; j++) {
+    const float a = coefficients[j];
+    for(int c = 0; c < 6; c++) {
+      s[c] += a * b[6 * j + c];
+    }
+  }
+  return FlexStressValue(s, quantity);
+}
+
+float shift::gui::FlexStressMapped(const FlexUpdate& update, float value,
+                                   float largest) {
+  if(update.quantity == FlexUpdate::Quantity::kSafetyFactor) {
+    /* the factor, its colors from the map's end at range[0] */
+    const float low = update.stress_range[0], high = update.stress_range[1];
+    const float factor =
+      value > 0.f ? update.yield_strength / value : std::numeric_limits<float>::max();
+    return high > low ? 1.f - std::clamp((factor - low) / (high - low), 0.f, 1.f)
+                      : 0.f;
+  }
+  const bool automatic = update.stress == FlexUpdate::Stress::kAutomatic;
+  const float low = !automatic ? update.stress_range[0]
+                    : FlexStressSigned(update.quantity) ? -largest
+                                                         : 0.f;
+  const float high = automatic ? largest : update.stress_range[1];
+  return high > low ? std::clamp((value - low) / (high - low), 0.f, 1.f)
+                    : 0.f;
+}
+
+float shift::gui::DeformFlexMesh(const SceneMesh& mesh,
+                                 const FlexUpdate& update,
+                                 std::vector<Vertex>& vertices,
+                                 std::vector<float>* peak) {
+  vertices = mesh.vertices;
+  const size_t columns = mesh.flex_columns;
+  if(update.coefficients.size() != columns ||
+     mesh.flex_basis.size() != 3 * columns * vertices.size()) {
+    return 0.f;
+  }
+  /* the stress, mapped over its range */
+  float largest = 0.f;
+  if(update.stress != FlexUpdate::Stress::kNone &&
+     update.stress_coefficients.size() == columns) {
+    /* the peak: the states not folded into it yet folded in */
+    const bool peaked = update.peak && peak;
+    if(peaked) {
+      if(update.peak_first == 0 || peak->size() != vertices.size()) {
+        peak->assign(vertices.size(), 0.f);
+      }
+      const size_t n = update.peak_columns;
+      for(size_t k = 0; n > 0 && (k + 1) * n <= update.peak_samples.size();
+          k++) {
+        for(size_t v = 0; v < vertices.size(); v++) {
+          const float value =
+            FlexStressAt(mesh, update.peak_samples.data() + k * n, n, v,
+                         update.quantity);
+          if(std::fabs(value) > std::fabs((*peak)[v])) {
+            (*peak)[v] = value;
+          }
+        }
+      }
+    }
+    std::vector<float> stress(vertices.size());
+    for(size_t v = 0; v < vertices.size(); v++) {
+      stress[v] = FlexStressAt(mesh, update.stress_coefficients.data(),
+                               columns, v, update.quantity);
+      if(peaked && std::fabs((*peak)[v]) > std::fabs(stress[v])) {
+        stress[v] = (*peak)[v];
+      }
+      largest = std::max(largest, std::fabs(stress[v]));
+    }
+    for(size_t v = 0; v < vertices.size(); v++) {
+      vertices[v].uv[0] = FlexStressMapped(update, stress[v], largest);
+    }
+  }
+  for(size_t v = 0; v < vertices.size(); v++) {
+    const ksl_vec3f_t x0 = ksl_vec3f(vertices[v].position[0],
+                                     vertices[v].position[1],
+                                     vertices[v].position[2]);
+    ksl_vec3f_t d, x;
+    ksl_subtract_vvf(&x0, &mesh.flex_centroid, &d);
+    ksl_cross_vvf(&update.rotation, &d, &x);
+    ksl_axpy_vvf(1.f, &update.translation, &x);
+    ksl_axpy_vvf(1.f, &x0, &x);
+    const float* s = mesh.flex_basis.data() + 3 * columns * v;
+    for(size_t j = 0; j < columns; j++) {
+      const float a = update.coefficients[j];
+      for(int c = 0; c < 3; c++) {
+        x.at[c] += a * s[3 * j + c];
+      }
+    }
+    for(int c = 0; c < 3; c++) {
+      vertices[v].position[c] = x.at[c];
+    }
+  }
+  ComputeNormals(vertices, mesh.indices);
+  return largest;
+}
+
+void shift::gui::FlexCadField(const SceneCad& cad, const SceneMesh& mesh,
+                              const FlexUpdate& update,
+                              std::vector<float>& field) {
+  const size_t samples = cad.sample_points.size() / 4;
+  const size_t columns = mesh.flex_columns;
+  field.assign(4 * samples, 0.f);
+  if(update.coefficients.size() != columns ||
+     cad.sample_basis.size() != 3 * columns * samples) {
+    return;
+  }
+  for(size_t k = 0; k < samples; k++) {
+    const float* x = cad.sample_points.data() + 4 * k;
+    const ksl_vec3f_t d =
+      ksl_vec3f(x[0] - mesh.flex_centroid.x, x[1] - mesh.flex_centroid.y,
+                x[2] - mesh.flex_centroid.z);
+    ksl_vec3f_t u;
+    ksl_cross_vvf(&update.rotation, &d, &u);
+    ksl_axpy_vvf(1.f, &update.translation, &u);
+    const float* b = cad.sample_basis.data() + 3 * columns * k;
+    for(size_t j = 0; j < columns; j++) {
+      for(int c = 0; c < 3; c++) {
+        u.at[c] += update.coefficients[j] * b[3 * j + c];
+      }
+    }
+    std::copy(u.at, u.at + 3, field.data() + 4 * k);
+  }
+}
+
+/* Catmull-Rom weights of the points before, at, after and two after t in
+[0, 1], and their derivatives along t */
+static void CatmullRom(float t, float w[4], float dw[4]) {
+  const float t2 = t * t, t3 = t2 * t;
+  w[0] = 0.5f * (-t + 2.f * t2 - t3);
+  w[1] = 0.5f * (2.f - 5.f * t2 + 3.f * t3);
+  w[2] = 0.5f * (t + 4.f * t2 - 3.f * t3);
+  w[3] = 0.5f * (-t2 + t3);
+  dw[0] = 0.5f * (-1.f + 4.f * t - 3.f * t2);
+  dw[1] = 0.5f * (-10.f * t + 9.f * t2);
+  dw[2] = 0.5f * (1.f + 8.f * t - 9.f * t2);
+  dw[3] = 0.5f * (-2.f * t + 3.f * t2);
+}
+
+ksl_vec3f_t shift::gui::FlexCadInterpolate(const SceneCad& cad,
+                                           const std::vector<float>& values,
+                                           int patch, float u, float v,
+                                           ksl_vec3f_t* along_u,
+                                           ksl_vec3f_t* along_v) {
+  const CadGpuSampleGrid& g = cad.sample_grids[size_t(patch)];
+  const int n[2] = {g.grid[0], g.grid[1]};
+  float s[2] = {(u - g.uv[0]) / (g.uv[2] - g.uv[0]) * float(n[0]),
+                (v - g.uv[1]) / (g.uv[3] - g.uv[1]) * float(n[1])};
+  int i[2];
+  float w[2][4], dw[2][4];
+  for(int a = 0; a < 2; a++) {
+    s[a] = std::clamp(s[a], 0.f, float(n[a]));
+    i[a] = std::min(int(std::floor(s[a])), n[a] - 1);
+    CatmullRom(s[a] - float(i[a]), w[a], dw[a]);
+  }
+  // a sample, the grid extended linearly beyond its ends
+  auto at = [&](int a, int b, int c) {
+    auto value = [&](int p, int q) {
+      return values[4 * (size_t(g.grid[2]) + size_t(q) * size_t(n[0] + 1) +
+                         size_t(p)) +
+                    size_t(c)];
+    };
+    auto along_v_line = [&](int p) {
+      if(b < 0) {
+        return 2.f * value(p, 0) - value(p, 1);
+      }
+      if(b > n[1]) {
+        return 2.f * value(p, n[1]) - value(p, n[1] - 1);
+      }
+      return value(p, b);
+    };
+    if(a < 0) {
+      return 2.f * along_v_line(0) - along_v_line(1);
+    }
+    if(a > n[0]) {
+      return 2.f * along_v_line(n[0]) - along_v_line(n[0] - 1);
+    }
+    return along_v_line(a);
+  };
+  ksl_vec3f_t x = ksl_vec3f(0.f, 0.f, 0.f), xu = x, xv = x;
+  for(int q = 0; q < 4; q++) {
+    for(int p = 0; p < 4; p++) {
+      for(int c = 0; c < 3; c++) {
+        const float value = at(i[0] - 1 + p, i[1] - 1 + q, c);
+        x.at[c] += w[0][p] * w[1][q] * value;
+        xu.at[c] += dw[0][p] * w[1][q] * value;
+        xv.at[c] += w[0][p] * dw[1][q] * value;
+      }
+    }
+  }
+  // per grid interval to per parameter
+  ksl_vec3f_scale(&xu, float(n[0]) / (g.uv[2] - g.uv[0]));
+  ksl_vec3f_scale(&xv, float(n[1]) / (g.uv[3] - g.uv[1]));
+  if(along_u) {
+    *along_u = xu;
+  }
+  if(along_v) {
+    *along_v = xv;
+  }
+  return x;
 }
 
 shift::gui::SceneMeshBvh shift::gui::BuildSceneMeshBvh(const SceneMesh& mesh,

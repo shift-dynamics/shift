@@ -19,6 +19,9 @@
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
 #include "shift/gui/video_trimmer.h"
+#include "shift/core/body/flex.h"
+#include "shift/gui/color_map.h"
+#include "shift/gui/mode_window.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/axis.h"
@@ -28,12 +31,18 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QSignalBlocker>
+#include <QColor>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDial>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QBuffer>
+#include <QDoubleValidator>
+#include <QCloseEvent>
+#include <QEventLoop>
 #include <QFormLayout>
 #include <QFileDialog>
 #include <QCloseEvent>
@@ -45,6 +54,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QImage>
+#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenuBar>
@@ -68,11 +78,13 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <exception>
 #include <fstream>
 #include <iterator>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <tuple>
@@ -284,6 +296,43 @@ void shift::gui::Workspace::InitializeMenus() {
   connect(particle_surface, &QAction::toggled, viewport_,
           &Viewport::set_particle_surface);
   particle_surface_action_ = particle_surface;
+  QAction* deformation = view_menu->addAction("&Deformation scale...");
+  deformation->setToolTip("the factor the deformation of flexible bodies is "
+                          "drawn with");
+  connect(deformation, &QAction::triggered, this,
+          &Workspace::DeformationScaleDialog);
+  // every flexible body at once; a body's panel sets its own
+  auto flex_option = [this, view_menu](const char* text, const char* tip,
+                                       std::set<QString>& bodies) {
+    QAction* action = view_menu->addAction(text);
+    action->setCheckable(true);
+    action->setToolTip(tip);
+    connect(action, &QAction::toggled, this, [this, &bodies](bool on) {
+      SetAllFlexBodies(bodies, on);
+    });
+    return action;
+  };
+  flex_mesh_surface_action_ = flex_option(
+    "Flexible bodies: &mesh surface",
+    "draw flexible bodies by the surface of their finite element mesh "
+    "rather than their CAD",
+    flex_mesh_surface_bodies_);
+  flex_mesh_edges_action_ = flex_option(
+    "Flexible bodies: element &edges",
+    "draw the edges of the finite elements of flexible bodies over their "
+    "surface (raster only)",
+    flex_mesh_edge_bodies_);
+  flex_constrained_nodes_action_ = flex_option(
+    "Flexible bodies: &constrained nodes",
+    "draw as points the nodes of flexible bodies that their joints' "
+    "attachments (RBE2/RBE3 spiders) tie to their frames (raster only)",
+    flex_constrained_node_bodies_);
+  flex_stresses_action_ = flex_option(
+    "Flexible bodies: &stresses",
+    "draw the stress on flexible bodies, on the surface drawn (the CAD "
+    "solid's or the mesh's): the quantity, color map and range of "
+    "Edit > Settings",
+    flex_stress_bodies_);
   view_menu->addSeparator();
   QAction* frame = view_menu->addAction("&Frame model");
   frame->setShortcut(Qt::Key_F);
@@ -406,6 +455,115 @@ void shift::gui::Workspace::InitializeLeftPanel() {
       body_layout->addWidget(body_panel_.m[4 * row + column], 2 + row, column);
     }
   }
+  body_panel_.modes = new QPushButton("Modes...");
+  body_panel_.modes->setToolTip("the mode shapes and frequencies of the "
+                                "flexible body, and the modes kept");
+  connect(body_panel_.modes, &QPushButton::clicked, this,
+          &Workspace::OpenModeWindow);
+  body_layout->addWidget(body_panel_.modes, 5, 0, 1, 4);
+  // of a flexible body: the surface drawn, and the edges of its elements
+  body_panel_.mesh_surface = new QCheckBox("Draw the mesh's surface");
+  body_panel_.mesh_surface->setToolTip(
+    "draw the surface of the finite element mesh rather than the CAD solid "
+    "(the CAD is drawn deformed only with Vulkan; otherwise the mesh's "
+    "surface always is)");
+  body_layout->addWidget(body_panel_.mesh_surface, 6, 0, 1, 4);
+  body_panel_.mesh_edges = new QCheckBox("Draw the elements' edges");
+  body_panel_.mesh_edges->setToolTip(
+    "draw the edges of the finite elements over the surface, through their "
+    "midside nodes (raster only)");
+  body_layout->addWidget(body_panel_.mesh_edges, 7, 0, 1, 4);
+  body_panel_.constrained_nodes = new QCheckBox("Draw the constrained nodes");
+  body_panel_.constrained_nodes->setToolTip(
+    "draw as points the nodes the joints' attachments (RBE2/RBE3 spiders) "
+    "tie to the body's frames (raster only)");
+  body_layout->addWidget(body_panel_.constrained_nodes, 8, 0, 1, 4);
+  body_panel_.attachments = new QLabel;
+  body_panel_.attachments->setWordWrap(true);
+  body_panel_.attachments->setTextFormat(Qt::RichText);
+  body_panel_.attachments->setToolTip(
+    "each frame tied to the mesh, in the color its nodes and spider are "
+    "drawn in (Draw the constrained nodes): the reference frame's "
+    "attachment holds the body; each other gives six static modes, the "
+    "body's deflection when that frame alone moves");
+  body_layout->addWidget(body_panel_.attachments, 9, 0, 1, 4);
+  body_panel_.stresses = new QCheckBox("Draw the stresses");
+  body_panel_.stresses->setToolTip(
+    "color the surface drawn (the CAD solid's, or the mesh's) by its "
+    "stress: the quantity (von Mises, "
+    "principal, a component or the safety factor), color map and range of "
+    "Edit > Settings");
+  body_layout->addWidget(body_panel_.stresses, 10, 0, 1, 4);
+  // of a flexible body built from a mesh: its mesh sizes
+  body_panel_.mesh = new QWidget;
+  auto* mesh_layout = new QFormLayout(body_panel_.mesh);
+  mesh_layout->setContentsMargins(0, 0, 0, 0);
+  body_panel_.element_size = new QLineEdit;
+  body_panel_.element_size->setValidator(
+    new QDoubleValidator(0.0, 1e300, 12, body_panel_.element_size));
+  body_panel_.element_size->setToolTip(
+    "element_size: the longest element edge of the mesh, in the model's "
+    "units of length; the surface also follows the exact geometry within "
+    "a twentieth of it");
+  mesh_layout->addRow("Element size", body_panel_.element_size);
+  body_panel_.minimum_element_size = new QLineEdit;
+  body_panel_.minimum_element_size->setValidator(
+    new QDoubleValidator(0.0, 1e300, 12, body_panel_.minimum_element_size));
+  body_panel_.minimum_element_size->setPlaceholderText("element size / 20");
+  body_panel_.minimum_element_size->setToolTip(
+    "minimum_element_size: the shortest edge that refinement at small "
+    "features may make; empty for a twentieth of the element size");
+  mesh_layout->addRow("Minimum size", body_panel_.minimum_element_size);
+  body_layout->addWidget(body_panel_.mesh, 11, 0, 1, 4);
+  body_panel_.apply = new QPushButton("Apply");
+  body_panel_.apply->setToolTip(
+    "write the changes to this flexible body (its mesh sizes, the modes "
+    "checked in the mode window) to the model and load it again; a new "
+    "mesh size meshes and analyses the body again. File > Save model as... "
+    "keeps them");
+  body_layout->addWidget(body_panel_.apply, 12, 0, 1, 4);
+  for(QLineEdit* edit :
+      {body_panel_.element_size, body_panel_.minimum_element_size}) {
+    connect(edit, &QLineEdit::textChanged, this,
+            &Workspace::UpdateApplyButton);
+    connect(edit, &QLineEdit::returnPressed, this, [this]() {
+      if(body_panel_.apply->isEnabled()) {
+        ApplyFlexChanges();
+      }
+    });
+  }
+  connect(body_panel_.apply, &QPushButton::clicked, this,
+          &Workspace::ApplyFlexChanges);
+  auto toggle_flex = [this](std::set<QString>& bodies, bool on) {
+    const int body = body_panel_.selected_body;
+    if(body < 0 || body >= static_cast<int>(simulation_.get_bodies().size())) {
+      return;
+    }
+    const QString name =
+      QString::fromStdString(simulation_.get_bodies()[body]->get_name());
+    if(on) {
+      bodies.insert(name);
+    } else {
+      bodies.erase(name);
+    }
+    UpdateVisibility();
+  };
+  connect(body_panel_.mesh_surface, &QCheckBox::toggled, this,
+          [this, toggle_flex](bool on) {
+            toggle_flex(flex_mesh_surface_bodies_, on);
+          });
+  connect(body_panel_.mesh_edges, &QCheckBox::toggled, this,
+          [this, toggle_flex](bool on) {
+            toggle_flex(flex_mesh_edge_bodies_, on);
+          });
+  connect(body_panel_.constrained_nodes, &QCheckBox::toggled, this,
+          [this, toggle_flex](bool on) {
+            toggle_flex(flex_constrained_node_bodies_, on);
+          });
+  connect(body_panel_.stresses, &QCheckBox::toggled, this,
+          [this, toggle_flex](bool on) {
+            toggle_flex(flex_stress_bodies_, on);
+          });
   body_panel_.group_box->setVisible(false);
   dynamic_layout->addWidget(body_panel_.group_box);
 
@@ -959,6 +1117,12 @@ void shift::gui::Workspace::InitializeLayout() {
   InitializeLeftPanel();
 
   viewport_ = new Viewport;
+  // the view is not drawn while its pipelines are made
+  connect(viewport_, &Viewport::CompilingPipelines, this,
+          [this](bool compiling) {
+            compiling_pipelines_ = compiling;
+            UpdateStatus();
+          });
   auto* viewport_container = QWidget::createWindowContainer(viewport_);
   viewport_container->setMinimumSize(200, 200);
   viewport_container->setFocusPolicy(Qt::StrongFocus);
@@ -1012,7 +1176,20 @@ void shift::gui::Workspace::InitializeLayout() {
   time_label_ = new QLabel;
   rate_label_ = new QLabel;
   fps_label_ = new QLabel;
+  stress_legend_ = new QLabel;
+  stress_legend_->setTextFormat(Qt::RichText);
+  stress_legend_->setToolTip(
+    "the stress drawn on flexible bodies (in the model's units of stress: "
+    "Pa in SI units); its quantity, color map and range are in Edit > "
+    "Settings");
+  stress_legend_->setVisible(false);
+  // the largest stress is read back from the GPU as the bodies deform
+  stress_legend_timer_ = new QTimer(this);
+  stress_legend_timer_->setInterval(250);
+  connect(stress_legend_timer_, &QTimer::timeout, this,
+          &Workspace::UpdateStressLegend);
   statusBar()->addWidget(status_label_, 1);
+  statusBar()->addPermanentWidget(stress_legend_);
   statusBar()->addPermanentWidget(time_label_);
   statusBar()->addPermanentWidget(rate_label_);
   statusBar()->addPermanentWidget(fps_label_);
@@ -1182,6 +1359,11 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
     }
   }
 
+  // the mode window shows the model loaded until now
+  if(mode_window_) {
+    mode_window_->close();
+  }
+  pending_modes_.clear();
   QApplication::setOverrideCursor(Qt::WaitCursor);
   viewport_->set_simulation(nullptr, !keep_view);
   playing_ = false;
@@ -1202,6 +1384,16 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
     shown_frames_.clear();
     shown_joints_.clear();
     hidden_bodies_.clear();
+    flex_mesh_surface_bodies_.clear();
+    flex_mesh_edge_bodies_.clear();
+    flex_constrained_node_bodies_.clear();
+    flex_stress_bodies_.clear();
+    for(QAction* action : {flex_mesh_surface_action_, flex_mesh_edges_action_,
+                           flex_constrained_nodes_action_,
+                           flex_stresses_action_}) {
+      const QSignalBlocker block(action);
+      action->setChecked(false);
+    }
   }
   geometry_panel_.selected = nullptr;
 
@@ -1278,6 +1470,246 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   }
   UpdateStatus();
   return true;
+}
+
+void shift::gui::Workspace::OpenModeWindow() {
+  const int body = body_panel_.selected_body;
+  if(body < 0 || !simulation_.is_loaded()) {
+    return;
+  }
+  if(mode_window_) {
+    if(mode_window_->get_body() == body) {
+      mode_window_->raise();
+      mode_window_->activateWindow();
+      return;
+    }
+    mode_window_->close();
+  }
+  auto* flex =
+    dynamic_cast<shift::core::body::Flex*>(simulation_.get_bodies()[body]);
+  if(!flex) {
+    return;
+  }
+  const std::string name = flex->get_name();
+  std::vector<int> checked(flex->get_modes_kept().begin(),
+                           flex->get_modes_kept().end());
+  auto pending = pending_modes_.find(name);
+  if(pending != pending_modes_.end()) {
+    checked = pending->second;
+  }
+  mode_window_ = new ModeWindow(
+    simulation_, body, checked,
+    [this, name](const std::vector<int>& modes) {
+      pending_modes_[name] = modes;
+      UpdateApplyButton();
+    },
+    [this]() { viewport_->update(); }, this);
+  mode_window_->show();
+}
+
+Json::Value* shift::gui::Workspace::BodyJson(int body) {
+  if(!simulation_.is_loaded() || body < 0 ||
+     body >= static_cast<int>(simulation_.get_bodies().size())) {
+    return nullptr;
+  }
+  const std::vector<JsonStep>* path =
+    FindObjectPath(simulation_.get_bodies()[body]);
+  if(!path) {
+    return nullptr;
+  }
+  Json::Value* object = &model_json_;
+  for(const JsonStep& step : *path) {
+    object = step.index >= 0 ? &(*object)[step.index] : &(*object)[step.key];
+  }
+  return object;
+}
+
+void shift::gui::Workspace::UpdateMeshFields() {
+  const int body = body_panel_.selected_body;
+  auto* flex = body >= 0 && body < static_cast<int>(
+                                     simulation_.get_bodies().size())
+                 ? dynamic_cast<shift::core::body::Flex*>(
+                     simulation_.get_bodies()[body])
+                 : nullptr;
+  const Json::Value* object =
+    flex && flex->builds_model() ? BodyJson(body) : nullptr;
+  body_panel_.mesh->setVisible(object != nullptr);
+  body_panel_.apply->setVisible(object != nullptr);
+  body_panel_.attachments->setVisible(object != nullptr);
+  if(!object) {
+    return;
+  }
+  /* the attachments, a sliding frame's stations on one line */
+  QString legend = "<b>Attachments</b>";
+  const auto& info = flex->get_attachment_info();
+  const auto& nodes = flex->get_attachment_nodes();
+  auto swatch = [](size_t k) {
+    const float* c = kAttachmentColors[AttachmentColorIndex(k)];
+    return QString("<span style=\"color:%1\">&#9632;</span>")
+      .arg(QColor::fromRgbF(c[0], c[1], c[2]).name());
+  };
+  for(size_t k = 0; k < info.size() && k < nodes.size(); k++) {
+    const shift::core::body::AttachmentInfo& a = info[k];
+    QString line = "<br>" + swatch(k);
+    size_t node_count = nodes[k].size();
+    if(a.station >= 0) {
+      // the rest of this frame's stations
+      size_t last = k;
+      while(last + 1 < info.size() && info[last + 1].frame == a.frame &&
+            info[last + 1].station == info[last].station + 1) {
+        last++;
+        line += swatch(last);
+        node_count += nodes[last].size();
+      }
+      line += QString(" <b>%1</b> (%2): sliding, %3 stations along the "
+                      "bore, %4 nodes; 6 static modes each")
+                .arg(QString::fromStdString(a.frame).toHtmlEscaped(),
+                     QString::fromStdString(a.user).toHtmlEscaped())
+                .arg(a.station_count)
+                .arg(node_count);
+      k = last;
+    } else {
+      line += QString(" <b>%1</b> (%2): %3 to %4 nodes; %5")
+                .arg(QString::fromStdString(a.frame).toHtmlEscaped(),
+                     QString::fromStdString(a.user).toHtmlEscaped(),
+                     a.rbe2 ? "rigid (RBE2)" : "averaging (RBE3)")
+                .arg(node_count)
+                .arg(a.reference ? "the reference frame, held"
+                                 : "6 static modes");
+    }
+    legend += line;
+  }
+  body_panel_.attachments->setText(legend);
+  const QSignalBlocker block_size(body_panel_.element_size);
+  const QSignalBlocker block_minimum(body_panel_.minimum_element_size);
+  body_panel_.element_size->setText(
+    object->isMember("element_size")
+      ? QString::number((*object)["element_size"].asDouble(), 'g', 12)
+      : QString());
+  body_panel_.minimum_element_size->setText(
+    object->isMember("minimum_element_size")
+      ? QString::number((*object)["minimum_element_size"].asDouble(), 'g', 12)
+      : QString());
+  UpdateApplyButton();
+}
+
+shift::gui::Workspace::FlexChanges shift::gui::Workspace::ReadFlexChanges(
+  const Json::Value& object, const shift::core::body::Flex& flex) const {
+  const QString size_text = body_panel_.element_size->text();
+  const QString minimum_text_in = body_panel_.minimum_element_size->text();
+  const auto& pending = pending_modes_;
+  FlexChanges changes;
+  bool ok = false;
+  changes.element_size = size_text.toDouble(&ok);
+  if(!ok || !(changes.element_size > 0.0)) {
+    return changes;
+  }
+  const QString minimum_text = minimum_text_in.trimmed();
+  if(!minimum_text.isEmpty()) {
+    changes.minimum_element_size = minimum_text.toDouble(&ok);
+    if(!ok || !(changes.minimum_element_size > 0.0) ||
+       changes.minimum_element_size > changes.element_size) {
+      return changes;
+    }
+  }
+  changes.size =
+    !object.isMember("element_size") ||
+    object["element_size"].asDouble() != changes.element_size ||
+    (minimum_text.isEmpty()
+       ? object.isMember("minimum_element_size")
+       : !object.isMember("minimum_element_size") ||
+           object["minimum_element_size"].asDouble() !=
+             changes.minimum_element_size);
+  auto entry = pending.find(flex.get_name());
+  if(entry != pending.end()) {
+    changes.modes_kept = entry->second;
+    std::vector<int> kept(flex.get_modes_kept().begin(),
+                          flex.get_modes_kept().end());
+    changes.modes = changes.modes_kept != kept;
+    if(changes.modes && changes.modes_kept.empty()) {
+      return changes; // at least one mode
+    }
+  }
+  changes.valid = true;
+  return changes;
+}
+
+void shift::gui::Workspace::UpdateApplyButton() {
+  const int body = body_panel_.selected_body;
+  const Json::Value* object = BodyJson(body);
+  auto* flex = object ? dynamic_cast<shift::core::body::Flex*>(
+                          simulation_.get_bodies()[body])
+                      : nullptr;
+  if(!flex) {
+    body_panel_.apply->setEnabled(false);
+    return;
+  }
+  const FlexChanges changes = ReadFlexChanges(*object, *flex);
+  body_panel_.apply->setEnabled(changes.valid &&
+                                (changes.size || changes.modes));
+}
+
+void shift::gui::Workspace::ApplyFlexChanges() {
+  const int body = body_panel_.selected_body;
+  Json::Value* object = BodyJson(body);
+  auto* flex = object ? dynamic_cast<shift::core::body::Flex*>(
+                          simulation_.get_bodies()[body])
+                      : nullptr;
+  if(!flex) {
+    return;
+  }
+  const FlexChanges changes = ReadFlexChanges(*object, *flex);
+  if(!changes.valid || !(changes.size || changes.modes)) {
+    return;
+  }
+  if((simulation_.has_results() || simulation_.is_computing()) &&
+     QMessageBox::question(this, "Apply",
+                           "Applying the changes loads the model again "
+                           "and drops the computed results. Apply?") !=
+       QMessageBox::Yes) {
+    return;
+  }
+  const double end_time = simulation_.get_end_time();
+  const double time_step = simulation_.get_time_step();
+  const Json::Value previous = model_json_;
+  if(changes.size) {
+    (*object)["element_size"] = changes.element_size;
+    if(changes.minimum_element_size > 0.0) {
+      (*object)["minimum_element_size"] = changes.minimum_element_size;
+    } else {
+      object->removeMember("minimum_element_size");
+    }
+  }
+  if(changes.modes) {
+    // modes_kept replaces the other ways of choosing the modes
+    object->removeMember("mode_count");
+    object->removeMember("maximum_frequency");
+    Json::Value kept(Json::arrayValue);
+    for(int k : changes.modes_kept) {
+      kept.append(k);
+    }
+    (*object)["modes_kept"] = kept;
+  }
+  QString error;
+  if(!ReloadModel(previous, error)) {
+    QMessageBox::critical(this, "Apply", error);
+    return;
+  }
+  simulation_.set_end_time(end_time);
+  simulation_.set_time_step(time_step);
+  LoadModelParameters();
+}
+
+void shift::gui::Workspace::DeformationScaleDialog() {
+  bool ok = false;
+  const double scale = QInputDialog::getDouble(
+    this, "Deformation scale",
+    "Draw the deformation of flexible bodies times:",
+    simulation_.get_deformation_scale(), 0.0, 1e9, 3, &ok);
+  if(ok) {
+    simulation_.set_deformation_scale(scale);
+    viewport_->update();
+  }
 }
 
 bool shift::gui::Workspace::ReloadModel(const Json::Value& previous,
@@ -1371,6 +1803,19 @@ void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
   }
   if(request.hide_floor) {
     floor_action_->setChecked(false);
+  }
+  simulation_.set_deformation_scale(request.deformation_scale);
+  if(request.flex_mesh_surface) {
+    flex_mesh_surface_action_->setChecked(true);
+  }
+  if(request.flex_mesh_edges) {
+    flex_mesh_edges_action_->setChecked(true);
+  }
+  if(request.flex_constrained_nodes) {
+    flex_constrained_nodes_action_->setChecked(true);
+  }
+  if(request.flex_stresses) {
+    flex_stresses_action_->setChecked(true);
   }
   if(request.samples > 0) {
     viewport_->set_render_mode(Viewport::RenderMode::kRayTraced);
@@ -1893,7 +2338,161 @@ void shift::gui::Workspace::UpdateVisibility() {
   }
   viewport_->set_frame_axes(std::move(frames));
   viewport_->set_joint_axes(std::move(joints));
+  // the surface of each flexible body, and its elements' edges
+  std::vector<bool> mesh_surface(hidden.size(), false);
+  std::vector<bool> mesh_edges(hidden.size(), false);
+  std::vector<bool> constrained_nodes(hidden.size(), false);
   viewport_->set_hidden_bodies(std::move(hidden));
+  if(simulation_.is_loaded()) {
+    for(int body : simulation_.get_flex_bodies()) {
+      const QString name =
+        QString::fromStdString(simulation_.get_bodies()[body]->get_name());
+      if(body < static_cast<int>(mesh_surface.size())) {
+        // the stress is drawn on the surface shown, the CAD's or the
+        // mesh's
+        mesh_surface[size_t(body)] =
+          flex_mesh_surface_bodies_.count(name) > 0;
+        mesh_edges[size_t(body)] = flex_mesh_edge_bodies_.count(name) > 0;
+        constrained_nodes[size_t(body)] =
+          flex_constrained_node_bodies_.count(name) > 0;
+      }
+    }
+  }
+  viewport_->set_flex_mesh_surfaces(std::move(mesh_surface));
+  viewport_->set_flex_mesh_edges(std::move(mesh_edges));
+  viewport_->set_flex_constrained_nodes(std::move(constrained_nodes));
+  ApplyStresses();
+}
+
+void shift::gui::Workspace::ApplyStresses() {
+  std::vector<bool> stresses;
+  if(simulation_.is_loaded()) {
+    stresses.assign(simulation_.get_bodies().size(), false);
+    for(int body : simulation_.get_flex_bodies()) {
+      const QString name =
+        QString::fromStdString(simulation_.get_bodies()[body]->get_name());
+      stresses[size_t(body)] = flex_stress_bodies_.count(name) > 0;
+    }
+  }
+  simulation_.set_flex_stresses(std::move(stresses),
+                                settings_.is_stress_range_automatic(),
+                                settings_.get_stress_minimum(),
+                                settings_.get_stress_maximum());
+  simulation_.set_flex_stress_quantity(settings_.get_stress_quantity(),
+                                       settings_.get_safety_minimum(),
+                                       settings_.get_safety_maximum());
+  simulation_.set_flex_stress_peak(settings_.is_stress_peak());
+  UpdateStressLegend();
+}
+
+/* a stress (Pa) with an SI prefix */
+static QString FormatStress(double stress) {
+  static const char* kPrefixes[] = {"", "k", "M", "G", "T"};
+  int k = 0;
+  while(k < 4 && std::fabs(stress) >= 1000.0) {
+    stress /= 1000.0;
+    k++;
+  }
+  return QString("%1 %2Pa").arg(stress, 0, 'g', 3).arg(kPrefixes[k]);
+}
+
+void shift::gui::Workspace::UpdateStressLegend() {
+  bool drawn = false;
+  if(simulation_.is_loaded()) {
+    for(int body : simulation_.get_flex_bodies()) {
+      const QString name =
+        QString::fromStdString(simulation_.get_bodies()[body]->get_name());
+      drawn = drawn || (flex_stress_bodies_.count(name) > 0 &&
+                        simulation_.has_flex_stresses(body));
+    }
+  }
+  stress_legend_->setVisible(drawn);
+  if(!drawn) {
+    stress_legend_timer_->stop();
+    return;
+  }
+  if(!stress_legend_timer_->isActive()) {
+    stress_legend_timer_->start();
+  }
+  // the quantity, and the ends of its range
+  const FlexUpdate::Quantity quantity = settings_.get_stress_quantity();
+  QString label = StressQuantities()[size_t(quantity)].label;
+  if(settings_.is_stress_peak()) {
+    label += ", greatest so far";
+  }
+  QString start, end;
+  if(quantity == FlexUpdate::Quantity::kSafetyFactor) {
+    // the map's start is the largest factor
+    const float smallest = viewport_->get_flex_safety_factor_minimum();
+    label = settings_.is_stress_peak() ? "safety factor, smallest so far"
+                                       : "safety factor";
+    start = QString("%1 &ge;%2 ")
+              .arg(label)
+              .arg(settings_.get_safety_maximum(), 0, 'g', 3);
+    end = QString(" &le;%1").arg(settings_.get_safety_minimum(), 0, 'g', 3);
+    if(smallest > 0.f) {
+      end += QString(" (smallest %1)").arg(smallest, 0, 'g', 3);
+    }
+  } else {
+    const bool automatic = settings_.is_stress_range_automatic();
+    const double largest = viewport_->get_flex_stress_maximum();
+    const double low = !automatic                  ? settings_.get_stress_minimum()
+                       : FlexStressSigned(quantity) ? -largest
+                                                    : 0.0;
+    const double high = automatic ? largest : settings_.get_stress_maximum();
+    start = QString("%1 %2 ").arg(label, FormatStress(low));
+    end = QString(" %1%2").arg(FormatStress(high)).arg(
+      automatic ? " (largest)" : "");
+  }
+  // the color map as a bar between its range's ends
+  const auto colors = ColorMapSamples(settings_.get_stress_color_map(), 64);
+  QImage bar(int(colors.size()), 1, QImage::Format_RGB32);
+  for(size_t k = 0; k < colors.size(); k++) {
+    bar.setPixel(int(k), 0,
+                 qRgb(int(colors[k].x * 255.f + 0.5f),
+                      int(colors[k].y * 255.f + 0.5f),
+                      int(colors[k].z * 255.f + 0.5f)));
+  }
+  const QPixmap image = QPixmap::fromImage(bar.scaled(96, 12));
+  stress_legend_->setText(
+    start + QString("<img src=\"data:image/png;base64,%1\"/>").arg(
+             [&image] {
+               QByteArray bytes;
+               QBuffer buffer(&bytes);
+               image.save(&buffer, "PNG");
+               return QString::fromLatin1(bytes.toBase64());
+             }()) +
+    end);
+}
+
+void shift::gui::Workspace::SetAllFlexBodies(std::set<QString>& bodies,
+                                             bool on) {
+  if(!on) {
+    bodies.clear();
+  } else if(simulation_.is_loaded()) {
+    for(int body : simulation_.get_flex_bodies()) {
+      bodies.insert(
+        QString::fromStdString(simulation_.get_bodies()[body]->get_name()));
+    }
+  }
+  // the panel of the body selected shows it
+  const QSignalBlocker block_surface(body_panel_.mesh_surface);
+  const QSignalBlocker block_edges(body_panel_.mesh_edges);
+  const QSignalBlocker block_nodes(body_panel_.constrained_nodes);
+  const QSignalBlocker block_stresses(body_panel_.stresses);
+  const int selected = body_panel_.selected_body;
+  if(selected >= 0 && simulation_.is_loaded() &&
+     selected < static_cast<int>(simulation_.get_bodies().size())) {
+    const QString name = QString::fromStdString(
+      simulation_.get_bodies()[selected]->get_name());
+    body_panel_.mesh_surface->setChecked(
+      flex_mesh_surface_bodies_.count(name) > 0);
+    body_panel_.mesh_edges->setChecked(flex_mesh_edge_bodies_.count(name) > 0);
+    body_panel_.constrained_nodes->setChecked(
+      flex_constrained_node_bodies_.count(name) > 0);
+    body_panel_.stresses->setChecked(flex_stress_bodies_.count(name) > 0);
+  }
+  UpdateVisibility();
 }
 
 void shift::gui::Workspace::ApplySettings() {
@@ -1904,6 +2503,9 @@ void shift::gui::Workspace::ApplySettings() {
   const QColor& color = settings_.get_joint_color();
   viewport_->set_joint_color(ksl_vec3f(
     float(color.redF()), float(color.greenF()), float(color.blueF())));
+  viewport_->set_color_map(ColorMapSamples(settings_.get_stress_color_map(),
+                                           Viewport::kColorMapSamples));
+  ApplyStresses();
 }
 
 void shift::gui::Workspace::SettingsDialog() {
@@ -2015,6 +2617,109 @@ void shift::gui::Workspace::SettingsDialog() {
       preview();
     }
   });
+  // the stress drawn on flexible bodies
+  auto* quantity = new QComboBox;
+  for(const StressQuantity& known : StressQuantities()) {
+    quantity->addItem(known.label);
+  }
+  quantity->setCurrentIndex(int(settings_.get_stress_quantity()));
+  quantity->setToolTip(
+    "what the stress drawn on flexible bodies shows; components are in the "
+    "body's coordinates, and the safety factor is against the body's "
+    "yield_strength (bodies without one are not colored)");
+  layout->addRow("Stress drawn", quantity);
+  auto* peak = new QCheckBox("Greatest over the run so far");
+  peak->setChecked(settings_.is_stress_peak());
+  peak->setToolTip(
+    "at each point, the greatest (in magnitude) over the states recorded up "
+    "to the time shown, rather than the stress now");
+  layout->addRow("", peak);
+  auto* color_map = new QComboBox;
+  for(const ColorMap& map : ColorMaps()) {
+    color_map->addItem(map.label, QString(map.key));
+  }
+  color_map->setCurrentIndex(std::max(
+    0, color_map->findData(
+         QString::fromStdString(settings_.get_stress_color_map()))));
+  color_map->setToolTip("the colors of the stress drawn on flexible bodies "
+                        "(View > Flexible bodies: stresses)");
+  layout->addRow("Stress color map", color_map);
+  auto* range = new QComboBox;
+  range->addItem("Automatic: 0 (or minus the largest) to the largest on "
+                 "each body");
+  range->addItem("Fixed");
+  range->setCurrentIndex(settings_.is_stress_range_automatic() ? 0 : 1);
+  layout->addRow("Stress range", range);
+  auto* stress_minimum = new QLineEdit(
+    QString::number(settings_.get_stress_minimum(), 'g', 6));
+  auto* stress_maximum = new QLineEdit(
+    QString::number(settings_.get_stress_maximum(), 'g', 6));
+  for(QLineEdit* edit : {stress_minimum, stress_maximum}) {
+    edit->setValidator(new QDoubleValidator(edit));
+    edit->setToolTip("in the model's units of stress (Pa in SI units), "
+                     "e.g. 2.5e8");
+  }
+  layout->addRow("Stress at the map's start", stress_minimum);
+  layout->addRow("Stress at the map's end", stress_maximum);
+  auto* safety_minimum = new QLineEdit(
+    QString::number(settings_.get_safety_minimum(), 'g', 6));
+  auto* safety_maximum = new QLineEdit(
+    QString::number(settings_.get_safety_maximum(), 'g', 6));
+  for(QLineEdit* edit : {safety_minimum, safety_maximum}) {
+    edit->setValidator(new QDoubleValidator(edit));
+  }
+  safety_minimum->setToolTip("this safety factor and below are drawn in the "
+                             "color map's end");
+  safety_maximum->setToolTip("this safety factor and above are drawn in the "
+                             "color map's start");
+  layout->addRow("Safety factor at the map's end", safety_minimum);
+  layout->addRow("Safety factor at the map's start", safety_maximum);
+  auto fixed_range = [quantity, range, stress_minimum, stress_maximum,
+                      safety_minimum, safety_maximum] {
+    const bool safety =
+      quantity->currentIndex() == int(FlexUpdate::Quantity::kSafetyFactor);
+    range->setEnabled(!safety);
+    stress_minimum->setEnabled(!safety && range->currentIndex() == 1);
+    stress_maximum->setEnabled(!safety && range->currentIndex() == 1);
+    safety_minimum->setEnabled(safety);
+    safety_maximum->setEnabled(safety);
+  };
+  fixed_range();
+  // the stress settings as they are changed, as the others
+  auto preview_stress = [this, quantity, peak, color_map, range,
+                         stress_minimum, stress_maximum, safety_minimum,
+                         safety_maximum, fixed_range] {
+    fixed_range();
+    settings_.set_stress_quantity(
+      StressQuantities()[size_t(std::max(0, quantity->currentIndex()))]
+        .quantity);
+    settings_.set_stress_peak(peak->isChecked());
+    settings_.set_safety_range(safety_minimum->text().toDouble(),
+                               safety_maximum->text().toDouble());
+    settings_.set_stress_color_map(
+      color_map->currentData().toString().toStdString());
+    settings_.set_stress_range_automatic(range->currentIndex() == 0);
+    settings_.set_stress_range(stress_minimum->text().toDouble(),
+                               stress_maximum->text().toDouble());
+    viewport_->set_color_map(ColorMapSamples(
+      settings_.get_stress_color_map(), Viewport::kColorMapSamples));
+    ApplyStresses();
+  };
+  const Settings before = settings_;
+  connect(color_map, &QComboBox::currentIndexChanged, &dialog,
+          preview_stress);
+  connect(range, &QComboBox::currentIndexChanged, &dialog, preview_stress);
+  connect(quantity, &QComboBox::currentIndexChanged, &dialog,
+          preview_stress);
+  connect(peak, &QCheckBox::toggled, &dialog, preview_stress);
+  connect(safety_minimum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
+  connect(safety_maximum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
+  connect(stress_minimum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
+  connect(stress_maximum, &QLineEdit::editingFinished, &dialog,
+          preview_stress);
   auto* note = new QLabel(QString("Saved in %1").arg(
     QDir::toNativeSeparators(QString::fromStdString(
       Settings::get_default_path()))));
@@ -2026,9 +2731,11 @@ void shift::gui::Workspace::SettingsDialog() {
   connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
   layout->addRow(buttons);
   if(dialog.exec() != QDialog::Accepted) {
+    settings_ = before;
     ApplySettings();
     return;
   }
+  preview_stress();
   settings_.set_frame_scale(frame_scale->value());
   settings_.set_joint_color(joint_color);
   settings_.set_joint_thickness(joint_thickness->value());
@@ -2900,6 +3607,8 @@ void shift::gui::Workspace::ApplyParameterEdit() {
       UpdateWindowTitle();
     }
     UpdateParameterPanel();
+    // what is drawn of it (a flexible body's yield strength)
+    viewport_->requestUpdate();
     return;
   }
   if(!row.in_file) {
@@ -3012,6 +3721,30 @@ void shift::gui::Workspace::SelectTreeItem() {
     body_panel_.selected_body = index;
     body_panel_.title->setText(QString::fromStdString(
       simulation_.get_bodies()[index]->get_name()));
+    const auto flex_bodies = simulation_.get_flex_bodies();
+    const bool flex = std::find(flex_bodies.begin(), flex_bodies.end(),
+                                index) != flex_bodies.end();
+    body_panel_.modes->setVisible(flex);
+    body_panel_.mesh_surface->setVisible(flex);
+    body_panel_.mesh_edges->setVisible(flex);
+    body_panel_.constrained_nodes->setVisible(flex);
+    body_panel_.stresses->setVisible(flex && simulation_.has_flex_stresses(index));
+    UpdateMeshFields();
+    {
+      const QString name = QString::fromStdString(
+        simulation_.get_bodies()[index]->get_name());
+      const QSignalBlocker block_surface(body_panel_.mesh_surface);
+      const QSignalBlocker block_edges(body_panel_.mesh_edges);
+      const QSignalBlocker block_nodes(body_panel_.constrained_nodes);
+      const QSignalBlocker block_stresses(body_panel_.stresses);
+      body_panel_.stresses->setChecked(flex_stress_bodies_.count(name) > 0);
+      body_panel_.constrained_nodes->setChecked(
+        flex_constrained_node_bodies_.count(name) > 0);
+      body_panel_.mesh_surface->setChecked(
+        flex_mesh_surface_bodies_.count(name) > 0);
+      body_panel_.mesh_edges->setChecked(flex_mesh_edge_bodies_.count(name) >
+                                         0);
+    }
     body_panel_.group_box->setVisible(true);
     UpdateBodyPanel();
     if(!camera_panel_.follow->isChecked()) {
@@ -3683,7 +4416,9 @@ void shift::gui::Workspace::UpdateStatus() {
   const bool computing = loaded && simulation_.is_computing();
 
   QString text;
-  if(!loaded) {
+  if(compiling_pipelines_) {
+    text = "Compiling shaders…";
+  } else if(!loaded) {
     text = "Open a model (Ctrl+O)";
   } else if(computing) {
     text = "Computing…";

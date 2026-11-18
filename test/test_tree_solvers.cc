@@ -2,6 +2,7 @@
 of a model is classified into serial chains, branched trees and closed loops,
 and at the same state every solver gives the same joint accelerations. */
 
+#include <omp.h>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -265,6 +266,26 @@ TEST(TreeSolvers, SerialChainMatchesRNCA) {
   TreeSolvers::Compare(ChainBodies(), ChainJoints(), {"aba", "dca"});
 }
 
+/* the serial chain with springs and dampers (a constant term included) on
+its revolute, prismatic and screw joints: the joint forces enter the joint
+accelerations and wrenches */
+TEST(TreeSolvers, JointForcesMatchRNCA) {
+  std::vector<std::string> joints = ChainJoints();
+  const std::string forces =
+    R"("stiffness_coefficients": [0.7, 3.0], "damping_coefficients": [0.0, 0.4], )";
+  joints[1] = TreeSolvers::Joint(
+    "j1", "revolute", "b0", "tip", "b1",
+    R"("axis": [0, 0.6, 0.8], "initial_velocity": 2.0, )" + forces);
+  joints[2] = TreeSolvers::Joint(
+    "j2", "prismatic", "b1", "side", "b2",
+    R"("axis": [1, 0, 0], "initial_velocity": -0.5, )" + forces);
+  joints[4] = TreeSolvers::Joint(
+    "j4", "screw", "b3", "tip", "b4",
+    R"("axis": [0.6, 0, 0.8], "pitch": 0.2, "initial_velocity": 1.5, )" +
+      forces);
+  TreeSolvers::Compare(ChainBodies(), joints, {"aba", "dca"});
+}
+
 TEST(TreeSolvers, BranchedTreeMatchesRNCA) {
   TreeSolvers::Compare(BranchedBodies(), BranchedJoints(), {"aba", "dca"});
 }
@@ -321,6 +342,71 @@ TEST(TreeSolvers, LongChainTrajectories) {
   for(size_t i = 0; i < y_rnca.size(); i++) {
     EXPECT_NEAR(y_aba[i], y_rnca[i], 1e-6) << "aba state " << i;
     EXPECT_NEAR(y_dca[i], y_rnca[i], 1e-6) << "dca state " << i;
+  }
+}
+
+/* a chain long enough that the assemblies of a level share threads: the
+same derivatives as with one thread, to the last bit, and as ABA's */
+TEST(TreeSolvers, DcaLevelsShareThreads) {
+  const int n = 256;
+  std::vector<std::string> bodies;
+  std::vector<std::string> joints;
+  for(int i = 0; i < n; i++) {
+    const std::string name = "c" + std::to_string(i);
+    bodies.push_back(TreeSolvers::Body(name, 0.01 * (i % 10)));
+    const std::string axis =
+      i % 3 == 0 ? "[1, 0, 0]" : (i % 3 == 1 ? "[0, 1, 0]" : "[0, 0, 1]");
+    joints.push_back(TreeSolvers::Joint(
+      "r" + std::to_string(i), "revolute",
+      i == 0 ? "fixed" : "c" + std::to_string(i - 1),
+      i == 0 ? "origin" : "tip", name,
+      R"("axis": )" + axis + R"(, "initial_displacement": )" +
+        std::to_string(0.3 * std::sin(i)) + R"(, "initial_velocity": )" +
+        std::to_string(0.2 * std::cos(i)) + ", "));
+  }
+  const std::string model = TreeSolvers::Model("dca", bodies, joints);
+  auto probe = TreeSolvers::Load(model, "tree_solver_threads_probe");
+  std::vector<double> y(probe->get_state_count(), 0.0);
+  std::copy(probe->get_q().begin(), probe->get_q().end(), y.begin());
+  std::copy(probe->get_dq(), probe->get_dq() + probe->get_dq_count(),
+            y.begin() + probe->get_q_count());
+
+  auto dca = TreeSolvers::Load(model, "tree_solver_threads_dca");
+  auto solver = dynamic_cast<shift::core::solver::DCA*>(
+    (*dca)["model_parameters"]["solvers"][0]
+      .get_data<shift::core::solver::Base>());
+  ASSERT_NE(solver, nullptr);
+  solver->Initialize();
+  int most = 1;
+  for(int threads : solver->get_level_threads()) {
+    most = std::max(most, threads);
+  }
+  if(omp_get_max_threads() > 1) {
+    EXPECT_GT(most, 1);
+  }
+  const std::vector<double> threaded = TreeSolvers::Derivatives(model, y);
+
+  const int max_threads = omp_get_max_threads();
+  omp_set_num_threads(1);
+  const std::vector<double> serial = TreeSolvers::Derivatives(model, y);
+  omp_set_num_threads(max_threads);
+  ASSERT_EQ(threaded.size(), serial.size());
+  for(size_t i = 0; i < serial.size(); i++) {
+    EXPECT_EQ(threaded[i], serial[i]) << "state derivative " << i;
+  }
+
+  const std::vector<double> aba = TreeSolvers::Derivatives(
+    TreeSolvers::Model("aba", bodies, joints), y);
+  ASSERT_EQ(aba.size(), serial.size());
+  double scale = 1.0;
+  for(double value : aba) {
+    scale = std::fmax(scale, std::fabs(value));
+  }
+  /* DCA and ABA differ by rounding, the more the longer the chain: of the
+  largest derivative, 2e-12 over 64 bodies, 1.5e-10 over 256 and 8e-10 over
+  512 (RNCA and ABA: 2.4e-9 over 256) */
+  for(size_t i = 0; i < aba.size(); i++) {
+    EXPECT_NEAR(threaded[i], aba[i], 1e-9 * scale) << "state derivative " << i;
   }
 }
 

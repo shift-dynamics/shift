@@ -51,7 +51,8 @@ struct Instance {
   mat4 previous_body_to_world; // pose in the previous frame (reprojection)
   vec4 optical;       // x = opacity, yzw = glow: factor of the albedo
                       // emitted (a lamp's lens, lit)
-  vec4 variation;     // x = 1: vary the tiles of triplanar textures
+  vec4 variation;     // x = 1: vary the tiles of triplanar textures, y =
+                      // material map + 1 (triplanar), z = alpha cutoff
   ivec4 surface_layers; // base color and normal of surfaces 0 and 1
   vec4 surface[2];    // x = 1 / texture scale, y = normal scale, z = noise
                       // level, w = 1 / patch size
@@ -60,6 +61,10 @@ struct Instance {
   ivec4 lod_roots;    // root nodes of the mesh and of its simplified levels
                       // of detail, finest first, for shadow and bounce rays
   vec4 lod_errors;    // how far each level strays from the mesh (m, world)
+  vec4 flex;          // x = 1: colored by the stress (a mesh's in u, from
+                      // flex_normals.comp; a CAD's in its motion's w), y =
+                      // a flexible body's CAD: the offset of its triangles'
+                      // motion from the triangles, z = 1 for such a CAD
 };
 
 // illumination of this frame's sample, radiance / albedo (sky: radiance)
@@ -90,6 +95,7 @@ layout(std140, binding = 1) uniform Uniforms {
   vec4 water_extinction;
   uvec4 hardware; // xy = device address of the top level acceleration
                   // structure (low, high bits), z = 1 if there is one
+  vec4 color_map[16]; // the stress's colors (sRGB), as in mesh.frag
 } u;
 
 // the radiance of the sky, equirectangular (see environment.glsl)
@@ -149,6 +155,16 @@ layout(rgba16f, binding = 10) uniform writeonly image2D direct_light;
 // sun's share that passed is direct_light's alpha. sun_shadow.comp widens
 // the shadows of solids into their penumbrae and adds the sunlight.
 layout(rgba16f, binding = 22) uniform writeonly image2D sun_light;
+
+// the motion of the vertices of deforming triangles since the previous
+// frame, body coordinates, 3 per triangle: those whose TriangleFaces entry
+// f is -2 or less, at 3 (-f - 2)
+layout(std430, binding = 23) readonly buffer TriangleMotion {
+  vec4 triangle_motion[];
+};
+// the motion of the primary hit's point of its body since the previous
+// frame, body coordinates (0 but on a deforming body), for reprojection
+layout(rgba16f, binding = 24) uniform writeonly image2D gbuffer_motion;
 
 // the lights of the model, sampled like the sun, with shadows
 #define LIGHTS_BINDING 12
@@ -959,10 +975,28 @@ Surface GetSurface(vec3 origin, vec3 direction, Hit hit) {
   HexPlanes hex_planes = HexPlanesSetup(p, w, vec3(0.0), vec3(0.0));
 
   s.albedo = instance.albedo.rgb;
+  if(instance.flex.x > 0.5) {
+    float t = clamp(uv.x, 0.0, 1.0) * 15.0;
+    int k = min(int(t), 14);
+    s.albedo = SrgbToLinear(
+      mix(u.color_map[k].rgb, u.color_map[k + 1].rgb, t - float(k)));
+  }
   int cad_face = triangle_faces[hit.triangle];
   if(cad_face >= 0) {
     vec4 color = faces[cad_face >> 1].color;
-    if(color.w > 0.5) {
+    if(instance.flex.x > 0.5 && instance.flex.z > 0.5) {
+      // a flexible body's CAD with its stress drawn: the stress at the
+      // corners in its triangles' motion (flex_cad.comp), over the faces'
+      // colors
+      uint m = 3u * uint(hit.triangle + int(instance.flex.y));
+      float stress = triangle_motion[m].w * b0 +
+                     triangle_motion[m + 1u].w * hit.bary.x +
+                     triangle_motion[m + 2u].w * hit.bary.y;
+      float t = clamp(stress, 0.0, 1.0) * 15.0;
+      int k = min(int(t), 14);
+      s.albedo = SrgbToLinear(
+        mix(u.color_map[k].rgb, u.color_map[k + 1].rgb, t - float(k)));
+    } else if(color.w > 0.5) {
       s.albedo = SrgbToLinear(color.rgb);
     }
   }
@@ -1457,6 +1491,7 @@ void main() {
       if(layer == 0) {
         imageStore(gbuffer_position, pixel, vec4(direction, -1.0));
         imageStore(gbuffer_normal, pixel, vec4(0.0));
+        imageStore(gbuffer_motion, pixel, vec4(0.0));
       }
       break;
     }
@@ -1515,6 +1550,23 @@ void main() {
       imageStore(gbuffer_position, pixel,
                  vec4(s.position, float(hit.instance)));
       imageStore(gbuffer_normal, pixel, vec4(s.normal, hit.t));
+      vec3 motion = vec3(0.0);
+      if(hit.instance >= 0) {
+        // a flexible body's mesh: the motion's entry in its face; its CAD:
+        // offset from the triangle by its instance's flex.y
+        int face = triangle_faces[hit.triangle];
+        vec4 flex = instances[hit.instance].flex;
+        int entry = face <= -2 ? -face - 2
+                    : flex.z > 0.5 ? hit.triangle + int(flex.y)
+                                        : -1;
+        if(entry >= 0) {
+          uint m = 3u * uint(entry);
+          motion = triangle_motion[m].xyz * (1.0 - hit.bary.x - hit.bary.y) +
+                   triangle_motion[m + 1u].xyz * hit.bary.x +
+                   triangle_motion[m + 2u].xyz * hit.bary.y;
+        }
+      }
+      imageStore(gbuffer_motion, pixel, vec4(motion, 0.0));
     }
     origin = PastSurface(origin, direction, hit.t);
   }

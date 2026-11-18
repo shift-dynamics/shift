@@ -34,6 +34,8 @@ layout(location = 0) out vec4 out_color;
 #define CAD_TRIM_ONLY
 #include "cad_common.glsl"
 layout(location = 8) flat in ivec2 cad_face; // face, flags (1: test trims)
+// a flexible body's stress drawn, mapped to [0, 1] (cad.tese)
+layout(location = 9) in float cad_stress;
 layout(std140, binding = 6) uniform Cad {
   vec4 tessellation;
   vec4 edges; // x = half width of edge lines (pixels), y = their darkening,
@@ -57,6 +59,9 @@ layout(std140, binding = 0) uniform Frame {
   vec4 water_wave;       // direction of travel (x, y), time
   vec4 water_color;
   vec4 water_extinction;
+  // the colors of the stress drawn on flexible bodies, sRGB, at 16 even
+  // steps from 0 to 1 (Viewport::set_color_map)
+  vec4 color_map[16];
 } frame;
 
 layout(std140, binding = 1) uniform Material {
@@ -76,6 +81,8 @@ layout(std140, binding = 1) uniform Material {
   vec4 emission;      // rgb: factor of the base color emitted (a lamp's
                       // lens, lit)
   vec4 holes[4];      // of a terrain, in its uv: x0, y0, x1, y1
+  vec4 flex;          // x = 1: a flexible body's stress drawn, its color
+                      // map at uv.x (a CAD's: at cad_stress)
 } mesh;
 
 // image based lighting of the sky, equirectangular; see environment.h
@@ -417,9 +424,23 @@ void main() {
   nb *= side;
 
   vec3 albedo = mesh.albedo.rgb;
+#if !defined(CAD) && !defined(FLUID)
+  if(mesh.flex.x > 0.5) {
+    float t = clamp(uv.x, 0.0, 1.0) * 15.0;
+    int k = min(int(t), 14);
+    albedo = SrgbToLinear(mix(frame.color_map[k].rgb,
+                              frame.color_map[k + 1].rgb, t - float(k)));
+  }
+#endif
 #ifdef CAD
   vec4 face_color = faces[cad_face.x].color;
-  if(face_color.w > 0.5) {
+  if(mesh.flex.x > 0.5) {
+    // a flexible body's stress drawn, over the faces' colors
+    float t = clamp(cad_stress, 0.0, 1.0) * 15.0;
+    int k = min(int(t), 14);
+    albedo = SrgbToLinear(mix(frame.color_map[k].rgb,
+                              frame.color_map[k + 1].rgb, t - float(k)));
+  } else if(face_color.w > 0.5) {
     albedo = SrgbToLinear(face_color.rgb);
   }
 #endif

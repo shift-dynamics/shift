@@ -1,0 +1,82 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// the vertices drawn of a flexible body's mesh surface: the deformed
+// positions (flex_deform.comp), with area weighted normals of the deformed
+// triangles, as shift::gui::ComputeNormals
+
+layout(local_size_x = 64) in;
+
+#include "flex_common.glsl"
+
+layout(std430, binding = 4) readonly buffer Deformed {
+  vec4 deformed[];
+};
+layout(std430, binding = 5) readonly buffer Indices {
+  uint indices[];
+};
+// the triangles of vertex v are triangles[offsets[v]] to
+// triangles[offsets[v + 1] - 1]
+layout(std430, binding = 6) readonly buffer Offsets {
+  uint offsets[];
+};
+layout(std430, binding = 7) readonly buffer Triangles {
+  uint triangles[];
+};
+// the largest magnitude of the quantity drawn on the mesh (flex_deform.comp)
+layout(std430, binding = 10) readonly buffer Maximum {
+  uint maximum;
+};
+// the vertex buffer drawn, as Vertex
+layout(std430, binding = 8) writeonly buffer Vertices {
+  float vertices[];
+};
+
+void main() {
+  uint v = gl_GlobalInvocationID.x;
+  if(v >= params.counts.x) {
+    return;
+  }
+  vec3 n = vec3(0.0);
+  for(uint k = offsets[v]; k < offsets[v + 1u]; k++) {
+    uint t = 3u * triangles[k];
+    vec3 p0 = deformed[indices[t]].xyz;
+    vec3 p1 = deformed[indices[t + 1u]].xyz;
+    vec3 p2 = deformed[indices[t + 2u]].xyz;
+    n += cross(p1 - p0, p2 - p0);
+  }
+  float length_n = length(n);
+  if(length_n > 0.0) {
+    n /= length_n;
+  }
+  vec3 x = deformed[v].xyz;
+  vertices[8u * v] = x.x;
+  vertices[8u * v + 1u] = x.y;
+  vertices[8u * v + 2u] = x.z;
+  vertices[8u * v + 3u] = n.x;
+  vertices[8u * v + 4u] = n.y;
+  vertices[8u * v + 5u] = n.z;
+  // the stress drawn, mapped to [0, 1] over its range, in place of u
+  float u = reference[8u * v + 6u];
+  // (shift::gui::FlexStressMapped)
+  if(params.stress.x > 0.5) {
+    float value = deformed[v].w;
+    uint quantity = uint(params.quantity.x);
+    if(quantity == kSafetyFactor) {
+      // the factor, its colors from the map's end at the range's start
+      float factor = value > 0.0 ? params.quantity.y / value : 3.4e38;
+      float low = params.stress.y, high = params.stress.z;
+      u = high > low ? 1.0 - clamp((factor - low) / (high - low), 0.0, 1.0)
+                     : 0.0;
+    } else {
+      bool automatic = params.stress.x > 1.5;
+      float largest = uintBitsToFloat(maximum);
+      float low = !automatic            ? params.stress.y
+                  : StressSigned(quantity) ? -largest
+                                           : 0.0;
+      float high = automatic ? largest : params.stress.z;
+      u = high > low ? clamp((value - low) / (high - low), 0.0, 1.0) : 0.0;
+    }
+  }
+  vertices[8u * v + 6u] = u;
+  vertices[8u * v + 7u] = reference[8u * v + 7u];
+}

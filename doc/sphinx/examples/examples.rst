@@ -5,9 +5,9 @@ Examples
 ========
 
 The :tree:`examples` directory holds runnable models. Every one of them is
-also a test: ``meson test -C build`` loads and simulates each model in
-``examples/`` (a few large collision models are kept as benchmarks, run
-with ``meson test -C build --benchmark``). Run any of them from the top of
+also a test: ``meson test -C build`` loads each model in ``examples/`` and
+simulates its first 0.1 s (a few large collision models are kept as
+benchmarks, run in full with ``meson test -C build --benchmark``). Run any of them from the top of
 the repository, without changing to its folder:
 
 .. code:: bash
@@ -146,6 +146,13 @@ Mechanisms
      - :tree:`examples/slider_crank`
      - a slider-crank, and variants split into two or three kinematic
        substructures
+   * - .. image:: ../images/examples/flex_slider_crank.jpg
+          :width: 220px
+          :alt: flex_slider_crank
+     - :tree:`examples/flex`
+     - a slider-crank whose steel connecting rod is a flexible body
+       (``modal``) made from its STEP solid; its bending drawn 300 times
+       as large
    * - .. image:: ../images/examples/bricard.jpg
           :width: 220px
           :alt: bricard

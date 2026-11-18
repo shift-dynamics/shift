@@ -207,3 +207,68 @@ TEST(InstanceBvhEdge, EmptyAndSingle) {
   EXPECT_EQ(nodes[0].triangle_count, 1);
   EXPECT_EQ(nodes[0].right_or_first, 0);
 }
+
+/* the tight box of the triangles under node i */
+static void TightBox(const std::vector<shift::gui::RtTriangle>& triangles,
+                     const std::vector<BvhNode>& nodes, size_t i, float lo[3],
+                     float hi[3]) {
+  std::fill(lo, lo + 3, 1e30f);
+  std::fill(hi, hi + 3, -1e30f);
+  std::vector<size_t> stack = {i};
+  while(!stack.empty()) {
+    const size_t n = stack.back();
+    stack.pop_back();
+    if(nodes[n].triangle_count < 0) {
+      stack.push_back(n + 1);
+      stack.push_back(size_t(nodes[n].right_or_first));
+      continue;
+    }
+    for(int t = 0; t < nodes[n].triangle_count; t++) {
+      const auto& triangle = triangles[size_t(nodes[n].right_or_first + t)];
+      for(const float* v : {triangle.v0, triangle.v1, triangle.v2}) {
+        for(int k = 0; k < 3; k++) {
+          lo[k] = std::min(lo[k], v[k]);
+          hi[k] = std::max(hi[k], v[k]);
+        }
+      }
+    }
+  }
+}
+
+/* a BVH refitted after its triangles moved (a flexible body bending, for
+picking) keeps its tree and has the tight box of each node's triangles */
+TEST(TriangleBvh, RefitFollowsTheTriangles) {
+  std::mt19937 random(7);
+  std::uniform_real_distribution<float> unit(0.f, 1.f);
+  std::vector<shift::gui::RtTriangle> triangles(300);
+  for(auto& t : triangles) {
+    t = shift::gui::RtTriangle{};
+    const float x = unit(random), y = 0.1f * unit(random);
+    for(float* v : {t.v0, t.v1, t.v2}) {
+      v[0] = x + 0.01f * unit(random);
+      v[1] = y + 0.01f * unit(random);
+      v[2] = 0.01f * unit(random);
+    }
+  }
+  std::vector<BvhNode> nodes = shift::gui::BuildBvh(triangles);
+  ASSERT_GT(nodes.size(), 3u);
+  const std::vector<BvhNode> built = nodes;
+  // bent out of its plane
+  for(auto& t : triangles) {
+    for(float* v : {t.v0, t.v1, t.v2}) {
+      v[2] += 0.3f * v[0] * v[0];
+    }
+  }
+  shift::gui::RefitBvh(triangles, nodes, 0, int(nodes.size()));
+  for(size_t i = 0; i < nodes.size(); i++) {
+    EXPECT_EQ(nodes[i].right_or_first, built[i].right_or_first);
+    EXPECT_EQ(nodes[i].triangle_count, built[i].triangle_count);
+    float lo[3], hi[3];
+    TightBox(triangles, nodes, i, lo, hi);
+    for(int k = 0; k < 3; k++) {
+      EXPECT_EQ(nodes[i].box_min[k], lo[k]) << i;
+      EXPECT_EQ(nodes[i].box_max[k], hi[k]) << i;
+    }
+  }
+  EXPECT_GT(nodes[0].box_max[2], built[0].box_max[2] + 0.2f);
+}

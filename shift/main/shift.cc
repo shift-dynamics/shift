@@ -72,6 +72,17 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
       return false;
     }
   }
+  if(parser.isSet("deformation-scale")) {
+    request.deformation_scale = parser.value("deformation-scale").toDouble(&ok);
+    if(!ok || request.deformation_scale < 0.0) {
+      error = "--deformation-scale takes a factor of at least 0";
+      return false;
+    }
+  }
+  request.flex_mesh_surface = parser.isSet("mesh-surface");
+  request.flex_mesh_edges = parser.isSet("mesh-edges");
+  request.flex_constrained_nodes = parser.isSet("constrained-nodes");
+  request.flex_stresses = parser.isSet("stresses");
   request.hide_floor = parser.isSet("no-floor");
   request.bilinear_terrain = parser.isSet("no-smooth-terrain");
   request.particle_spheres = parser.isSet("particle-spheres");
@@ -108,6 +119,23 @@ int main(int argc, char* argv[]) {
      "X,Y,Z,RADIUS"},
     {"samples", "with --image: ray trace, averaging this many frames", "n"},
     {"no-floor", "with --image: hide the floor"},
+    {"deformation-scale",
+     "with --image: draw the deformation of flexible bodies this many times "
+     "as large",
+     "factor"},
+    {"mesh-surface",
+     "with --image: draw flexible bodies by the surface of their finite "
+     "element mesh, not their CAD"},
+    {"mesh-edges",
+     "with --image: draw the edges of the finite elements of flexible "
+     "bodies"},
+    {"stresses",
+     "with --image: draw the stress on flexible bodies, on the surface "
+     "drawn (the CAD solid's, or the mesh's with --mesh-surface): the "
+     "quantity, color map and range of Edit > Settings"},
+    {"constrained-nodes",
+     "with --image: draw as points the nodes of flexible bodies that their "
+     "joints' attachments tie to their frames"},
     {"no-smooth-terrain",
      "with --image: draw deformable terrain bilinearly between its nodes, as "
      "the soil models see it"},

@@ -150,6 +150,26 @@ along the ground, with every contact found on the surfaces of the STEP files. Re
 files needs the optional STEPcode library.
 
 
+Flexible bodies
+***************
+
+.. raw:: html
+
+    <video src="_static/slider_crank_flexible_rod.webm" width="640" controls>
+    </video>
+
+
+The steel connecting rod of this slider-crank is a flexible body made from
+its STEP solid when the model loads: *Shift* meshes it with 10-node
+tetrahedra, ties each bore to the revolute joint through it, and reduces the
+mesh to the static modes of its small end and its four lowest
+fixed-interface modes. The crank starts at 20 rad/s and turns freely; the inertia of the
+rod and the piston bends the rod in the plane of the mechanism. The viewer
+colors the rod by its von Mises stress, computed on the graphics card from
+the rod's modal coordinates at every frame; the stress peaks at the outer
+fibres of the shank and vanishes along its neutral axis.
+
+
 Tracked vehicles
 ****************
 

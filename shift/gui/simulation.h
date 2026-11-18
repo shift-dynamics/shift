@@ -24,6 +24,7 @@ namespace core {
 class Context;
 namespace body {
 class Base;
+class Flex;
 }
 namespace force_module {
 class Dem;
@@ -100,9 +101,10 @@ public:
   void Reload(const Json::Value& model);
 
   /*! \brief told what is being done while Load or Reload runs, by the
-   * model's context (Context::set_load_observer, of the same type) and while the scene is
-   * made from it; it may throw to stop the load, which they pass on,
-   * leaving no model loaded. Called on the thread that loads. */
+   * model's context (Context::set_load_observer, of the same type) and
+   * while the scene is made from it; it may throw to stop the load, which
+   * they pass on, leaving no model loaded. Called on the thread that
+   * loads. */
   using LoadObserver =
     std::function<void(const std::string& stage, int done, int total)>;
   void set_load_observer(LoadObserver observer) {
@@ -202,7 +204,86 @@ public:
   void TakeParticleUpdates(std::vector<ParticleUpdate>& updates,
                            bool all = false);
 
+  // ---------------------------------------------------- flexible bodies
+  /*! \brief the flexible bodies built from a mesh, drawn by the surface of
+   * their mesh: their indices in get_bodies() */
+  std::vector<int> get_flex_bodies() const;
+  /*! \brief the factor the elastic deformation is drawn with (1: as
+   * computed); the part of it that is a rigid motion of the body is drawn
+   * as computed, see FlexView */
+  void set_deformation_scale(double scale);
+  /*! \brief the flexible bodies (by index into get_bodies) whose stress
+   * is drawn (FlexUpdate::stress), and its range: from 0 (a signed
+   * quantity's: -the largest magnitude) to the largest magnitude on each
+   * body (automatic), or from low to high */
+  void set_flex_stresses(std::vector<bool> bodies, bool automatic,
+                         double low, double high);
+  /*! \brief the quantity of the stress drawn (the von Mises stress by
+   * default), and the safety factors drawn from the map's end
+   * (safety_low, red in most maps) to its start (safety_high); a body
+   * without a yield strength (body::Flex::get_yield_strength) has no
+   * safety factor drawn */
+  void set_flex_stress_quantity(FlexUpdate::Quantity quantity,
+                                double safety_low, double safety_high);
+  /*! \brief whether the greatest of the quantity over the states recorded
+   * up to the time shown is drawn at each vertex, where it is greater than
+   * now (FlexUpdate::peak) */
+  void set_flex_stress_peak(bool peak);
+  /*! \brief whether a flexible body has stresses to draw */
+  bool has_flex_stresses(int body) const;
+  double get_deformation_scale() const {
+    return deformation_scale_;
+  }
+  /*! \brief draw flexible body body (an index in get_bodies()) in a shape
+   * instead of the state shown: elastic coordinate coordinate (kind 0) or
+   * fixed-interface mode coordinate (kind 1, of
+   * body::Flex::get_computed_shapes), scaled so that its largest nodal
+   * displacement is amplitude (and not by the deformation scale);
+   * ClearShapePreview draws the state shown again */
+  void PreviewShape(int body, int kind, int coordinate, double amplitude);
+  void ClearShapePreview();
+  /*! \brief the vertices of the deformable meshes that changed since the
+   * previous call, or all */
+  void TakeFlexUpdates(std::vector<FlexUpdate>& updates, bool all = false);
+
 private:
+  /*! a flexible body built from a mesh, drawn as Scene::meshes[mesh]: a
+   * vertex for each mesh node on each B-rep face it lies on */
+  struct FlexView {
+    const shift::core::body::Flex* flex = nullptr;
+    int body = 0; /*!< in bodies_ */
+    int mesh = 0;
+    std::vector<int> vertex_point; /*!< the point of each vertex */
+    std::vector<double> eta;       /*!< the elastic coordinates shown */
+    /*! the rigid motion that fits each elastic coordinate's shape best
+     * over the mesh's nodes (least squares, equal weights): a translation
+     * and a rotation about the nodes' centroid; the deformation scale
+     * magnifies only what is left of the shape, so that a body
+     * whose reference frame is held at one attachment is not drawn swung
+     * away from the others */
+    ksl_vec3_t centroid = {};
+    std::vector<ksl_vec3_t> rigid_translation;
+    std::vector<ksl_vec3_t> rigid_rotation;
+    bool changed = true;           /*!< since TakeFlexUpdates */
+    /*! the states recorded up to the time shown, those of them the peak
+     * drawn has folded in (FlexUpdate::peak), and the yield strength drawn
+     * with */
+    size_t peak_count = 0;
+    size_t peak_sent = 0;
+    double yield_strength = 0.0;
+  };
+  /*! \brief the views of the flexible bodies (in LoadModel) */
+  void AddFlexViews();
+  /*! \brief show the elastic coordinates of the state y (from q) */
+  void ShowElastic(const double* y);
+  /*! \brief the deformation of a view now (FlexUpdate): the elastic
+   * coordinates shown, or the preview, as coefficients of the mesh's
+   * shapes. The mesh's basis is the elastic coordinates' shapes, then the
+   * fixed-interface modes computed (for the preview) */
+  void FlexCoefficients(const FlexView& view, FlexUpdate& update) const;
+  /*! \brief the states of a view not folded into its peak yet (update's
+   * peak_samples), if its peak is drawn */
+  void FlexPeakSamples(FlexView& view, FlexUpdate& update);
   /*! an SPH soil drawn as Scene::particles[particles] */
   struct SphView {
     shift::core::terrain::Sph* sph = nullptr;
@@ -296,6 +377,9 @@ private:
                  const Json::Value* model = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
+  /*! \brief no model loaded: the context, the scene and the results
+   * dropped */
+  void Unload();
   /*! \brief tell the load observer, if any, what is being done */
   void ReportLoad(const std::string& stage, int done = 0, int total = 0) {
     if(load_observer_) {
@@ -313,6 +397,20 @@ private:
   void UpdatePoses(const shift::core::topology::DHVA& dhva);
   void StoreInitialState();
 
+  std::vector<FlexView> flex_views_;
+  double deformation_scale_ = 1.0;
+  std::vector<bool> stress_bodies_; /*!< set_flex_stresses */
+  bool stress_automatic_ = true;
+  double stress_range_[2] = {0.0, 1.0};
+  /*! set_flex_stress_quantity, set_flex_stress_peak */
+  FlexUpdate::Quantity stress_quantity_ = FlexUpdate::Quantity::kVonMises;
+  double safety_range_[2] = {1.0, 4.0};
+  bool stress_peak_ = false;
+  /* the shape previewed: view (-1 for none), kind, coordinate, amplitude */
+  int preview_view_ = -1;
+  int preview_kind_ = 0;
+  int preview_coordinate_ = 0;
+  double preview_amplitude_ = 0.0;
   std::string filename_;
   std::string log_directory_; /*!< files taken out of a log */
   /*! the path and file map of the model loaded last, even if it failed to

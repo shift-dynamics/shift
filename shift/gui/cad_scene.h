@@ -51,6 +51,15 @@ struct CadGpuPatch {
                     //!< -1)
 };
 static_assert(sizeof(CadGpuPatch) == 32);
+
+/*! \brief the grid of samples of a patch of a flexible body's CAD, see
+ * flex_field.glsl */
+struct CadGpuSampleGrid {
+  float uv[4];      //!< the patch's u0, v0, u1, v1
+  int32_t grid[3];  //!< nu, nv (intervals), first sample
+  float scale;      //!< SceneCad::scale; 0: the patch does not deform
+};
+static_assert(sizeof(CadGpuSampleGrid) == 32);
 /*! @} */
 
 /*!
@@ -93,6 +102,30 @@ struct SceneCad {
   ksl_vec3f_t bounds_max = ksl_vec3f(0.f, 0.f, 0.f);
 
   int faces_skipped = 0; //!< without trims (not repaired)
+
+  /*! per packed face: the model's face and the index of its body in the
+   * bodies packed (SampleCadPatches) */
+  std::vector<int32_t> face_sources;
+
+  /*! @name of a flexible body's CAD (Simulation): it deforms with the
+   * deformable mesh flex_mesh (Scene::meshes), -1 if none */
+  /*! @{ */
+  int flex_mesh = -1;
+  /*! per patch, a grid of samples of its surface: (nu + 1) x (nv + 1),
+   * u fastest, over its rectangle of (u, v) */
+  std::vector<CadGpuSampleGrid> sample_grids;
+  /*! x, y, z (body coordinates, meters), 0 per sample */
+  std::vector<float> sample_points;
+  /*! the displacement of each sample in each shape of flex_mesh, as
+   * SceneMesh::flex_basis: 3 (s columns + j) + c */
+  std::vector<float> sample_basis;
+  /*! the stress drawn at each sample, from the vertices of flex_mesh
+   * (uv[0], as flex_normals.comp maps it): those of the quadratic
+   * boundary triangle the sample's displacement follows, 6 per sample, and
+   * their weights; empty if none */
+  std::vector<uint32_t> sample_vertices;
+  std::vector<float> sample_weights;
+  /*! @} */
 };
 
 /*!
@@ -104,6 +137,16 @@ from the trim curves; 0 for 2e-5 of the size of the model
 SceneCad MakeSceneCad(const core::cad::Model& model,
                       const std::vector<core::cad::PlacedBody>& bodies,
                       double scale, double tolerance = 0.0);
+
+/*!
+@brief sample the patches of cad, packed from bodies of model by
+MakeSceneCad: a grid over each, as many intervals along u and v as its
+length along them over spacing (m), from 1 to 64; fills
+SceneCad::sample_grids and sample_points
+*/
+void SampleCadPatches(const core::cad::Model& model,
+                      const std::vector<core::cad::PlacedBody>& bodies,
+                      double spacing, SceneCad& cad);
 
 /*! \brief whether (u, v) is inside the trims of a packed face (nonzero
  * winding number of its segments), as the fragment shader tests it */

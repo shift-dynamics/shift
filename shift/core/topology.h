@@ -20,8 +20,49 @@
 namespace shift {
 namespace core {
 class Context;
+class Frame;
+
+namespace body {
+class Base;
+}
+namespace joint {
+class Base;
+}
 
 namespace topology {
+
+struct DHVA;
+struct Offsets;
+
+/*!
+@brief A node of a flexible body that the kinematics follow on its own: an
+entry of the compressed tree with no coordinates, whose displacement,
+velocity and quadratic acceleration are those of the body's reference frame
+plus the node's deformation (body::Base::EvaluateNode). A child joint or a
+load at the node's frame takes the node slot as its parent.
+*/
+struct NodeSlot {
+  shift::core::body::Base* body = nullptr; /*!< the flexible body */
+  shift::core::Frame* frame = nullptr;     /*!< the node's frame */
+  unsigned int node = 0;                   /*!< node index in the body */
+  int index = -1;      /*!< index in the compressed tree (va index) */
+  int he_offset = -1;  /*!< first of its n_e screws in DHVA::he */
+  /*! a sliding node (body::Base::is_sliding_node): the coordinate and rate
+   * of the prismatic joint whose child slides through the body (the slot's
+   * kinematics depend on them), the sign of the joint's translation from
+   * its system parent frame, its two screws in DHVA::slide, and the joint's
+   * own operations, which its sliding operations (body::SlidingJointDh,
+   * body::SlidingJointDhva) run first; slide_q is -1 for a fixed node */
+  shift::core::joint::Base* slide_joint = nullptr;
+  int slide_q = -1;
+  int slide_dq = -1;
+  double slide_sense = 1.0;
+  int slide_offset = -1;
+  void (*joint_dh)(const shift::core::Context&, DHVA&, const Offsets&,
+                   const double*) = nullptr;
+  void (*joint_dhva)(const shift::core::Context&, DHVA&, const Offsets&,
+                     const double*, const double*) = nullptr;
+};
 
 /*!
 @brief Displacements (d), velocities (v) and accelerations (a) of the free
@@ -159,6 +200,9 @@ struct DHVA {
     aq = aq_.data() + 1;
 #endif
     free = other.free;
+    he = other.he;
+    slide = other.slide;
+    dq = other.dq;
     return *this;
   }
 
@@ -187,6 +231,25 @@ struct DHVA {
   ksl_screw_t* aq;
 #endif
   DVA free; /*!< the free bodies, outside the kinematic tree */
+
+  /*! influence screws of the elastic coordinates at the node slots
+  (NodeSlot::he_offset): for each node slot, the n_e screws of its body's
+  elastic coordinates, in fixed coordinates and referred to the fixed origin.
+  An elastic coordinate has a different screw at each node, so it has no
+  single entry in h. Empty without flexible bodies. */
+  std::vector<ksl_screw_t> he;
+
+  /*! for each sliding node slot (NodeSlot::slide_offset), two screws for
+  its prismatic joint, in fixed coordinates and referred to the fixed origin:
+  the joint's influence screw H (the velocity of its child per unit joint
+  rate, with the sliding of its attachment through the body), and its rate
+  of change \f$\dot{H}\f$, so that the child's quadratic acceleration is
+  aq_slot + \f$\dot{H}\dot{q}\f$. Empty without sliding attachments. */
+  std::vector<ksl_screw_t> slide;
+  /*! with flexible bodies, the generalized velocities this DHVA was last
+   * evaluated at (Context::UpdateDHVA), for the energy of the elastic rates
+   * (solver::Base::ElasticKineticEnergy); empty without */
+  std::vector<double> dq;
 
   inline void Print(std::stringstream& ss) const {
 
@@ -287,8 +350,13 @@ struct Tree {
   /*! index of the root joint in Context::get_active_joints() */
   int root_joint = -1;
 
-  /*! number of generalized velocities of the tree */
+  /*! number of generalized velocities of the tree, the elastic
+   * coordinates of its flexible bodies included */
   size_t dq_count = 0;
+
+  /*! number of elastic coordinates of the tree's flexible bodies; 0 for a
+   * tree of rigid bodies */
+  size_t elastic_count = 0;
 
   static std::string KindName(Kind kind) {
     switch(kind) {
@@ -342,6 +410,8 @@ forest and classify each one, see Tree
 \param pcl_compressed compressed parent child list (permutation order 1, -1
 for the fixed body)
 \param joint_dof_compressed degrees of freedom of each compressed joint
+\param elastic_count_compressed elastic coordinates of the child body of
+each compressed joint, 0 for a rigid body
 \param joint_lookup compressed index of each active joint, -1 for a rigid
 joint
 \param loop_bodies compressed indices of the bodies joined by chord
@@ -350,6 +420,7 @@ constraints; their trees are closed loops
 std::vector<Tree>
 DetectTrees(const std::vector<int>& pcl_compressed,
             const std::vector<unsigned int>& joint_dof_compressed,
+            const std::vector<unsigned int>& elastic_count_compressed,
             const std::vector<int>& joint_lookup,
             const std::vector<int>& loop_bodies);
 

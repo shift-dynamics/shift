@@ -30,6 +30,15 @@ test_sources = [
   'test_joint_axis.cc',
   'test_screw_gear_joints.cc',
   'test_rigid_joint.cc',
+  'test_elastic_coordinates.cc',
+  'test_flex_body.cc',
+  'test_nodal_body.cc',
+  'test_fea_mesh.cc',
+  'test_fea_reduction.cc',
+  'test_flex_step.cc',
+  'test_flex_mesh.cc',
+  'test_flex_sliding.cc',
+  'test_cad_triangulate.cc',
   'test_floating_joint.cc',
   'test_half_turn_loop.cc',
   'test_consistent_velocities.cc',
@@ -101,8 +110,9 @@ if not is_disabler(shift_gui_dep)
                    'dem/test_dem_playback.cc',
                    'test_workspace_tree.cc', 'test_surface_noise.cc',
                    'test_opacity_micromap.cc',
-                   'test_light_glow.cc', 'test_sky.cc',
-                   'test_ocean_waves.cc']
+                   'test_light_glow.cc', 'test_sky.cc', 'test_scene_placement.cc',
+                   'test_ocean_waves.cc', 'test_flex_playback.cc',
+                   'test_flex_gpu.cc']
   test_deps += [shift_gui_dep]
 endif
 
@@ -156,12 +166,21 @@ heavy_sph_tests = [
 ]
 
 # everything except the per-model cases, which are registered one by one
-# below, the speed benchmarks and the heavy tests
-test('shift-test', shift_test,
-     args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
-            + ':'.join(heavy_contact_tests + heavy_dem_tests
-                     + heavy_sph_tests)],
-     timeout: 3600)
+# below, the speed benchmarks and the heavy tests, split into shards that
+# meson runs in parallel (gtest's sharding: shard k runs every
+# shift_test_shards-th test from the k-th); each shard has its own temporary
+# directory (main.cc)
+shift_test_shards = 24
+foreach k : range(shift_test_shards)
+  test('shift-test-@0@'.format(k), shift_test,
+       args: ['--gtest_filter=-Examples/*:CadSpeed.*:DemSpeed.*:SolverSpeed.*:'
+              + ':'.join(heavy_contact_tests + heavy_dem_tests
+                       + heavy_sph_tests)],
+       env: ['GTEST_TOTAL_SHARDS=@0@'.format(shift_test_shards),
+             'GTEST_SHARD_INDEX=@0@'.format(k)],
+       suite: 'unit',
+       timeout: 3600)
+endforeach
 
 benchmark('contact_heavy', shift_test,
           args: ['--gtest_filter=' + ':'.join(heavy_contact_tests)],
@@ -230,6 +249,14 @@ if gpu_found
   endif
 endif
 
+# the viewer's compute shaders of flexible bodies on Mesa's software OpenGL
+# (llvmpipe), so that they run without a GPU; skipped without OpenGL 4.3
+if not is_disabler(shift_gui_dep)
+  test('flex-gpu-llvmpipe', shift_test, args: ['--gtest_filter=FlexGpu.*'],
+       env: ['LIBGL_ALWAYS_SOFTWARE=1', '__GLX_VENDOR_LIBRARY_NAME=mesa'],
+       timeout: 300)
+endif
+
 # one meson test per model in examples/ (test_examples.cc discovers the same
 # files at run time); re-run `meson setup --reconfigure` after adding a model
 example_models = run_command(
@@ -292,6 +319,7 @@ foreach model_path : example_models
       model,
       shift_test,
       args: args,
+      env: ['SHIFT_TEST_TIME_SPAN=0.1'],
       suite: 'examples',
       should_fail: known_failures.has_key(model),
       timeout: 600,

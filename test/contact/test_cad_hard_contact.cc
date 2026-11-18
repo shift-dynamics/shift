@@ -59,7 +59,7 @@ pose(s, c, r), by bisection */
 template <typename Pose>
 static double FirstTouch(shift::test::CadScene& scene, double apart,
                          double deep, Pose pose) {
-  for(int i = 0; i < 60; i++) {
+  for(int i = 0; i < 44; i++) { // to 1e-14 of the bracket
     const double s = 0.5 * (apart + deep);
     ksl_vec3_t c;
     double r[3][3];

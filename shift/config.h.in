@@ -13,5 +13,7 @@
 #define SHIFT_HAVE_STEP @SHIFT_HAVE_STEP@
 /* 1 when core can run calculations on the GPU (Vulkan, meson option gpu) */
 #define SHIFT_HAVE_GPU @SHIFT_HAVE_GPU@
+/* finite element models of flexible bodies (Eigen, Spectra, Netgen) */
+#define SHIFT_HAVE_FEA @SHIFT_HAVE_FEA@
 
 #endif

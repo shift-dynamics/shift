@@ -1,0 +1,148 @@
+{
+  "model_parameters": {
+    "version": "2.0.0",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [{"type": "rnca"}],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 0.5,
+        "time_step": 0.0005,
+        "hmax": 0.0001,
+        "relative_error": 1e-6,
+        "absolute_error": 1e-8
+      }
+    ]
+  },
+  "frames": [
+    {"name": "tube_mount", "T": [0.008, 0.08, 0.016]}
+  ],
+  "assemblies": [
+    {
+      "name": "attachments",
+      "bodies": [
+        {
+          "name": "seat",
+          "geometry": [{"name": "ball", "type": "mesh",
+                        "filename": ["seat.obj"]}],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {"mass": 0.028, "Ixx": 1.0e-6, "Iyy": 1.0e-6,
+                      "Izz": 1.0e-6, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        },
+        {
+          "name": "link",
+          "type": "modal",
+          "density": 7850,
+          "youngs_modulus": 2.1e11,
+          "poisson_ratio": 0.3,
+          "yield_strength": 2.5e8,
+          "fe_geometry": "link",
+          "element_size": 0.004,
+          "mode_count": 4,
+          "damping_ratio": 0.02,
+          "geometry": [{"name": "link", "type": "mesh",
+                        "filename": ["link.obj"]}],
+          "frames": [
+            {"name": "socket"},
+            {"name": "middle", "T": [0.1, 0.0, 0.0]},
+            {"name": "ball", "T": [0.2, 0.0, 0.0]}
+          ]
+        },
+        {
+          "name": "weight",
+          "geometry": [{"name": "cup", "type": "mesh",
+                        "filename": ["cup.obj"]}],
+          "center_of_mass": [0.012, 0.0, 0.0],
+          "inertia": {"mass": 0.2, "Ixx": 3.0e-5, "Iyy": 2.5e-5,
+                      "Izz": 2.5e-5, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        },
+        {
+          "name": "puck",
+          "geometry": [{"name": "puck", "type": "mesh",
+                        "filename": ["puck.obj"]}],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {"mass": 0.02, "Ixx": 1.0e-6, "Iyy": 6.0e-7,
+                      "Izz": 6.0e-7, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        },
+        {
+          "name": "tube",
+          "type": "modal",
+          "density": 7850,
+          "youngs_modulus": 2.1e11,
+          "poisson_ratio": 0.3,
+          "yield_strength": 2.5e8,
+          "fe_geometry": "tube",
+          "element_size": 0.004,
+          "mode_count": 4,
+          "damping_ratio": 0.02,
+          "attachments": [{"frame": "base", "radius": 0.005}],
+          "geometry": [{"name": "tube", "type": "mesh",
+                        "filename": ["tube.obj"]}],
+          "frames": [
+            {"name": "base", "T": [0.008, 0.0, 0.016]},
+            {"name": "slide"}
+          ]
+        },
+        {
+          "name": "plunger",
+          "geometry": [{"name": "lands", "type": "mesh",
+                        "filename": ["plunger.obj"]}],
+          "center_of_mass": [0.0, 0.0, 0.0],
+          "inertia": {"mass": 0.04, "Ixx": 1.5e-6, "Iyy": 2.0e-6,
+                      "Izz": 2.0e-6, "Ixy": 0.0, "Iyz": 0.0, "Izx": 0.0}
+        }
+      ],
+      "joints": [
+        {
+          "name": "seat_mount",
+          "type": "rigid",
+          "parent": [["fixed"], "origin"],
+          "child": [["seat"], "origin"]
+        },
+        {
+          "name": "root",
+          "type": "spherical",
+          "parent": [["seat"], "origin"],
+          "child": [["link"], "socket"],
+          "initial_velocity": [0.0, 0.0, 2.0]
+        },
+        {
+          "name": "tip",
+          "type": "spherical",
+          "parent": [["link"], "ball"],
+          "child": [["weight"], "origin"]
+        },
+        {
+          "name": "free",
+          "type": "float",
+          "parent": [["link"], "middle"],
+          "child": [["puck"], "origin"],
+          "initial_displacement": {"T": [0.0, 0.0, 0.03],
+                                   "R": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}
+        },
+        {
+          "name": "tube_mount",
+          "type": "rigid",
+          "parent": [["fixed"], "tube_mount"],
+          "child": [["tube"], "base"]
+        },
+        {
+          "name": "slide",
+          "type": "prismatic",
+          "axis": [1, 0, 0],
+          "parent": [["tube"], "slide"],
+          "child": [["plunger"], "origin"],
+          "initial_displacement": 0.06,
+          "initial_velocity": 0.05
+        }
+      ]
+    }
+  ]
+}

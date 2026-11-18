@@ -20,6 +20,22 @@ namespace shift {
 namespace gui {
 
 /*! \brief the identity transform */
+/*! \brief the colors of a flexible body's attachments, as drawn by
+ * mesh_points.vert (which has the same table): the reference frame's
+ * attachment (held) the first, the others the rest in turn */
+static constexpr int kAttachmentColorCount = 8;
+static constexpr float kAttachmentColors[kAttachmentColorCount][3] = {
+  {0.90f, 0.10f, 0.10f}, // the reference: held
+  {1.00f, 0.55f, 0.10f}, {0.20f, 0.55f, 1.00f}, {0.25f, 0.80f, 0.30f},
+  {0.70f, 0.40f, 0.95f}, {0.95f, 0.85f, 0.20f}, {0.20f, 0.85f, 0.85f},
+  {1.00f, 0.45f, 0.75f}};
+
+/*! \brief the color (into kAttachmentColors) of attachment k of a flexible
+ * body (body::Flex::get_attachment_nodes) */
+inline int AttachmentColorIndex(size_t k) {
+  return k == 0 ? 0 : 1 + int((k - 1) % (kAttachmentColorCount - 1));
+}
+
 inline ksl_SE3f_t Identity() {
   ksl_SE3f_t d;
   ksl_SE3f_setIdentity(&d);
@@ -144,6 +160,37 @@ struct SceneMesh {
    * drawn tessellated from the terrain's maps where the device can, and as
    * this mesh otherwise and by the ray tracer */
   int terrain = -1;
+  /*! the surface of a flexible body's finite element mesh: its vertices
+   * (undeformed here) move with the deformation shown, see FlexUpdate and
+   * DeformFlexMesh, drawn, ray traced and picked deformed */
+  bool deformable = false;
+  /*! of a deformable mesh: the edges of its elements on the surface, pairs
+   * of vertices, each 6-node triangle's sides as two lines through its
+   * midside nodes, each edge once (Viewport::set_flex_mesh_edges) */
+  std::vector<uint32_t> edge_indices;
+  /*! of a deformable mesh: a vertex at each node an attachment ties to its
+   * frame (body::Flex::get_attachment_nodes) that lies on the surface,
+   * drawn as points (Viewport::set_flex_constrained_nodes), and a vertex
+   * at each attachment's frame. Each such vertex carries its attachment's
+   * color in uv[1], 1 + AttachmentColorIndex (0 elsewhere): a flexible
+   * mesh has no texture, and its uv[0] is the stress map's */
+  std::vector<uint32_t> constrained_vertices;
+  /*! of a deformable mesh: the spider of each attachment, a line from its
+   * frame's vertex to each of its nodes on the surface, pairs of vertices
+   * (drawn with constrained_vertices) */
+  std::vector<uint32_t> spider_indices;
+  /*! of a deformable mesh: the displacement of each vertex in each of
+   * flex_columns shapes, x, y, z, the shapes of a vertex together
+   * (3 (v flex_columns + j) + c) */
+  std::vector<float> flex_basis;
+  uint32_t flex_columns = 0;
+  /*! of a deformable mesh: the stress at each vertex in each of the
+   * flex_columns shapes (body::Flex::get_surface_stresses), sigma_xx,
+   * sigma_yy, sigma_zz, tau_xy, tau_yz, tau_zx at 6 (v flex_columns + j) +
+   * c; empty if the body has none */
+  std::vector<float> flex_stress_basis;
+  /*! of a deformable mesh: the point FlexUpdate::rotation turns about */
+  ksl_vec3f_t flex_centroid = ksl_vec3f(0.f, 0.f, 0.f);
 };
 
 /*! \brief an elevation map terrain for the tessellation shaders: its
@@ -407,6 +454,121 @@ struct ParticleUpdate {
   int particles = 0;         /*!< in Scene::particles */
   std::vector<float> centers; /*!< x, y, z in the world, then 0, each */
 };
+
+/*! \brief the deformation of a deformable mesh (SceneMesh::deformable)
+ * at the time shown, in its body's origin coordinates: each vertex x0
+ * moves to
+ * \f[ x_0 + \sum_j a_j \underline{s}_j + \underline{t} +
+ *     \underline{\theta} \times (x_0 - \underline{c}) \f]
+ * with a the coefficients, s the vertex's shapes (SceneMesh::flex_basis),
+ * t the translation, theta the rotation and c SceneMesh::flex_centroid;
+ * the normals follow the deformed triangles. Only these are uploaded as
+ * the mesh deforms; the viewport deforms it on the GPU */
+struct FlexUpdate {
+  int mesh = 0; /*!< in Scene::meshes */
+  std::vector<float> coefficients; /*!< SceneMesh::flex_columns of them */
+  ksl_vec3f_t translation = ksl_vec3f(0.f, 0.f, 0.f);
+  ksl_vec3f_t rotation = ksl_vec3f(0.f, 0.f, 0.f);
+  /*! the stress drawn (SceneMesh::flex_stress_basis): none, or a quantity
+   * of the stress of the deformation of stress_coefficients (as the
+   * coefficients, but not magnified by the deformation scale), mapped to
+   * [0, 1] over the range (FlexStressMapped) in each vertex's uv[0] */
+  enum class Stress { kNone, kRange, kAutomatic };
+  Stress stress = Stress::kNone;
+  std::vector<float> stress_coefficients;
+  /*! with kRange: the quantity mapped to 0 and to 1 (the safety factor's
+   * always: its colors run the other way, the map's end at range[0]); with
+   * kAutomatic, from 0 (a signed quantity's: -the largest magnitude) to the
+   * largest magnitude on the mesh */
+  float stress_range[2] = {0.f, 1.f};
+  /*! the quantity drawn: the von Mises stress; the Tresca stress (the
+   * largest principal stress less the smallest); the principal stresses,
+   * largest first; a component, in the body's coordinates; or the safety
+   * factor, yield_strength / the von Mises stress (FlexStressValue gives
+   * the von Mises stress, FlexStressMapped the factor) */
+  enum class Quantity {
+    kVonMises,
+    kTresca,
+    kMaxPrincipal,
+    kMiddlePrincipal,
+    kMinPrincipal,
+    kXx,
+    kYy,
+    kZz,
+    kXy,
+    kYz,
+    kZx,
+    kSafetyFactor
+  };
+  Quantity quantity = Quantity::kVonMises;
+  float yield_strength = 0.f; /*!< kSafetyFactor's */
+  /*! draw at each vertex the greatest (in magnitude) of the quantity now
+   * and at the states recorded up to now (the peak), which the drawing
+   * keeps: those not folded into it yet are peak_samples, peak_columns
+   * stress coefficients each (of the first columns of the basis: the
+   * elastic coordinates), the first of them state peak_first; peak_first 0
+   * starts the peak again */
+  bool peak = false;
+  size_t peak_first = 0;
+  size_t peak_columns = 0;
+  std::vector<float> peak_samples;
+};
+
+/*! \brief whether a quantity of the stress has a sign (a principal stress
+ * or a component), whose automatic range is symmetric about 0 */
+bool FlexStressSigned(FlexUpdate::Quantity quantity);
+
+/*! \brief the principal stresses of s, \f$(\sigma_{xx}, \sigma_{yy},
+ * \sigma_{zz}, \tau_{xy}, \tau_{yz}, \tau_{zx})\f$, largest first: the
+ * eigenvalues of the symmetric stress tensor in closed form (O. K. Smith,
+ * "Eigenvalues of a symmetric 3 x 3 matrix", Communications of the ACM
+ * 4(4), 1961, p. 168), as flex_common.glsl */
+void FlexPrincipalStresses(const float s[6], float principal[3]);
+
+/*! \brief the quantity of the stress s (as FlexPrincipalStresses); the
+ * safety factor's is the von Mises stress (as flex_common.glsl) */
+float FlexStressValue(const float s[6], FlexUpdate::Quantity quantity);
+
+/*! \brief the quantity of the stress of vertex vertex of a deformable mesh
+ * in the deformation with the given coefficients of the first count
+ * columns of its stress basis (\f$\underline{\sigma} = \sum_j a_j
+ * \underline{\sigma}_j\f$) */
+float FlexStressAt(const SceneMesh& mesh, const float* coefficients,
+                   size_t count, size_t vertex, FlexUpdate::Quantity quantity);
+
+/*! \brief a quantity of the stress drawn (FlexStressValue) mapped to [0,
+ * 1] over update's range; largest is the largest magnitude on the mesh (as
+ * flex_normals.comp) */
+float FlexStressMapped(const FlexUpdate& update, float value, float largest);
+
+/*! \brief the vertices of a deformable mesh deformed as update says, on
+ * the CPU (as the viewport's compute shaders do; where it has none), with
+ * the stress drawn in uv[0]; peak, if given, is the greatest at each vertex
+ * kept from update to update (FlexUpdate::peak). Returns the largest
+ * magnitude of the quantity drawn on the mesh (0 if update draws none) */
+float DeformFlexMesh(const SceneMesh& mesh, const FlexUpdate& update,
+                     std::vector<Vertex>& vertices,
+                     std::vector<float>* peak = nullptr);
+
+/*! \brief the displacement of each sample of a flexible body's CAD
+ * (SceneCad::flex_mesh) deformed as update says (of its mesh), body
+ * coordinates: x, y, z, 0 per sample, as flex_field.comp */
+void FlexCadField(const SceneCad& cad, const SceneMesh& mesh,
+                  const FlexUpdate& update, std::vector<float>& field);
+
+/*! \brief values (4 per sample of cad: the field, or the sample points)
+ * at (u, v) of a patch, Catmull-Rom over its grid of samples (the end
+ * intervals extended linearly), and their derivatives along u and v, as
+ * flex_field.glsl */
+ksl_vec3f_t FlexCadInterpolate(const SceneCad& cad,
+                               const std::vector<float>& values, int patch,
+                               float u, float v, ksl_vec3f_t* along_u,
+                               ksl_vec3f_t* along_v);
+
+/*! \brief area weighted vertex normals of a triangle mesh; a vertex of no
+ * area gets a zero normal */
+void ComputeNormals(std::vector<Vertex>& vertices,
+                    const std::vector<uint32_t>& indices);
 
 /*! \brief world space bounding box of the scene meshes in the given poses */
 void SceneBounds(const Scene& scene, const Poses& poses, ksl_vec3f_t& box_min,

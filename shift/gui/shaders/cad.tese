@@ -1,7 +1,8 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_control_flow_attributes : require
 // The vertices the tessellator generates in a CAD patch, placed on the exact
-// surface of its face with the normal from the surface's derivatives (the
+// surface of its face (deformed, a flexible body's: flex_field.glsl) with the normal from the surface's derivatives (the
 // face's normal, reversed where the face is against its surface); the
 // outputs are those of mesh.vert and the face, for mesh.frag compiled with
 // CAD, which tests the trims.
@@ -22,9 +23,14 @@ layout(location = 3) out vec3 body_normal;
 layout(location = 4) out vec2 uv;
 layout(location = 5) flat out mat3 body_rotation;
 layout(location = 8) flat out ivec2 cad_face; // face, flags
+// a flexible body's stress drawn, mapped to [0, 1] (flex_field.comp)
+layout(location = 9) out float cad_stress;
 
 #include "cad_common.glsl"
 #include "cad_uniforms.glsl"
+#define FLEX_GRIDS_BINDING 22
+#define FLEX_FIELD_BINDING 23
+#include "flex_field.glsl"
 
 // a + (b - a) t, exactly a and b at the ends, so that patches sharing an
 // edge place its points at exactly the same (u, v)
@@ -39,7 +45,8 @@ void main() {
                  Lerp(patch_uv[0].y, patch_uv[3].y, t.y));
   CadPatch p = patches[out_patch];
   vec3 n;
-  vec3 point = PatchPoint(p, st, n);
+  // a flexible body's surface displaced as it deforms
+  vec3 point = DeformedPatchPoint(out_patch, st, n, cad_stress);
   mat4 model = mat4(pose_0, pose_1, pose_2, pose_3);
   vec4 world = model * vec4(point, 1.0);
   world_position = world.xyz;

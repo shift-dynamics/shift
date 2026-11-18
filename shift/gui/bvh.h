@@ -45,6 +45,13 @@ std::vector<BvhNode> BuildBvh(std::vector<RtTriangle>& triangles,
                               std::vector<int32_t>* tags = nullptr,
                               int max_depth = kBvhMaxDepth);
 
+/*! \brief fit again the boxes of nodes first to first + count - 1, a tree
+ * as BuildBvh makes it (each node's children after it), to the triangles
+ * under them, after the triangles moved; indices are into nodes and
+ * triangles */
+void RefitBvh(const std::vector<RtTriangle>& triangles,
+              std::vector<BvhNode>& nodes, int first, int count);
+
 /*! \brief build a BVH over boxes (the world space boxes of the instances),
  * split at the median centroid along the widest axis, with one box per leaf
  * (so no deeper than log2 of the count, rounded up):

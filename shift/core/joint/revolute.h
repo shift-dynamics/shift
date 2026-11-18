@@ -114,6 +114,12 @@ public:
     return registered_;
   }
 
+  /*! \brief the axis of rotation, in the coordinates of the joint's
+   * frames */
+  const ksl_vec3_t& get_axis() const {
+    return axis_;
+  }
+
   virtual const double* get_data() override;
   virtual unsigned int get_data_count() override;
 

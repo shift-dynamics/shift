@@ -14,6 +14,7 @@
 
 #include <QElapsedTimer>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSize>
 #include "ksl/vec3.h"
 
@@ -41,6 +42,7 @@ class Base;
 }
 namespace body {
 class Base;
+class Flex;
 }
 class Assembly;
 namespace joint {
@@ -57,6 +59,7 @@ namespace gui {
 class PlaybackSlider;
 class VideoTrimmer;
 class Viewport;
+class ModeWindow;
 
 /*!
 @brief Main window, following the layout of the original OpenGL workspace
@@ -121,6 +124,15 @@ public:
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
+    double deformation_scale = 1.0; /*!< View > Deformation scale */
+    bool flex_mesh_surface = false; /*!< draw every flexible body by its
+                                     * mesh's surface, not its CAD */
+    bool flex_mesh_edges = false;   /*!< draw the edges of the elements of
+                                     * every flexible body */
+    bool flex_constrained_nodes = false; /*!< draw the constrained nodes of
+                                          * every flexible body */
+    bool flex_stresses = false; /*!< draw the stress on every flexible
+                                 * body */
     bool set_frame = false;    /*!< frame this sphere, not the whole scene */
     ksl_vec3f_t frame_center =
       ksl_vec3f(0.f, 0.f, 0.f); /*!< of the sphere, inertial frame */
@@ -299,6 +311,9 @@ private:
   /*! \brief advance playback and jogging, once per display frame */
   void Tick();
   bool loading_ = false; //!< whether a model loads on a worker thread
+  /*! whether the viewport makes its pipelines on a worker thread
+   * (Viewport::CompilingPipelines) */
+  bool compiling_pipelines_ = false;
   void Jog();
 
   /*! \brief increment the coordinate of a slider; for a joint in a
@@ -389,6 +404,26 @@ private:
   std::set<QString> shown_frames_;
   std::set<QString> shown_joints_;
   std::set<QString> hidden_bodies_;
+  /*! by body name, kept when the model is loaded again: the flexible
+   * bodies drawn by their mesh's surface rather than their CAD, and those
+   * with the edges of their elements drawn (Viewport::
+   * set_flex_mesh_surfaces, set_flex_mesh_edges) */
+  std::set<QString> flex_mesh_surface_bodies_;
+  std::set<QString> flex_mesh_edge_bodies_;
+  /*! bodies with the nodes their attachments tie drawn as points
+   * (Viewport::set_flex_constrained_nodes) */
+  std::set<QString> flex_constrained_node_bodies_;
+  /*! bodies with their von Mises stress drawn on their mesh's surface
+   * (Simulation::set_flex_stresses), in the color map of the settings */
+  std::set<QString> flex_stress_bodies_;
+  /*! \brief give the simulation the bodies whose stress is drawn and the
+   * range of the settings, and show the legend */
+  void ApplyStresses();
+  /*! \brief the legend of the stress drawn (status bar): the color map
+   * and its range */
+  void UpdateStressLegend();
+  QLabel* stress_legend_ = nullptr;
+  QTimer* stress_legend_timer_ = nullptr;
   bool IsShown(const EyeItem& eye) const;
   Settings settings_;
 
@@ -407,8 +442,60 @@ private:
     QGroupBox* group_box = nullptr;
     QLabel* title = nullptr;
     QLabel* m[12] = {};
+    QPushButton* modes = nullptr; /*!< of a flexible body built from a mesh */
+    QCheckBox* mesh_surface = nullptr; /*!< of a flexible body */
+    QCheckBox* mesh_edges = nullptr;   /*!< of a flexible body */
+    QCheckBox* constrained_nodes = nullptr; /*!< of a flexible body */
+    /*! of a flexible body built from a mesh: each attachment in the color
+     * its nodes and spider are drawn in, its frame, what uses it, its
+     * spider and its role (held, or six static modes) */
+    QLabel* attachments = nullptr;
+    QCheckBox* stresses = nullptr; /*!< of a flexible body */
+    /*! of a flexible body built from a mesh: its mesh sizes */
+    QWidget* mesh = nullptr;
+    QLineEdit* element_size = nullptr;
+    QLineEdit* minimum_element_size = nullptr; /*!< empty: the default */
+    /*! writes every change to the flexible body (its mesh sizes, the modes
+     * checked in the mode window) to the model and loads it again */
+    QPushButton* apply = nullptr;
     int selected_body = -1;
   } body_panel_;
+  /*! the mode window open, closed when the model loads again */
+  QPointer<ModeWindow> mode_window_;
+  /*! \brief open the mode window of the selected flexible body */
+  void OpenModeWindow();
+  /*! the modes checked in the mode window and not yet applied, by the
+   * name of their body; cleared when the model loads */
+  std::map<std::string, std::vector<int>> pending_modes_;
+  /*! \brief the model file's object of body (an index in
+   * Simulation::get_bodies), or null if it was not read from the file */
+  Json::Value* BodyJson(int body);
+  /*! \brief fill the mesh sizes of the body panel from the model, shown for
+   * a flexible body built from a mesh */
+  void UpdateMeshFields();
+  /*! the changes to a flexible body's model that the body panel would
+   * apply: its mesh sizes as typed, and the modes checked in the mode
+   * window */
+  struct FlexChanges {
+    bool valid = false; /*!< the sizes typed (and modes) are valid */
+    bool size = false;  /*!< element_size or minimum_element_size changed */
+    bool modes = false; /*!< the modes checked differ from those kept */
+    double element_size = 0.0;
+    double minimum_element_size = 0.0; /*!< 0: the default (removed) */
+    std::vector<int> modes_kept;
+  };
+  FlexChanges ReadFlexChanges(const Json::Value& object,
+                              const shift::core::body::Flex& flex) const;
+  /*! \brief enable Apply when the selected flexible body has changes not
+   * yet in the model: mesh sizes typed, or modes checked in the mode
+   * window, and they are valid */
+  void UpdateApplyButton();
+  /*! \brief write the changes to the selected flexible body to the model
+   * (element_size, minimum_element_size, modes_kept) and load it again;
+   * a body whose mesh sizes changed is meshed and analysed again */
+  void ApplyFlexChanges();
+  /*! \brief View > Deformation scale */
+  void DeformationScaleDialog();
 
   /* collision geometry of the fixed body; the pose of a plane can be set */
   struct {
@@ -482,6 +569,14 @@ private:
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
   QAction* particle_surface_action_ = nullptr;
+  QAction* flex_mesh_surface_action_ = nullptr; /*!< View menu */
+  QAction* flex_mesh_edges_action_ = nullptr;   /*!< View menu */
+  QAction* flex_constrained_nodes_action_ = nullptr; /*!< View menu */
+  QAction* flex_stresses_action_ = nullptr; /*!< View menu */
+  /*! \brief View > Flexible bodies: every flexible body in bodies (one of
+   * the sets of flex_mesh_surface_bodies_, flex_mesh_edge_bodies_), or
+   * none */
+  void SetAllFlexBodies(std::set<QString>& bodies, bool on);
   QLabel* status_label_ = nullptr;
   QLabel* time_label_ = nullptr;
   QLabel* rate_label_ = nullptr;

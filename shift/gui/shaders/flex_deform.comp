@@ -1,0 +1,76 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// the deformed position of each vertex of a flexible body's mesh surface:
+// x0 + sum_j a_j s_j + t + theta x (x0 - c), see shift::gui::FlexUpdate;
+// and, if drawn, a quantity of its stress (in w) from the stress of each
+// shape, sum_j b_j sigma_j with b_j the coefficients not magnified (after
+// the columns' a_j), or the peak (flex_peak.comp) where it is greater in
+// magnitude, and the largest magnitude on the mesh
+
+layout(local_size_x = 64) in;
+
+#include "flex_common.glsl"
+
+// the displacement of each vertex in each shape: 3 (v columns + j) + c
+layout(std430, binding = 2) readonly buffer Basis {
+  float basis[];
+};
+layout(std430, binding = 3) readonly buffer Coefficients {
+  float coefficients[];
+};
+layout(std430, binding = 4) writeonly buffer Deformed {
+  vec4 deformed[];
+};
+// the stress of each vertex in each shape: 6 (v columns + j) + c
+layout(std430, binding = 9) readonly buffer StressBasis {
+  float stress_basis[];
+};
+// the largest magnitude of the quantity, as the bits of a float (positive
+// floats order as their bits)
+layout(std430, binding = 10) buffer Maximum {
+  uint maximum;
+};
+// the greatest of the quantity at each vertex over the states recorded
+layout(std430, binding = 11) readonly buffer Peak {
+  float peak[];
+};
+
+void main() {
+  uint v = gl_GlobalInvocationID.x;
+  if(v >= params.counts.x) {
+    return;
+  }
+  vec3 x0 = vec3(reference[8u * v], reference[8u * v + 1u],
+                       reference[8u * v + 2u]);
+  vec3 x = x0 + params.translation.xyz +
+           cross(params.rotation.xyz, x0 - params.center.xyz);
+  uint columns = params.counts.y;
+  uint base = 3u * v * columns;
+  for(uint j = 0u; j < columns; j++) {
+    float a = coefficients[j];
+    if(a != 0.0) {
+      uint s = base + 3u * j;
+      x += a * vec3(basis[s], basis[s + 1u], basis[s + 2u]);
+    }
+  }
+  float value = 0.0;
+  if(params.stress.x > 0.5) {
+    float s[6] = float[6](0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    uint stress_base = 6u * v * columns;
+    for(uint j = 0u; j < columns; j++) {
+      float b = coefficients[columns + j];
+      if(b != 0.0) {
+        uint k = stress_base + 6u * j;
+        for(uint c = 0u; c < 6u; c++) {
+          s[c] += b * stress_basis[k + c];
+        }
+      }
+    }
+    value = StressValue(s, uint(params.quantity.x));
+    if(params.quantity.z > 0.5 && abs(peak[v]) > abs(value)) {
+      value = peak[v];
+    }
+    atomicMax(maximum, floatBitsToUint(abs(value)));
+  }
+  deformed[v] = vec4(x, value);
+}

@@ -183,8 +183,8 @@ wrenches. The assemblies of one level of this hierarchy are independent of each
 other, so the algorithm needs only :math:`\mathcal{O}(\log n)` steps when they are
 evaluated in parallel :cite:`featherstone1999divide1`.
 
-Handles and Mobility
-********************
+Handles and Inverse Inertia
+***************************
 
 A subassembly :math:`A` is described by its *handles*: the bodies of :math:`A`
 that have joints to bodies outside it, or to the fixed body. Because the
@@ -195,12 +195,12 @@ in the wrenches :math:`\underline{\mathbf{k}}^*_n` applied to them from outside
 :math:`A`:
 
 .. math::
-  :label: eq:dca_mobility
+  :label: eq:dca_inverse_inertia
 
   \underline{\mathbf{a}}_m = \sum_{n} \Psi^A_{mn}\underline{\mathbf{k}}^*_n + \underline{\mathbf{b}}^A_m
 
 where the :math:`6 \times 6` blocks :math:`\Psi^A_{mn}` form the inverse
-articulated-body inertia, or *mobility*, of :math:`A`, and the screws
+articulated-body inertia of :math:`A`, and the screws
 :math:`\underline{\mathbf{b}}^A_m` are its bias accelerations, the accelerations
 of the handles when no wrenches are applied. :math:`\Psi^A` is symmetric,
 :math:`\Psi^A_{nm} = \left(\Psi^A_{mn}\right)^T`. A single body has one handle and,
@@ -224,7 +224,7 @@ to handle :math:`\beta` of :math:`B`, the child body. It applies
   \underline{\mathbf{a}}_\beta - \underline{\mathbf{a}}_\alpha = H_j\underline{\ddot{q}}_j,
   \qquad H_j^T\underline{\mathbf{k}}^*_j = \underline{f}_j
 
-From Eq. :eq:`eq:dca_mobility`, the relative acceleration across the joint is
+From Eq. :eq:`eq:dca_inverse_inertia`, the relative acceleration across the joint is
 :math:`W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}`, where
 :math:`W = \Psi^A_{\alpha\alpha} + \Psi^B_{\beta\beta}` and
 :math:`\underline{\mathbf{a}}^0_{\beta\alpha}` is the relative acceleration with no
@@ -256,9 +256,39 @@ that is, :math:`\underline{\mathbf{k}}^*_j = W^{-1}H_jD^{-1}\underline{f}_j - K\
   K = W^{-1} - W^{-1}H_jD^{-1}H_j^TW^{-1}
 
 :math:`K` is the stiffness of the joint against the relative accelerations it
-does not allow; it is zero for a joint with six degrees of freedom. Substituting
-the joint wrench into Eq. :eq:`eq:dca_mobility` for the handles of :math:`A` and
-:math:`B` gives the mobility and bias accelerations of the assembly
+does not allow; it is zero for a joint with six degrees of freedom.
+
+The solver evaluates :math:`K` without inverting :math:`W`. The QR factorization
+of the joint's columns, by Householder reflections, gives an orthogonal
+:math:`Q = [Q_1\ N]` with :math:`H_j = Q_1R`; the :math:`6 - n_j` columns of
+:math:`N` span the wrenches the joint transmits, :math:`H_j^TN = 0`, for a joint
+of :math:`n_j` degrees of freedom. Writing the joint wrench as
+:math:`\underline{\mathbf{k}}^*_j = Q_1\underline{u} + N\underline{\lambda}`, the
+joint equations give :math:`R^T\underline{u} = \underline{f}_j` and
+:math:`N^T\left(W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}\right) = 0`,
+so that
+
+.. math::
+  :label: eq:dca_transmitted
+
+  K = N\left(N^TWN\right)^{-1}N^T = ZZ^T, \qquad Z = NL^{-T}, \qquad LL^T = N^TWN
+
+and :math:`W^{-1}H_jD^{-1}\underline{f}_j = Q_1\underline{u} - N\left(N^TWN\right)^{-1}N^TWQ_1\underline{u}`.
+Only the Cholesky factor :math:`L` of order :math:`6 - n_j` is needed, five for
+a revolute joint. :math:`K` is then symmetric positive semidefinite with
+:math:`H_j^TK = 0` by construction, where the difference above cancels the
+large terms of :math:`W^{-1}` along the joint's motions; over long chains this
+is the difference between agreeing with the articulated-body algorithm to
+rounding and losing several digits. The products of Eq.
+:eq:`eq:dca_assembly` become :math:`\Psi^A_{m\alpha}K\Psi^A_{\alpha n} = V_mV_n^T`
+with :math:`V_m = \Psi^A_{m\alpha}Z`, and the joint accelerations follow from
+the joint wrench as
+:math:`\underline{\ddot{q}}_j = R^{-1}Q_1^T\left(W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}\right)`.
+
+Substituting
+the joint wrench into Eq. :eq:`eq:dca_inverse_inertia` for the handles of :math:`A` and
+:math:`B` gives the inverse articulated-body inertia and bias accelerations of the
+assembly
 :math:`C = A \cup B`, for handles :math:`m, n` of :math:`A` and :math:`r, s` of
 :math:`B`:
 
@@ -311,18 +341,25 @@ the cost of an assembly grows with the square of its number of handles.
 Requirements and Accuracy
 *************************
 
-The mobility of a single body is the inverse of its spatial inertia, so every
-body solved by the ``"dca"`` solver must have mass and a positive definite
-rotational inertia (with the bodies rigidly attached to it). Point masses and
+The inverse articulated-body inertia of a single body is the inverse of its
+spatial inertia, so every body solved by the ``"dca"`` solver must have mass
+and a positive definite rotational inertia (with the bodies rigidly attached to it). Point masses and
 massless bodies are rejected; such models can use the ``"aba"`` or ``"rnca"``
 solver. Featherstone reports that the
 divide-and-conquer algorithm is less accurate than the articulated-body
-algorithm, but accurate enough to be useful :cite:`featherstone1999divide1,featherstone1999divide`. On a serial computer
+algorithm, but accurate enough to be useful :cite:`featherstone1999divide1,featherstone1999divide`.
+With :math:`K` from Eq. :eq:`eq:dca_transmitted` and the inverse inertia of each
+body referred to its mass centre, the ``"dca"`` and ``"aba"`` solvers agree to
+rounding: over a serial chain of 512 bodies their state derivatives differ by
+about :math:`10^{-9}` of the largest, where the ``"rnca"`` and ``"aba"`` solvers
+differ by :math:`3 \times 10^{-8}`. On a serial computer
 it takes :math:`\mathcal{O}(n)` operations, with a larger constant than the
 articulated-body algorithm, because each assembly operates on full
-:math:`6 \times 6` blocks. The ``"dca"`` solver evaluates the assemblies one
-after another; its advantage over the ``"aba"`` solver depends on evaluating
-the independent assemblies of each level in parallel.
+:math:`6 \times 6` blocks. The ``"dca"`` solver evaluates the independent
+assemblies of each level in parallel when a level holds enough work to pay for
+starting threads (about 50 µs for each thread); its results do not depend on
+the number of threads. Its advantage over the ``"aba"`` solver depends on that
+parallel evaluation.
 
 Solving Each Tree by Its Own Algorithm
 --------------------------------------
