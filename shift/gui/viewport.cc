@@ -720,7 +720,8 @@ bool shift::gui::Viewport::CreatePipeline(QRhiComputePipeline* pipeline,
 bool shift::gui::Viewport::CreatePipeline(std::function<bool()> create,
                                           std::function<void()> failed) {
   if(!offscreen_target_ && rhi_ && rhi_->backend() == QRhi::Vulkan) {
-    pending_pipelines_.push_back({std::move(create), std::move(failed)});
+    pending_pipelines_.push_back(
+      {std::move(create), std::move(failed), false, creating_pipelines_});
     return true;
   }
   const bool ok = create();
@@ -1774,6 +1775,22 @@ void shift::gui::Viewport::CreateFluidTargets() {
 }
 
 void shift::gui::Viewport::CreatePipelines() {
+  // a second call before the worker has started (a scene uploaded in the
+  // frame whose initialize made them) replaces the pipelines the first one
+  // queued: its entries would make pipelines that are gone
+  pending_pipelines_.erase(
+    std::remove_if(pending_pipelines_.begin(), pending_pipelines_.end(),
+                   [](const PendingPipeline& pending) {
+                     return pending.from_create_pipelines;
+                   }),
+    pending_pipelines_.end());
+  creating_pipelines_ = true;
+  struct Done {
+    bool& creating;
+    ~Done() {
+      creating = false;
+    }
+  } done{creating_pipelines_};
   using Binding = QRhiShaderResourceBinding;
   const auto vertex_fragment = Binding::VertexStage | Binding::FragmentStage;
 

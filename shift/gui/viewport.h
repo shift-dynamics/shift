@@ -550,8 +550,12 @@ private:
     std::function<bool()> create;
     std::function<void()> failed;
     bool ok = false;
+    /*! queued by CreatePipelines, whose next call replaces the pipeline */
+    bool from_create_pipelines = false;
   };
   std::vector<PendingPipeline> pending_pipelines_;
+  /*! in CreatePipelines: the pipelines queued are its own */
+  bool creating_pipelines_ = false;
   std::thread pipeline_thread_;
   std::atomic<bool> pipelines_made_{false};
   /*! the CAD triangulation's (TriangulateCad), and the bindings it is laid
