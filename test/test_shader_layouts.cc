@@ -47,7 +47,8 @@ TEST(ShaderLayouts, InstancesMatchTheRayTracer) {
   /* mat4 x 3 (48 floats), vec4 x 8, ivec4 x 4 and vec4[2] (56): 416 bytes,
   the size of RtInstance */
   EXPECT_EQ(fields.size(), 16u);
-  for(const char* shader : {"svgf_temporal.comp", "svgf_taa.comp"}) {
+  for(const char* shader :
+      {"svgf_temporal.comp", "svgf_taa.comp", "dlss_prepare.comp"}) {
     EXPECT_EQ(Fields(shader, "Instance"), fields) << shader;
   }
 }

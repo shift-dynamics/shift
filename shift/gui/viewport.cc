@@ -470,7 +470,8 @@ static QVulkanInstance* GetVulkanInstance() {
   static QVulkanInstance* instance = [] {
     auto* created = new QVulkanInstance;
     created->setApiVersion(created->supportedApiVersion());
-    created->setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
+    created->setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions() +
+                           shift::gui::Dlss::InstanceExtensions(*created));
     // SHIFT_VULKAN_VALIDATION=1 enables the Khronos validation layer; its
     // messages are logged as warnings
     if(qEnvironmentVariableIntValue("SHIFT_VULKAN_VALIDATION")) {
@@ -839,7 +840,16 @@ void shift::gui::Viewport::set_render_scale(float scale) {
 
 QSize shift::gui::Viewport::RayTracedSize() const {
   const QSize full = get_render_target()->pixelSize();
-  if(is_offscreen() || render_scale_ >= 1.f) {
+  if(is_offscreen()) {
+    return full;
+  }
+  if(WantsDlss()) {
+    const QSize render_size = dlss_.RenderSize(full, dlss_quality_);
+    if(!render_size.isEmpty()) {
+      return render_size; // DLSS's mode, in place of the render scale
+    }
+  }
+  if(render_scale_ >= 1.f) {
     return full;
   }
   return QSize(std::max(int(std::lround(full.width() * render_scale_)), 1),
@@ -1082,9 +1092,12 @@ void shift::gui::Viewport::InitializeRhi() {
   QRhiVulkanInitParams params;
   params.inst = vulkanInstance();
   params.window = this;
+  // the device extensions of DLSS, on whichever device is made
+  params.deviceExtensions = Dlss::DeviceExtensions(*vulkanInstance());
   // a device that traces rays in hardware, if there is one, given to QRhi;
   // otherwise QRhi makes its own
-  hardware_ = HardwareRayTracing::Create(vulkanInstance(), this);
+  hardware_ = HardwareRayTracing::Create(vulkanInstance(), this,
+                                         params.deviceExtensions);
   if(hardware_) {
     QRhiVulkanNativeHandles handles;
     hardware_->FillNativeHandles(&handles);
@@ -1102,6 +1115,11 @@ void shift::gui::Viewport::InitializeRhi() {
   if(!rhi_) {
     qWarning("Failed to create a Vulkan QRhi");
     return;
+  }
+  if(!dlss_.Initialize(rhi_.get()) && Dlss::is_built()) {
+    SHIFT_INFO("NVIDIA DLSS is not available: " +
+               dlss_.get_reason().toStdString() +
+               "; ray tracing uses the viewer's own anti-aliasing");
   }
   swapchain_.reset(rhi_->newSwapChain());
   depth_stencil_.reset(rhi_->newRenderBuffer(QRhiRenderBuffer::DepthStencil,
@@ -1125,7 +1143,12 @@ void shift::gui::Viewport::PrintGpuProfile() {
       names.push_back("denoise: a-trous " + std::to_string(i + 1));
     }
     names.push_back("denoise: composite");
-    names.push_back("anti-aliasing");
+    if(dlss_profiled_) {
+      names.push_back("DLSS: inputs");
+      names.push_back("DLSS");
+    } else {
+      names.push_back("anti-aliasing");
+    }
     std::vector<const char*> pointers;
     for(const auto& name : names) {
       pointers.push_back(name.c_str());
@@ -1144,6 +1167,8 @@ void shift::gui::Viewport::ReleaseRhi() {
   offscreen_depth_.reset();
   offscreen_texture_.reset();
   ReleaseAll();
+  dlss_.Shutdown(); // before the device goes
+  dlss_failed_ = false;
   device_resources_ready_ = false;
   swapchain_ready_ = false;
   swapchain_render_pass_.reset();
@@ -1341,7 +1366,8 @@ void shift::gui::Viewport::initialize() {
     scene_dirty_ = simulation_ != nullptr;
   }
   if(output_size_ != get_render_target()->pixelSize() ||
-     (ray_tracing_supported_ && rt_size_ != RayTracedSize())) {
+     (ray_tracing_supported_ && (rt_size_ != RayTracedSize() ||
+                                 WantsDlss() != dlss_active_))) {
     CreateSizeDependentResources();
   }
   if(pipeline_render_pass_ != get_render_target()->renderPassDescriptor()) {
@@ -1407,6 +1433,15 @@ void shift::gui::Viewport::ReleaseAll() {
   svgf_variance_pipeline_.reset();
   svgf_temporal_pipeline_.reset();
   rt_pipeline_.reset();
+  dlss_.Release();
+  dlss_active_ = false;
+  dlss_prepare_pipeline_.reset();
+  dlss_prepare_bindings_[0].reset();
+  dlss_prepare_bindings_[1].reset();
+  dlss_output_.reset();
+  dlss_motion_.reset();
+  dlss_depth_.reset();
+  dlss_color_.reset();
   for(int p = 0; p < 2; p++) {
     svgf_taa_bindings_[p].reset();
     sun_shadow_bindings_[p].reset();
@@ -1609,10 +1644,19 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
   CreateFluidTargets();
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
+  // DLSS's views of its images go before the images do
+  dlss_.Release();
+  dlss_active_ = false;
+  dlss_color_.reset();
+  dlss_depth_.reset();
+  dlss_motion_.reset();
+  dlss_output_.reset();
   if(!ray_tracing_supported_) {
     return;
   }
   rt_size_ = RayTracedSize();
+  dlss_active_ =
+    WantsDlss() && !dlss_.RenderSize(output_size_, dlss_quality_).isEmpty();
   // the anti-aliasing pass and its history at the output's size: it scales
   // the ray traced images up (svgf_taa.comp)
   auto make_image = [&](QRhiTexture::Format format, QSize size = QSize()) {
@@ -1644,8 +1688,51 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
     rt_filter_[p] = make_image(QRhiTexture::RGBA16F);
     rt_taa_[p] = make_image(QRhiTexture::RGBA16F, output_size_);
   }
+  if(dlss_active_) {
+    // DLSS's inputs at the ray traced size, its output at the target's
+    dlss_color_ = make_image(QRhiTexture::RGBA16F);
+    dlss_depth_ = make_image(QRhiTexture::R32F);
+    dlss_motion_ = make_image(QRhiTexture::RGBA16F);
+    dlss_output_ = make_image(QRhiTexture::RGBA16F, output_size_);
+    const Dlss::Images images{dlss_color_.get(), dlss_depth_.get(),
+                              dlss_motion_.get(), dlss_output_.get()};
+    if(!dlss_.Prepare(images, dlss_quality_)) {
+      SHIFT_WARNING("NVIDIA DLSS: " + dlss_.get_reason().toStdString() +
+                    "; ray tracing uses the viewer's own anti-aliasing");
+      dlss_failed_ = true;
+      CreateSizeDependentResources(); // again, without DLSS
+      return;
+    }
+  }
   // bindings reference the textures; rebuild them along with the pipelines
   pipeline_render_pass_ = nullptr;
+}
+
+bool shift::gui::Viewport::WantsDlss() const {
+  return dlss_enabled_ && !dlss_failed_ && dlss_.is_available() &&
+         ray_tracing_supported_ && render_mode_ == RenderMode::kRayTraced &&
+         !is_offscreen();
+}
+
+void shift::gui::Viewport::set_dlss_enabled(bool enabled) {
+  dlss_enabled_ = enabled;
+  update(); // initialize makes the images of the new size
+}
+
+void shift::gui::Viewport::set_dlss_quality(Dlss::Quality quality) {
+  if(quality != dlss_quality_) {
+    dlss_quality_ = quality;
+    output_size_ = QSize(); // DLSS is prepared for a mode
+    update();
+  }
+}
+
+QSize shift::gui::Viewport::get_dlss_render_size(Dlss::Quality quality) const {
+  const QSize output = output_size_.isValid()
+                         ? output_size_
+                         : QSize(int(std::lround(width() * devicePixelRatio())),
+                                 int(std::lround(height() * devicePixelRatio())));
+  return dlss_.RenderSize(output, quality);
 }
 
 void shift::gui::Viewport::CreateFluidTargets() {
@@ -2205,6 +2292,12 @@ void shift::gui::Viewport::CreatePipelines() {
        Binding::imageLoadStore(14, compute, rt_upscaled_mean_.get(), 0),
        load(15, rt_sun_passed_[p]), load(16, rt_sun_passed_[q]),
        load(17, rt_motion_)});
+    if(dlss_active_) {
+      dlss_prepare_bindings_[p] = make_bindings(
+        {denoise_uniforms, instances, load(2, rt_position_[p]),
+         load(3, rt_color_), store(4, dlss_color_), store(5, dlss_motion_),
+         store(6, dlss_depth_), load(7, rt_motion_)});
+    }
   }
 
   // the variant with ray queries on a device that traces rays in hardware,
@@ -2230,9 +2323,16 @@ void shift::gui::Viewport::CreatePipelines() {
     "svgf_composite.comp.qsb", svgf_composite_bindings_[0].get()));
   svgf_taa_pipeline_.reset(
     NewComputePipeline("svgf_taa.comp.qsb", svgf_taa_bindings_[0].get()));
+  dlss_prepare_pipeline_.reset();
+  if(dlss_active_) {
+    dlss_prepare_pipeline_.reset(NewComputePipeline(
+      "dlss_prepare.comp.qsb", dlss_prepare_bindings_[0].get()));
+  }
 
+  // DLSS's output is at the target's size, as rt_output_ is
   blit_bindings_->setBindings({Binding::sampledTexture(
-    0, Binding::FragmentStage, rt_output_.get(), sampler_.get())});
+    0, Binding::FragmentStage,
+    dlss_active_ ? dlss_output_.get() : rt_output_.get(), sampler_.get())});
   blit_bindings_->create();
   blit_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "blit.frag.qsb",
                                      blit_bindings_.get(), false));
@@ -4442,8 +4542,32 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     }
     dispatch(svgf_composite_pipeline_.get(),
              svgf_composite_bindings_[p].get(), nullptr);
-    dispatch(svgf_taa_pipeline_.get(), svgf_taa_bindings_[p].get(), nullptr,
-             true);
+    dlss_profiled_ = dlss_active_;
+    if(dlss_active_) {
+      // DLSS in place of the anti-aliasing pass: its inputs, then DLSS
+      // itself, given the jitter of this frame's primary rays
+      dispatch(dlss_prepare_pipeline_.get(), dlss_prepare_bindings_[p].get(),
+               nullptr);
+      if(!dlss_.Evaluate(cb, denoise.upscale[0], denoise.upscale[1],
+                         !rt_history_valid_)) {
+        SHIFT_WARNING("NVIDIA DLSS: " + dlss_.get_reason().toStdString() +
+                      "; ray tracing uses the viewer's own anti-aliasing");
+        dlss_failed_ = true; // the next frame is made without it
+        update();
+      }
+      if(profile) {
+        cb->beginExternal();
+        hardware_->Stamp(
+          static_cast<const QRhiVulkanCommandBufferNativeHandles*>(
+            cb->nativeHandles())
+            ->commandBuffer,
+          rhi_->currentFrameSlot(), stamp++);
+        cb->endExternal();
+      }
+    } else {
+      dispatch(svgf_taa_pipeline_.get(), svgf_taa_bindings_[p].get(), nullptr,
+               true);
+    }
 
     rt_parity_ = 1 - p;
     rt_sample_++;

@@ -18,3 +18,5 @@ option('gpu', type: 'feature', value: 'auto',
        description: 'GPU calculations in core (the SPH soil) with Vulkan compute: needs the Vulkan headers and loader and glslc')
 option('fea', type: 'feature', value: 'auto',
        description: 'Finite element models of modal and nodal flexible bodies from STEP solids: Eigen and Spectra (eigenmodes), and Netgen (tetrahedral meshes, LGPL, built from subprojects/netgen.wrap as a shared library)')
+option('dlss', type: 'feature', value: 'auto',
+       description: 'NVIDIA DLSS Super Resolution in the viewer\'s ray traced mode, from the DLSS SDK subproject (subprojects/dlss.wrap, under the NVIDIA RTX SDKs license); the viewer falls back to its own anti-aliasing on GPUs without it')

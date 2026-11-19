@@ -187,10 +187,12 @@ static void QueryFeatures(QVulkanFunctions* f, VkPhysicalDevice physical,
 
 std::unique_ptr<shift::gui::HardwareRayTracing>
 shift::gui::HardwareRayTracing::Create(QVulkanInstance* instance,
-                                       QWindow* window) {
+                                       QWindow* window,
+                                       const QByteArrayList& extra_extensions) {
 #ifndef SHIFT_HAVE_HARDWARE_RAY_TRACING
   (void)instance;
   (void)window;
+  (void)extra_extensions;
   return nullptr;
 #else
   if(qEnvironmentVariableIntValue("SHIFT_NO_HARDWARE_RAY_TRACING") ||
@@ -297,7 +299,8 @@ shift::gui::HardwareRayTracing::Create(QVulkanInstance* instance,
     names.emplace_back(VK_EXT_OPACITY_MICROMAP_EXTENSION_NAME);
   }
   for(const QByteArray& name :
-      QRhiVulkanInitParams::preferredExtensionsForImportedDevice()) {
+      QRhiVulkanInitParams::preferredExtensionsForImportedDevice() +
+        extra_extensions) {
     if(Contains(available, name.constData()) &&
        !Contains(names, name.constData())) {
       names.push_back(name);
