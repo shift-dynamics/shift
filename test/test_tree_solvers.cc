@@ -13,6 +13,7 @@ and at the same state every solver gives the same joint accelerations. */
 
 #include <gtest/gtest.h>
 
+#include "shift/config.h"
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/integrator/base.h"
@@ -284,6 +285,22 @@ TEST(TreeSolvers, JointForcesMatchRNCA) {
     R"("axis": [0.6, 0, 0.8], "pitch": 0.2, "initial_velocity": 1.5, )" +
       forces);
   TreeSolvers::Compare(ChainBodies(), joints, {"aba", "dca"});
+}
+
+/* the arm with a gripper of the topology documentation: the hand carries two
+finger slides, so the forest is one branched tree with the seven revolute and
+two prismatic coordinates; the rigid joints A and I merge the base into the
+fixed body and the hand into link_7, so the tree starts at joint B */
+TEST(TreeSolvers, GripperIsBranchedTree) {
+  shift::core::Context context;
+  context.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) +
+                   "/kuka_lbr_iiwa_14_r820/kuka_iiwa_gripper.json");
+  const auto& trees = context.get_trees();
+  ASSERT_EQ(trees.size(), 1u);
+  EXPECT_EQ(trees[0].kind, shift::core::topology::Tree::Kind::kBranched);
+  EXPECT_EQ(trees[0].bodies.size(), 9u);
+  EXPECT_EQ(trees[0].dq_count, 9u);
+  EXPECT_EQ(context.get_active_joints()[trees[0].root_joint]->get_name(), "B");
 }
 
 TEST(TreeSolvers, BranchedTreeMatchesRNCA) {

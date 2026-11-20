@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -192,4 +193,109 @@ TEST_F(SpecifiedCoordinates, RevoluteJointsInLoopFollowIncrementAndTarget) {
   }
   EXPECT_GT(moved, 0);
   EXPECT_EQ(q_dq_differ, moved);
+}
+
+/* the slider-crank of examples/slider_crank, the worked example of the
+ * Topology page: a crank of 0.6 m (joint A, angle theta) and a connecting rod
+ * of 1.5 m (joint D, from the crank) drive a piston along y (joint B,
+ * displacement s); joint C, from the rod to the piston, is the chord. One
+ * loop of four coordinates has rank 3 and one degree of freedom. */
+class SliderCrank : public testing::Test {
+protected:
+  void SetUp() override {
+    const std::filesystem::path dir =
+      std::filesystem::path(SHIFT_BINARY_DIR) / "test" / "slider_crank_partition";
+    std::filesystem::create_directories(dir);
+    previous_dir_ = std::filesystem::current_path();
+    std::filesystem::current_path(dir);
+    context_.LoadJSON(std::string(SHIFT_EXAMPLES_DIR) +
+                      "/slider_crank/slider_crank.json");
+    for(auto* joint : context_.get_active_joints()) {
+      joints_[joint->get_name().substr(0, 1)] = joint;
+    }
+    substructure_ = joints_["A"]->get_substructure();
+  }
+  void TearDown() override {
+    std::filesystem::current_path(previous_dir_);
+  }
+
+  double q(const std::string& joint) {
+    return context_.get_q()[joints_[joint]->get_q_index()];
+  }
+
+  /* the joint (A, B, C or D) of each column of the substructure in the
+   * pivot order of complete pivoting: dependent first, then independent */
+  std::string PivotOrder() {
+    std::string order;
+    for(int column : substructure_->get_pc12()) {
+      const int dq = int(substructure_->get_dq_offset()) + column;
+      for(auto& [name, joint] : joints_) {
+        if(joint->get_dq_index() == dq) {
+          order += name;
+        }
+      }
+    }
+    return order;
+  }
+
+  shift::core::Context context_;
+  std::map<std::string, shift::core::joint::Base*> joints_;
+  shift::core::Substructure* substructure_ = nullptr;
+  std::filesystem::path previous_dir_;
+};
+
+TEST_F(SliderCrank, PartitionHasRankThreeAndOneDegreeOfFreedom) {
+  ASSERT_NE(substructure_, nullptr);
+  EXPECT_EQ(substructure_->get_rank(), 3);
+  EXPECT_EQ(substructure_->get_dq_count(), 4u);
+  /* complete pivoting leaves the crank angle independent */
+  EXPECT_EQ(PivotOrder().back(), 'A');
+  EXPECT_NEAR(substructure_->InfinityNormB(), 1.245, 1e-3);
+}
+
+/* the crank angle specified: the piston follows the closed form
+ * s = 0.6 cos(theta) + sqrt(1.5^2 - (0.6 sin(theta))^2) */
+TEST_F(SliderCrank, CrankAngleGivesThePistonPosition) {
+  const int dq = joints_["A"]->get_dq_index();
+  substructure_->SetupNewtonRaphsonSpecifiedCoordinate(context_.get_dhva(), dq);
+  EXPECT_EQ(PivotOrder().back(), 'A');
+  for(double theta : {5.6, 6.0, 6.5, 7.0}) {
+    ASSERT_NO_THROW(substructure_->IncrementSpecifiedCoordinate(
+      context_.get_dhva(), dq, theta, shift::core::Substructure::TARGET));
+    const double s =
+      0.6 * std::cos(theta) +
+      std::sqrt(1.5 * 1.5 - std::pow(0.6 * std::sin(theta), 2));
+    EXPECT_LT(substructure_->InfinityNormB(), 1.4);
+    EXPECT_NEAR(q("A"), theta, 1e-14);
+    EXPECT_NEAR(q("B"), s, 1e-8);
+    context_.UpdateDH();
+    EXPECT_LT(substructure_->EvaluateConstraints(context_.get_dhva()), 1e-9);
+  }
+}
+
+/* the piston specified: near the outer dead centre, s = 2.1, the crank turns
+ * ever faster per unit of piston travel, and beyond it no configuration
+ * exists */
+TEST_F(SliderCrank, PistonCannotDriveThroughDeadCentre) {
+  const int dq = joints_["B"]->get_dq_index();
+  substructure_->SetupNewtonRaphsonSpecifiedCoordinate(context_.get_dhva(), dq);
+  EXPECT_EQ(PivotOrder().back(), 'B');
+  /* |B|inf grows as gap^(-1/2), by sqrt(10) per decade */
+  const double expected[4] = {3.10, 6.37, 19.68, 62.12};
+  int k = 0;
+  for(double gap : {1e-1, 1e-2, 1e-3, 1e-4}) {
+    ASSERT_NO_THROW(substructure_->IncrementSpecifiedCoordinate(
+      context_.get_dhva(), dq, 2.1 - gap, shift::core::Substructure::TARGET));
+    EXPECT_NEAR(q("B"), 2.1 - gap, 1e-14);
+    EXPECT_NEAR(substructure_->InfinityNormB(), expected[k++], 0.01) << gap;
+  }
+  const std::vector<double> before(context_.get_q().begin(),
+                                   context_.get_q().end());
+  EXPECT_THROW(substructure_->IncrementSpecifiedCoordinate(
+                 context_.get_dhva(), dq, 2.11,
+                 shift::core::Substructure::TARGET),
+               shift::core::Exception);
+  for(size_t i = 0; i < before.size(); i++) {
+    EXPECT_EQ(context_.get_q()[i], before[i]) << "q[" << i << "]";
+  }
 }
