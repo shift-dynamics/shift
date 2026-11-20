@@ -1,4 +1,5 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // Temporal anti-aliasing of the composited (tonemapped) image: the pixel's
@@ -64,7 +65,10 @@ layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   mat4 view_projection; // current frame
   vec4 upscale;  // xy = the primary rays' jitter (ray traced pixels),
                  // zw = ray traced size / output size (1 = not scaled)
+  vec4 tone;     // x = exposure (stops), see tonemap.glsl
 } u;
+
+#include "tonemap.glsl"
 
 layout(std430, binding = 1) readonly buffer Instances {
   Instance instances[];
@@ -547,6 +551,6 @@ void main() {
   } else {
     mean = imageLoad(accumulation, pixel).rgb;
   }
-  vec3 display = mix(result, mean / (mean + vec3(1.0)), k);
+  vec3 display = mix(result, ToneMap(mean, u.tone.x), k);
   imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
 }

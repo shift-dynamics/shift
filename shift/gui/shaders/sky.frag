@@ -22,6 +22,8 @@ layout(std140, binding = 0) uniform Frame {
   vec4 water_extinction;
 } frame;
 
+#include "tonemap.glsl"
+
 // the radiance of the sky, equirectangular (see environment.glsl)
 layout(binding = 10) uniform sampler2D sky_radiance;
 #include "environment.glsl"
@@ -63,6 +65,6 @@ void main() {
     color = Aerial(c, crossing, color, frame.fog_params, frame.fog_color,
                    WaterSky(HorizonDirection(d)));
   }
-  color = color / (color + vec3(1.0));
+  color = ToneMap(color, frame.sky_zenith.w);
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
 }

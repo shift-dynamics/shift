@@ -23,6 +23,8 @@ layout(std140, binding = 0) uniform Frame {
   vec4 water_extinction;
 } frame;
 
+#include "tonemap.glsl"
+
 #include "environment.glsl"
 // the radiance of the sky, equirectangular, for the water's reflections
 layout(binding = 10) uniform sampler2D sky_radiance;
@@ -109,6 +111,6 @@ void main() {
                  WaterSky(HorizonDirection(world_position -
                                            frame.camera_position.xyz)));
 
-  color = color / (color + vec3(1.0));
+  color = ToneMap(color, frame.sky_zenith.w);
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
 }

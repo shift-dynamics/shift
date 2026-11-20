@@ -103,6 +103,14 @@ public:
     return render_mode_;
   }
 
+  /*! \brief the exposure of the image, in stops (powers of two) above the
+   * default 0: scene colors are scaled by 2^stops before the ACES filmic
+   * tone mapping (shaders/tonemap.glsl) */
+  void set_exposure(float stops);
+  float get_exposure() const {
+    return exposure_;
+  }
+
   void set_floor_enabled(bool enabled);
   /*! \brief draw deformable terrains (SceneTerrain::deformable) by the
    * Catmull-Rom surface through their nodes, smooth but for overshoots
@@ -574,6 +582,7 @@ private:
                                  * followed, see FollowFrame */
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
+  float exposure_ = 0.f; /*!< stops, see set_exposure */
   bool smooth_terrain_ = true;
   bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
