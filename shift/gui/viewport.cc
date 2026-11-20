@@ -51,7 +51,7 @@ struct FrameUniforms {
   float camera_position[4];
   float sun_direction[4];
   float sun_color[4];
-  float sky_zenith[4];
+  float sky_zenith[4]; // w = exposure (stops), see tonemap.glsl
   float sky_horizon[4];
   float floor_params[4];
   float floor_frame[16]; // column major: axes u, v, normal, origin
@@ -444,13 +444,15 @@ struct DenoiseUniforms {
   float previous_view_projection[16];
   float params[4]; // x = pixel spread angle, y = maximum history length,
                    // z = history valid, w = a-trous step
-  float blend[4];  // x = progressive frames, y, z = blend start, end
+  float blend[4];  // x = progressive frames, y, z = blend start, end,
+                   // w = maximum history length of the unmoved
   int32_t control[4]; // x = instance count
   float view_projection[16]; // current frame
   float upscale[4]; // xy = the primary rays' jitter (ray traced pixels),
                     // zw = ray traced size / output size (1 = not scaled)
+  float tone[4];    // x = exposure (stops), see tonemap.glsl
 };
-static_assert(sizeof(DenoiseUniforms) == 192);
+static_assert(sizeof(DenoiseUniforms) == 208);
 
 /* the radical inverse of index in base, as in raytrace.comp */
 static float Halton(uint32_t index, uint32_t base) {
@@ -798,6 +800,13 @@ void shift::gui::Viewport::set_smooth_terrain(bool smooth) {
 
 void shift::gui::Viewport::set_particle_surface(bool surface) {
   particle_surface_ = surface;
+  update();
+}
+
+void shift::gui::Viewport::set_exposure(float stops) {
+  exposure_ = stops;
+  // the ray traced history is kept tone mapped
+  rt_history_valid_ = false;
   update();
 }
 
@@ -3658,7 +3667,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   CopyMatrix(view_projection.inverted(), frame.inverse_view_projection);
   CopyVector(camera_.get_position(), 1.f, frame.camera_position);
   SunUniforms(lights_on, frame.sun_direction, frame.sun_color);
-  CopyVector(sky_zenith_, 0.f, frame.sky_zenith);
+  CopyVector(sky_zenith_, exposure_, frame.sky_zenith);
   CopyVector(sky_horizon_, 0.f, frame.sky_horizon);
   FogUniforms(frame.fog_params, frame.fog_color);
   UploadWaves(batch);
@@ -4495,6 +4504,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     // simulation settles where nothing moves
     denoise.blend[3] = bodies_moved ? kHistoryCamera : denoise.params[1];
     denoise.control[0] = instance_count;
+    denoise.tone[0] = exposure_;
     // the jitter of this frame's primary rays (raytrace.comp), from which
     // the anti-aliasing pass places the samples in its larger image
     const uint32_t halton_index = uint32_t(rt_sample_) + 1u;

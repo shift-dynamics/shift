@@ -145,6 +145,9 @@ public:
    * the work is done from the event loop once the viewport can render. */
   void SaveImage(const ImageRequest& request);
 
+  /*! \brief the exposure of the image in stops, as View > Exposure */
+  void set_exposure(float stops);
+
   /*! \brief write the model, with the edits made to its parameters, to a
    * JSON file (File > Save model as); the objects of each array keep the
    * order of the model file. Returns false, with why in error, if it could
@@ -566,6 +569,7 @@ private:
   } playback_panel_;
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
+  QDoubleSpinBox* exposure_box_ = nullptr; /*!< View > Exposure */
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
   QAction* particle_surface_action_ = nullptr;

@@ -64,6 +64,8 @@ layout(std140, binding = 0) uniform Frame {
   vec4 color_map[16];
 } frame;
 
+#include "tonemap.glsl"
+
 layout(std140, binding = 1) uniform Material {
   vec4 albedo;        // w = normal map scale
   vec4 material;      // x = metallic, y = roughness, z = triplanar (2:
@@ -647,6 +649,6 @@ void main() {
                  frame.fog_params, frame.fog_color,
                  WaterSky(HorizonDirection(world_position -
                                            frame.camera_position.xyz)));
-  color = color / (color + vec3(1.0));
+  color = ToneMap(color, frame.sky_zenith.w);
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), mesh.variation.w);
 }

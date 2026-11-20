@@ -43,6 +43,7 @@ layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   mat4 view_projection; // current frame
   vec4 upscale;  // xy = the primary rays' jitter (ray traced pixels),
                  // zw = ray traced size / output size (1 = not scaled)
+  vec4 tone;     // x = exposure (stops), see tonemap.glsl
 } u;
 
 layout(std430, binding = 1) readonly buffer Instances {

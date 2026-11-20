@@ -38,6 +38,7 @@ layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   ivec4 control; // x = instance count
   mat4 view_projection; // current frame
   vec4 upscale;  // read by svgf_taa.comp
+  vec4 tone;     // x = exposure (stops), see tonemap.glsl
 } u;
 
 layout(std430, binding = 1) readonly buffer Instances {

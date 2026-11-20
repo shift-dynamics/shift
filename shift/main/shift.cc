@@ -145,6 +145,10 @@ int main(int argc, char* argv[]) {
     {"follow",
      "with --image: set the view at the start, and follow this body to --time",
      "body"},
+    {"exposure",
+     "brightness of the image in stops (default 0): each stop doubles the "
+     "light before the filmic tone mapping",
+     "stops"},
     {"follow-ground",
      "with --follow: follow the ground under the body, level, so that the "
      "body is seen to bounce and tilt"},
@@ -182,6 +186,15 @@ int main(int argc, char* argv[]) {
   QApplication::setPalette(palette);
 
   shift::gui::Workspace window;
+  if(parser.isSet("exposure")) {
+    bool ok = false;
+    const double stops = parser.value("exposure").toDouble(&ok);
+    if(!ok) {
+      std::fprintf(stderr, "shift: --exposure takes a number of stops\n");
+      return 1;
+    }
+    window.set_exposure(float(stops));
+  }
   window.show();
   if(!parser.positionalArguments().isEmpty()) {
     const QString model = parser.positionalArguments().first();

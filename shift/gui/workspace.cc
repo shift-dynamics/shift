@@ -76,6 +76,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
+#include <QWidgetAction>
 
 #include <algorithm>
 #include <atomic>
@@ -288,6 +289,25 @@ void shift::gui::Workspace::InitializeMenus() {
   connect(smooth_terrain, &QAction::toggled, viewport_,
           &Viewport::set_smooth_terrain);
   smooth_terrain_action_ = smooth_terrain;
+  // the exposure of the image: scene colors scaled by 2^stops before the
+  // ACES filmic tone mapping
+  auto* exposure_row = new QWidget;
+  auto* exposure_layout = new QHBoxLayout(exposure_row);
+  exposure_layout->setContentsMargins(28, 2, 8, 2);
+  exposure_layout->addWidget(new QLabel("Exposure"));
+  exposure_box_ = new QDoubleSpinBox;
+  exposure_box_->setRange(-6.0, 6.0);
+  exposure_box_->setSingleStep(0.25);
+  exposure_box_->setDecimals(2);
+  exposure_box_->setSuffix(" EV");
+  exposure_box_->setToolTip("brightness of the image in stops: each stop "
+                            "doubles the light before tone mapping");
+  connect(exposure_box_, &QDoubleSpinBox::valueChanged, this,
+          [this](double stops) { viewport_->set_exposure(float(stops)); });
+  exposure_layout->addWidget(exposure_box_);
+  auto* exposure = new QWidgetAction(this);
+  exposure->setDefaultWidget(exposure_row);
+  view_menu->addAction(exposure);
   QAction* particle_surface = view_menu->addAction("Soil &surface");
   particle_surface->setCheckable(true);
   particle_surface->setChecked(true);
@@ -1791,6 +1811,10 @@ void shift::gui::Workspace::RevertModel() {
     return;
   }
   Open(model_filename_);
+}
+
+void shift::gui::Workspace::set_exposure(float stops) {
+  exposure_box_->setValue(stops);
 }
 
 void shift::gui::Workspace::SaveImage(const ImageRequest& request) {

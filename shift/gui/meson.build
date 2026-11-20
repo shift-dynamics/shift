@@ -85,7 +85,7 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                         'shaders/ground.glsl', 'shaders/water.glsl',
                         'shaders/fluid_common.glsl',
                         'shaders/hex_tiling.glsl',
-                        'shaders/flex_common.glsl'),
+                        'shaders/flex_common.glsl', 'shaders/tonemap.glsl'),
   )
 endforeach
 
@@ -97,7 +97,7 @@ shader_bundles += custom_target(
   command: [qsb, '--glsl', '310 es,430', '-DFLUID', '-o', '@OUTPUT@',
             '@INPUT@'],
   depend_files: files('shaders/lights.glsl', 'shaders/fluid_common.glsl',
-                      'shaders/hex_tiling.glsl'),
+                      'shaders/hex_tiling.glsl', 'shaders/tonemap.glsl'),
 )
 
 # terrain tessellation (Vulkan only, so SPIR-V only: GLSL ES 3.1 has no
@@ -142,7 +142,7 @@ shader_bundles += custom_target(
   depend_files: files('shaders/cad_common.glsl', 'shaders/lights.glsl',
                       'shaders/surfaces.glsl', 'shaders/environment.glsl',
                       'shaders/ground.glsl', 'shaders/water.glsl',
-                      'shaders/hex_tiling.glsl'),
+                      'shaders/hex_tiling.glsl', 'shaders/tonemap.glsl'),
 )
 
 # ray tracing in hardware (hardware_ray_tracing.h): raytrace.comp with ray
