@@ -496,20 +496,53 @@ TEST(IowaTireContact, WithARelaxationLengthALockedWheelStillSlidesAtItsFriction)
 }
 
 TEST(IowaTireContact, OnSoftSoilTheWheelSinksToBekkersSinkage) {
-  // at rest W = (3 - n)/3 b k sqrt(d) z^(n + 1/2), so
-  // z = (3 W / ((3 - n) b k sqrt(d)))^(1 / (n + 1/2)); sandy loam
+  // at rest W = (3 - n)/3 b k sqrt(d) z^(n + 1/2), so the wheel sinks by
+  // z = (3 W / ((3 - n) b k sqrt(d)))^(1 / (n + 1/2)) into sandy loam, and the
+  // tire, in series with the soil, deflects by W / k_t besides
   shift::core::Context context;
   LoadWheel(context,
             R"("segments": 0, "width": 0.235,
                "soil": {"name": "sandy_loam"})",
             "", 0.0, -0.29, 0.0, 1.5);
   const auto state = Simulate(context);
-  const double n = 0.7, k = 5270.0 / 0.235 + 1515040.0;
+  const double n = 0.7, k = 5270.0 / 0.235 + 1515040.0, load = 299.0 * 9.81;
   const double sinkage =
-    std::pow(3.0 * 299.0 * 9.81 / ((3.0 - n) * 0.235 * k * std::sqrt(0.6)),
+    std::pow(3.0 * load / ((3.0 - n) * 0.235 * k * std::sqrt(0.6)),
              1.0 / (n + 0.5));
-  EXPECT_NEAR(Find(context)->get_contact().depth, sinkage, 1e-5);
-  EXPECT_NEAR(Position(context, state, "z"), -(0.3 - sinkage), 1e-4);
+  const double depth = sinkage + load / 2e5;
+  EXPECT_NEAR(Find(context)->get_contact().depth, depth, 1e-5);
+  EXPECT_NEAR(Position(context, state, "z"), -(0.3 - depth), 1e-4);
+  // the steady deflection the tire gives others (the rally driver's slides)
+  // is the same, with the soil's compaction resistance and the tire's own
+  const auto* tire = dynamic_cast<const Iowa*>(Find(context)->get_model());
+  ASSERT_NE(tire, nullptr);
+  double deflection, resistance, ignored, compaction;
+  tire->RestingDeflection(load, &deflection, &resistance);
+  EXPECT_NEAR(deflection, depth, 1e-9);
+  tire->SoilForces(sinkage, &ignored, &compaction);
+  EXPECT_NEAR(resistance, compaction + tire->rolling_resistance * load, 1e-6);
+}
+
+TEST(IowaTireContact, WithoutASoilOfItsOwnTheTireTakesTheTerrains) {
+  // flat ground of sandy loam: the tire sinks as if it gave the soil itself;
+  // with saturation "soil" its forces there saturate with no peak
+  shift::core::Context context;
+  std::string map = WriteMap([](double) { return 0.0f; }, 0.5, 13);
+  map.insert(map.rfind('}'), R"(, "soil": {"name": "sandy_loam"})");
+  LoadWheel(context, R"("segments": 0, "saturation": "soil")", map, 3.0,
+            -0.29, 0.0, 1.5);
+  Simulate(context);
+  const Contact& c = Find(context)->get_contact();
+  ASSERT_NE(c.soil, nullptr);
+  const double n = 0.7, k = 5270.0 / 0.235 + 1515040.0, load = 299.0 * 9.81;
+  const double sinkage =
+    std::pow(3.0 * load / ((3.0 - n) * 0.235 * k * std::sqrt(0.6)),
+             1.0 / (n + 0.5));
+  EXPECT_NEAR(c.depth, sinkage + load / 2e5, 1e-5);
+  const auto* tire = dynamic_cast<const Iowa*>(Find(context)->get_model());
+  EXPECT_TRUE(tire->is_loose(c.soil != nullptr));
+  EXPECT_FALSE(tire->is_loose(false));
+  std::remove((testing::TempDir() + "/iowa_map.tiff").c_str());
 }
 
 TEST(TireParameters, EachModelReadsTheBlockOfItsName) {
@@ -564,4 +597,144 @@ TEST(TireParameters, AParameterBesideTheBlockIsRefusedNotIgnored) {
     EXPECT_NE(std::string(e.what()).find("vertical_stiffness"),
               std::string::npos);
   }
+}
+
+TEST(IowaTire, WithCombinedSlipEachSlipAloneGivesItsPureForce) {
+  Iowa plain, combined;
+  Configure(plain);
+  Configure(combined);
+  plain.rolling_resistance = combined.rolling_resistance = 0.0;
+  combined.combined_slip = true;
+  for(const Contact& c : {Rolling(10.0, 0.0, 0.05), Rolling(10.0, 0.0, 0.5),
+                          Rolling(10.0, 0.3, 0.0), Rolling(10.0, 3.0, 0.0)}) {
+    const ksl_coscrew_t a = Force(plain, c);
+    const ksl_coscrew_t b = Force(combined, c);
+    EXPECT_NEAR(b.lin.x, a.lin.x, 1e-6);
+    EXPECT_NEAR(b.lin.y, a.lin.y, 1e-6);
+  }
+}
+
+TEST(IowaTire, WithCombinedSlipASpunWheelInASlideKeepsItsLateralForce) {
+  // 25 degrees of slip angle, the wheel spun 20 % faster than it rolls: the
+  // tread slides mostly sideways, and the force acts against its sliding
+  Iowa tire;
+  Configure(tire);
+  tire.rolling_resistance = 0.0;
+  tire.combined_slip = true;
+  const double limit = 0.8 * 4000.0;
+  const Contact c = Rolling(10.0, 10.0 * std::tan(0.436), 0.2);
+  const ksl_coscrew_t f = Force(tire, c);
+  EXPECT_NEAR(std::hypot(f.lin.x, f.lin.y), limit, 1e-6);
+  EXPECT_GT(f.lin.x, 0.0);
+  EXPECT_LT(f.lin.y, -0.9 * limit);
+  const double kappa = tire.get_slip();
+  EXPECT_NEAR(std::atan2(f.lin.y, f.lin.x),
+              std::atan2(-c.hub_velocity_w.y, kappa * 10.0), 1e-9);
+  // without it, the friction ellipse shares the force in proportion to the
+  // two pure forces, and the longitudinal force first leaves less lateral
+  Iowa relaxed;
+  Configure(relaxed);
+  relaxed.rolling_resistance = 0.0;
+  relaxed.relaxation_length = 0.3;
+  double rate = 0.0;
+  const ksl_coscrew_t r = Relaxed(relaxed, c, kappa, &rate);
+  EXPECT_GT(std::fabs(f.lin.y), std::fabs(r.lin.y) + 0.2 * limit);
+}
+
+TEST(IowaTire, WithCombinedSlipALockedWheelLosesItsLateralForce) {
+  // locked, sliding along the heading at 5 degrees: the force is mostly
+  // back along the heading, where the ellipse leaves it most of its lateral
+  Iowa tire, ellipse;
+  Configure(tire);
+  Configure(ellipse);
+  tire.rolling_resistance = ellipse.rolling_resistance = 0.0;
+  tire.combined_slip = true;
+  const double limit = 0.8 * 4000.0;
+  const Contact c = Rolling(10.0, 10.0 * std::tan(0.087), -1.0);
+  const ksl_coscrew_t f = Force(tire, c);
+  EXPECT_NEAR(std::hypot(f.lin.x, f.lin.y), limit, 1e-6);
+  EXPECT_LT(f.lin.x, -0.99 * limit);
+  EXPECT_NEAR(std::atan2(f.lin.y, f.lin.x),
+              std::atan2(-c.hub_velocity_w.y, tire.get_slip() * 10.0), 1e-9);
+  EXPECT_LT(std::fabs(f.lin.y), 0.1 * limit);
+  EXPECT_LT(Force(ellipse, c).lin.y, -0.25 * limit);
+}
+
+TEST(IowaTire, TheTreadForcesAreThoseItAppliesLessTheRollingResistance) {
+  // what others take from the tire (the rally driver's slides) is what it
+  // applies, with combined slip or without, and the rest gives the spring's
+  // deflection and the rolling resistance
+  for(bool combined : {false, true}) {
+    Iowa tire;
+    Configure(tire);
+    tire.combined_slip = combined;
+    for(double slip : {-1.0, -0.1, 0.05, 0.3}) {
+      const Contact c = Rolling(10.0, 10.0 * std::tan(0.2), slip);
+      const ksl_coscrew_t f = Force(tire, c);
+      double f_x, f_y, aligning;
+      tire.TreadForces(tire.get_slip(), tire.get_slip_angle(), 10.0,
+                       10.0 * std::tan(0.2), 4000.0, false, &f_x, &f_y,
+                       &aligning);
+      EXPECT_NEAR(f.lin.x, f_x - 0.02 * 4000.0 * 10.0 / (10.0 + 0.0635),
+                  1e-6);
+      EXPECT_NEAR(f.lin.y, f_y, 1e-9);
+    }
+  }
+  Iowa tire;
+  Configure(tire);
+  double deflection, resistance;
+  tire.RestingDeflection(4000.0, &deflection, &resistance);
+  EXPECT_DOUBLE_EQ(deflection, 0.02);
+  EXPECT_DOUBLE_EQ(resistance, 80.0);
+}
+
+TEST(IowaTire, LoosePureForcesRiseToTheFrictionWithNoPeak) {
+  // saturation "exponential", as measured off the road (e.g. NIAE 1978 in
+  // A. S. A. El-Razaz, Lateral Tyre Forces on Off-Road Surfaces, Leeds,
+  // 1988, eq. 2.1): f = f_m (1 - exp(-c_alpha alpha / f_m)), with the same
+  // slope at no slip as the peaked curves, and never above the friction
+  Iowa tire;
+  Configure(tire);
+  const double limit = 0.8 * 4000.0;
+  double last = 0.0;
+  for(double alpha = 0.01; alpha < 1.0; alpha += 0.01) {
+    const double f = tire.LateralForce(alpha, limit, true);
+    EXPECT_NEAR(f, limit * (1.0 - std::exp(-5e4 * alpha / limit)), 1e-9);
+    EXPECT_GT(f, last);
+    last = f;
+  }
+  EXPECT_NEAR(tire.LateralForce(1e-6, limit, true) / 1e-6, 5e4, 1.0);
+  EXPECT_NEAR(tire.LongitudinalFriction(1e-6, true) / 1e-6,
+              tire.LongitudinalFriction(1e-6) / 1e-6, 1e-3);
+  EXPECT_LT(tire.LongitudinalFriction(1.0, true), 0.8);
+  EXPECT_GT(tire.LongitudinalFriction(0.25), 0.8);
+}
+
+TEST(IowaTire, WithALoadSensitivityTheFrictionFallsWithTheLoad) {
+  // mu (f_n / f_0)^n: at the reference load the friction is mu; at twice it,
+  // 2^n mu, which limits the sliding force
+  Iowa tire;
+  Configure(tire);
+  tire.load_sensitivity = -0.1;
+  tire.reference_load = 2000.0;
+  tire.Prepare();
+  EXPECT_DOUBLE_EQ(tire.Friction(2000.0), 0.8);
+  EXPECT_NEAR(tire.Friction(4000.0), 0.8 * std::pow(2.0, -0.1), 1e-12);
+  tire.rolling_resistance = 0.0;
+  const ksl_coscrew_t f = Force(tire, Rolling(10.0, 10.0, 0.0));
+  EXPECT_NEAR(std::fabs(f.lin.y), 4000.0 * tire.Friction(4000.0), 1e-6);
+  tire.reference_load = 0.0;
+  EXPECT_THROW(tire.Prepare(), std::exception);
+  tire.reference_load = 2000.0;
+  tire.saturation = "gravel";
+  EXPECT_THROW(tire.Prepare(), std::exception);
+}
+
+TEST(IowaTire, CombinedSlipNeedsACorneringStiffness) {
+  Iowa tire;
+  Configure(tire);
+  tire.combined_slip = true;
+  tire.Prepare();
+  tire.cornering_stiffness = 0.0;
+  EXPECT_THROW(tire.Prepare(), std::exception);
 }

@@ -487,6 +487,32 @@ public:
    * fuel fraction after the governor and the fuel cut */
   double EngineTorque(double speed, double throttle, double* fuel = nullptr) const;
 
+  /*! \brief the throttle, 0 to 1, at which the engine drives the wheels,
+   * all turning at the speed \f$\omega_w\f$ (rad/s), with the total torque
+   * \f$\tau_w\f$ (N m) in the forward gear (1 to the number of ratios),
+   * steadily, with the coupling and the gear's clutch locked: the output
+   * shaft turns at \f$\omega_o = r_a \omega_w\f$ and carries
+   * \f$\tau_o = \tau_w / (r_a \eta_a)\f$, with \f$r_a\f$ and \f$\eta_a\f$
+   * the mean of the axles' final_drive times transfer_ratio and of their
+   * efficiencies, the engine turns at \f$\omega_e = r_g \omega_o\f$ and gives
+   * \f$\tau_e = (\tau_o + c_s \omega_o + \tau_d) / (r_g \eta_g)\f$ (spin_loss
+   * \f$c_s\f$, drag_torque \f$\tau_d\f$, the gear's ratio \f$r_g\f$ and
+   * efficiency \f$\eta_g\f$), and the throttle \f$f\f$ solves
+   * \f$\tau_e = f \tau_{max}(\omega_e) + (1 - f) \tau_{friction}(\omega_e)\f$
+   * (EngineTorque, without the governor and the fuel cut), within 0 to 1 */
+  double SteadyThrottle(double wheel_speed, int gear,
+                        double wheel_torque) const;
+
+  /*! \brief the steady torque at the wheels at full throttle in the
+   * forward gear at the wheel speed (rad/s), as SteadyThrottle's model: the
+   * engine's full torque at \f$\omega_e\f$, less the spin loss and the drag,
+   * through the gear and the axles; 0 for no such gear */
+  double FullWheelTorque(double wheel_speed, int gear) const;
+
+  /*! \brief the speed of the wheels from that of the transmission's output
+   * shaft, over the mean of the axles' final_drive times transfer_ratio */
+  double get_wheel_speed() const;
+
   /*! \brief the torque on the pump and on the turbine of the converter (the
    * coupling's type), with its lockup clutch, for pump speed \f$\omega_e\f$ and
    * turbine speed \f$\omega_t\f$, as torque on the engine side and on the turbine side */
@@ -502,6 +528,20 @@ public:
    * engagements */
   size_t get_state_count() const {
     return 3 + axle_count_ + gear_count_ + extra_states_;
+  }
+
+  /*! \brief the speed of the engine over that of the wheels in the forward
+   * gear (1 to the number of ratios), the gear's ratio times the mean of the
+   * axles' final_drive times transfer_ratio; 0 for no such gear */
+  double OverallRatio(int gear) const;
+
+  /*! \brief the number of forward gears */
+  double get_high_idle_speed() const {
+    return engine_.high_idle_speed;
+  }
+
+  int get_forward_gears() const {
+    return static_cast<int>(transmission_.ratios.size());
   }
 
   double get_engine_speed() const {

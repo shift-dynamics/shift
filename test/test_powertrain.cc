@@ -310,6 +310,35 @@ TEST(Powertrain, ALockedUpDriveTurnsTheWheelsInTheRatioOfTheGear) {
               1e-9 * 4.0 * std::fabs(Output(drive, "rear_shaft_torque")));
 }
 
+TEST(Powertrain, TheFullWheelTorqueNeedsFullThrottleAndTheWheelSpeedIsTheShafts) {
+  shift::core::Context context;
+  Vehicle v;
+  v.transmission =
+    R"("ratios": [2.0, 1.0], "reverse_ratio": -2.0, "gear": 2,
+       "clutch_capacity": 1500, "slip_speed": 1.0, "input_inertia": 0.2,
+       "output_inertia": 0.2, "shift_time": 0.2)";
+  v.engine = std::string(kEngine);
+  v.engine.replace(v.engine.find("\"idle_speed\""), 0, R"("throttle": 1.0, )");
+  v.speed_l = v.speed_r = 30.0;
+  v.time_span = 1.0;
+  Load(context, v);
+  const auto state = Simulate(context);
+  Powertrain* drive = Find(context);
+  // the wheels' speed from the output shaft, over the final drive
+  EXPECT_NEAR(drive->get_wheel_speed(), Output(drive, "output_speed") / 4.0,
+              1e-12);
+  // the full torque is what full throttle gives, and less than full what
+  // less does, in either gear
+  for(int gear : {1, 2}) {
+    const double w = 20.0;
+    const double full = drive->FullWheelTorque(w, gear);
+    EXPECT_GT(full, 0.0);
+    EXPECT_NEAR(drive->SteadyThrottle(w, gear, full), 1.0, 1e-9);
+    EXPECT_LT(drive->SteadyThrottle(w, gear, 0.99 * full), 1.0);
+  }
+  EXPECT_EQ(drive->FullWheelTorque(20.0, 3), 0.0);
+}
+
 TEST(Powertrain, AShiftChangesTheRatioOfTheDrive) {
   // gear 1 (ratio 2) to gear 2 (ratio 1) at 3 s, by a schedule controller
   shift::core::Context context;

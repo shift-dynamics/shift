@@ -6,6 +6,9 @@
 namespace shift {
 namespace core {
 namespace force_module {
+
+struct SoilProperties;
+
 namespace tire {
 
 /*!
@@ -37,6 +40,9 @@ struct Contact {
   ksl_vec3_t angular_velocity_w = {{0.0, 0.0, 0.0}};
   double vx = 0.0;    //!< hub velocity along the w frame x axis
   double omega = 0.0; //!< wheel spin rate about the wheel axis
+  /*! the soil of the terrain under the contact (terrain::Base::SoilAt), null
+   * if it has none: rigid ground */
+  const SoilProperties* soil = nullptr;
 };
 
 /*!
