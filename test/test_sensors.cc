@@ -176,6 +176,40 @@ TEST(Sensors, MarkerReportsThePoseAndVelocityOfAFrame) {
   }
 }
 
+/* a frame sensor on a frame that no joint uses ("tip" has no entry in the
+displacement array) measures it from the pose of its body: the tip of the
+hinged body is at (cos a, 0, -sin a), moving at 0.5 (-sin a, 0, -cos a) */
+TEST(Sensors, FrameSensorMeasuresAFrameNoJointUses) {
+  const char* hinge =
+    R"({"name": "j", "type": "revolute", "parent": [["fixed"], "origin"],
+        "child": [["body"], "origin"], "axis": [0, 1, 0],
+        "initial_velocity": 0.5})";
+  std::string sensors;
+  for(const std::string dof : {"Tx", "Tz"}) {
+    sensors += std::string(sensors.empty() ? "" : ", ") +
+               R"({"type": "frame", "name": "tip_)" + dof +
+               R"(", "body_frame_pair": ["body", "tip"],
+                   "quantity": "position", "dof": ")" + dof + R"("})";
+  }
+  shift::core::Context context;
+  LoadModel(context, "sensor_frame_tip", hinge, "", "", 1.0, "",
+            R"(, "sensors": [)" + sensors + "]");
+  context.Simulate();
+  const double a = 0.5 * context.get_force_time();
+  EXPECT_GT(a, 0.49);
+  const double expected[2][2] = {{std::cos(a), -0.5 * std::sin(a)},
+                                 {-std::sin(a), -0.5 * std::cos(a)}};
+  int k = 0;
+  for(const std::string name : {"tip_Tx", "tip_Tz"}) {
+    auto* sensor = FindSensor(context, name);
+    ASSERT_NE(sensor, nullptr) << name;
+    sensor->UpdateOutputs(context.get_force_time(), nullptr);
+    EXPECT_NEAR(sensor->GetOutput("value"), expected[k][0], 1e-7) << name;
+    EXPECT_NEAR(sensor->GetOutput("rate"), expected[k][1], 1e-7) << name;
+    k++;
+  }
+}
+
 /* the HDF5 logger writes a logging sensor's outputs as
 /sensors/<assembly>__<sensor>/<output>, one row per output time: the marker's
 pitch grows at 0.5 rad/s and the body load is steady */

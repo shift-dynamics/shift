@@ -1,0 +1,15 @@
+digraph robot {
+size="12,18";
+
+"(0) fixed" -> "(1) base" [label=" A"];
+"(1) base" -> "(2) link 1" [label=" B"];
+"(2) link 1" -> "(3) link 2" [label=" C"];
+"(3) link 2" -> "(4) link 3" [label=" D"];
+"(4) link 3" -> "(5) link 4" [label=" E"];
+"(5) link 4" -> "(6) link 5" [label=" F"];
+"(6) link 5" -> "(7) link 6" [label=" G"];
+"(7) link 6" -> "(8) link 7" [label=" H"];
+"(8) link 7" -> "(9) hand" [label=" I"];
+"(9) hand" -> "(10) left finger" [label=" J"];
+"(9) hand" -> "(11) right finger" [label=" K"];
+}

@@ -4,6 +4,12 @@
 Getting Started
 ===============
 
+.. figure:: ../images/examples/pendulum.jpg
+    :align: center
+    :width: 600px
+
+    The pendulum of ``examples/pendulum/pendulum.json`` in the viewer
+
 This page builds a model from nothing, runs it, and reads its results. The
 model is :source:`examples/pendulum/pendulum.json`: one link, hinged to the
 fixed frame, swinging under gravity. :ref:`model-file` describes every part
@@ -54,10 +60,13 @@ Step by step:
    its error control.
 #. ``loggers`` writes the results: here a CSV file of every joint's
    coordinates, velocities and accelerations at every ``time_step``.
-#. The body ``link1`` has a frame ``distal`` at its far end, 3 m along its
-   z axis, and its center of mass 1.5 m along y from its origin. ``inertia``
-   holds the mass and the moments of inertia about the center of mass, in
-   the body's axes.
+#. The body ``link1`` is drawn with the mesh ``link.obj``, whose
+   ``scale`` stretches it to the 3 m length of the link (the negative factor
+   along z turns the mesh, drawn along -z, to point along +z). The body has
+   a frame ``distal`` at its far end, 3 m along its z axis, and its center
+   of mass halfway along it, 1.5 m along z from its origin. ``inertia`` holds
+   the mass and the moments of inertia about the center of mass, in the
+   body's axes.
 #. The joint ``fixed_to_link1`` is a revolute joint (a hinge) about the x
    axis, from the fixed body's ``origin`` frame (the *parent*) to the
    origin of ``link1`` (the *child*). It starts at 1 rad, turning at
@@ -93,7 +102,7 @@ coordinate, velocity and acceleration:
 
 followed by the root mean square error of the loop closure equations and
 the potential, kinetic and total energy. The total energy stays at
--10.7572 J from the first row to the last, as it should for a pendulum
+-6.32555 J from the first row to the last, as it should for a pendulum
 without friction. Any force module with outputs adds its own columns (see
 :ref:`logging`).
 

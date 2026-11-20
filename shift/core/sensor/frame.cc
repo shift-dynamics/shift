@@ -98,7 +98,20 @@ void shift::core::sensor::Frame::Connect() {
 void shift::core::sensor::Frame::Update(const double* y) {
   (void)y;
   assert(frame_ && context_);
-  const ksl_SE3_t& d = context_->get_dhva().d[frame_->get_index()];
+  /* frames of joints and constraints, and the nodes of flexible bodies, have
+  their own entry in the displacement array; any other frame, such as one of a
+  body merged into its parent by a rigid joint, is placed from the origin of
+  its body */
+  ksl_SE3_t d;
+  if(frame_->is_in_tree() && frame_->get_index() >= 0) {
+    d = context_->get_dhva().d[frame_->get_index()];
+  } else if(body_ == context_->get_fixed_body()) {
+    d = *frame_->get_d_wrt_origin();
+  } else {
+    const ksl_SE3_t origin =
+      context_->get_body_origin_pose(body_, context_->get_dhva());
+    ksl_product_dd(&origin, frame_->get_d_wrt_origin(), &d);
+  }
 
   /* the spatial velocity of the body is referred to the origin of the fixed
   frame; the velocity of the frame origin t is v + w x t */

@@ -56,7 +56,7 @@ PC                               *pcl_*              parent child list
 :math:`\underline{\mathbf{k}}^*` *wrench*            wrench applied by a joint to its child body
 :math:`\underline{\mathbf{z}}^*` *z_*                bias wrench of a body, see :ref:`articulated_body_algorithms`
 :math:`M^A`                      *inertia_a_*        articulated-body inertia
-:math:`\Psi`                     *psi*               inverse articulated-body inertia of a subassembly
+:math:`\Psi`                     *psi*               inverse of the spatial inertia, :math:`\Psi = M^{-1}`; for a subassembly :math:`\mathcal{A}`, its inverse articulated-body inertia :math:`\Psi^{\mathcal{A}}`
 :math:`\underline{\mathbf{b}}`   *bias*              bias accelerations of the handles of a subassembly
 ================================ =================== ===========
 

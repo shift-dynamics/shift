@@ -1,0 +1,5 @@
+{#- alabaster's navigation.html, with no depth limit: the toctree of the master
+    document is two levels deep, which would hide the pages of the Theory
+    section; collapse still shows only the branch of the current page -#}
+<h3>{{ _('Navigation') }}</h3>
+{{ toctree(includehidden=theme_sidebar_includehidden, collapse=theme_sidebar_collapse, maxdepth=4, titles_only=true) }}

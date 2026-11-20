@@ -205,6 +205,12 @@ Mechanisms
           :alt: kuka_iiwa
      - :source:`examples/kuka_lbr_iiwa_14_r820/kuka_iiwa.json`
      - a 7-axis collaborative robot arm
+   * - .. image:: ../images/examples/kuka_iiwa_gripper.jpg
+          :width: 220px
+          :alt: kuka_iiwa_gripper
+     - :source:`examples/kuka_lbr_iiwa_14_r820/kuka_iiwa_gripper.json`
+     - the arm with a Franka Hand gripper: a branched tree, solved by the
+       articulated-body algorithm
    * - .. image:: ../images/examples/excavator_simple.jpg
           :width: 220px
           :alt: excavator_simple

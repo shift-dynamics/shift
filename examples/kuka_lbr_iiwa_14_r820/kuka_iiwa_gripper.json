@@ -1,0 +1,548 @@
+{
+  "model_parameters": {
+    "version": "0.2",
+    "units": {
+      "angle": "radians",
+      "length": "meters",
+      "mass": "kilograms",
+      "time": "seconds"
+    },
+    "gravity": [0.0, 0.0, 9.81],
+    "include_directories": ["."],
+    "solvers": [
+      {
+        "type": "aba"
+      }
+    ],
+    "integrators": [
+      {
+        "type": "ode113",
+        "time_span": 20,
+        "time_step": 0.01,
+        "relative_error": 1e-09,
+        "absolute_error": 1e-09,
+        "omega_n": 100
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "overhead_1",
+      "T": [0.0, 0.0, -24.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+    },
+    {
+      "name": "overhead_2",
+      "T": [36.0, 36.0, -12.0],
+      "R": [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+    }
+  ],
+  "lights": [
+    {
+      "name": "overhead_1",
+      "type": "point",
+      "parent": ["fixed", "overhead_1"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.8, 0.8, 0.8],
+      "Ks": [1.0, 1.0, 1.0]
+    },
+    {
+      "name": "overhead_2",
+      "type": "point",
+      "parent": ["fixed", "overhead_2"],
+      "Ka": [0.1, 0.1, 0.1],
+      "Kd": [0.8, 0.8, 0.8],
+      "Ks": [1.0, 1.0, 1.0]
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "Kuka LBR IIWA 14-R820 with gripper",
+      "active": true,
+      "bodies": [
+        {
+          "name": "base",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_1.obj", "lbr_iiwa_14_r820_part_1.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "1_distal",
+              "T": [0, 0.0, -0.1575]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.07875],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_1",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_2.obj", "lbr_iiwa_14_r820_part_2.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "2_distal",
+              "T": [0.0, 0.0, -0.2025]
+            }
+          ],
+          "center_of_mass": [0.0, -0.10125, 0.0],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_2",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_3.obj", "lbr_iiwa_14_r820_part_3.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "3_distal",
+              "T": [0, 0, -0.2045]
+            }
+          ],
+          "center_of_mass": [0.0, -0.1225, 0.0],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_3",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_4.obj", "lbr_iiwa_14_r820_part_4.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "4_distal",
+              "T": [0.0, 0.0, -0.21550058]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.10775],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_4",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_5.obj", "lbr_iiwa_14_r820_part_5.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "5_distal",
+              "T": [0.0, 0.0, -0.18450068]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.09225],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_5",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_6.obj", "lbr_iiwa_14_r820_part_6.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "6_distal",
+              "T": [0, 0.0607, -0.2155]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.10775],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_6",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_7.obj", "lbr_iiwa_14_r820_part_7.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "7_distal",
+              "T": [0, -0.0607, -0.0809]
+            }
+          ],
+          "center_of_mass": [0.0, -0.0607, -0.04045],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "link_7",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["lbr_iiwa_14_r820_part_8.obj", "lbr_iiwa_14_r820_part_8.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "8_distal",
+              "T": [0.0, 0.0, -0.0451]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0, -0.0225],
+          "inertia": {
+            "mass": 1.0,
+            "Ixx": 1.0,
+            "Iyy": 1.0,
+            "Izz": 1.0,
+            "Ixy": 0.0,
+            "Iyz": 0.0,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "hand",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["franka_hand_hand.obj", "franka_hand_hand.mtl"]
+            }
+          ],
+          "frames": [
+            {
+              "name": "flange",
+              "T": [0.0, 0.0, 0.0],
+              "R": [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]]
+            },
+            {
+              "name": "left_guide",
+              "T": [0.0, 0.0, 0.0584]
+            },
+            {
+              "name": "right_guide",
+              "T": [0.0, 0.0, 0.0584],
+              "R": [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]
+            }
+          ],
+          "center_of_mass": [-0.0000376, 0.0119128, 0.0207260],
+          "inertia": {
+            "mass": 0.6544,
+            "Ixx": 0.00186,
+            "Iyy": 0.00030,
+            "Izz": 0.00174,
+            "Ixy": 0.0,
+            "Iyz": -0.00002,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "left_finger",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["franka_hand_finger.obj", "franka_hand_finger.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0152850, 0.0219675],
+          "inertia": {
+            "mass": 0.0291,
+            "Ixx": 0.00000849,
+            "Iyy": 0.00000853,
+            "Izz": 0.00000177,
+            "Ixy": 0.0,
+            "Iyz": -0.00000106,
+            "Izx": 0.0
+          }
+        },
+        {
+          "name": "right_finger",
+          "geometry": [
+            {
+              "type": "mesh",
+              "color_space": "srgb",
+              "filename": ["franka_hand_finger.obj", "franka_hand_finger.mtl"]
+            }
+          ],
+          "center_of_mass": [0.0, 0.0152850, 0.0219675],
+          "inertia": {
+            "mass": 0.0291,
+            "Ixx": 0.00000849,
+            "Iyy": 0.00000853,
+            "Izz": 0.00000177,
+            "Ixy": 0.0,
+            "Iyz": -0.00000106,
+            "Izx": 0.0
+          }
+        }
+      ],
+      "joints": [
+        {
+          "name": "A",
+          "type": "rigid",
+          "parent": [
+            ["fixed"],
+            "origin"
+          ],
+          "child": [
+            ["base"],
+            "origin"
+          ],
+          "initial_displacement": {
+            "T": [0, 0, 0]
+          }
+        },
+        {
+          "name": "B",
+          "type": "revolute",
+          "parent": [
+            ["base"],
+            "1_distal"
+          ],
+          "child": [
+            ["link_1"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "C",
+          "type": "revolute",
+          "parent": [
+            ["link_1"],
+            "2_distal"
+          ],
+          "child": [
+            ["link_2"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.7,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "D",
+          "type": "revolute",
+          "parent": [
+            ["link_2"],
+            "3_distal"
+          ],
+          "child": [
+            ["link_3"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "E",
+          "type": "revolute",
+          "parent": [
+            ["link_4"],
+            "origin"
+          ],
+          "child": [
+            ["link_3"],
+            "4_distal"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": -1.1,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "F",
+          "type": "revolute",
+          "parent": [
+            ["link_4"],
+            "5_distal"
+          ],
+          "child": [
+            ["link_5"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "G",
+          "type": "revolute",
+          "parent": [
+            ["link_5"],
+            "6_distal"
+          ],
+          "child": [
+            ["link_6"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.9,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "H",
+          "type": "revolute",
+          "parent": [
+            ["link_6"],
+            "7_distal"
+          ],
+          "child": [
+            ["link_7"],
+            "origin"
+          ],
+          "axis": [0, 0, 1],
+          "initial_displacement": 0.0,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "I",
+          "type": "rigid",
+          "parent": [
+            ["link_7"],
+            "8_distal"
+          ],
+          "child": [
+            ["hand"],
+            "flange"
+          ]
+        },
+        {
+          "name": "J",
+          "type": "prismatic",
+          "parent": [
+            ["hand"],
+            "left_guide"
+          ],
+          "child": [
+            ["left_finger"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.03,
+          "initial_velocity": 0.0
+        },
+        {
+          "name": "K",
+          "type": "prismatic",
+          "parent": [
+            ["hand"],
+            "right_guide"
+          ],
+          "child": [
+            ["right_finger"],
+            "origin"
+          ],
+          "axis": [0, 1, 0],
+          "initial_displacement": 0.03,
+          "initial_velocity": 0.0
+        }
+      ],
+      "sensors": [
+        {
+          "type": "joint",
+          "name": "left_finger_position",
+          "joint": "J",
+          "quantity": "position"
+        },
+        {
+          "type": "joint",
+          "name": "right_finger_position",
+          "joint": "K",
+          "quantity": "position"
+        }
+      ],
+      "controllers": [
+        {
+          "type": "pid",
+          "name": "left_finger_hold",
+          "kp": 200.0,
+          "kd": 3.0,
+          "target": 0.03,
+          "sensor": "left_finger_position",
+          "joint": "J"
+        },
+        {
+          "type": "pid",
+          "name": "right_finger_hold",
+          "kp": 200.0,
+          "kd": 3.0,
+          "target": 0.03,
+          "sensor": "right_finger_position",
+          "joint": "K"
+        }
+      ]
+    }
+  ]
+}
