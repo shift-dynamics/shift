@@ -4,6 +4,7 @@
 #include "shift/core/controller/ik7dof.h"
 #include "shift/core/controller/map.h"
 #include "shift/core/controller/pid.h"
+#include "shift/core/controller/rally_driver.h"
 #include "shift/core/controller/schedule.h"
 
 /* referencing each module's registration keeps its object file, and so its
@@ -13,7 +14,8 @@ bool shift::core::controller::Modules::is_initialized() {
          shift::core::controller::PID::is_registered() &&
          shift::core::controller::Schedule::is_registered() &&
          shift::core::controller::Map::is_registered() &&
-         shift::core::controller::Driver::is_registered();
+         shift::core::controller::Driver::is_registered() &&
+         shift::core::controller::RallyDriver::is_registered();
 }
 
 void shift::core::controller::Base::DeclareParameters() {

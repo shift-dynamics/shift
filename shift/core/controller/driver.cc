@@ -174,6 +174,7 @@ void shift::core::controller::Driver::Connect() {
   the sides) */
   const size_t n = x_.size();
   profile_.assign(n, speed_);
+  curvature_.assign(n, 0.0);
   for(size_t k = 0; k < n; k++) {
     double ax, ay, bx, by;
     PointAt(stations_[k] - wheelbase_, ax, ay);
@@ -184,10 +185,12 @@ void shift::core::controller::Driver::Connect() {
                          std::hypot(bx - px, by - py) *
                          std::hypot(bx - ax, by - ay);
     const double curvature = sides > 0.0 ? 2.0 * std::fabs(cross) / sides : 0.0;
-    if(curvature > 0.0) {
-      profile_[k] =
-        std::min(profile_[k], std::sqrt(lateral_acceleration_ / curvature));
-    }
+    /* the cross product of the sides along the path is positive where it
+    turns from x toward y, to the right */
+    curvature_[k] = cross < 0.0 ? -curvature : curvature;
+  }
+  for(size_t k = 0; k < n; k++) {
+    profile_[k] = std::min(profile_[k], CornerSpeed(curvature_[k]));
   }
   if(!closed_) {
     profile_.back() = 0.0;
@@ -278,6 +281,25 @@ double shift::core::controller::Driver::ProfileSpeed(double s) const {
                    stations_.begin() - 1;
   const double u = (s - stations_[k]) / (stations_[k + 1] - stations_[k]);
   return profile_[k] + u * (profile_[k + 1] - profile_[k]);
+}
+
+double shift::core::controller::Driver::CornerSpeed(double curvature) const {
+  const double k = std::fabs(curvature);
+  return k > 0.0 ? std::sqrt(lateral_acceleration_ / k) : INFINITY;
+}
+
+double shift::core::controller::Driver::CurvatureAt(double s) const {
+  s = Wrap(s);
+  if(s <= 0.0) {
+    return curvature_.front();
+  }
+  if(s >= stations_.back()) {
+    return curvature_.back();
+  }
+  const size_t k = std::upper_bound(stations_.begin(), stations_.end(), s) -
+                   stations_.begin() - 1;
+  const double u = (s - stations_[k]) / (stations_[k + 1] - stations_[k]);
+  return curvature_[k] + u * (curvature_[k + 1] - curvature_[k]);
 }
 
 double shift::core::controller::Driver::Nearest(double x, double y,
@@ -371,7 +393,13 @@ void shift::core::controller::Driver::Compute() {
   ksl_cross_vv(&v.ang, &d.t, &w_t);
   const ksl_vec3_t velocity =
     ksl_vec3(v.lin.x + w_t.x, v.lin.y + w_t.y, v.lin.z + w_t.z);
-  Drive(d, ksl_dot_vv(&d.R.v0, &velocity));
+  DriveMotion(d, velocity, ksl_dot_vv(&d.R.v2, &v.ang));
+}
+
+void shift::core::controller::Driver::DriveMotion(const ksl_SE3_t& pose,
+                                                  const ksl_vec3_t& velocity,
+                                                  double) {
+  Drive(pose, ksl_dot_vv(&pose.R.v0, &velocity));
 }
 
 void shift::core::controller::Driver::UpdateOutputs(double, const double*) {

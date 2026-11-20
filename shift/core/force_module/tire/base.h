@@ -78,9 +78,16 @@ public:
     return contact_;
   }
 
-  /*! \brief the tire model */
+  /*! \brief the tire model; set by Load */
   const Model* get_model() const {
     return model_;
+  }
+
+  /*! \brief the Iowa tire as its JSON gives it, before Load resolves its
+   * soil and prepares it (for those that need it at Connect, before Load);
+   * null if tire_type is not "iowa" */
+  const Iowa* get_iowa() const {
+    return tire_type_ == "iowa" ? &iowa_ : nullptr;
   }
 
   /*! \brief force and moment on the wheel in the contact frame */

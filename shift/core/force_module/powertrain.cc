@@ -738,6 +738,95 @@ double shift::core::force_module::Powertrain::EngineTorque(
   return f * torque_table_.Evaluate(speed) + (1.0 - f) * motoring;
 }
 
+double shift::core::force_module::Powertrain::OverallRatio(int gear) const {
+  const auto& t = transmission_;
+  const auto& axles =
+    const_cast<parameter::Array<PowertrainAxle>&>(axles_).get_data();
+  if(gear < 1 || gear > static_cast<int>(t.ratios.size()) || axles.empty()) {
+    return 0.0;
+  }
+  double ratio = 0.0;
+  for(const auto& axle : axles) {
+    ratio += axle->final_drive * axle->transfer_ratio;
+  }
+  return t.ratios[gear - 1] * ratio / axles.size();
+}
+
+double shift::core::force_module::Powertrain::FullWheelTorque(
+  double wheel_speed, int gear) const {
+  const auto& t = transmission_;
+  const auto& axles =
+    const_cast<parameter::Array<PowertrainAxle>&>(axles_).get_data();
+  if(gear < 1 || gear > static_cast<int>(t.ratios.size()) || axles.empty()) {
+    return 0.0;
+  }
+  double ratio = 0.0, efficiency = 0.0;
+  for(const auto& axle : axles) {
+    ratio += axle->final_drive * axle->transfer_ratio;
+    efficiency += axle->efficiency;
+  }
+  ratio /= axles.size();
+  efficiency /= axles.size();
+  const double gear_ratio = t.ratios[gear - 1];
+  const double gear_efficiency =
+    t.efficiencies.empty() ? 1.0 : t.efficiencies[gear - 1];
+  const double w_o = ratio * wheel_speed;
+  const double tau_o = torque_table_.Evaluate(gear_ratio * w_o) * gear_ratio *
+                         gear_efficiency -
+                       t.spin_loss * w_o - t.drag_torque;
+  return tau_o * ratio * efficiency;
+}
+
+double shift::core::force_module::Powertrain::get_wheel_speed() const {
+  const auto& axles =
+    const_cast<parameter::Array<PowertrainAxle>&>(axles_).get_data();
+  if(axles.empty() || outputs_.size() < 5) {
+    return 0.0;
+  }
+  double ratio = 0.0;
+  for(const auto& axle : axles) {
+    ratio += axle->final_drive * axle->transfer_ratio;
+  }
+  ratio /= axles.size();
+  return ratio > 0.0 ? outputs_[4] / ratio : 0.0;
+}
+
+double shift::core::force_module::Powertrain::SteadyThrottle(
+  double wheel_speed, int gear, double wheel_torque) const {
+  const auto& t = transmission_;
+  if(gear < 1 || gear > static_cast<int>(t.ratios.size())) {
+    return 0.0;
+  }
+  /* get_data is not const; reading the axles does not change the array */
+  const auto& axles =
+    const_cast<parameter::Array<PowertrainAxle>&>(axles_).get_data();
+  double ratio = 0.0, efficiency = 0.0;
+  for(const auto& axle : axles) {
+    ratio += axle->final_drive * axle->transfer_ratio;
+    efficiency += axle->efficiency;
+  }
+  if(axles.empty()) {
+    return 0.0;
+  }
+  ratio /= axles.size();
+  efficiency /= axles.size();
+  const double gear_ratio = t.ratios[gear - 1];
+  const double gear_efficiency =
+    t.efficiencies.empty() ? 1.0 : t.efficiencies[gear - 1];
+  const double w_o = ratio * wheel_speed;
+  const double w_e = gear_ratio * w_o;
+  const double tau_o = wheel_torque / (ratio * efficiency);
+  const double tau_e = (tau_o + t.spin_loss * w_o + t.drag_torque) /
+                       (gear_ratio * gear_efficiency);
+  const double full = torque_table_.Evaluate(w_e);
+  const double closed =
+    friction_table_.empty() ? 0.0 : friction_table_.Evaluate(w_e);
+  if(!(full > closed)) {
+    return tau_e > closed ? 1.0 : 0.0;
+  }
+  return std::min(std::max((tau_e - closed) / (full - closed), 0.0), 1.0);
+}
+
 void shift::core::force_module::Powertrain::CouplingTorques(
   double w_e, double w_t, double* on_pump, double* on_turbine, double* ratio,
   double lockup_friction) const {

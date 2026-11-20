@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <ksl/SE3.h>
+#include <ksl/vec3.h>
 
 #include "shift/core/controller/base.h"
 
@@ -122,6 +123,10 @@ public:
    * vehicle's frame */
   void Drive(const ksl_SE3_t& pose, double speed);
 
+  /*! \brief the signed curvature of the path at station s (1/m), positive
+   * where it turns right (about z, down) */
+  double CurvatureAt(double s) const;
+
   double get_steering() const {
     return steering_;
   }
@@ -144,6 +149,17 @@ public:
     return lateral_error_;
   }
 
+protected:
+  /*! \brief the outputs for the pose of the vehicle's frame, the velocity
+   * of its origin in the fixed frame and its rate of yaw, about its z axis
+   * (rad/s): those of Drive, from the speed along the frame's x axis */
+  virtual void DriveMotion(const ksl_SE3_t& pose, const ksl_vec3_t& velocity,
+                           double yaw_rate);
+  /*! \brief the greatest speed of the profile on the signed curvature
+   * (1/m), before the accelerations: \f$\sqrt{a_{lat} / |\kappa|}\f$ with
+   * lateral_acceleration, unbounded on a straight */
+  virtual double CornerSpeed(double curvature) const;
+
 private:
   void Initialize() {
     type_ = "driver";
@@ -160,6 +176,7 @@ private:
 
   static bool registered_;
 
+protected:
   std::vector<std::string> body_frame_pair_;
   std::vector<double> path_;
   bool closed_ = false;
@@ -182,6 +199,7 @@ private:
   std::vector<double> x_, y_;      //!< the points, the first repeated if closed
   std::vector<double> stations_;   //!< station of each point
   std::vector<double> profile_;    //!< target speed at each point
+  std::vector<double> curvature_;  //!< signed curvature at each point (1/m)
 
   double steering_ = 0.0;
   double throttle_ = 0.0;

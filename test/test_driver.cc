@@ -238,3 +238,50 @@ TEST(Driver, Checks) {
               .find("frame 'front'"),
             std::string::npos);
 }
+
+/* the rally driver (controller::RallyDriver) checks its powertrain and its
+tire: the regulator of the slides needs a powertrain, one named must be a
+powertrain of its assembly, and the tire a tire force module of it */
+TEST(Driver, RallyDriverChecks) {
+  auto rally = [](const std::string& driver) {
+    std::string json = Model(driver);
+    const std::string type = R"("type": "driver")";
+    json.replace(json.find(type), type.size(), R"("type": "rally_driver")");
+    shift::core::Context context;
+    try {
+      Load(context, json);
+    } catch(const std::exception& e) {
+      return std::string(e.what());
+    } catch(...) {
+      return std::string("unknown error");
+    }
+    return std::string();
+  };
+  const std::string path = R"("wheelbase": 2.5, "path": [0, 0, 100, 0],
+    "mass": 1413, "yaw_inertia": 2100, "center_of_mass": 1.29,
+    "center_of_mass_height": 0.45, "track": 1.5, "tire": "tire", )";
+  EXPECT_NE(rally(path + R"("regulator": true)").find("needs the powertrain"),
+            std::string::npos);
+  EXPECT_NE(rally(path + R"("powertrain": "drive")")
+              .find("is not a powertrain"),
+            std::string::npos);
+  // the slides take the tire of the wheels from its force module, which
+  // connects after the controllers and loads after them too
+  EXPECT_NE(rally(path + R"("slide_angle": 0.2)").find("is not a tire"),
+            std::string::npos);
+  std::string json = Model(path + R"("slide_angle": 0.2)");
+  const std::string type = R"("type": "driver")";
+  json.replace(json.find(type), type.size(), R"("type": "rally_driver")");
+  const std::string controllers = R"("controllers": [)";
+  json.replace(json.find(controllers), controllers.size(),
+               R"("force_modules": [{"type": "tire", "name": "tire",
+                   "tire_type": "iowa", "wheel_body": "car",
+                   "iowa": {"unloaded_radius": 0.314,
+                            "vertical_stiffness": 180000,
+                            "friction_coefficient": 0.75,
+                            "cornering_stiffness": 35000,
+                            "combined_slip": true}}],
+                 "controllers": [)");
+  shift::core::Context context;
+  EXPECT_NO_THROW(Load(context, json));
+}

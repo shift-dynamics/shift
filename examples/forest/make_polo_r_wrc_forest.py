@@ -68,7 +68,10 @@ def build_model():
     lamps["output"] = "brake"
     brakes = ["force_modules/drive/brakes/" + side + "_" + end + "/pressure"
               for side in ("left", "right") for end in ("front", "rear")]
-    angle = 0.5
+    # the driver's lock, that of the rack's stops
+    stops = next(f for f in assembly["force_modules"]
+                 if f["name"] == "rack_stops")
+    angle = round(stops["gap"] / RACK_PER_RADIAN, 6)
     # the bends taken at 4.5 m/s^2, short of the grip of the gravel, so that
     # the car slides only where the stage makes it, in the off-camber left
     # over a crest; at 5 m/s^2 it slides in the bends of the descent after it

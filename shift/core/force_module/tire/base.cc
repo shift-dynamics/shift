@@ -151,6 +151,7 @@ void shift::core::force_module::tire::Base::UpdateContact(
 
   contact_.in_contact = false;
   contact_.depth = 0.0;
+  contact_.soil = nullptr;
   const int segments = model_->get_contact_segments();
   if(segments > 0) {
     UpdateSlicedContact(hub, velocity, segments);
@@ -362,6 +363,13 @@ void shift::core::force_module::tire::Base::SetContact(
   /* 15 */
   contact_.depth = depth;
   contact_.in_contact = true;
+  /* the soil of the terrain under the contact, if one has soil there */
+  contact_.soil = nullptr;
+  for(auto terrain : context_->get_active_terrain()) {
+    if((contact_.soil = terrain->SoilAt(origin))) {
+      break;
+    }
+  }
 
   /* 10 - 14: contact frame, x heading, z terrain normal, y = z x x */
   ksl_vec3_t y_direction;

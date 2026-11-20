@@ -210,6 +210,14 @@ BUMP_GAP, REBOUND_GAP = 0.10, 0.13
 BUMP_CURVE = [-0.04, -60000.0, -0.03, -24000.0, -0.02, -8000.0,
               -0.01, -2000.0, 0.0, 0.0]
 rack_origin = [1.07, 0.0, -0.24]
+# the steering: the rack moves 0.135 m per radian of the front wheels (the
+# steering arm, from the axle to the outer ball joint of the tie rod), out to
+# its stops at STEERING_LOCK of the road wheels (rad), about the 30 degrees of
+# a rally car (against 40 to 50 on the road); a steel stop with a rubber
+# washer at each end of the rack
+RACK_PER_RADIAN = 0.135
+STEERING_LOCK = 0.5
+RACK_STOP_STIFFNESS, RACK_STOP_DAMPING = 5.0e6, 5000.0
 # the halfshafts run from the differentials, near the middle of the car, to
 # the hubs; the prop shaft joins the differentials along the tunnel
 halfshaft_inner_y, halfshaft_z = 0.16, -0.30
@@ -348,16 +356,27 @@ def universal(name, parent, child, first, along):
 
 
 def tire(c):
-    """the Iowa tire, with a relaxation length, on gravel"""
+    """the Iowa tire, with a relaxation length and combined slip, on gravel"""
     force_modules.append({
         "type": "tire", "name": c + "tire", "tire_type": "iowa",
         "wheel_body": c + "wheel",
         "iowa": {"unloaded_radius": radius, "vertical_stiffness": 180000.0,
-                 "vertical_damping": 1500.0, "friction_coefficient": 0.75,
+                 "vertical_damping": 1500.0,
+                 # friction on gravel: measured 0.4 to 0.52 for road tyres
+                 # (Wang, Alexander and Rajamani, MnDOT 2005-04; Proctor-
+                 # Parker and Stopforth, SATC 2019) and 0.6 in the loose
+                 # surface curves of Tavernini et al. (VSD 51(10), 2013),
+                 # the top of that range for a gravel rally tyre
+                 "friction_coefficient": 0.6,
                  "rolling_resistance": 0.025,
                  "cornering_stiffness": 35000.0,
                  "aligning_coefficient": 0.03, "relaxation_length": 0.3,
-                 "segments": 20}})
+                 "combined_slip": True,
+                 # no peak on soil (gravel, grass), as measured off the road;
+                 # no load sensitivity: off the road the friction coefficient
+                 # hardly falls with the load (Schwanghart, 1968, and Del
+                 # Rosario, 1980, in El-Razaz, Leeds, 1988)
+                 "saturation": "soil", "segments": 20}})
 
 
 # floating chassis: x, y, z, roll, pitch, yaw
@@ -373,6 +392,18 @@ for k, (kind, axis, q0) in enumerate([
 # steering rack (not drawn), moved by a PID controller and a damper standing
 # in for the steering column and the driver's hands on the wheel
 chassis_frames.append({"name": "steering_rack", "T": r(rack_origin)})
+# the rack's stops: a spring from a frame on the body 0.3 m to the left of
+# the rack's middle to its origin, its length 0.3 m and the rack's travel,
+# that acts past STEERING_LOCK of the road wheels to either side
+chassis_frames.append({"name": "rack_stop",
+                       "T": r(add(rack_origin, [0.0, -0.3, 0.0]))})
+force_modules.append({
+    "type": "spring_damper", "name": "rack_stops",
+    "frames": [["chassis", "rack_stop"], ["steering_rack", "origin"]],
+    "free_length": 0.3, "acts": "both",
+    "gap": round(STEERING_LOCK * RACK_PER_RADIAN, 6),
+    "stiffness": RACK_STOP_STIFFNESS, "damping": RACK_STOP_DAMPING,
+    "smoothing": 0.001})
 bodies.append({"name": "steering_rack", "geometry": [],
                "frames": rack_frames, "center_of_mass": [0.0, 0.0, 0.0],
                "inertia": inertia(3.0, 0.08, 0.001, 0.08)})
@@ -920,6 +951,29 @@ bodies.insert(0, {
     "comment": "estimated: body shell, roll cage, engine, transmission, "
                "crew and fuel",
     "inertia": inertia(masses["chassis"], 420.0, 1600.0, 1750.0)})
+
+# the body shell's contact with the ground, so that a car on its roof or its
+# side rests on the shell, its wheels clear: points on the shell of
+# chassis.glb (its roof 1.30 m above the chassis' origin, at the ground at
+# rest, the wheels' tops 0.63 m), each pressing on the terrain under it, the
+# shell's sheet metal sliding on gravel
+BODY_CONTACT_POINTS = (
+    # the roof, its edges and the rear wing
+    [(x, y, -1.28) for x in (-0.7, -0.2, 0.25) for y in (-0.45, 0.0, 0.45)] +
+    [(x, y, -1.18) for x in (-0.7, 0.2) for y in (-0.62, 0.62)] +
+    [(-1.75, y, -1.29) for y in (-0.5, 0.5)] +
+    # the windscreen's foot, the bonnet and the nose
+    [(0.75, y, -0.96) for y in (-0.55, 0.55)] +
+    [(1.4, y, -0.8) for y in (-0.6, 0.6)] +
+    [(1.95, y, -0.42) for y in (-0.35, 0.35)] +
+    # the sides at the belt line and the sills, the tailgate
+    [(x, y, -0.78) for x in (-1.3, -0.4, 0.5) for y in (-0.8, 0.8)] +
+    [(x, y, -0.3) for x in (-0.6, 0.3) for y in (-0.78, 0.78)] +
+    [(-1.82, y, -0.9) for y in (-0.5, 0.5)])
+force_modules.append({
+    "type": "terrain_contact", "name": "body_contact", "body": "chassis",
+    "points": [v for p in BODY_CONTACT_POINTS for v in p],
+    "stiffness": 2.0e5, "damping": 0.5, "friction": 0.5})
 
 # the drivetrain. The ratios are estimates: a close ratio sequential box over
 # a final drive of 3.5, sixth reaching about 190 km/h at 7,500 rpm and first

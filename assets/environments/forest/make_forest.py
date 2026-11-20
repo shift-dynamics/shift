@@ -332,24 +332,30 @@ def forest_parts(model_dir):
             {"name": "forest_floor", "label": "ground",
              **texture_set("forest_leaves_02", 2.5, 0.9,
                            color=[0.42, 0.46, 0.34]),
+             # loose loam under the leaves: a wheel of the Polo sinks about
+             # 3 cm, with a compaction resistance of about 0.17 of its load
              "soil": {"name": "sandy_loam"}},
             {"name": "gravel", "label": "gravel",
              # stones a few centimeters proud of the dirt
              **texture_set("rocky_trail", 2.0, 0.85, height=True,
                            height_scale=0.06),
-             "soil": {"name": "sandy_loam"}},
+             # a loose layer on a packed base: under a wheel of the Polo
+             # (3.5 kN) it sinks about 0.4 mm, with a compaction resistance
+             # of about 0.02 of the load besides the tire's own
+             "soil": {"name": "sandy_loam", "frictional_modulus": 2.7e8}},
             {"name": "wheel_lines", "label": "gravel",
              **texture_set("rocky_trail", 2.0, 0.8, normal_scale=0.4,
                            color=[0.78, 0.74, 0.70]),
-             "soil": {"name": "sandy_loam"}},
+             # packed by the cars: nearly rigid, about 0.005 of the load
+             "soil": {"name": "sandy_loam", "frictional_modulus": 7.5e9}},
             {"name": "verge", "label": "grass",
              **texture_set("sparse_grass", 2.0, 0.9,
                            color=[0.9, 0.95, 0.8]),
-             "soil": {"name": "sandy_loam"}},
+             # grass on topsoil: about 4 mm, 0.06 of the load
+             "soil": {"name": "sandy_loam", "frictional_modulus": 1.9e7}},
             {"name": "rock", "label": "rock",
              **texture_set("mossy_rock", 3.0, 0.75, height=True,
-                           height_scale=0.1),
-             "soil": {"name": "sandy_loam"}},
+                           height_scale=0.1)},
         ],
         "terrain": [
             {"type": "basic", "name": "forest_stage",
