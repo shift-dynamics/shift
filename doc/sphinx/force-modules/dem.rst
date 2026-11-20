@@ -9,7 +9,7 @@ method), and couples the grains to bodies of the model: the grains touch a
 body on the triangles of its geometry and push back on it. The grains run on
 the GPU, or on the CPU for a few thousand of them. The contact law, the
 integration of the grains, the search for contacts and the coupling are
-described on the theory page :doc:`../dem/dem`.
+described on the theory page :doc:`../contact/dem`.
 
 .. code:: javascript
 

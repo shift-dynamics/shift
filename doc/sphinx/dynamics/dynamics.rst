@@ -1,163 +1,16 @@
-.. title:: Generalized Coordinate Partitioning
+.. title:: Dynamics for Closed Loops
 
 .. _generalized_coordinate_partitioning:
 
 
-Dynamics
-========
+Dynamics for Closed Loops
+=========================
 
-Spatial Equations of Motion for a Rigid Body
----------------------------------------------
-
-In the present notation, the *spatial* equations of motion for a rigid body :math:`b` expressed in the fixed inertial reference frame :math:`f` can be found from the time derivative of spatial momentum. Frame :math:`c` is fixed in body :math:`b`, with its origin at the center of mass and its axes along the principal axes of inertia.
-
-.. math::
-  :label: newton_1
-
-  \underline{\mathbf{g}}_{b,f}^{*f} = \frac{d}{dt}\underline{\mathbf{p}}_{b,f}^{*f} = \frac{d}{dt}\left( M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f}\right)
-
-
-where :math:`\underline{\mathbf{g}}_{b,f}^{*f}` is the wrench acting on body :math:`b`, such as from gravity or externally applied forces and torques, taken at the origin of :math:`f` and in :math:`f` coordinates, :math:`\underline{\mathbf{p}}_{b,f}^{*f}` is the spatial momentum of body :math:`b`, and :math:`\underline{\mathbf{v}}_{fc,f}^{f}` is the velocity screw of frame :math:`c` relative to :math:`f`, taken at the origin of :math:`f` and in :math:`f` coordinates. Using the chain rule, the right hand side is expanded as:
-
-.. math::
-  :label: spatial_1
-
-  \underline{\mathbf{g}}_{b,f}^{*f} = \dot{M}_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f} + M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
-
-
-The spatial inertia at the origin of :math:`f` is found from the inertia :math:`M_{b,cc}^{cc}` at the center of mass:
-
-.. math::
-  :label: eq:M_ff
-
-  M_{b,ff}^{ff} = [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}
-
-
-Noting that :math:`M_{b,cc}^{cc}` in the centroidal reference frame is constant, :math:`\dot{M}_{b,ff}^{ff}` can be found using the chain rule as:
-
-.. math::
-  :label: eq:M_der
-
-  \dot{M}_{b,ff}^{ff} = \dot{[Ad]}^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} + [Ad]^{*fc}_{fc}M_{b,cc}^{cc}\dot{[Ad]}_{cf}^{cf}
-
-
-where :math:`\dot{[Ad]}^{*fc}_{fc} = [ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}` and :math:`\dot{[Ad]}_{cf}^{cf} = -[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}`, with :math:`[ad]_{fc,f}^{f}` and :math:`[ad]^{*f}_{fc,f}` formed from :math:`\underline{\mathbf{v}}_{fc,f}^{f}`:
-
-.. math::
-  :label: eq:M_der2
-
-  \dot{M}_{b,ff}^{ff} = [ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} -
-  [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}
-
-
-yielding:
-
-.. math::
-  :label: eq:spatial2
-
-  \underline{\mathbf{g}}_{b,f}^{*f} = \left([ad]^{*f}_{fc,f}[Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf} -
-  [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}[ad]_{fc,f}^{f}\right)\underline{\mathbf{v}}_{fc,f}^{f} + [Ad]^{*fc}_{fc}M_{b,cc}^{cc}[Ad]_{cf}^{cf}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
-
-
-Which is further simplified as:
-
-.. math::
-  :label: eq:spatial3
-
-  \require{cancel}
-  \underline{\mathbf{g}}_{b,f}^{*f} = [ad]^{*f}_{fc,f}M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f} - \cancel{M_{b,ff}^{ff}[ad]_{fc,f}^{f}\underline{\mathbf{v}}_{fc,f}^{f}} + M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f}
-
-
-The term :math:`M_{b,ff}^{ff}[ad]_{fc,f}^{f}\underline{\mathbf{v}}_{fc,f}^{f}` cancels because the matrix product :math:`\begin{bmatrix}\tilde{\omega}_{fc}^{f} & \tilde{v}_{fc,f}^{f}\\ 0 & \tilde{\omega}_{fc}^{f}\end{bmatrix} \begin{Bmatrix}\underline{v}_{fc,f}^{f}\\ \underline{\omega}_{fc}^{f} \end{Bmatrix}` is zero.
-
-The final form of the spatial equations of motion may be written as:
-
-.. math::
-  :label: eq:spatial_final
-
-  M_{b,ff}^{ff}\dot{\underline{\mathbf{v}}}_{fc,f}^{f} = \underline{\mathbf{g}}_{b,f}^{*f} - [ad]^{*f}_{fc,f}M_{b,ff}^{ff}\underline{\mathbf{v}}_{fc,f}^{f}
-
-
-Comparison to Newton-Euler Equations
-************************************
-
-The equations take the same form in the coordinates of frame :math:`c`, at its origin. With the velocity screw :math:`\underline{\mathbf{v}}_{fc,c}^{c}` of :math:`c` relative to :math:`f`, taken at the center of mass and in :math:`c` coordinates, and the inertia :math:`M_{b,cc}^{cc}`, they expand as:
-
-.. math::
-  :label: eq:spatial_expand
-
-  \begin{Bmatrix}
-    \underline{f}_{b}^{c} \\
-    \underline{\tau}_{b,c}^{c}
-  \end{Bmatrix}=
-  \begin{bmatrix}
-    mI & 0\\ 0 & \bar{I}_{b,cc}^{cc}
-  \end{bmatrix}
-  \begin{Bmatrix}
-    \underline{\dot{v}}_{fc,c}^{c}\\
-    \dot{\underline{\omega}}_{fc}^{c}
-  \end{Bmatrix} +
-  \begin{bmatrix}
-    \tilde{\omega}_{fc}^{c} & 0 \\
-    \tilde{v}_{fc,c}^{c} & \tilde{\omega}_{fc}^{c}
-  \end{bmatrix}
-  \begin{bmatrix}
-    mI & 0\\
-    0 & \bar{I}_{b,cc}^{cc}
-  \end{bmatrix}
-  \begin{Bmatrix}
-    \underline{v}_{fc,c}^{c}\\
-    \underline{\omega}_{fc}^{c}
-  \end{Bmatrix}
-
-
-where :math:`\underline{f}_{b}^{c}` is the force on body :math:`b` and :math:`\underline{\tau}_{b,c}^{c}` the torque on it about its center of mass. Since :math:`\tilde{v}_{fc,c}^{c}\,m\underline{v}_{fc,c}^{c} = 0`, this is:
-
-.. math::
-  :label: eq:spatial_expand2
-
-  \begin{Bmatrix}
-    \underline{f}_{b}^{c} \\
-    \underline{\tau}_{b,c}^{c}
-  \end{Bmatrix}=
-  \begin{bmatrix}
-    mI & 0\\ 0 & \bar{I}_{b,cc}^{cc}
-  \end{bmatrix}
-  \begin{Bmatrix}
-    \underline{\dot{v}}_{fc,c}^{c} \\
-    \dot{\underline{\omega}}_{fc}^{c}
-  \end{Bmatrix} +
-  \begin{Bmatrix}
-    m\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}\\
-    \tilde{\omega}_{fc}^{c}\bar{I}_{b,cc}^{cc}\underline{\omega}_{fc}^{c}
-  \end{Bmatrix}
-
-
-The Newton-Euler equations of motion are written with the classical acceleration of the center of mass, :math:`\underline{a}_{fc,c}^{c} = \underline{\dot{v}}_{fc,c}^{c} + \tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}`:
-
-.. math::
-  :label: eq:newton_euler
-
-  \begin{Bmatrix}
-    \underline{f}_{b}^{c} \\
-    \underline{\tau}_{b,c}^{c}
-  \end{Bmatrix}=
-  \begin{bmatrix}
-  mI & 0\\
-  0 & \bar{I}_{b,cc}^{cc}
-  \end{bmatrix}
-  \begin{Bmatrix}
-  \underline{a}_{fc,c}^{c}\\
-  \dot{\underline{\omega}}_{fc}^{c}
-  \end{Bmatrix}+
-  \begin{Bmatrix}
-  0\\
-  \tilde{\omega}_{fc}^{c}\bar{I}_{b,cc}^{cc}\underline{\omega}_{fc}^{c}
-  \end{Bmatrix}
-
-
-so the two agree. The translational component of the spatial acceleration, :math:`\underline{\dot{v}}_{fc,c}^{c}`, differs from the classical acceleration by :math:`\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}`. Care must be taken when interpreting spatial accelerations: they are equal only when :math:`\tilde{\omega}_{fc}^{c}\underline{v}_{fc,c}^{c}` is zero, for example when the body does not rotate.
-
+A mechanism with closed kinematic loops has more joint coordinates than degrees
+of freedom, and the loop closure equations constrain them. *Shift* solves such
+mechanisms with the ``"rnca"`` solver, the run-time optimized natural
+constraint algorithm, described in the sections below. It handles any
+topology, including closed loops.
 
 Dynamic Equations for a Multi-rigid Body System
 -----------------------------------------------
@@ -452,6 +305,11 @@ This new set of constraint equations can be used in place of Eq. :eq:`eq:alterna
     \end{Bmatrix}=
     \begin{Bmatrix}\underline{f}^{\ell i}\\ \underline{f}^{\ell d} \\ \underline{\gamma}^d
     \end{Bmatrix}
+
+
+The preconditioned form of Eq. :eq:`eq:preconditioned_eqns` requires the partition of Eq. :eq:`eq:conventional_gcp`, and with it the factorization of the Jacobian matrix by GECP. One bottleneck in the solution process is the GECP algorithm itself, a triple-loop procedure whose operation count, Eq. :eq:`eq:gecp_flops`, grows with the cube of the size of the Jacobian (see :ref:`kinematic_substructuring`). Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) :cite:`mani1985,wehage1993` or Congruency Transformations :cite:`loduha1995`. Note that the run--time of these alternative methods is increased over GECP; for example, SVD requires :math:`4m^2n+22n^3` FLOPS using the R-SVD algorithm :cite:`golub1996matrix`.
+
+Although the GECP algorithm is more efficient than alternative partitioning strategies, due to its :math:`\mathcal{O}(n^3)` complexity and memory access requirements, calling the GECP algorithm should be avoided whenever possible. Certainly, one strategy to improve performance would be to call GECP only once at the beginning of a program's execution. As kinematic bifurcations are common in even relatively simple mechanisms and the primary system of constraints are subject to change, this approach comes at the expense of robustness and is not recommended. Alternatively, one could conservatively call GECP at every time step---and pay a substantial performance penalty. Other approaches call GECP at regular intervals or use a heuristic method to determine when to repartition the Jacobian matrix. Regardless of the specific method used, the robust numerical solution of dynamic equations may require performing GECP many times in the course of a simulation, and strategies to improve GECP algorithm performance are important. *Shift* uses the heuristic of :ref:`gecp_partition`: it factors the Jacobian again when the infinity norm of :math:`B^{di}` has grown by the factor ``infinity_norm_multiplier`` since the last partition. A second strategy is kinematic substructuring (see :ref:`kinematic_substructuring`), which permutes the Jacobian to block-diagonal form so that each block is factored on its own; the next section shows how the equations of motion are arranged to take advantage of it.
 
 
 Dynamics Equations with Kinematic Substructures
@@ -1923,3 +1781,31 @@ Finally, once the permutations are set, :code:`b3` can be populated as:
               if substructure["J_B"][i][j]:
                   b3[pb_32[k]] = substructure["J"][i][j]
                   k += 1
+
+
+.. _solving_each_tree:
+
+Solving Each Tree by Its Own Algorithm
+--------------------------------------
+
+The trees of the kinematic forest are dynamically independent unless a chord
+constraint closes a loop through them (see :ref:`closed_loops`). Their
+generalized mass matrix :math:`M^{\ell}` is therefore block diagonal, one block
+per tree, and the constraint Jacobian :math:`J` has no entries for the
+variables of the trees without closed loops. The ``"auto"`` solver uses this to
+split the equations of motion:
+
+#. The bodies of the trees without closed loops are left out of the mass matrix
+   and the right-hand side that RNCA assembles. The rows and columns of their
+   variables in :math:`M^{\ell}` stay empty, so RNCA's sparse factorization,
+   which records operations only for the nonzero entries, does no work for
+   them; they are independent variables that RNCA neither pivots nor solves.
+#. RNCA solves the trees with closed loops, with their constraint Jacobian and
+   the generalized coordinate partitioning, as if they were the whole model.
+#. The articulated-body (or divide-and-conquer) algorithm solves the remaining
+   trees, from the same velocities, quadratic accelerations and applied forces.
+
+The kinetic and potential energies reported for the model are the sums of
+those of the two parts. A model without closed loops is solved entirely by the
+articulated-body algorithm, and one whose trees all have closed loops entirely
+by RNCA.

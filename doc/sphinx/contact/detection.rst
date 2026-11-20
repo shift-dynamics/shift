@@ -481,13 +481,20 @@ geometries, and both geometries of a pair, to be compared in one coordinate
 system.
 
 
-Contact Detection on the Graphics Processor
--------------------------------------------
+Contact Detection and the Graphics Processor
+--------------------------------------------
 
-*Shift* computes contact detection on the central processor, distributing the
-poses of the geometries and the tests of the candidate pairs among its threads.
-The graphics processor is used only to draw the model. A graphics processor
-executes one operation on many data at once, with thousands of arithmetic units
+*Shift* detects contact between the bodies of a model on the central
+processor, distributing the poses of the geometries and the tests of the
+candidate pairs among its threads. The graphics processor draws the model, and
+it computes the granular materials: the grains of the discrete element method
+and their contacts with each other and with the bodies of the model (see
+:ref:`dem_theory`), and the particles of the SPH soil and the forces they
+exert on the bodies (see :doc:`../force-modules/soil`). Both consist of many
+thousands of grains or particles that each perform the same computation. The remainder of this
+section considers whether the detection of contact between bodies would also
+gain from the graphics processor. A graphics processor executes one operation
+on many data at once, with thousands of arithmetic units
 working in parallel; it attains its throughput, the amount of work completed
 per unit time, when the work consists of many independent tasks of equal
 length that perform the same operations. The parts of contact detection differ
@@ -540,5 +547,8 @@ precision, while single precision is insufficient for depths of penetration of
 micrometers on bodies of meters. Third, the results must not depend on the
 order in which the parallel tasks complete, as they do not on the central
 processor. Moving detection to the graphics processor is therefore
-worthwhile for models of many bodies of primitive shapes, and for many terrain
-queries, rather than for models of a few STEP parts.
+worthwhile only for models with many bodies of primitive shapes, in which the
+many pairs found by the broad phase can be tested together, as for the grains
+of the discrete element method. It is not worthwhile for models of a few STEP
+parts, whose search does not map onto the graphics processor, nor for terrain
+queries, each of which has a constant cost below that of the transfer.

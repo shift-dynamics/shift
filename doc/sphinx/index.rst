@@ -17,46 +17,18 @@ Shift: A Dynamics Engine and Visualization Tool for Automation, Robotics and Veh
     </figure>
     <script src="_static/showreel.js"></script>
 
-using shift
------------
 .. toctree::
    :maxdepth: 2
 
    about
-   installation
-   getting-started/getting-started
-   model-file/model-file
-   flexible-bodies/flexible-bodies
-   force-modules/force-modules
-   sensors/sensors
-   controllers/controllers
-   logging/logging
-   examples/examples
-
-theory
-------
-.. toctree::
-   :maxdepth: 2
-
-   notation/notation
-   topology/topology
-   dynamics/dynamics
-   dynamics/articulated_body_algorithms
-   contact/contact
-   dem/dem
-
-developer reference
--------------------
-.. toctree::
-   :maxdepth: 2
-
-   force-modules/writing-a-force-module
+   users-guide
    api/api
+   theory/theory
    contributing/contributing
-   zreferences
+   bibliography
 
 
-indices and tables
-------------------
+Index
+-----
 
 * :ref:`genindex`

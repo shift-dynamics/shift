@@ -44,3 +44,8 @@ Changes
 Every change comes with tests (see :doc:`../force-modules/writing-a-force-module`)
 and keeps ``meson test -C build`` passing. A new kind of model also gets a
 small example in ``examples/`` and a page in these documents.
+
+.. toctree::
+   :maxdepth: 2
+
+   ../force-modules/writing-a-force-module

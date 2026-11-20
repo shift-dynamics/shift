@@ -336,7 +336,7 @@ Walls
 
 A wall is a fixed plane, :math:`\underline{n}_w\cdot\underline{p} \le o`
 for the solid, with :math:`\underline{n}_w` the unit normal out of it, as a
-plane of collision geometry (see :doc:`../contact/surfaces`). A sphere touches
+plane of collision geometry (see :doc:`surfaces`). A sphere touches
 it when the height of its center above the plane is less than its radius:
 
 .. math::
@@ -516,7 +516,7 @@ Equations of Motion
 -------------------
 
 Each grain is a free rigid body. Its equations of motion are those of
-:doc:`../dynamics/dynamics` for a single body at its center of mass, with the
+:doc:`../dynamics/spatial_equations_of_motion` for a single body at its center of mass, with the
 translation in the fixed frame and the rotation in the coordinates of the
 grain, where :math:`\bar{I}_{aa}` is constant:
 

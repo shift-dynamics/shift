@@ -1,9 +1,14 @@
-.. title:: Articulated-Body Algorithms
+.. title:: Dynamics for Kinematic Trees
+
+.. _kinematic_tree_dynamics:
+
+Dynamics for Kinematic Trees
+============================
 
 .. _articulated_body_algorithms:
 
 Articulated-Body Algorithms for Kinematic Trees
-===============================================
+-----------------------------------------------
 
 A mechanism without closed loops needs no constraint Jacobian: its equations of
 motion, Eq. :eq:`eq:generalized_eqns_motion_no_constraints`, follow from the
@@ -24,20 +29,21 @@ that work with articulated-body quantities. *Shift* provides two such solvers:
     * - ``"dca"``
       - divide-and-conquer algorithm
       - serial chains, branched trees
-    * - ``"rnca"``
-      - run-time optimized natural constraint algorithm (see
-        :ref:`generalized_coordinate_partitioning`)
-      - any, including closed loops
 
 On a serial computer the articulated-body algorithm is the faster and more
 accurate of the two, and accepts massless bodies; the divide-and-conquer
 algorithm is organized so that its assemblies can be evaluated in parallel.
 The ``"auto"`` solver combines them in one model: it solves each tree without
 closed loops by the articulated-body (or divide-and-conquer) algorithm and the
-trees with closed loops by RNCA (see `Solving Each Tree by Its Own Algorithm`_).
+trees with closed loops by the solver of :ref:`generalized_coordinate_partitioning`
+(see :ref:`solving_each_tree`).
 
-Each tree of the kinematic forest is classified when a model is loaded (see
-:ref:`kinematic_forest`). The articulated-body algorithm (ABA) is due to
+Removing the fixed body from the spanning tree leaves a *kinematic forest*,
+one tree for each joint that attaches a body to the fixed body. When a model is
+loaded, each tree is classified as a serial chain, a branched tree, or, if a
+chord joins one of its bodies, a closed loop (see :ref:`kinematic_trees` and
+:ref:`closed_loops`); free bodies are not part of any tree and are solved
+separately. The articulated-body algorithm (ABA) is due to
 Featherstone :cite:`featherstone1983calculation,featherstone2008rigid`. The
 divide-and-conquer algorithm (DCA), also due to Featherstone
 :cite:`featherstone1999divide1,featherstone1999divide`, was extended to
@@ -51,15 +57,15 @@ the bodies, and the bias accelerations across the joints are already contained
 in the quadratic accelerations of the bodies.
 
 Equations of Motion of a Tree
------------------------------
+*****************************
 
-Number the bodies of a tree :math:`j = 1 \dots n` in level-increasing order, so
-that the parent :math:`i = P(j)` of each body comes before it, and let joint
+Number the bodies of a tree :math:`j = 1 \dots n_b` in level-increasing order, so
+that the parent :math:`i = p(j)` of each body comes before it, and let joint
 :math:`j` connect body :math:`j` to its parent. Bodies attached to their parents
 by rigid joints are merged into their parents beforehand, so every joint has at
-least one degree of freedom. :math:`H_j` is the :math:`6 \times n_j` influence
+least one degree of freedom. :math:`H_j` is the :math:`6 \times n_{\dot{q}j}` influence
 coefficient matrix of joint :math:`j`, whose columns are the screws
-:math:`\underline{\mathbf{h}}` of its :math:`n_j` joint variables, so that the
+:math:`\underline{\mathbf{h}}` of its :math:`n_{\dot{q}j}` joint variables, so that the
 relative velocity across the joint is :math:`H_j\underline{\dot{q}}_j`, and
 :math:`\mathcal{C}(j)` are the child bodies of :math:`j`.
 
@@ -72,7 +78,7 @@ accelerations were zero, plus the part produced by the joint accelerations:
 
   \underline{\dot{\mathbf{v}}}_j = \underline{\mathbf{a}}^q_j + \underline{\mathbf{a}}_j,
   \qquad
-  \underline{\mathbf{a}}_j = \underline{\mathbf{a}}_{P(j)} + H_j\underline{\ddot{q}}_j,
+  \underline{\mathbf{a}}_j = \underline{\mathbf{a}}_{p(j)} + H_j\underline{\ddot{q}}_j,
   \qquad
   \underline{\mathbf{a}}_f = \underline{\mathbf{0}}
 
@@ -110,7 +116,7 @@ recovers Eq. :eq:`eq:generalized_eqns_motion_no_constraints`; the recursive
 algorithms eliminate them one joint at a time instead.
 
 Articulated-Body Algorithm
---------------------------
+**************************
 
 Consider the subchain made of body :math:`j` and all bodies outboard of it,
 detached from the parent of :math:`j`. Its *articulated-body inertia*
@@ -161,61 +167,69 @@ tree to its root:
 
 Once the root is reached, Eq. :eq:`eq:aba_qdd` is evaluated from the root to the
 tips, starting from :math:`\underline{\mathbf{a}}_f = \underline{\mathbf{0}}`,
-with :math:`\underline{\mathbf{a}}_j = \underline{\mathbf{a}}_{P(j)} + H_j\underline{\ddot{q}}_j`.
-:math:`D_j` is the :math:`n_j \times n_j` inertia of the subchain about the axes
+with :math:`\underline{\mathbf{a}}_j = \underline{\mathbf{a}}_{p(j)} + H_j\underline{\ddot{q}}_j`. 
+:math:`D_j` is the :math:`n_{\dot{q}j} \times n_{\dot{q}j}` inertia of the subchain about the axes
 of joint :math:`j`; it is factored once per step by Cholesky factorization, and
 is positive definite whenever the subchain has mass that the joint can move.
 Massless bodies are therefore allowed, as long as some body outboard of every
 joint has mass.
 
-The algorithm takes :math:`\mathcal{O}(n)` operations for serial chains and
+The algorithm takes :math:`\mathcal{O}(n_b)` operations for serial chains and
 branched trees alike: in level-increasing order a child follows its parent, so
 the recursion of Eq. :eq:`eq:aba_backward` visits the bodies in reverse order and
 each body has received the contributions of all its children when it is reached.
 
 Divide-and-Conquer Algorithm
-----------------------------
+****************************
 
 The divide-and-conquer algorithm assembles bodies pairwise, one joint at a time,
 into ever larger subassemblies, until each tree is one assembly; then it
 disassembles them in the reverse order, recovering the joint accelerations and
 wrenches. The assemblies of one level of this hierarchy are independent of each
-other, so the algorithm needs only :math:`\mathcal{O}(\log n)` steps when they are
+other, so the algorithm needs only :math:`\mathcal{O}(\log n_b)` steps when they are
 evaluated in parallel :cite:`featherstone1999divide1`.
 
 Handles and Inverse Inertia
-***************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A subassembly :math:`A` is described by its *handles*: the bodies of :math:`A`
-that have joints to bodies outside it, or to the fixed body. Because the
-accelerations and wrenches are referred to the origin of the fixed frame, every
-joint of a body sees the same acceleration screw, so the handles of a body
-coincide and each handle is a body. The accelerations of the handles are linear
-in the wrenches :math:`\underline{\mathbf{k}}^*_n` applied to them from outside
-:math:`A`:
-
-.. math::
-  :label: eq:dca_inverse_inertia
-
-  \underline{\mathbf{a}}_m = \sum_{n} \Psi^A_{mn}\underline{\mathbf{k}}^*_n + \underline{\mathbf{b}}^A_m
-
-where the :math:`6 \times 6` blocks :math:`\Psi^A_{mn}` form the inverse
-articulated-body inertia of :math:`A`, and the screws
-:math:`\underline{\mathbf{b}}^A_m` are its bias accelerations, the accelerations
-of the handles when no wrenches are applied. :math:`\Psi^A` is symmetric,
-:math:`\Psi^A_{nm} = \left(\Psi^A_{mn}\right)^T`. A single body has one handle and,
-from Eq. :eq:`eq:tree_body`,
+The inverse of the spatial inertia of a body, :math:`\Psi = M^{-1}`, maps a
+wrench applied to the body to the acceleration it produces. From Eq.
+:eq:`eq:tree_body`, a single body with no joint wrenches applied accelerates by
 
 .. math::
   :label: eq:dca_leaf
 
-  \Psi = M_j^{-1}, \qquad \underline{\mathbf{b}} = M_j^{-1}\underline{\mathbf{z}}^*_j
+  \underline{\mathbf{a}} = \Psi\underline{\mathbf{k}}^* + \underline{\mathbf{b}},
+  \qquad \Psi = M_j^{-1}, \qquad \underline{\mathbf{b}} = M_j^{-1}\underline{\mathbf{z}}^*_j
+
+where the screw :math:`\underline{\mathbf{b}}` is its *bias acceleration*, the
+acceleration it has when no wrench is applied. The divide-and-conquer algorithm
+extends :math:`\Psi` from single bodies to subassemblies. A subassembly
+:math:`\mathcal{A}` is described by its *handles*: the bodies of :math:`\mathcal{A}`
+that have joints to bodies outside it, or to the fixed body. The accelerations
+and wrenches are referred to the origin of the fixed frame, so that every joint
+of a body sees the same acceleration screw; the handles of a body therefore
+coincide, and each handle is a body. The accelerations of the handles are linear
+in the wrenches :math:`\underline{\mathbf{k}}^*_n` applied to them from outside
+:math:`\mathcal{A}`:
+
+.. math::
+  :label: eq:dca_inverse_inertia
+
+  \underline{\mathbf{a}}_m = \sum_{n} \Psi^{\mathcal{A}}_{mn}\underline{\mathbf{k}}^*_n + \underline{\mathbf{b}}^{\mathcal{A}}_m
+
+where the :math:`6 \times 6` blocks :math:`\Psi^{\mathcal{A}}_{mn}` form the
+*inverse articulated-body inertia* of :math:`\mathcal{A}`, and the screws
+:math:`\underline{\mathbf{b}}^{\mathcal{A}}_m` are its bias accelerations.
+The matrix :math:`\Psi^{\mathcal{A}}` is symmetric,
+:math:`\Psi^{\mathcal{A}}_{nm} = \left(\Psi^{\mathcal{A}}_{mn}\right)^T`, and for a
+single body Eq. :eq:`eq:dca_inverse_inertia` reduces to Eq. :eq:`eq:dca_leaf`.
 
 Assembly
-********
+^^^^^^^^
 
-Let joint :math:`j` connect handle :math:`\alpha` of :math:`A`, the parent body,
-to handle :math:`\beta` of :math:`B`, the child body. It applies
+Let joint :math:`j` connect handle :math:`\alpha` of :math:`\mathcal{A}`, the parent body,
+to handle :math:`\beta` of :math:`\mathcal{B}`, the child body. It applies
 :math:`\underline{\mathbf{k}}^*_j` to :math:`\beta` and
 :math:`-\underline{\mathbf{k}}^*_j` to :math:`\alpha`, and
 
@@ -226,18 +240,18 @@ to handle :math:`\beta` of :math:`B`, the child body. It applies
 
 From Eq. :eq:`eq:dca_inverse_inertia`, the relative acceleration across the joint is
 :math:`W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}`, where
-:math:`W = \Psi^A_{\alpha\alpha} + \Psi^B_{\beta\beta}` and
+:math:`W = \Psi^{\mathcal{A}}_{\alpha\alpha} + \Psi^{\mathcal{B}}_{\beta\beta}` and
 :math:`\underline{\mathbf{a}}^0_{\beta\alpha}` is the relative acceleration with no
 wrench in joint :math:`j`:
 
 .. math::
   :label: eq:dca_relative
 
-  \underline{\mathbf{a}}^0_{\beta\alpha} = \underline{\mathbf{b}}^B_\beta - \underline{\mathbf{b}}^A_\alpha +
-  \sum_{s} \Psi^B_{\beta s}\underline{\mathbf{k}}^*_s - \sum_{n} \Psi^A_{\alpha n}\underline{\mathbf{k}}^*_n
+  \underline{\mathbf{a}}^0_{\beta\alpha} = \underline{\mathbf{b}}^{\mathcal{B}}_\beta - \underline{\mathbf{b}}^{\mathcal{A}}_\alpha +
+  \sum_{s} \Psi^{\mathcal{B}}_{\beta s}\underline{\mathbf{k}}^*_s - \sum_{n} \Psi^{\mathcal{A}}_{\alpha n}\underline{\mathbf{k}}^*_n
 
-the sums running over the wrenches applied to the handles of :math:`B` and
-:math:`A` from outside the assembly. Solving the two joint equations for the
+the sums running over the wrenches applied to the handles of :math:`\mathcal{B}` and
+:math:`\mathcal{A}` from outside the assembly. Solving the two joint equations for the
 joint accelerations and wrench gives
 
 .. math::
@@ -249,7 +263,10 @@ joint accelerations and wrench gives
   \qquad
   D = H_j^TW^{-1}H_j
 
-that is, :math:`\underline{\mathbf{k}}^*_j = W^{-1}H_jD^{-1}\underline{f}_j - K\underline{\mathbf{a}}^0_{\beta\alpha}`, with
+The matrix :math:`D` is the inertia of the assembly about the axes of joint
+:math:`j`, the counterpart of :math:`D_j` in Eq. :eq:`eq:aba_qdd`: for a joint
+to the fixed body, :math:`W^{-1}` is the articulated-body inertia of the child
+assembly, and the two coincide. that is, :math:`\underline{\mathbf{k}}^*_j = W^{-1}H_jD^{-1}\underline{f}_j - K\underline{\mathbf{a}}^0_{\beta\alpha}`, with
 
 .. math::
 
@@ -260,11 +277,11 @@ does not allow; it is zero for a joint with six degrees of freedom.
 
 The solver evaluates :math:`K` without inverting :math:`W`. The QR factorization
 of the joint's columns, by Householder reflections, gives an orthogonal
-:math:`Q = [Q_1\ N]` with :math:`H_j = Q_1R`; the :math:`6 - n_j` columns of
+:math:`Q = [Q_1\ N]` with :math:`H_j = Q_1R`; the :math:`6 - n_{\dot{q}j}` columns of
 :math:`N` span the wrenches the joint transmits, :math:`H_j^TN = 0`, for a joint
-of :math:`n_j` degrees of freedom. Writing the joint wrench as
-:math:`\underline{\mathbf{k}}^*_j = Q_1\underline{u} + N\underline{\lambda}`, the
-joint equations give :math:`R^T\underline{u} = \underline{f}_j` and
+of :math:`n_{\dot{q}j}` degrees of freedom. Writing the joint wrench as
+:math:`\underline{\mathbf{k}}^*_j = Q_1\underline{w} + N\underline{\lambda}`, the
+joint equations give :math:`R^T\underline{w} = \underline{f}_j` and
 :math:`N^T\left(W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}\right) = 0`,
 so that
 
@@ -273,73 +290,73 @@ so that
 
   K = N\left(N^TWN\right)^{-1}N^T = ZZ^T, \qquad Z = NL^{-T}, \qquad LL^T = N^TWN
 
-and :math:`W^{-1}H_jD^{-1}\underline{f}_j = Q_1\underline{u} - N\left(N^TWN\right)^{-1}N^TWQ_1\underline{u}`.
-Only the Cholesky factor :math:`L` of order :math:`6 - n_j` is needed, five for
+and :math:`W^{-1}H_jD^{-1}\underline{f}_j = Q_1\underline{w} - N\left(N^TWN\right)^{-1}N^TWQ_1\underline{w}`.
+The components :math:`\underline{\lambda}` are the Lagrange multipliers of the joint, the magnitudes of the constraint wrenches it transmits. Only the Cholesky factor :math:`L` of order :math:`6 - n_{\dot{q}j}` is needed, five for
 a revolute joint. :math:`K` is then symmetric positive semidefinite with
 :math:`H_j^TK = 0` by construction, where the difference above cancels the
 large terms of :math:`W^{-1}` along the joint's motions; over long chains this
 is the difference between agreeing with the articulated-body algorithm to
 rounding and losing several digits. The products of Eq.
-:eq:`eq:dca_assembly` become :math:`\Psi^A_{m\alpha}K\Psi^A_{\alpha n} = V_mV_n^T`
-with :math:`V_m = \Psi^A_{m\alpha}Z`, and the joint accelerations follow from
+:eq:`eq:dca_assembly` become :math:`\Psi^{\mathcal{A}}_{m\alpha}K\Psi^{\mathcal{A}}_{\alpha n} = V_mV_n^T`
+with :math:`V_m = \Psi^{\mathcal{A}}_{m\alpha}Z`, and the joint accelerations follow from
 the joint wrench as
 :math:`\underline{\ddot{q}}_j = R^{-1}Q_1^T\left(W\underline{\mathbf{k}}^*_j + \underline{\mathbf{a}}^0_{\beta\alpha}\right)`.
 
 Substituting
-the joint wrench into Eq. :eq:`eq:dca_inverse_inertia` for the handles of :math:`A` and
-:math:`B` gives the inverse articulated-body inertia and bias accelerations of the
+the joint wrench into Eq. :eq:`eq:dca_inverse_inertia` for the handles of :math:`\mathcal{A}` and
+:math:`\mathcal{B}` gives the inverse articulated-body inertia and bias accelerations of the
 assembly
-:math:`C = A \cup B`, for handles :math:`m, n` of :math:`A` and :math:`r, s` of
-:math:`B`:
+:math:`\mathcal{C} = \mathcal{A} \cup \mathcal{B}`, for handles :math:`m, n` of :math:`\mathcal{A}` and :math:`r, s` of
+:math:`\mathcal{B}`:
 
 .. math::
   :label: eq:dca_assembly
 
   \begin{aligned}
-  \Psi^C_{mn} &= \Psi^A_{mn} - \Psi^A_{m\alpha}K\Psi^A_{\alpha n}, &
-  \Psi^C_{ms} &= \Psi^A_{m\alpha}K\Psi^B_{\beta s}, &
-  \underline{\mathbf{b}}^C_m &= \underline{\mathbf{b}}^A_m - \Psi^A_{m\alpha}\underline{\mathbf{k}}^*_0 \\
-  \Psi^C_{rs} &= \Psi^B_{rs} - \Psi^B_{r\beta}K\Psi^B_{\beta s}, &
-  \Psi^C_{rn} &= \Psi^B_{r\beta}K\Psi^A_{\alpha n}, &
-  \underline{\mathbf{b}}^C_r &= \underline{\mathbf{b}}^B_r + \Psi^B_{r\beta}\underline{\mathbf{k}}^*_0
+  \Psi^{\mathcal{C}}_{mn} &= \Psi^{\mathcal{A}}_{mn} - \Psi^{\mathcal{A}}_{m\alpha}K\Psi^{\mathcal{A}}_{\alpha n}, &
+  \Psi^{\mathcal{C}}_{ms} &= \Psi^{\mathcal{A}}_{m\alpha}K\Psi^{\mathcal{B}}_{\beta s}, &
+  \underline{\mathbf{b}}^{\mathcal{C}}_m &= \underline{\mathbf{b}}^{\mathcal{A}}_m - \Psi^{\mathcal{A}}_{m\alpha}\underline{\mathbf{k}}^*_0 \\
+  \Psi^{\mathcal{C}}_{rs} &= \Psi^{\mathcal{B}}_{rs} - \Psi^{\mathcal{B}}_{r\beta}K\Psi^{\mathcal{B}}_{\beta s}, &
+  \Psi^{\mathcal{C}}_{rn} &= \Psi^{\mathcal{B}}_{r\beta}K\Psi^{\mathcal{A}}_{\alpha n}, &
+  \underline{\mathbf{b}}^{\mathcal{C}}_r &= \underline{\mathbf{b}}^{\mathcal{B}}_r + \Psi^{\mathcal{B}}_{r\beta}\underline{\mathbf{k}}^*_0
   \end{aligned}
 
-where :math:`\underline{\mathbf{k}}^*_0 = W^{-1}H_jD^{-1}\underline{f}_j - K\left(\underline{\mathbf{b}}^B_\beta - \underline{\mathbf{b}}^A_\alpha\right)`
+where :math:`\underline{\mathbf{k}}^*_0 = W^{-1}H_jD^{-1}\underline{f}_j - K\left(\underline{\mathbf{b}}^{\mathcal{B}}_\beta - \underline{\mathbf{b}}^{\mathcal{A}}_\alpha\right)`
 is the joint wrench when no wrenches are applied to the handles. Only the blocks
-of the handles of :math:`C` are kept: :math:`\alpha` and :math:`\beta` remain
-handles of :math:`C` only if they have other joints to bodies outside it.
+of the handles of :math:`\mathcal{C}` are kept: :math:`\alpha` and :math:`\beta` remain
+handles of :math:`\mathcal{C}` only if they have other joints to bodies outside it.
 
 Each tree becomes one assembly, whose only handle is the root body. Its joint to
 the fixed body is solved with Eq. :eq:`eq:dca_joint`, treating the fixed body as
-the assembly :math:`A` with :math:`\Psi^A = 0` and
-:math:`\underline{\mathbf{b}}^A = \underline{\mathbf{0}}`, so that
+the assembly :math:`\mathcal{A}` with :math:`\Psi^{\mathcal{A}} = 0` and
+:math:`\underline{\mathbf{b}}^{\mathcal{A}} = \underline{\mathbf{0}}`, so that
 :math:`W = \Psi_{rr}` and :math:`\underline{\mathbf{a}}^0 = \underline{\mathbf{b}}_r`.
 
 Disassembly
-***********
+^^^^^^^^^^^
 
 Disassembly visits the assemblies in the reverse order. The wrenches applied to
-the handles of an assembly :math:`C` are known from the level above (from the
+the handles of an assembly :math:`\mathcal{C}` are known from the level above (from the
 root joint, for the whole tree). Eq. :eq:`eq:dca_relative` then gives
 :math:`\underline{\mathbf{a}}^0_{\beta\alpha}`, Eq. :eq:`eq:dca_joint` the
-accelerations and wrench of the joint that formed :math:`C`, and the wrenches on
-the handles of :math:`A` and :math:`B` are those applied from outside :math:`C`,
+accelerations and wrench of the joint that formed :math:`\mathcal{C}`, and the wrenches on
+the handles of :math:`\mathcal{A}` and :math:`\mathcal{B}` are those applied from outside :math:`\mathcal{C}`,
 plus :math:`-\underline{\mathbf{k}}^*_j` on :math:`\alpha` and
 :math:`\underline{\mathbf{k}}^*_j` on :math:`\beta`.
 
 Assembly Order
-**************
+^^^^^^^^^^^^^^
 
 The assembly order is fixed when the solver is initialized. Each tree is split
 recursively at the joint that divides it into the two most nearly equal parts,
 measured in bodies; the two parts are split in turn until single bodies remain.
-A chain of :math:`n` bodies thus gives a hierarchy :math:`\lceil\log_2 n\rceil`
+A chain of :math:`n_b` bodies thus gives a hierarchy :math:`\lceil\log_2 n_b\rceil`
 levels deep. A part of a chain has at most two handles; a part of a branched
 tree has one handle for each of its bodies with a joint across its boundary, and
 the cost of an assembly grows with the square of its number of handles.
 
 Requirements and Accuracy
-*************************
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The inverse articulated-body inertia of a single body is the inverse of its
 spatial inertia, so every body solved by the ``"dca"`` solver must have mass
@@ -353,35 +370,10 @@ body referred to its mass centre, the ``"dca"`` and ``"aba"`` solvers agree to
 rounding: over a serial chain of 512 bodies their state derivatives differ by
 about :math:`10^{-9}` of the largest, where the ``"rnca"`` and ``"aba"`` solvers
 differ by :math:`3 \times 10^{-8}`. On a serial computer
-it takes :math:`\mathcal{O}(n)` operations, with a larger constant than the
+it takes :math:`\mathcal{O}(n_b)` operations, with a larger constant than the
 articulated-body algorithm, because each assembly operates on full
 :math:`6 \times 6` blocks. The ``"dca"`` solver evaluates the independent
 assemblies of each level in parallel when a level holds enough work to pay for
 starting threads (about 50 µs for each thread); its results do not depend on
 the number of threads. Its advantage over the ``"aba"`` solver depends on that
 parallel evaluation.
-
-Solving Each Tree by Its Own Algorithm
---------------------------------------
-
-The trees of the kinematic forest are dynamically independent unless a chord
-constraint closes a loop through them (see :ref:`kinematic_forest`). Their
-generalized mass matrix :math:`M^{\ell}` is therefore block diagonal, one block
-per tree, and the constraint Jacobian :math:`J` has no entries for the
-variables of the trees without closed loops. The ``"auto"`` solver uses this to
-split the equations of motion:
-
-#. The bodies of the trees without closed loops are left out of the mass matrix
-   and the right-hand side that RNCA assembles. The rows and columns of their
-   variables in :math:`M^{\ell}` stay empty, so RNCA's sparse factorization,
-   which records operations only for the nonzero entries, does no work for
-   them; they are independent variables that RNCA neither pivots nor solves.
-#. RNCA solves the trees with closed loops, with their constraint Jacobian and
-   the generalized coordinate partitioning, as if they were the whole model.
-#. The articulated-body (or divide-and-conquer) algorithm solves the remaining
-   trees, from the same velocities, quadratic accelerations and applied forces.
-
-The kinetic and potential energies reported for the model are the sums of
-those of the two parts. A model without closed loops is solved entirely by the
-articulated-body algorithm, and one whose trees all have closed loops entirely
-by RNCA.

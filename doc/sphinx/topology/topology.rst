@@ -6,10 +6,176 @@
 Topology
 ========
 
+The topology of a model is the way its bodies are connected by its joints.
+*Shift* reads the bodies and joints of a model in any order and finds its
+topology when the model is loaded, and the topology decides how the equations
+of motion are formed and solved:
+
+* In a *kinematic tree* there is exactly one path of joints from each body to
+  the fixed body. The joint coordinates are independent of each other, there
+  are no constraint equations, and the equations of motion can be solved by
+  recursions over the bodies of the tree (see :ref:`kinematic_tree_dynamics`).
+  Serial robot arms, with or without a gripper, are kinematic trees.
+* A mechanism with *closed loops* has more than one path from some body to the
+  fixed body. A joint that closes a loop, a *chord*, imposes constraint
+  equations on the joint coordinates, so some coordinates depend on others.
+  The equations of motion include the constraint Jacobian and the forces of
+  the constraints, and the coordinates are partitioned into independent and
+  dependent sets (see :ref:`generalized_coordinate_partitioning`). Linkages,
+  hydraulic cylinders acting on a boom, and vehicle suspensions form closed
+  loops.
+
+The sections below introduce the tools of graph theory that *Shift* uses to
+tell the two apart, first on a kinematic tree and then on a mechanism with
+closed loops, and then describe how the loops are grouped into kinematic
+substructures.
+
 Graph Theory for Multibody Systems
 ------------------------------------------------------
 
-In this section, a model of a hydraulic excavator is used to illustrate basic concepts from graph theory.
+The topology of a model can be described as a directed graph, with the bodies
+as the *nodes* of the graph and the joints as its *edges*. Two models are used
+to illustrate the basic concepts: a robot arm with a gripper, which is a
+kinematic tree, and a hydraulic excavator, which has closed loops.
+
+.. _kinematic_trees:
+
+Kinematic Trees
+***************
+
+.. _iiwagripper:
+
+.. figure:: figures/kuka_iiwa_gripper.jpg
+    :align: center
+    :width: 600px
+
+    A Robot Arm with a Gripper
+
+The robot of Fig. :num:`iiwagripper` is a KUKA LBR iiwa 14 R820 seven-axis arm
+with a Franka Hand parallel gripper mounted on its flange. The model consists of
+11 bodies connected by 11 joints, shown in `Table 1`_. The base is attached to
+the fixed body by a rigid joint, the seven links are connected by revolute
+joints, the hand is attached to the last link by a rigid joint, and each finger
+slides on the hand on a prismatic joint. As in a *Shift* JSON file, the bodies
+and joints are listed in an arbitrary, user--defined order. The ID is provided
+here only as an aid in interpreting the following development and need not be
+included in the JSON file. Note that the zero identifier is reserved for the
+fixed inertial reference frame.
+
+.. _Table 1:
+
+==   ===================== ==  ==============
+ID   Body Name             ID  Joint Name
+==   ===================== ==  ==============
+1    base                  A   fixed :math:`\rightarrow` base
+2    link 1                B   base :math:`\rightarrow` link 1
+3    link 2                C   link 1 :math:`\rightarrow` link 2
+4    link 3                D   link 2 :math:`\rightarrow` link 3
+5    link 4                E   link 4 :math:`\rightarrow` link 3
+6    link 5                F   link 4 :math:`\rightarrow` link 5
+7    link 6                G   link 5 :math:`\rightarrow` link 6
+8    link 7                H   link 6 :math:`\rightarrow` link 7
+9    hand                  I   link 7 :math:`\rightarrow` hand
+10   left finger           J   hand :math:`\rightarrow` left finger
+11   right finger          K   hand :math:`\rightarrow` right finger
+==   ===================== ==  ==============
+
+See :source:`examples/kuka_lbr_iiwa_14_r820/kuka_iiwa_gripper.json` for how
+the information in `Table 1`_ is encoded in a *Shift* JSON file.
+
+
+Incidence Matrix
+^^^^^^^^^^^^^^^^
+
+The incidence matrix, :math:`\Gamma`, is an important tool used to describe the connectivity of bodies and joints in a multibody system. From the body--joint--body information in `Table 1`_, the incidence matrix for the robot is given in Eq. :eq:`eq:incidence_matrix_tree`. Zeros are removed from sparse matrices to improve view clarity. Each column corresponds to a unique body and each row corresponds to a joint. The -1 and +1 in each row describe the sense of the joint.
+
+An entry of row b and column h of :math:`\Gamma` is defined as:
+
+.. math::
+    :label: eq:incidence_matrix_def
+
+    \Gamma (b,h) = \begin{cases}
+    +1&\text{if joint h is positively incident with body b}\\
+    -1& \text{if joint h is negatively incident with body b}\\
+    0&\text{if joint h is not incident with body b}
+    \end{cases}
+
+
+For example, the -1 and +1 in the first row indicate that joint A is oriented from body 0 (i.e. the fixed inertial reference frame) to body 1 (i.e. the base.)
+
+.. math::
+    :label: eq:incidence_matrix_tree
+
+    \scriptsize
+    \Gamma^T =
+    \begin{array}{r|rrrrrrrrrrrr}
+       & 0  & 1  & 2  & 3  & 4  & 5  & 6  & 7  & 8  & 9  & 10 & 11\\
+       \hline
+    A  & -1 & 1  &    &    &    &    &    &    &    &    &    &   \\
+    B  &    & -1 & 1  &    &    &    &    &    &    &    &    &   \\
+    C  &    &    & -1 & 1  &    &    &    &    &    &    &    &   \\
+    D  &    &    &    & -1 & 1  &    &    &    &    &    &    &   \\
+    E  &    &    &    &    & 1  & -1 &    &    &    &    &    &   \\
+    F  &    &    &    &    &    & -1 & 1  &    &    &    &    &   \\
+    G  &    &    &    &    &    &    & -1 & 1  &    &    &    &   \\
+    H  &    &    &    &    &    &    &    & -1 & 1  &    &    &   \\
+    I  &    &    &    &    &    &    &    &    & -1 & 1  &    &   \\
+    J  &    &    &    &    &    &    &    &    &    & -1 & 1  &   \\
+    K  &    &    &    &    &    &    &    &    &    & -1 &    & 1
+    \end{array}
+
+It is strongly emphasized that these large sparse matrices need never be formed in multibody dynamics code. Ultimately, other more compact representations of topology allow more efficient numerical implementation of kinematics and dynamics. Nevertheless, a description of incidence matrix is provided here as it allows clearly formulating the equations of motion for complex multibody systems in the language of matrices. Later in this document, more compact representations of topology will be introduced.
+
+
+.. _spanning_tree:
+
+Spanning Tree
+^^^^^^^^^^^^^
+
+The subset of graph edges containing all nodes, but no loops, is the *spanning tree*. The spanning tree can be identified from the incidence matrix by removing the column of the fixed body and permuting the rows and columns to reduced-row echelon form. For the robot this requires only reversing the sense of joint E, which the model file gives from body 5 to body 4, against the direction away from the fixed body:
+
+.. math::
+    :label: eq:incidence_matrix_tree_spanning
+
+    \scriptsize
+    \Gamma^T =
+    \begin{array}{r|rrrrrrrrrrr}
+       & 1  & 2  & 3  & 4  & 5  & 6  & 7  & 8  & 9  & 10 & 11\\
+       \hline
+    A  & 1  &    &    &    &    &    &    &    &    &    &   \\
+    B  & -1 & 1  &    &    &    &    &    &    &    &    &   \\
+    C  &    & -1 & 1  &    &    &    &    &    &    &    &   \\
+    D  &    &    & -1 & 1  &    &    &    &    &    &    &   \\
+    E  &    &    &    & -1 & 1  &    &    &    &    &    &   \\
+    F  &    &    &    &    & -1 & 1  &    &    &    &    &   \\
+    G  &    &    &    &    &    & -1 & 1  &    &    &    &   \\
+    H  &    &    &    &    &    &    & -1 & 1  &    &    &   \\
+    I  &    &    &    &    &    &    &    & -1 & 1  &    &   \\
+    J  &    &    &    &    &    &    &    &    & -1 & 1  &   \\
+    K  &    &    &    &    &    &    &    &    & -1 &    & 1
+    \end{array}
+
+Every row of Eq. :eq:`eq:incidence_matrix_tree_spanning` has a +1 on the diagonal: the matrix is square and lower triangular, and every joint is an arc of the spanning tree. The spanning tree is the whole graph, shown in Fig. :num:`spanningtreerobot`. Every body from the base to the hand has one child; the hand has two, the two fingers, so the robot is a *branched tree*. A tree in which every body has at most one child, such as the arm without its gripper, is a *serial chain*.
+
+.. _spanningtreerobot:
+
+.. figure:: figures/digraph_robot.png
+    :align: center
+    :width: 300px
+
+    Spanning tree of the robot arm with a gripper
+
+*Shift* keeps two graphs of the same mechanism. The first is the model as the user wrote it: the assemblies hold the bodies and joints, and each joint keeps the parent and child it was given. The second is built from the first and follows the spanning tree: it holds only the active bodies and joints, in level order, in arrays of their own, and it is what the simulation runs on. The user never has to arrange a model to suit it. Where a joint points against the spanning tree, as joint E of the robot does, its sense is set to -1 and the second graph uses the inverse of its transformation, so the joint's coordinates keep the meaning they have in the model file. ``shift-cli --digraph`` writes the second graph of a model as an image.
+
+Every joint is an arc, so that the velocity of every body follows directly from the joint velocities, and there are no constraint equations. The joint coordinates of the robot are the seven angles of the revolute joints B to H and the two displacements of the prismatic joints J and K, nine in all, and all nine are independent: the robot has nine degrees of freedom. For simplicity, this example assumes that each finger of the Franka Hand can be actuated independently, so that each finger slide is a degree of freedom of its own. In the actual hand the two fingers may be coupled to a single actuator, which moves them together; the coupling is a further constraint between joints J and K, and the hand then adds one degree of freedom to the arm, not two. The rigid joints A and I have no coordinates; the base is merged into the fixed body and the hand into link 7 before the equations of motion are formed (see :ref:`articulated_body_algorithms`). The equations of motion are those of a tree, Eq. :eq:`eq:generalized_eqns_motion_no_constraints`, :math:`M^{\ell} \underline{\ddot{q}} = \underline{f}^{\ell}`, and the model selects the ``"aba"`` solver, which solves them by the articulated-body algorithm (see :ref:`kinematic_tree_dynamics`).
+
+
+.. _closed_loops:
+
+Closed Loops
+************
+
+A model of a hydraulic excavator, Fig. :num:`excavator`, shows what changes when a mechanism has closed loops. Its boom, stick and bucket are moved by hydraulic cylinders, and each cylinder, together with the links it pushes on, closes a loop.
 
 .. _excavator:
 
@@ -20,9 +186,9 @@ In this section, a model of a hydraulic excavator is used to illustrate basic co
     A Hydraulic Excavator
 
 
-The excavator model's topology can be described as a directed graph with a number of bodies comprising the *nodes* of the graph, connected by a number of joints as *edges* of the directed graph.  The excavator model consists of 15 bodies connected by 20 joints, shown in `Table 1`_. The bodies and joints are listed in an arbitrary, user--defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the Shift JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.
+The excavator model consists of 15 bodies connected by 20 joints, shown in `Table 2`_. The bodies and joints are listed in an arbitrary, user--defined order. This organization of bodies and joints is similar to how mechanism topology is specified in the Shift JSON file format. The ID is provided here only as an aid in interpreting the following development and need not be included in the JSON file. Note that the zero identifier is reserved for the fixed inertial reference frame.
 
-.. _Table 1:
+.. _Table 2:
 
 ==   ===================== ==  ==============
 ID   Body Name             ID  Joint Name
@@ -49,27 +215,13 @@ ID   Body Name             ID  Joint Name
 \    \                     T   bucket linkage 1 :math:`\rightarrow` bucket linkage 2
 ==   ===================== ==  ==============
 
-Click `here </shift/_static/excavator.json>`_ to see how the information in `Table 1`_ is encoded in a Shift JSON file.
+Click `here </shift/_static/excavator.json>`_ to see how the information in `Table 2`_ is encoded in a Shift JSON file.
 
 
 Incidence Matrix
-****************
+^^^^^^^^^^^^^^^^
 
-The incidence matrix, :math:`\Gamma`, is an important tool used to describe the connectivity of bodies and joints in a multibody system. From the body--joint--body information in `Table 1`_, the incidence matrix for the excavator is given in Eq. :eq:`eq:incidence_matrix`. Zeros are removed from sparse matrices to improve view clarity. Each column corresponds to a unique body and each row corresponds to a joint. The -1 and +1 in each row describe the sense of the joint.
-
-An entry of row b and column h of :math:`\Gamma` is defined as:
-
-.. math::
-    :label: eq:incidence_matrix_def
-
-    \Gamma (b,h) = \begin{cases}
-    +1&\text{if joint h is positively incident with body b}\\
-    -1& \text{if joint h is negatively incident with body b}\\
-    0&\text{if joint h is not incident with body b}
-    \end{cases}
-
-
-For example, the -1 and +1 in the first row indicate that joint A is oriented from body 0 (i.e. the fixed inertial reference frame) to body 1 (i.e. the undercarriage.)
+From the body--joint--body information in `Table 2`_ and Eq. :eq:`eq:incidence_matrix_def`, the incidence matrix for the excavator is given in Eq. :eq:`eq:incidence_matrix`. Unlike the incidence matrix of the robot, Eq. :eq:`eq:incidence_matrix_tree`, it has more rows than columns: the excavator has 20 joints but only 15 moving bodies.
 
 .. math::
     :label: eq:incidence_matrix
@@ -104,13 +256,10 @@ For example, the -1 and +1 in the first row indicate that joint A is oriented fr
     \end{array}
 
 
-It is strongly emphasized that these large sparse matrices need never be formed in multibody dynamics code. Ultimately, other more compact representations of topology allow more efficient numerical implementation of kinematics and dynamics. Nevertheless, a description of incidence matrix is provided here as it allows clearly formulating the equations of motion for complex multibody systems in the language of matrices. Later in this document, more compact representations of topology will be introduced.
+Spanning Tree and Chords
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-Spanning Tree
-****************
-
-The subset of graph edges containing all nodes, but no loops, is the *spanning tree*. The spanning tree can be identified from the incidence matrix by permuting Eq. :eq:`eq:incidence_matrix` to reduced-row echelon form as:
+The spanning tree of the excavator is again identified by permuting the incidence matrix, Eq. :eq:`eq:incidence_matrix`, to reduced-row echelon form:
 
 .. math::
     :label: eq:incidence_matrix_no_substructures
@@ -149,6 +298,15 @@ The graph edges above the dashed line in Eq. :eq:`eq:incidence_matrix_no_substru
 .. The sense of joints P, Q, R and T have been reversed to align with the spanning tree and obtain positive entries on the diagonal of :math:`\Gamma^T`. The upper block has been converted to lower triangular form with 1s along the diagonal. Note that there is not a unique choice of arcs and chords in a given mechanism. In the present example, the permutations were chosen to maximize the breadth of the spanning tree. The spanning tree is visualized in Fig. :num:`spanningtree` . The solid black arrows correspond to the joints that form the arcs in the mechanism, and the dashed blue arrows correspond to the chords.
 
 
+With :math:`n_b` moving bodies, :math:`n_j` joints and a single connected graph that includes the fixed body, the spanning tree has exactly :math:`n_b` arcs, one for each moving body, so the number of chords is
+
+.. math::
+    :label: eq:number_of_chords
+
+    n_c = n_j - n_b
+
+For the robot, :math:`n_j = n_b = 11` and :math:`n_c = 0`. For the excavator, :math:`n_j = 20` and :math:`n_b = 15`, so :math:`n_c = 5`: the chords L, M, N, G and S, below the dashed line in Eq. :eq:`eq:incidence_matrix_no_substructures`, each close one of five independent loops. In Fig. :num:`spanningtree` the chords are drawn dashed.
+
 .. _spanningtree:
 
 .. figure:: figures/digraph.png
@@ -158,15 +316,8 @@ The graph edges above the dashed line in Eq. :eq:`eq:incidence_matrix_no_substru
     Spanning tree of hydraulic excavator
 
 
-*Shift* keeps two graphs of the same mechanism. The first is the model as the user wrote it: the assemblies hold the bodies and joints, and each joint keeps the parent and child it was given. The second is built from the first and follows the spanning tree: it holds only the active bodies and joints, in level order, in arrays of their own, and it is what the simulation runs on. The user never has to arrange a model to suit it. Where a joint points against the spanning tree, its sense is set to -1 and the second graph uses the inverse of its transformation, so the joint's coordinates keep the meaning they have in the model file. A joint that reaches a body already in the tree closes a loop: it gets a virtual body and a chord constraint. Bodies, joints and their parameters stay accessible through the first graph, so results are reported in the terms of the model.
-
-
-Path Matrix
-***********
-The path matrix is another important tool
-
 Jacobian Matrix obtained using Graph Theory
-*******************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A corollary to the incidence matrix, the connectivity matrix, is formed by element-wise replacement of the +1 and -1s in :math:`\Gamma^T` with positive or negative 6x6 identity matrices. The partial velocity matrix, :math:`H`, is a block matrix containing the 6x1 influence coefficient matrices (introduced in the previous section) along the diagonal. The partial velocity matrix provides a mapping of joint velocities to relative velocities across joints.
 
@@ -246,17 +397,19 @@ Equation :eq:`eq:jacobian` can be used to find the Jacobian matrix for the excav
 
 where the :math:`h_j` are :math:`6\times1` influence coefficient matrices for each of the respective joints. The block row identifier labels, i through v, correspond to a minimal set of independent kinematic loops in the mechanism. Note that the number of loops is equal to the number of chords in the directed graph.
 
+For a kinematic tree there are no chords: :math:`C_{arc}` is the whole of :math:`C`, Eq. :eq:`eq:partmapping_yield1` gives the velocity of every body from the joint velocities, and the Jacobian of Eq. :eq:`eq:jacobian` has no rows. Each chord of a mechanism with closed loops adds one block row, so the joint coordinates are no longer independent: the loop closure equations tie the dependent coordinates to the independent ones, and the equations of motion carry the constraint forces of the loops (see :ref:`generalized_coordinate_partitioning`). Had the gripper of the robot used parallel-linkage fingers, with a coupler pinned to both the hand and the finger, each coupler would have added a chord, and the robot too would have closed loops.
+
 
 Parent Child List and Binary Tree
-*********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The spanning tree contains only the subset of user--defined joints that were classified as arcs of the directed graph. A simple modification to Eq. :eq:`eq:incidence_matrix_no_substructures` effectively converts all user--defined joints to arcs of the directed graph. Cut the child-side Cartesian frame of each chord joint from its embedding body and consider this released frame as a *virtual*, massless body. Each chord joint will then have its own unique child body and will become an integral part of an expanded spanning tree. This process will have effectively cut open all kinematic loops and replaced all chords by arcs. For each virtual body, six chord--loop constraint equations are then imposed to connect the virtual body back to its original embedding body.
 
-In the excavator example, the child--side frames of the five chord joints are cut from their embedding bodies and converted into virtual, massless bodies. The virtual bodies are then constrained so that their position, orientation, velocity, and acceleration match the node locations in the respective embedding bodies from which they were cut. With this modification, the chords of the directed graph have been converted to rigid constraints. This simple modification requires no changes to Eq. :eq:`eq:jacobian1`. When the chord loops are cut, the virtual body number and the original chord's embedding (positively oriented) body id are recorded for later reuse. `Table 2`_ shows this information for the hydraulic excavator model.
+In the excavator example, the child--side frames of the five chord joints are cut from their embedding bodies and converted into virtual, massless bodies. The virtual bodies are then constrained so that their position, orientation, velocity, and acceleration match the node locations in the respective embedding bodies from which they were cut. With this modification, the chords of the directed graph have been converted to rigid constraints. This simple modification requires no changes to Eq. :eq:`eq:jacobian1`. When the chord loops are cut, the virtual body number and the original chord's embedding (positively oriented) body id are recorded for later reuse. `Table 3`_ shows this information for the hydraulic excavator model.
 
-.. _Table 2:
+.. _Table 3:
 
-.. list-table:: Table 2: Virtual and embedding body id for each kinematic loop
+.. list-table:: Table 3: Virtual and embedding body id for each kinematic loop
     :header-rows: 1
 
     * - loop id
@@ -291,11 +444,11 @@ A new spanning tree, modified to include the virtual bodies, is shown in Fig. :n
 Here the solid arrows correspond to the joints that form the arcs in the mechanism, and the dashed lines correspond to the new constraints imposed. Virtual, massless bodies are designated by octagons.
 
 
-While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` provides all the necessary information for traversing the directed graph, navigating through its many ones and zeros is cumbersome. To avoid this problem the excavator's graph may also be represented more compactly as a parent--child list and binary tree :cite:`cormen2009introduction`. The parent--child list facilitates traversal from any node of the spanning tree upward, toward the root element. The index into the parent--child list, :math:`P`, is each body or node's unique ID number, and the value at that index is the node's unique parent node ID number.  A binary tree facilitates traversal of the graph from any node of the directed graph away from the root element, towards the leaves of the spanning tree. Two lists, :math:`L` and :math:`R`, are used to represent the binary tree. The first list, :math:`L`, is called the *left* or *descendent* list and contains the index of each node's first descendant node, if present. The second list, :math:`R`, is called the *right* or *sibling* list and contains the node's first sibling, if present. Additionally, an *index* list contains the body indices in original user--defined order. For the excavator model, the four lists are shown in `Table 2`_.
+While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` provides all the necessary information for traversing the directed graph, navigating through its many ones and zeros is cumbersome. To avoid this problem the excavator's graph may also be represented more compactly as a parent--child list and binary tree :cite:`cormen2009introduction`. The parent--child list facilitates traversal from any node of the spanning tree upward, toward the root element. The index into the parent--child list, :math:`P`, is each body or node's unique ID number, and the value at that index is the node's unique parent node ID number.  A binary tree facilitates traversal of the graph from any node of the directed graph away from the root element, towards the leaves of the spanning tree. Two lists, :math:`L` and :math:`R`, are used to represent the binary tree. The first list, :math:`L`, is called the *left* or *descendent* list and contains the index of each node's first descendant node, if present. The second list, :math:`R`, is called the *right* or *sibling* list and contains the node's first sibling, if present. Additionally, an *index* list contains the body indices in original user--defined order. For the excavator model, the four lists are shown in `Table 4`_.
 
-.. _Table 3:
+.. _Table 4:
 
-.. csv-table:: Table 3: Binary Tree and Parent Child list for excavator
+.. csv-table:: Table 4: Binary Tree and Parent Child list for excavator
     :header-rows: 1
 
     "index", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
@@ -304,41 +457,171 @@ While the incidence matrix in Eq. :eq:`eq:incidence_matrix_no_substructures` pro
     "R", 0, 0, 0, 8, 10, 7, 0, 13, 9, 0, 11, 12, 0, 14, 0, 0, 0, 0, 0, 0, 0
 
 
-.. _kinematic_forest:
+.. _constraint_equations:
 
-Trees of the Kinematic Forest
-*****************************
+Constraint Equations
+^^^^^^^^^^^^^^^^^^^^
 
-Removing the fixed body from the spanning tree leaves a *forest*: one tree for
-each joint that attaches a body to the fixed body. After bodies attached by
-rigid joints are merged into their parents, the compressed parent--child list
-(*pcl_compressed* in the program, with the value :math:`-1` for the fixed body)
-assigns each body to the tree of its parent in a single pass in level order.
-Each tree is then classified (``topology::DetectTrees``):
+Each chord joint connects a body reached along the spanning tree to a body that the tree has already reached by another path. The chord's child frame is therefore placed twice: once along the path of joints from the fixed body through the chord, giving its displacement :math:`\Phi_{fc}`, and once along the path to the body on which it is fixed, giving the displacement :math:`\Phi_{fb}` of the corresponding frame :math:`b` of that body. The loop is closed when the two coincide,
 
-* a *serial chain*, if every body of the tree has at most one child body;
-* a *branched tree*, if some body has two or more child bodies;
-* a *closed loop*, if a chord constraint joins one of its bodies, either to
-  another body of the same tree or to a body of another tree or the fixed
-  body. Both trees joined by a chord are closed loops.
+.. math::
+    :label: eq:loop_closure
 
-Unless a chord constraint couples them, the trees are dynamically independent:
-forces that act between trees, such as contact, are evaluated before the
-equations of motion are solved. The classification determines which algorithms
-can solve the equations of motion of a tree: serial chains and branched trees
-by the articulated-body or divide-and-conquer algorithms (see
-:ref:`articulated_body_algorithms`), which need no constraint Jacobian, and closed
-loops by the run-time optimized natural constraint algorithm with the
-constraint Jacobian. The ``"auto"`` solver applies the algorithm that suits
-each tree of a model. Free bodies
-(``"type": "free_body"``) are not part of the spanning tree and are solved separately.
+    \Phi_{fc}(\underline{q}) = \Phi_{fb}(\underline{q})
+
+Equation :eq:`eq:loop_closure` holds the six relative degrees of freedom of the two frames fixed, whatever the type of the chord; the motion that the chord allows is carried by its own joint coordinates. Every chord therefore contributes six equations. A configuration that does not satisfy Eq. :eq:`eq:loop_closure`, such as one read from a model file, is measured by the displacement that carries frame :math:`b` onto frame :math:`c`,
+
+.. math::
+    :label: eq:constraint_error
+
+    \Phi_{fc}\,\Phi_{fb}^{-1} =
+    \begin{bmatrix} R_{\varepsilon} & \underline{r}_{\varepsilon} \\ \underline{0}^{T} & 1 \end{bmatrix},
+    \qquad
+    \underline{e}_{k} =
+    \begin{Bmatrix} \underline{r}_{\varepsilon} \\ \underline{\epsilon} \end{Bmatrix},
+    \qquad
+    \underline{\epsilon} = \frac{1}{2}
+    \begin{Bmatrix} r_{32} - r_{23} \\ r_{13} - r_{31} \\ r_{21} - r_{12} \end{Bmatrix}
+
+where :math:`r_{ij}` are the entries of :math:`R_{\varepsilon}`. The *constraint error* :math:`\underline{e}_{k}` of chord :math:`k` is zero exactly when its loop is closed; for a small rotation by the angle :math:`\theta` about the unit axis :math:`\underline{n}`, :math:`\underline{\epsilon} = \sin\theta\,\underline{n} \approx \theta\underline{n}`. Stacking the errors of all chords, the configurations and the velocities of a mechanism with closed loops satisfy
+
+.. math::
+    :label: eq:constraint_levels
+
+    \underline{e}(\underline{q}) = \underline{0},
+    \qquad
+    J\underline{\dot{q}} = \underline{0}
+
+The velocity constraints follow from the rate of the error, which at closure is the difference of the velocities of frames :math:`c` and :math:`b`, Eq. :eq:`eq:jacobian_pre`. The first condition is nonlinear in the coordinates and is solved by iteration; the second is linear in the velocities.
+
+The Jacobian has :math:`6n_c` rows and one column for each joint coordinate, :math:`n_{\dot{q}}` in all. Its rank :math:`r` is the number of independent constraints, often fewer than :math:`6n_c`: a planar loop, for example, can violate only three of its six equations. The number of degrees of freedom at the current configuration, the *instantaneous mobility* of the mechanism, is
+
+.. math::
+    :label: eq:mobility
+
+    \mu = n_{\dot{q}} - r
+
+The instantaneous mobility may differ from the count of the Grübler--Kutzbach criterion, which assumes that every constraint equation is independent of the others, so that each chord removes six degrees of freedom:
+
+.. math::
+    :label: eq:gruebler_kutzbach
+
+    \mu_{GK} = n_{\dot{q}} - 6n_c
+
+The rank :math:`r` is smaller than :math:`6n_c` when equations are redundant, as those of a planar loop are, or when the geometry of a mechanism makes some of them dependent, as in Bricard's linkage, a single loop of six revolute joints for which Eq. :eq:`eq:gruebler_kutzbach` gives :math:`\mu_{GK} = 0` but which moves with one degree of freedom. The rank may also change as a mechanism moves: at a singular configuration, such as two links of a loop momentarily aligned, it drops, and the instantaneous mobility rises for that configuration alone. The rank :math:`r` is computed from the Jacobian at the current configuration, so that Eq. :eq:`eq:mobility` accounts for all of these cases, and *Shift* needs no special treatment of redundant constraints or overconstrained mechanisms.
+
+For a kinematic tree :math:`n_c = 0`, :math:`r = 0` and :math:`\mu = n_{\dot{q}}`, the nine of the robot arm.
+
+
+.. _gecp_partition:
+
+Generalized Coordinate Partitioning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With :math:`r` independent constraints on :math:`n_{\dot{q}}` coordinates, :math:`\mu` coordinates can be chosen freely and the other :math:`r` follow from them. *Shift* chooses the split by Gaussian elimination with complete pivoting (GECP) of the Jacobian :cite:`wehage1982`. At each step of the elimination, GECP moves the entry of largest magnitude remaining in the matrix to the pivot position, exchanging rows and columns, and it stops when no remaining entry exceeds a small tolerance, after :math:`r` steps, which reveals the rank. The row and column exchanges are recorded as the permutations :math:`P_e` of the equations and :math:`P_v` of the coordinates:
+
+.. math::
+    :label: eq:gecp_partition
+
+    P_e J P_v^{T} =
+    \begin{bmatrix} J^{pd} & J^{pi} \\ J^{sd} & J^{si} \end{bmatrix},
+    \qquad
+    P_v \underline{q} = \begin{Bmatrix} \underline{q}^{d} \\ \underline{q}^{i} \end{Bmatrix}
+
+The :math:`r` pivot rows are the *primary* equations :math:`p`, with the nonsingular square block :math:`J^{pd}`; the other rows, the *secondary* equations :math:`s`, are combinations of the primary ones and hold whenever they hold. The :math:`r` pivot columns are the *dependent* coordinates :math:`\underline{q}^{d}`, and the remaining :math:`\mu` columns the *independent* coordinates :math:`\underline{q}^{i}`. With
+
+.. math::
+    :label: eq:b_matrix
+
+    B^{di} = \left(J^{pd}\right)^{-1} J^{pi}
+
+the primary equations, multiplied by :math:`(J^{pd})^{-1}`, give the changes and the velocities of the dependent coordinates from those of the independent ones:
+
+.. math::
+    :label: eq:preconditioned_constraints
+
+    \delta\underline{q}^{d} + B^{di}\,\delta\underline{q}^{i} = \underline{e}^{d},
+    \qquad
+    \underline{\dot{q}}^{d} + B^{di}\,\underline{\dot{q}}^{i} = \underline{0}
+
+with :math:`\underline{e}^{d} = (J^{pd})^{-1}\underline{e}^{p}`. Each column of :math:`B^{di}` is the change of the dependent coordinates, with the sign reversed, per unit change of one independent coordinate.
+
+Choosing the largest pivots makes :math:`J^{pd}` as far from singular as the Jacobian allows, and keeps the entries of :math:`B^{di}` small: the independent coordinates are those through which the mechanism is driven with the greatest mechanical advantage, and a small change of them never demands a large change of the dependent coordinates. The best choice depends on the configuration. As a mechanism moves, *Shift* monitors the infinity norm of :math:`B^{di}`, its largest row sum, and factors the Jacobian again with complete pivoting when the norm has grown by the factor ``infinity_norm_multiplier`` of the ``rnca`` solver since the last partition. The equations of motion in the partitioned form are described in :ref:`generalized_coordinate_partitioning`.
+
+
+.. _specified_coordinates:
+
+Moving a Mechanism by an Independent Coordinate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To place a mechanism in a chosen configuration, a coordinate is set and the others are found so that the loops stay closed. *Shift* makes the coordinate that is set independent: it is excluded from the pivot search of the complete pivoting, so that the remaining pivots choose the dependent coordinates among the others. A change :math:`\Delta\underline{q}^{i}` of the independent coordinates, nonzero only for the coordinate that is set, is followed by a *predictor*, the first form of Eq. :eq:`eq:preconditioned_constraints` with no error,
+
+.. math::
+    :label: eq:predictor
+
+    \underline{q}^{i} \leftarrow \underline{q}^{i} + \Delta\underline{q}^{i},
+    \qquad
+    \underline{q}^{d} \leftarrow \underline{q}^{d} - B^{di}\,\Delta\underline{q}^{i}
+
+which leaves an error of second order in :math:`\Delta\underline{q}^{i}`. A *corrector*, the Newton--Raphson iteration on the primary equations with the independent coordinates held fixed,
+
+.. math::
+    :label: eq:corrector
+
+    J^{pd}\,\delta\underline{q}^{d} = \underline{e}^{p}(\underline{q}),
+    \qquad
+    \underline{q}^{d} \leftarrow \underline{q}^{d} - \delta\underline{q}^{d}
+
+then drives the error below the tolerance ``epsilon_rank_determination`` of the model parameters, :math:`10^{-9}` by default. The factors of :math:`J^{pd}` from the start of the move are kept for every step, so that each step costs one evaluation of the error and two triangular solves. If the iteration does not converge, no configuration with the chosen value closes the loops, and the coordinates are restored. The viewer moves a mechanism this way when a joint slider is dragged.
+
+.. _sliderexample:
+
+.. figure:: ../images/examples/slider_crank.jpg
+    :align: center
+    :width: 500px
+
+    Slider-crank mechanism
+
+**Example: the slider-crank.** In :source:`examples/slider_crank/slider_crank.json`, Fig. :num:`sliderexample`, a crank of length :math:`a = 0.6` m turns on joint A about the :math:`x` axis by the angle :math:`\theta`, a piston slides along the :math:`y` axis on joint B by the distance :math:`s`, and a connecting rod of length :math:`l = 1.5` m is pinned to the tip of the crank by joint D, with angle :math:`\phi`, and to the piston by joint C, with angle :math:`\psi`. The spanning tree reaches the crank and the piston from the fixed body by A and B and the rod from the crank by D, so that C is the chord: :math:`n_j = 4`, :math:`n_b = 3` and :math:`n_c = 1`. With the screws referred to the crank pivot, only three rows of the Jacobian are nonzero, those of the velocity components :math:`v_y` and :math:`v_z` and the angular velocity :math:`\omega_x`; in the column order :math:`(\theta, s, \phi, \psi)`,
+
+.. math::
+    :label: eq:slider_crank_jacobian
+
+    J = \begin{bmatrix}
+    0 & 1 & -a\sin\theta & 0 \\
+    0 & 0 & a\cos\theta & s \\
+    -1 & 0 & -1 & -1
+    \end{bmatrix}
+
+The loop is planar and cannot violate the other three equations. The rank is :math:`r = 3`, and by Eq. :eq:`eq:mobility` the mechanism has :math:`\mu = 4 - 3 = 1` degree of freedom, where Eq. :eq:`eq:gruebler_kutzbach`, counting six equations for the planar loop, gives :math:`\mu_{GK} = 4 - 6 = -2`. At the configuration of the model file, complete pivoting makes :math:`\phi`, :math:`\psi` and :math:`s` dependent and the crank angle :math:`\theta` independent, with :math:`\|B^{di}\|_\infty = 1.245`.
+
+With the crank angle set, the piston follows the closed form
+
+.. math::
+    :label: eq:slider_crank_closure
+
+    s = a\cos\theta + \sqrt{l^{2} - a^{2}\sin^{2}\theta}
+
+*Shift* reaches crank angles from the 5.33 rad of the model file to 7.0 rad, through the outer dead centre at :math:`\theta = 2\pi`, where the crank lies along the slide and :math:`s = a + l = 2.1` m, with :math:`s` equal to Eq. :eq:`eq:slider_crank_closure` to within :math:`10^{-9}` m and :math:`\|B^{di}\|_\infty` between 1.29 and 1.37.
+
+With the piston position set instead, :math:`s` becomes independent and the same configurations become hard to reach. Near the outer dead centre, :math:`2.1 - s` is of second order in the crank angle, so that the rotation of the crank per unit travel of the piston, an entry of :math:`B^{di}`, grows as :math:`(2.1 - s)^{-1/2}`. At :math:`2.1 - s = 10^{-1}`, :math:`10^{-2}`, :math:`10^{-3}` and :math:`10^{-4}` m, :math:`\|B^{di}\|_\infty` is 3.10, 6.37, 19.68 and 62.12, growing by :math:`\sqrt{10}` for each tenfold approach, and a piston position beyond the stroke, :math:`s = 2.11` m, is refused: the corrector does not converge and the coordinates are restored. The piston cannot drive the mechanism through its dead centre; for the same reason, complete pivoting without a specified coordinate makes the crank angle independent. The test ``SliderCrank`` in ``test/test_specified_coordinates.cc`` checks these values.
+
+
+.. _kinematic_substructuring:
 
 Kinematic Substructuring
 ------------------------
 
-In the previous section, a compact formulation of the equations of motion was derived and an efficient solution method was discussed. One bottleneck in the solution process is the Gaussian Elimination with Complete Pivoting (GECP) algorithm itself, which is a triple-loop procedure requiring :math:`r(6mn - 3(m+n)r + 2r^2)/3` FLOPS, where :math:`m` is the number of rows, :math:`n` is the number of columns and :math:`r` is the rank of the matrix. Furthermore, GECP requires both row and column permutations during factorization, which necessitates non-unit stride vector copies, which is not optimal for memory access. Note that other algorithms have been proposed for the automatic identification of independent and dependent variables, for example, based on Singular Value Decomposition (SVD) :cite:`mani1985,wehage1993` or Congruency Transformations :cite:`loduha1995`. Note that the run--time of these alternative methods is increased over GECP; for example, SVD requires :math:`4m^2n+22n^3` FLOPS using the R-SVD algorithm :cite:`golub1996matrix`.
+The Jacobian matrix plays a central role in the dynamics of mechanisms with closed loops, which is introduced in :ref:`generalized_coordinate_partitioning`: the equations of motion are solved in the partitioned form of the preceding sections, so the Jacobian is evaluated at every step of a simulation and factored by Gaussian elimination with complete pivoting (GECP) whenever the partition is renewed. Numerical efficiency already matters for the kinematics described above, where every move of a mechanism evaluates the constraint errors and solves with the factors of :math:`J^{pd}`, and it matters even more for dynamics, where these operations are repeated at every step of the integrator.
 
-Although the modified GECP algorithm is more efficient than alternative partitioning strategies, due to its :math:`\mathcal{O}(n^3)` complexity and memory access requirements, calling the GECP algorithm should be avoided whenever possible. Certainly, one strategy to improve performance would be to call GECP only once at the beginning of a program's execution. As kinematic bifurcations are common in even relatively simple mechanisms and the primary system of constraints are subject to change, this approach comes at the expense of robustness and is not recommended. Alternatively, one could conservatively call GECP at every time step---and pay a substantial performance penalty. Other approaches call GECP at regular intervals or use a heuristic method to determine when to repartition the Jacobian matrix. Regardless of the specific method used, the robust numerical solution of dynamic equations may require performing GECP many times in the course of a simulation, and strategies to improve GECP algorithm performance are important.
+GECP of a matrix with :math:`m` rows, :math:`n` columns and rank :math:`r` requires
+
+.. math::
+    :label: eq:gecp_flops
+
+    \frac{r\left(6mn - 3(m+n)r + 2r^{2}\right)}{3}
+
+floating-point operations, a count of order :math:`\mathcal{O}(n^{3})`. For the slider-crank, Fig. :num:`sliderexample`, with :math:`m = 6`, :math:`n = 4` and :math:`r = 3`, the factorization takes 72 operations, a trivial cost. For the excavator, Fig. :num:`excavator`, the five chords give :math:`m = 30` rows on :math:`n = 20` columns, and with :math:`r = 15` the factorization takes 9000 operations, more than a hundred times as many for a mechanism with five loops instead of one. The operation count grows with the cube of the size of the Jacobian, so that the factorization of the Jacobian of a large mechanism as a single matrix becomes computationally demanding. Kinematic substructuring reduces the cost of the factorization by grouping the loops that share joint coordinates into *kinematic substructures*; the Jacobian is then permuted to block-diagonal form, with one block for each substructure, and each block is factored separately.
 
 Block--diagonalization is a well--known technique for breaking a large system of equations into smaller, more manageable pieces, thereby increasing computational efficiency. Several algorithms exist in the literature to block partition matrices, such as described in :cite:`acer2011recursive,uccar2007partitioning,steward1965partitioning,aykanat2004permuting,cave2014block`. However, these methods are generally unsuitable for block partitioning mechanism Jacobian matrices because they involve taking linear combinations of variables in addition to row and column permutations; are designed for special--purpose matrices (i.e. square or hermitian); or do not fully uncouple substructures (i.e. the resulting partitioning scheme has overlap or is in single--bordered, K--way form :cite:`aykanat2004permuting`).
 
@@ -346,8 +629,6 @@ Block--diagonalization is a well--known technique for breaking a large system of
 
 
 
-
-At this point in the analysis, information regarding the system topology required to solve Eq. :eq:`eq:lagrange_eqn` has been determined. Performing GECP on Eq. :eq:`eq:jacobian1` would require 9000 FLOPs, assuming the Jacobian matrix has full--row rank (i.e :math:`m=30`, :math:`n=20` and :math:`r=15`). In the following section, it will be shown how kinematic substructures can be *automatically* identified and uncoupled, allowing for an increase in computational efficiency.
 
 The kinematic substructuring algorithm requires traversing the directed graph of the mechanism, and the spanning tree is an essential tool for this purpose.
 
@@ -394,11 +675,11 @@ Using an iterative preorder binary tree traversal :cite:`cormen2009introduction`
       return levels
 
 
-The :math:`levels` list for the excavator model is shown in `Table 3`_.
+The :math:`levels` list for the excavator model is shown in `Table 5`_.
 
-.. _Table 3:
+.. _Table 5:
 
-.. csv-table:: Table 3: Levels list
+.. csv-table:: Table 5: Levels list
     :header-rows: 1
 
     "index", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
@@ -408,9 +689,9 @@ The :math:`levels` list for the excavator model is shown in `Table 3`_.
 Identify loop members
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. Each loop's *base* node and the nodes in the loop can also be readily identified from the parent--child list and `Table 3`_. Let the respective kinematic paths from the spanning tree's root to each chord joint's virtual body and its user--defined embedding body represent the positive and negative branch segments of the loop, as shown for loop v in Fig. :num:`loopv` below. In Fig. :num:`loopv`, edges F and T are oriented negatively with respect to the loop direction, edges K, O and S are oriented positively with respect to the loop direction, node 4 is loop v's unique base node, and nodes 0, 1, 2 and 3 are in the ancestor path of node 4. From `Table 3`_, let the *virtual body id* for loop :math:`j` be stored in :code:`positiveNodes[j]` and the corresponding *embedding body id* stored in :code:`negativeNodes[j]`.
+.. Each loop's *base* node and the nodes in the loop can also be readily identified from the parent--child list and `Table 4`_. Let the respective kinematic paths from the spanning tree's root to each chord joint's virtual body and its user--defined embedding body represent the positive and negative branch segments of the loop, as shown for loop v in Fig. :num:`loopv` below. In Fig. :num:`loopv`, edges F and T are oriented negatively with respect to the loop direction, edges K, O and S are oriented positively with respect to the loop direction, node 4 is loop v's unique base node, and nodes 0, 1, 2 and 3 are in the ancestor path of node 4. From `Table 3`_, let the *virtual body id* for loop :math:`j` be stored in :code:`positiveNodes[j]` and the corresponding *embedding body id* stored in :code:`negativeNodes[j]`.
 
-For each grouping in `Table 3`_, each loop's members can be identified using `Algorithm 3`_ below and stored in the list :math:`members`, an initially empty list of lists equal to the number of chord loops, i-v. The first and second while loops are used to decrement each node index in the kinematic path until node indices in the positive and negative branches of the loop are at the same level in the spanning tree. Once the decremented node indices have reached the same level, they will be decremented together by level until the loop's unique *base node* is identified. During this process, the node indices are stored in the corresponding list. At the end of the process, the last node index that was pushed to list is removed, as the base node will have been written twice, and the sequence of the nodes is reversed. The final :math:`members` list contains each loop's base node first, followed by the loop members in monotonically increasing level order.
+For each grouping in `Table 5`_, each loop's members can be identified using `Algorithm 3`_ below and stored in the list :math:`members`, an initially empty list of lists equal to the number of chord loops, i-v. The first and second while loops are used to decrement each node index in the kinematic path until node indices in the positive and negative branches of the loop are at the same level in the spanning tree. Once the decremented node indices have reached the same level, they will be decremented together by level until the loop's unique *base node* is identified. During this process, the node indices are stored in the corresponding list. At the end of the process, the last node index that was pushed to list is removed, as the base node will have been written twice, and the sequence of the nodes is reversed. The final :math:`members` list contains each loop's base node first, followed by the loop members in monotonically increasing level order.
 
 .. code-block:: python
     :caption: Algorithm 3: detectLoopMembers(P, levels, loopCount, negativeNodes, positiveNodes)
@@ -450,11 +731,11 @@ For each grouping in `Table 3`_, each loop's members can be identified using `Al
 Order loops by level
 ^^^^^^^^^^^^^^^^^^^^
 
-At this point the loops are rearranged by sorting their base nodes into monotonically increasing order by level in the spanning trees. After processing by `Algorithm 2`_ and sorting, the loop ordering sequence and loop member lists are shown in `Table 4`_.
+At this point the loops are rearranged by sorting their base nodes into monotonically increasing order by level in the spanning trees. After processing by `Algorithm 2`_ and sorting, the loop ordering sequence and loop member lists are shown in `Table 6`_.
 
-.. _Table 4:
+.. _Table 6:
 
-.. csv-table:: Table 4: Members of each kinematic loop with loops listed in monotonically increasing order by level in the spanning tree. The base node associated with each loop is the first member of each list.
+.. csv-table:: Table 6: Members of each kinematic loop with loops listed in monotonically increasing order by level in the spanning tree. The base node associated with each loop is the first member of each list.
     :header-rows: 1
 
     "loop ID", "base node", "loop members"
@@ -501,11 +782,11 @@ In the present example, the base node of loop i is found to be in the ancestor p
 
 Moving on to loop iii, an ancestor of loop iii's base node is found to be the base node of the first kinematic substructure.  However, none of the descendant members of loop iii are members of loops i or ii, and therefore loop iii *is not* a member of the first kinematic substructure. Thus loop iii is assigned to a second kinematic substructure.
 
-Loops iv and v are then analyzed. An ancestor of the base node of loop iv is found to be in the kinematic path of the base node of loops i and ii in the first kinematic substructure, however, none of the children of loop iv's base node is a member of loops i and ii. Therefore, loop iv is not a member of the first substructure. Similarly loop iv is not a member of the second substructure. Thus a third substructure is designated, to which loop iv is assigned. Similarly, loop v is not a member of the first and second substructures. However, one child of loop v's base node is a member of the third substructure, so loop v is assigned to it. The substructures and their corresponding loops are shown in `Table 5`_.
+Loops iv and v are then analyzed. An ancestor of the base node of loop iv is found to be in the kinematic path of the base node of loops i and ii in the first kinematic substructure, however, none of the children of loop iv's base node is a member of loops i and ii. Therefore, loop iv is not a member of the first substructure. Similarly loop iv is not a member of the second substructure. Thus a third substructure is designated, to which loop iv is assigned. Similarly, loop v is not a member of the first and second substructures. However, one child of loop v's base node is a member of the third substructure, so loop v is assigned to it. The substructures and their corresponding loops are shown in `Table 7`_.
 
-.. _Table 5:
+.. _Table 7:
 
-.. csv-table:: Table 5: Kinematic substructures and their corresponding chord--loops
+.. csv-table:: Table 7: Kinematic substructures and their corresponding chord--loops
     :header-rows: 1
 
     "substructure", "loops"
