@@ -28,6 +28,23 @@ public:
 
   enum MoveType { TARGET, INCREMENT, TARGET_SPHERICAL, INCREMENT_SPHERICAL };
 
+  /*! \brief what tells the run-time check to refactor the Jacobian by
+   * Gaussian elimination with complete pivoting (GECP); the refactorization
+   * is the same whichever is chosen, and the pivot ratio is checked with
+   * each.
+   *
+   * The mobility numbers \f$m_i\f$ are the diagonal of the orthogonal
+   * projector onto the right null space of the substructure's Jacobian; they
+   * sum to the substructure's mobility \f$M\f$. */
+  enum class Refactor {
+    /*! the infinity norm of B exceeds a multiple of its value at the last
+     * factorization */
+    INFINITY_NORM,
+    /*! \f$m_j / M\f$ of an independent velocity \f$j\f$ falls below
+     * epsilon_mobility */
+    MOBILITY_EPSILON
+  };
+
   struct Constraint {
     struct {
       int d =
@@ -340,6 +357,15 @@ public:
   double EvaluateConstraintsNewtonRaphson(const shift::core::topology::DHVA& dhva);
   void ComputeMobility();
   void CopyNullSpace();
+  /*! \brief CopyNullSpace into the null space given, dq_count by dq_count */
+  void CopyNullSpace(double* null_space);
+
+  /*! \brief the mobility numbers of the substructure's velocities, in
+   * local (PO1) order, from the B matrix that the run-time algorithm left in
+   * J_; evaluated into buffers of the substructure's own, so that neither
+   * the context's mobility numbers nor the shared null space change.
+   * Requires 0 < rank < dq_count. */
+  const std::vector<double>& RunTimeMobility();
   void SetupNewtonRaphsonSpecifiedCoordinate(shift::core::topology::DHVA& dhva,
                                              int specified_coordinate_index);
 
@@ -409,6 +435,22 @@ public:
   */
   unsigned int CheckCondition(const double infinity_norm_multiplier);
 
+  /*!
+  @brief check the factorization by the criterion given (see Refactor) and
+  the pivot ratio
+
+  @param infinity_norm_multiplier the multiple of the initial infinity norm
+  of B that fails Refactor::INFINITY_NORM
+  @param criterion what fails the check besides the pivot ratio
+  @param epsilon_mobility the mobility number of an independent velocity
+  divided by the mobility below which Refactor::MOBILITY_EPSILON fails
+
+  @return the Jacobian::Failure flags of the checks that failed
+  */
+  unsigned int CheckCondition(const double infinity_norm_multiplier,
+                              Refactor criterion,
+                              const double epsilon_mobility);
+
   void Connect();
 
 private:
@@ -425,6 +467,11 @@ private:
   double* right_null_space_ = nullptr;
   double* mobility_numbers_ = nullptr;
   std::vector<bool> Jb_;
+
+  /* run-time mobility numbers (RunTimeMobility) and their orthonormal null
+  space, dq_count_ by dq_count_ - rank_ */
+  std::vector<double> run_time_null_space_;
+  std::vector<double> run_time_mobility_;
 
   double epsilon_rank_determination_ = 1e-9;
   double epsilon_pivot_ratio_ = 1e-8;
