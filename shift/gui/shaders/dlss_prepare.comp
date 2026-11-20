@@ -1,0 +1,100 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// The inputs of DLSS Super Resolution (dlss.h), at the render size, in place
+// of temporal anti-aliasing (svgf_taa.comp):
+// - the composited (tonemapped) image with gamma applied: DLSS in its low
+//   dynamic range mode expects colors in [0, 1], perceptually encoded
+// - the depth of the primary hit, 0 at the near plane and 1 at the far plane
+//   (the sky at 1)
+// - the motion of the primary hit in pixels, from this frame to the previous
+//   one (moving bodies through their previous pose, deforming ones less
+//   their deformation), as svgf_taa.comp finds it: independent of the
+//   sub-pixel jitter of the primary rays
+
+struct Instance { // keep in sync with raytrace.comp
+  mat4 body_to_world;
+  mat4 world_to_body;
+  vec4 box_min;
+  vec4 box_max;
+  vec4 albedo;
+  vec4 material;
+  ivec4 offsets;
+  mat4 previous_body_to_world;
+  vec4 optical; // unused here, but part of the stride of the array
+  vec4 variation; // the same
+  ivec4 surface_layers;
+  vec4 surface[2];
+  ivec4 lods;         // x = the levels in lod_roots, yzw = the mesh's own
+                      // texture layers (as offsets), which they take
+  ivec4 lod_roots;    // root nodes of the mesh and of its simplified levels
+                      // of detail, finest first, for shadow and bounce rays
+  vec4 lod_errors;    // how far each level strays from the mesh (m, world)
+  vec4 flex;          // as in raytrace.comp
+};
+
+layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
+  mat4 previous_view_projection;
+  vec4 params;   // x = pixel spread angle, y = maximum history length,
+                 // z = history valid, w = a-trous step
+  vec4 blend;    // x = progressive frames, y, z = blend start, end,
+                 // w = maximum history length of the unmoved
+  ivec4 control; // x = instance count
+  mat4 view_projection; // current frame
+  vec4 upscale;  // xy = the primary rays' jitter (ray traced pixels),
+                 // zw = ray traced size / output size (1 = not scaled)
+} u;
+
+layout(std430, binding = 1) readonly buffer Instances {
+  Instance instances[];
+};
+
+layout(rgba32f, binding = 2) uniform readonly image2D position;
+layout(rgba16f, binding = 3) uniform readonly image2D current_color;
+layout(rgba16f, binding = 4) uniform writeonly image2D out_color;
+layout(rgba16f, binding = 5) uniform writeonly image2D out_motion;
+layout(r32f, binding = 6) uniform writeonly image2D out_depth;
+// the motion of the hit's point of its body since the previous frame, body
+// coordinates (raytrace.comp)
+layout(rgba16f, binding = 7) uniform readonly image2D body_motion;
+
+// window coordinates (pixel centers at +0.5) of a point or, w = 0, direction
+bool Project(mat4 m, vec4 p, ivec2 size, out vec2 window) {
+  vec4 clip = m * p;
+  window = (clip.xy / clip.w * 0.5 + 0.5) * vec2(size);
+  return clip.w > 1e-6;
+}
+
+void main() {
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(out_color);
+  if(pixel.x >= size.x || pixel.y >= size.y) {
+    return;
+  }
+
+  vec3 color = max(imageLoad(current_color, pixel).rgb, vec3(0.0));
+  imageStore(out_color, pixel, vec4(pow(color, vec3(1.0 / 2.2)), 1.0));
+
+  vec4 g = imageLoad(position, pixel);
+  int id = int(round(g.w));
+  vec4 point = id == -1 ? vec4(g.xyz, 0.0) : vec4(g.xyz, 1.0);
+  vec4 previous_point = point;
+  if(id >= 0) {
+    vec4 body = instances[id].world_to_body * point;
+    body.xyz -= imageLoad(body_motion, pixel).xyz;
+    previous_point = instances[id].previous_body_to_world * body;
+  }
+  vec2 window, previous_window;
+  bool visible = Project(u.view_projection, point, size, window) &&
+                 Project(u.previous_view_projection, previous_point, size,
+                         previous_window);
+  vec2 motion = visible ? previous_window - window : vec2(0.0);
+  imageStore(out_motion, pixel, vec4(motion, 0.0, 0.0));
+
+  float depth = 1.0;
+  if(id != -1) {
+    vec4 clip = u.view_projection * point;
+    depth = clip.w > 1e-6 ? clamp(clip.z / clip.w, 0.0, 1.0) : 1.0;
+  }
+  imageStore(out_depth, pixel, vec4(depth));
+}

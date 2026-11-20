@@ -1,0 +1,8 @@
+[wrap-git]
+url = https://github.com/NVIDIA/DLSS.git
+revision = v310.9.16
+depth = 1
+patch_directory = dlss
+
+[provide]
+dependency_names = dlss

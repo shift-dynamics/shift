@@ -855,6 +855,30 @@ TEST(WorkspaceTree, SettingsPersist) {
               shift::gui::Settings::kDefaultRenderScale);
   }
 
+  // DLSS for the ray traced view: on, in Quality mode, by default
+  EXPECT_TRUE(thick.is_dlss_enabled());
+  EXPECT_EQ(thick.get_dlss_quality(), shift::gui::Dlss::Quality::kQuality);
+  thick.set_dlss_enabled(false);
+  thick.set_dlss_quality(shift::gui::Dlss::Quality::kUltraPerformance);
+  ASSERT_TRUE(thick.Save(path));
+  {
+    std::ifstream saved_file(path);
+    Json::Value saved_json;
+    saved_file >> saved_json;
+    EXPECT_FALSE(saved_json["dlss"].asBool());
+    EXPECT_EQ(saved_json["dlss_mode"].asString(), "ultra_performance");
+  }
+  shift::gui::Settings upscaled;
+  ASSERT_TRUE(upscaled.Load(path));
+  EXPECT_FALSE(upscaled.is_dlss_enabled());
+  EXPECT_EQ(upscaled.get_dlss_quality(),
+            shift::gui::Dlss::Quality::kUltraPerformance);
+  std::ofstream(path) << "{\"dlss_mode\": \"fast\"}";
+  shift::gui::Settings bad_mode;
+  std::string mode_error;
+  EXPECT_FALSE(bad_mode.Load(path, &mode_error));
+  EXPECT_NE(mode_error.find("dlss_mode"), std::string::npos);
+
   // a bad value is reported and the defaults kept
   std::ofstream(path) << "{\"frame_scale\": -1}";
   shift::gui::Settings bad;
@@ -873,6 +897,8 @@ TEST(WorkspaceTree, SettingsPersist) {
   saved.set_frame_scale(1.5);
   saved.set_joint_color(QColor(255, 0, 0));
   saved.set_joint_thickness(0.03);
+  saved.set_dlss_enabled(false);
+  saved.set_dlss_quality(shift::gui::Dlss::Quality::kBalanced);
   ASSERT_TRUE(saved.Save(shift::gui::Settings::get_default_path()));
   EXPECT_TRUE(std::filesystem::exists(fake_home / ".shift" / "settings.json"));
   {
@@ -884,6 +910,9 @@ TEST(WorkspaceTree, SettingsPersist) {
     EXPECT_EQ(color.y, 0.f);
     EXPECT_EQ(color.z, 0.f);
     EXPECT_EQ(workspace.get_viewport()->get_joint_thickness(), 0.03f);
+    EXPECT_FALSE(workspace.get_viewport()->is_dlss_enabled());
+    EXPECT_EQ(workspace.get_viewport()->get_dlss_quality(),
+              shift::gui::Dlss::Quality::kBalanced);
   }
   qputenv("HOME", home);
 }

@@ -21,6 +21,21 @@ ffmpeg_dep = [
 # gradient sky
 openexr_dep = dependency('OpenEXR', required: false)
 gui_cpp_args = []
+
+# NVIDIA DLSS Super Resolution for the ray traced view (dlss.h), from the
+# NVIDIA DLSS SDK subproject (subprojects/dlss.wrap), whose libraries exist
+# for Linux on x86_64 and aarch64 only. The viewer checks at run time that
+# the GPU and driver support it.
+dlss_opt = get_option('dlss').disable_auto_if(
+  host_machine.system() != 'linux' or
+  host_machine.cpu_family() not in ['x86_64', 'aarch64'])
+dlss_dep = dependency('dlss', required: dlss_opt, allow_fallback: true)
+if dlss_dep.found()
+  gui_cpp_args += [
+    '-DSHIFT_HAVE_DLSS',
+    '-DSHIFT_DLSS_LIBRARY_DIR="' + dlss_dep.get_variable('runtime_dir') + '"',
+  ]
+endif
 if openexr_dep.found()
   gui_cpp_args += '-DSHIFT_HAVE_OPENEXR'
 endif
@@ -54,7 +69,7 @@ foreach shader : ['mesh.vert', 'mesh.frag', 'particle.vert',
                   'floor.vert', 'floor.frag', 'blit.frag', 'raytrace.comp',
                   'svgf_temporal.comp', 'svgf_variance.comp', 'svgf_atrous.comp',
                   'svgf_composite.comp', 'svgf_taa.comp', 'sun_shadow.comp',
-                  'axes.vert',
+                  'dlss_prepare.comp', 'axes.vert',
                   'axes.frag', 'mesh_edges.vert', 'mesh_edges.frag',
                   'mesh_points.vert', 'mesh_points.frag', 'spider.frag',
                   'flex_deform.comp', 'flex_normals.comp', 'flex_peak.comp',
@@ -194,6 +209,7 @@ shift_gui_lib = static_library(
   'bvh.cc',
   'cad_scene.cc',
   'camera.cc',
+  'dlss.cc',
   'environment.cc',
   'flex_gpu.cc',
   'hardware_ray_tracing.cc',
@@ -214,7 +230,7 @@ shift_gui_lib = static_library(
   include_directories: [shift_inc, rhi_inc],
   implicit_include_directories: false,
   cpp_args: gui_cpp_args,
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep, dlss_dep],
 )
 
 # resources are compiled into the executable so their static initializers
@@ -223,6 +239,6 @@ shift_gui_dep = declare_dependency(
   sources: [shader_resources, icon_resources, asset_resources],
   link_with: shift_gui_lib,
   include_directories: [shift_inc, rhi_inc],
-  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep],
+  dependencies: [shift_core_dep, qt6_dep, ffmpeg_dep, openexr_dep, dlss_dep],
   compile_args: gui_cpp_args, # SHIFT_HAVE_OPENEXR for the tests
 )

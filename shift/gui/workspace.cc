@@ -2506,6 +2506,8 @@ void shift::gui::Workspace::ApplySettings() {
   viewport_->set_color_map(ColorMapSamples(settings_.get_stress_color_map(),
                                            Viewport::kColorMapSamples));
   ApplyStresses();
+  viewport_->set_dlss_enabled(settings_.is_dlss_enabled());
+  viewport_->set_dlss_quality(settings_.get_dlss_quality());
 }
 
 void shift::gui::Workspace::SettingsDialog() {
@@ -2585,6 +2587,61 @@ void shift::gui::Workspace::SettingsDialog() {
     "</ul>"
     "<p>Images and videos are always rendered at their full size.</p>");
   layout->addRow("Ray tracing resolution", render_scale);
+  // upscaling of the ray traced view with NVIDIA DLSS, where the GPU and
+  // driver support it; only the modes DLSS offers at the window's size are
+  // listed, with the size they ray trace at
+  const bool dlss_available = viewport_->is_dlss_available();
+  auto* dlss = new QComboBox;
+  dlss->addItem("NVIDIA DLSS", true);
+  dlss->addItem("Off (Shift's own anti-aliasing)", false);
+  dlss->setCurrentIndex(settings_.is_dlss_enabled() ? 0 : 1);
+  dlss->setToolTip(
+    "<p>The ray traced view is traced at a lower resolution and NVIDIA DLSS "
+    "fills in the window's full resolution: about twice as fast in its "
+    "Quality mode. It sets the resolution in place of the ray tracing "
+    "resolution.</p>"
+    "<p>Images and videos are always rendered at their full size.</p>");
+  auto* dlss_mode = new QComboBox;
+  dlss_mode->setToolTip("DLAA anti-aliases at full resolution; the other "
+                        "modes trace fewer pixels, Ultra Performance the "
+                        "fewest");
+  for(int i = 0; i < Dlss::kQualityCount; i++) {
+    const auto quality = static_cast<Dlss::Quality>(i);
+    QString name = Dlss::get_quality_name(quality);
+    if(dlss_available) {
+      const QSize render = viewport_->get_dlss_render_size(quality);
+      if(render.isEmpty()) {
+        continue; // not offered at this size
+      }
+      name += QString(" (traces %1×%2)").arg(render.width()).arg(render.height());
+    }
+    dlss_mode->addItem(name, i);
+  }
+  const int mode_index =
+    dlss_mode->findData(static_cast<int>(settings_.get_dlss_quality()));
+  if(mode_index >= 0) {
+    dlss_mode->setCurrentIndex(mode_index);
+  }
+  layout->addRow("Ray traced upscaling", dlss);
+  layout->addRow("DLSS mode", dlss_mode);
+  if(dlss_available) {
+    // DLSS's mode sets the resolution it traces at, in place of the
+    // ray tracing resolution
+    auto enable_mode = [dlss, dlss_mode, render_scale] {
+      dlss_mode->setEnabled(dlss->currentData().toBool());
+      render_scale->setEnabled(!dlss->currentData().toBool());
+    };
+    enable_mode();
+    connect(dlss, &QComboBox::currentIndexChanged, &dialog, enable_mode);
+  } else {
+    dlss->setEnabled(false);
+    dlss_mode->setEnabled(false);
+    auto* reason = new QLabel("DLSS is not available: " +
+                              viewport_->get_dlss_reason());
+    reason->setWordWrap(true);
+    reason->setStyleSheet("color: gray");
+    layout->addRow(reason);
+  }
   // each label shows the hint of its field
   for(int row = 0; row < layout->rowCount(); row++) {
     QLayoutItem* label = layout->itemAt(row, QFormLayout::LabelRole);
@@ -2595,7 +2652,7 @@ void shift::gui::Workspace::SettingsDialog() {
   }
   // the viewport shows the settings as they are changed
   auto preview = [this, frame_scale, joint_thickness, lod_tolerance,
-                  render_scale, &joint_color] {
+                  render_scale, &joint_color, dlss, dlss_mode] {
     viewport_->set_frame_axes_scale(float(frame_scale->value()));
     viewport_->set_joint_thickness(float(joint_thickness->value()));
     viewport_->set_lod_tolerance(float(lod_tolerance->value()));
@@ -2603,11 +2660,18 @@ void shift::gui::Workspace::SettingsDialog() {
     viewport_->set_joint_color(ksl_vec3f(float(joint_color.redF()),
                                          float(joint_color.greenF()),
                                          float(joint_color.blueF())));
+    viewport_->set_dlss_enabled(dlss->currentData().toBool());
+    if(dlss_mode->currentIndex() >= 0) {
+      viewport_->set_dlss_quality(
+        static_cast<Dlss::Quality>(dlss_mode->currentData().toInt()));
+    }
   };
   connect(frame_scale, &QDoubleSpinBox::valueChanged, &dialog, preview);
   connect(joint_thickness, &QDoubleSpinBox::valueChanged, &dialog, preview);
   connect(lod_tolerance, &QDoubleSpinBox::valueChanged, &dialog, preview);
   connect(render_scale, &QSpinBox::valueChanged, &dialog, preview);
+  connect(dlss, &QComboBox::currentIndexChanged, &dialog, preview);
+  connect(dlss_mode, &QComboBox::currentIndexChanged, &dialog, preview);
   connect(color_button, &QPushButton::clicked, &dialog, [&] {
     const QColor color =
       QColorDialog::getColor(joint_color, &dialog, "Joint color");
@@ -2741,6 +2805,11 @@ void shift::gui::Workspace::SettingsDialog() {
   settings_.set_joint_thickness(joint_thickness->value());
   settings_.set_lod_tolerance(lod_tolerance->value());
   settings_.set_render_scale(render_scale->value() / 100.0);
+  settings_.set_dlss_enabled(dlss->currentData().toBool());
+  if(dlss_mode->currentIndex() >= 0) {
+    settings_.set_dlss_quality(
+      static_cast<Dlss::Quality>(dlss_mode->currentData().toInt()));
+  }
   ApplySettings();
   std::string error;
   if(!settings_.Save(Settings::get_default_path(), &error)) {

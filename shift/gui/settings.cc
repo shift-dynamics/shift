@@ -153,11 +153,34 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
   stress_range_automatic_ = automatic;
   stress_minimum_ = stress_minimum;
   stress_maximum_ = stress_maximum;
+  bool dlss_enabled = true;
+  if(json.isMember("dlss")) {
+    if(!json["dlss"].isBool()) {
+      if(error) {
+        *error = path + ": dlss must be true or false";
+      }
+      return false;
+    }
+    dlss_enabled = json["dlss"].asBool();
+  }
+  Dlss::Quality dlss_quality = Dlss::Quality::kQuality;
+  if(json.isMember("dlss_mode")) {
+    const Json::Value& mode = json["dlss_mode"];
+    if(!mode.isString() || !Dlss::FindQuality(mode.asString(), dlss_quality)) {
+      if(error) {
+        *error = path + ": dlss_mode must be one of \"dlaa\", \"quality\", "
+                        "\"balanced\", \"performance\", \"ultra_performance\"";
+      }
+      return false;
+    }
+  }
   frame_scale_ = frame_scale;
   joint_color_ = joint_color;
   joint_thickness_ = joint_thickness;
   lod_tolerance_ = lod_tolerance;
   render_scale_ = render_scale;
+  dlss_enabled_ = dlss_enabled;
+  dlss_quality_ = dlss_quality;
   json_ = json;
   return true;
 }
@@ -186,6 +209,8 @@ bool shift::gui::Settings::Save(const std::string& path,
   json["safety_factor_maximum"] = safety_maximum_;
   json["lod_tolerance"] = lod_tolerance_;
   json["render_scale"] = render_scale_;
+  json["dlss"] = dlss_enabled_;
+  json["dlss_mode"] = Dlss::get_quality_key(dlss_quality_);
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  ";
   std::ofstream file(path);

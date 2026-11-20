@@ -1,6 +1,8 @@
 #ifndef SHIFT_GUI_SETTINGS_H_
 #define SHIFT_GUI_SETTINGS_H_
 
+#include "shift/gui/dlss.h"
+
 #include <json/json.h>
 
 #include <QColor>
@@ -31,9 +33,10 @@ const std::vector<StressQuantity>& StressQuantities();
 
 They are the length of the arrows of the coordinate frames, the
 thickness and color of the lines of the joint axes, the tolerance of the
-meshes' levels of detail, and the quantity, color map and range of the
-stress drawn on flexible bodies. They are read from and written to a JSON
-file,
+meshes' levels of detail, the resolution of the ray traced view, whether it
+is upscaled with NVIDIA DLSS and in which mode, and the quantity, color map
+and range of the stress drawn on flexible bodies. They are read from and
+written to a JSON file,
 ~/.shift/settings.json (get_default_path). Keys the file has that this
 version does not know are kept when it is written again.
 */
@@ -89,6 +92,22 @@ public:
   }
   void set_joint_thickness(double thickness) {
     joint_thickness_ = thickness;
+  }
+  /*! \brief whether the ray traced view uses DLSS where the GPU supports
+   * it, "dlss" in the file (default true) */
+  bool is_dlss_enabled() const {
+    return dlss_enabled_;
+  }
+  void set_dlss_enabled(bool enabled) {
+    dlss_enabled_ = enabled;
+  }
+  /*! \brief the DLSS mode, "dlss_mode" in the file as a key of
+   * Dlss::get_quality_key (default "quality") */
+  Dlss::Quality get_dlss_quality() const {
+    return dlss_quality_;
+  }
+  void set_dlss_quality(Dlss::Quality quality) {
+    dlss_quality_ = quality;
   }
 
   /*! \brief the color map of the stress drawn on flexible bodies (a key of
@@ -185,6 +204,8 @@ private:
   bool stress_range_automatic_ = true;
   double stress_minimum_ = 0.0;
   double stress_maximum_ = 250e6;
+  bool dlss_enabled_ = true;
+  Dlss::Quality dlss_quality_ = Dlss::Quality::kQuality;
   Json::Value json_ = Json::Value(Json::objectValue); /*!< the file as read */
 };
 

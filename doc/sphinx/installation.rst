@@ -97,6 +97,8 @@ option               default   purpose
 ``step``             auto      read STEP files with STEPcode
 ``gpu``              auto      run calculations on the GPU with Vulkan
                                compute (see below)
+``dlss``             auto      upscale the viewer's ray traced view with
+                               NVIDIA DLSS (see below)
 ``log_level``        -1        5 trace, 4 debug, 3 info, 2 warning, 1 error;
                                -1 is 4 in debug builds and 3 otherwise
 ``cpu``              x86-64    passed to ``-march``; ``native`` optimizes for
@@ -132,6 +134,24 @@ change that:
 there is none. When lavapipe is installed (on Arch Linux, the
 ``vulkan-swrast`` package), it also runs them on lavapipe as the test
 ``gpu-lavapipe``, so they run on machines without a GPU.
+
+NVIDIA DLSS in the viewer
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the ray traced view, the viewer can trace fewer pixels than the window has
+and let NVIDIA DLSS (Deep Learning Super Sampling) fill in the rest, which
+makes the view roughly twice as fast to update in its Quality mode. Option
+``dlss`` fetches the NVIDIA DLSS SDK as a meson subproject
+(``subprojects/dlss.wrap``, about 1.6 GB, once) when the viewer is built.
+The SDK is NVIDIA's, under the NVIDIA RTX SDKs license in its
+``LICENSE.txt``, not Shift's license; ``-Ddlss=disabled`` builds without it.
+
+DLSS needs an NVIDIA RTX GPU and a recent driver. The viewer checks at start;
+anywhere else it says why in the log and keeps its own anti-aliasing.
+**Edit → Settings** turns DLSS off or picks its mode, from DLAA (anti-aliasing
+at full resolution) to Ultra Performance (the fewest pixels traced), and
+shows the resolution each mode traces at. Saved images and videos are always
+traced at full resolution, so they do not depend on the setting.
 
 Running a model
 ---------------

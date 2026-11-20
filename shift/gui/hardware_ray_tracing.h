@@ -3,6 +3,8 @@
 
 #include "shift/gui/bvh.h"
 
+#include <QByteArrayList>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -58,9 +60,12 @@ BVH traversal.
 class HardwareRayTracing {
 public:
   /*! \brief a device of instance with ray queries that presents to window,
-   * or nullptr if there is none or shift was built without glslc */
-  static std::unique_ptr<HardwareRayTracing> Create(QVulkanInstance* instance,
-                                                    QWindow* window);
+   * or nullptr if there is none or shift was built without glslc; it also
+   * enables those of extra_extensions that the device has (e.g. DLSS's,
+   * Dlss::DeviceExtensions) */
+  static std::unique_ptr<HardwareRayTracing>
+  Create(QVulkanInstance* instance, QWindow* window,
+         const QByteArrayList& extra_extensions = {});
   /*! destroys the acceleration structures and the device; QRhi must be
       destroyed first */
   ~HardwareRayTracing();

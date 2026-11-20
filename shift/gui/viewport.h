@@ -3,6 +3,7 @@
 
 #include "shift/gui/bvh.h"
 #include "shift/gui/camera.h"
+#include "shift/gui/dlss.h"
 #include "shift/gui/flex_gpu.h"
 #include "shift/gui/hardware_ray_tracing.h"
 #include "shift/gui/ocean_waves.h"
@@ -294,6 +295,39 @@ public:
     return ray_tracing_supported_;
   }
 
+  /*! @name NVIDIA DLSS (see Dlss)
+
+  Ray traced, the viewport traces and denoises at a lower render size and
+  DLSS upscales to the window, in place of its own temporal anti-aliasing,
+  where DLSS is available and enabled. Offscreen rendering (video frames)
+  never uses it: it converges to the exact progressive mean. */
+  /*! @{ */
+  /*! \brief whether to use DLSS where it is available (default true) */
+  void set_dlss_enabled(bool enabled);
+  bool is_dlss_enabled() const {
+    return dlss_enabled_;
+  }
+  /*! \brief the DLSS mode (default Quality) */
+  void set_dlss_quality(Dlss::Quality quality);
+  Dlss::Quality get_dlss_quality() const {
+    return dlss_quality_;
+  }
+  /*! \brief whether the device supports DLSS (known once the window has
+   * been shown), and if not, why */
+  bool is_dlss_available() const {
+    return dlss_.is_available();
+  }
+  const QString& get_dlss_reason() const {
+    return dlss_.get_reason();
+  }
+  /*! \brief the render size of a DLSS mode at the window's size, empty if
+   * the mode is not offered there */
+  QSize get_dlss_render_size(Dlss::Quality quality) const;
+  /*! \brief whether the last ray traced frame was upscaled by DLSS */
+  bool is_dlss_active() const {
+    return dlss_active_;
+  }
+  /*! @} */
 signals:
   /*! \brief the pipelines (the shaders compiled by the driver) are being
    * made on a worker thread, and the view is not drawn until they are
@@ -516,8 +550,12 @@ private:
     std::function<bool()> create;
     std::function<void()> failed;
     bool ok = false;
+    /*! queued by CreatePipelines, whose next call replaces the pipeline */
+    bool from_create_pipelines = false;
   };
   std::vector<PendingPipeline> pending_pipelines_;
+  /*! in CreatePipelines: the pipelines queued are its own */
+  bool creating_pipelines_ = false;
   std::thread pipeline_thread_;
   std::atomic<bool> pipelines_made_{false};
   /*! the CAD triangulation's (TriangulateCad), and the bindings it is laid
@@ -789,6 +827,26 @@ private:
       smaller (set_render_scale): rgb = sum, a = samples */
   std::unique_ptr<QRhiTexture> rt_upscaled_mean_;
   std::unique_ptr<QRhiComputePipeline> rt_pipeline_;
+
+  // DLSS (set_dlss_enabled): while it is active, rt_size_ is the render
+  // size of its mode, and DLSS takes the place of the anti-aliasing pass
+  Dlss dlss_;
+  bool dlss_enabled_ = true;
+  Dlss::Quality dlss_quality_ = Dlss::Quality::kQuality;
+  bool dlss_active_ = false;
+  /*! DLSS failed on this device; the viewport's own anti-aliasing from now
+   * on */
+  bool dlss_failed_ = false;
+  /*! the last ray traced frame used DLSS, for PrintGpuProfile */
+  bool dlss_profiled_ = false;
+  /*! \brief whether the next ray traced frame should use DLSS */
+  bool WantsDlss() const;
+  std::unique_ptr<QRhiTexture> dlss_color_;  /*!< with gamma */
+  std::unique_ptr<QRhiTexture> dlss_depth_;  /*!< R32F */
+  std::unique_ptr<QRhiTexture> dlss_motion_; /*!< xy in pixels */
+  std::unique_ptr<QRhiTexture> dlss_output_; /*!< at the output size */
+  std::unique_ptr<QRhiShaderResourceBindings> dlss_prepare_bindings_[2];
+  std::unique_ptr<QRhiComputePipeline> dlss_prepare_pipeline_;
 
   // SVGF denoiser. The G-buffer and the history alternate between two sets
   // by frame parity: a frame writes set p and reads the previous frame's set
