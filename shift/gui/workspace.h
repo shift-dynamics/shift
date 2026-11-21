@@ -23,6 +23,8 @@ class QCheckBox;
 class QComboBox;
 class QDial;
 class QDoubleSpinBox;
+class QAbstractSpinBox;
+class QHBoxLayout;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
@@ -282,6 +284,14 @@ private:
   void SelectParameterRow();
   /*! \brief apply the editor to the selected parameter */
   void ApplyParameterEdit();
+  /*! \brief empty the editor's fields, and return their new layout */
+  QHBoxLayout* ClearEditorFields();
+  /*! \brief fields for the numbers of parameter_panel_.number_shape: one
+   * row of a list, a grid of a matrix, labeled fields of an object, and
+   * buttons that add or remove the last number of a list of any length */
+  void BuildNumberFields(bool integers);
+  /*! \brief parameter_panel_.number_shape with the numbers of its fields */
+  Json::Value NumberFieldsJson() const;
   /*! \brief read the shown values again; while the simulation runs, only
    * those of parameters that may change as it runs */
   void UpdateParameterPanel();
@@ -387,6 +397,11 @@ private:
     QLineEdit* line_edit = nullptr;   /*!< a number, string or JSON text */
     QComboBox* combo_box = nullptr;   /*!< a boolean or a string of a set */
     QDoubleSpinBox* angles[3] = {};   /*!< roll, pitch, yaw in degrees */
+    /*! the value as JSON, in the form the file gives it, its numbers each
+     * edited by one of numbers, in the order NumberLeaves visits them */
+    Json::Value number_shape;
+    std::vector<QAbstractSpinBox*> numbers;
+    bool number_list = false; /*!< a list of numbers of any length */
     QPushButton* apply_button = nullptr;
     QLabel* editor_note = nullptr;
     int editing_row = -1;

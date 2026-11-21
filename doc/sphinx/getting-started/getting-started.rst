@@ -170,7 +170,12 @@ Selecting a parameter opens an editor below the list:
 
 * a true/false value, or a string with a fixed set of choices, is picked
   from a list;
-* a number or a string is typed in;
+* a number, and each number of a vector, a matrix or an inertia, has a field
+  of its own that takes only a number; its arrows step it by a tenth of the
+  place of its leading digit (9.81 by 0.1). A list of numbers of any length
+  has buttons that add a number at its end (+) and remove its last
+  (−). Numbers the file gives as whole numbers stay whole;
+* a string is typed in;
 * an orientation is given as roll, pitch and yaw in degrees: turn the axes
   about z by the yaw, then about the new y by the pitch, then about the
   newest x by the roll, :math:`R = R_z(\psi)\, R_y(\theta)\, R_x(\phi)`
@@ -179,8 +184,10 @@ Selecting a parameter opens an editor below the list:
   for a frame whose file gives no orientation), ``[x, y, z, w]`` for a
   quaternion, and Euler angles about the file's own ``axes`` for
   ``euler_angles``;
-* any other value (a vector, an inertia, a list) is typed as in the model
-  file, e.g. ``[0, 0, 3]``.
+* any other value (a list of strings, a table) is typed as in the model
+  file, e.g. ``["front", "rear"]``.
+
+An axis of no length is not applied.
 
 *Apply*, or Enter in a text field, sets the value. A parameter that may change while the
 model runs, such as the throttle of a powertrain, is set at once, also during

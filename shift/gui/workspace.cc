@@ -24,6 +24,7 @@
 #include "shift/core/body/flex.h"
 #include "shift/gui/color_map.h"
 #include "shift/gui/mode_window.h"
+#include "shift/gui/number_spin_box.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/axis.h"
@@ -77,6 +78,7 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
@@ -3631,6 +3633,107 @@ static Json::Value ValueToJson(const shift::core::parameter::Value& value) {
   return Json::Value();
 }
 
+/* whether json is a number, or a list, a list of lists or an object of
+numbers: edited a number at a time (a list of any length may be empty) */
+static bool IsNumberShape(const Json::Value& json, bool any_length) {
+  if(json.isNumeric()) {
+    return true;
+  }
+  if(json.isArray() && json.empty()) {
+    return any_length;
+  }
+  if(json.isArray()) {
+    // the rows of a matrix, or the numbers of a list
+    bool rows = true;
+    bool numbers = true;
+    for(const Json::Value& element : json) {
+      numbers = numbers && element.isNumeric();
+      bool row = element.isArray() && !element.empty();
+      for(const Json::Value& entry : element) {
+        row = row && entry.isNumeric();
+      }
+      rows = rows && row;
+    }
+    return numbers || rows;
+  }
+  if(json.isObject() && !json.empty()) {
+    for(const std::string& key : json.getMemberNames()) {
+      if(!json[key].isNumeric()) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/* json, a list of numbers the model file gives (or none), if a parameter
+of rows rows (-1: any number, at least one) of columns numbers each (-1:
+any number; 1: a number or a row of one) reads it
+(parameter::Value::ReadJSON_DOUBLE_ARRAY); or else zeros, as many as it
+takes */
+static Json::Value ListTemplate(const Json::Value& json, int rows,
+                                int columns) {
+  auto is_row = [columns](const Json::Value& row) {
+    if(!row.isArray() || row.empty() ||
+       (columns > 0 && static_cast<int>(row.size()) != columns)) {
+      return false;
+    }
+    for(const Json::Value& entry : row) {
+      if(!entry.isNumeric()) {
+        return false;
+      }
+    }
+    return true;
+  };
+  bool fits = json.isArray() && !json.empty() &&
+              (rows < 0 || static_cast<int>(json.size()) == rows);
+  if(fits && json[0].isArray()) {
+    // rows, as long as each other
+    for(const Json::Value& row : json) {
+      fits = fits && is_row(row) && row.size() == json[0].size();
+    }
+  } else if(fits) {
+    // numbers, one to a row: not for rows of a fixed number of columns
+    fits = columns <= 1 || rows < 0;
+    for(const Json::Value& entry : json) {
+      fits = fits && entry.isNumeric();
+    }
+  }
+  if(fits) {
+    return json;
+  }
+  Json::Value zeros(Json::arrayValue);
+  const int count = rows > 0 ? rows : 1;
+  for(int i = 0; i < count; i++) {
+    if(columns > 1) {
+      Json::Value row(Json::arrayValue);
+      for(int j = 0; j < columns; j++) {
+        row.append(0);
+      }
+      zeros.append(row);
+    } else {
+      zeros.append(0);
+    }
+  }
+  return zeros;
+}
+
+/* the numbers of json, in order: by index, row by row, by key */
+static void NumberLeaves(Json::Value& json, std::vector<Json::Value*>& leaves) {
+  if(json.isNumeric()) {
+    leaves.push_back(&json);
+  } else if(json.isArray()) {
+    for(Json::Value& element : json) {
+      NumberLeaves(element, leaves);
+    }
+  } else if(json.isObject()) {
+    for(const std::string& key : json.getMemberNames()) {
+      NumberLeaves(json[key], leaves);
+    }
+  }
+}
+
 /* a rotation in the form of given, the orientation as the model file gives
 it: a quaternion [x, y, z, w], Euler angles {"angles": [...], "axes": [...]}
 about the same axes, or a 3x3 matrix row by row (also if the file gives
@@ -3843,19 +3946,22 @@ void shift::gui::Workspace::SelectParameterRow() {
   const shift::core::parameter::Value& value = *row.value;
 
   // new fields for the value
-  for(QWidget* widget : panel.editor_fields->findChildren<QWidget*>(
-        QString(), Qt::FindDirectChildrenOnly)) {
-    delete widget;
-  }
-  delete panel.editor_fields->layout();
-  auto* layout = new QHBoxLayout(panel.editor_fields);
-  layout->setContentsMargins(0, 0, 0, 0);
-  panel.line_edit = nullptr;
-  panel.combo_box = nullptr;
-  for(auto& angle : panel.angles) {
-    angle = nullptr;
-  }
+  QHBoxLayout* layout = ClearEditorFields();
   const auto type = value.get_value_type();
+  // the value as JSON, as the file gives it if it does
+  std::vector<JsonStep> key_path = row.path;
+  key_path.push_back({row.keys.front(), -1});
+  const Json::Value* given =
+    row.in_file ? JsonAt(model_json_, key_path) : nullptr;
+  Json::Value json = given ? *given : ValueToJson(value);
+  // a list of numbers: as long as the parameter takes, any length only if
+  // it takes any
+  const bool list = type == shift::core::parameter::Value::INT_ARRAY ||
+                    type == shift::core::parameter::Value::DOUBLE_ARRAY;
+  const bool number_list = list && value.get_row_dim() < 0;
+  if(list) {
+    json = ListTemplate(json, value.get_row_dim(), value.get_column_dim());
+  }
   if(type == shift::core::parameter::Value::BOOLEAN) {
     panel.combo_box = new QComboBox;
     panel.combo_box->addItems({"false", "true"});
@@ -3867,8 +3973,12 @@ void shift::gui::Workspace::SelectParameterRow() {
     for(const auto& option : value.get_valid_string_values()) {
       panel.combo_box->addItem(QString::fromStdString(option));
     }
-    panel.combo_box->setCurrentText(
-      QString::fromStdString(value.get<std::string>()));
+    // a value the file gives that is not one of them is kept, first
+    const QString current = QString::fromStdString(value.get<std::string>());
+    if(panel.combo_box->findText(current) < 0) {
+      panel.combo_box->insertItem(0, current);
+    }
+    panel.combo_box->setCurrentText(current);
     layout->addWidget(panel.combo_box);
   } else if(IsOrientation(value)) {
     double rpy[3];
@@ -3886,25 +3996,22 @@ void shift::gui::Workspace::SelectParameterRow() {
         "R = Rz(yaw) Ry(pitch) Rx(roll), in degrees");
       layout->addWidget(panel.angles[i], 1);
     }
+  } else if(type != shift::core::parameter::Value::STRING &&
+            IsNumberShape(json, number_list)) {
+    // a field for each number, in the form the file gives the value in
+    panel.number_shape = json;
+    panel.number_list = number_list;
+    BuildNumberFields(type == shift::core::parameter::Value::INT ||
+                      type == shift::core::parameter::Value::INT_ARRAY);
   } else {
     panel.line_edit = new QLineEdit;
     QString text;
     if(type == shift::core::parameter::Value::STRING) {
       text = QString::fromStdString(value.get<std::string>());
-    } else if(type == shift::core::parameter::Value::DOUBLE) {
-      text = QString::number(value.get<double>(), 'g', 12);
-    } else if(type == shift::core::parameter::Value::INT) {
-      text = QString::number(value.get<int>());
     } else {
-      // JSON, as the file gives it if it does
-      std::vector<JsonStep> key_path = row.path;
-      key_path.push_back({row.keys.front(), -1});
-      const Json::Value* json =
-        row.in_file ? JsonAt(model_json_, key_path) : nullptr;
       Json::StreamWriterBuilder builder;
       builder.settings_["indentation"] = "";
-      text = QString::fromStdString(
-        Json::writeString(builder, json ? *json : ValueToJson(value)));
+      text = QString::fromStdString(Json::writeString(builder, json));
       panel.line_edit->setToolTip("the value as JSON, as in the model file");
     }
     panel.line_edit->setText(text);
@@ -3933,6 +4040,146 @@ void shift::gui::Workspace::SelectParameterRow() {
   panel.editor_fields->setEnabled(editable);
   panel.apply_button->setEnabled(editable);
   panel.editor->setVisible(true);
+}
+
+QHBoxLayout* shift::gui::Workspace::ClearEditorFields() {
+  auto& panel = parameter_panel_;
+  // later: an Apply or a button of the fields may be what empties them
+  for(QWidget* widget : panel.editor_fields->findChildren<QWidget*>(
+        QString(), Qt::FindDirectChildrenOnly)) {
+    widget->hide();
+    widget->setParent(nullptr);
+    widget->deleteLater();
+  }
+  delete panel.editor_fields->layout();
+  auto* layout = new QHBoxLayout(panel.editor_fields);
+  layout->setContentsMargins(0, 0, 0, 0);
+  panel.line_edit = nullptr;
+  panel.combo_box = nullptr;
+  for(auto& angle : panel.angles) {
+    angle = nullptr;
+  }
+  panel.numbers.clear();
+  panel.number_list = false;
+  return layout;
+}
+
+void shift::gui::Workspace::BuildNumberFields(bool integers) {
+  auto& panel = parameter_panel_;
+  const bool list = panel.number_list;
+  QHBoxLayout* layout = ClearEditorFields();
+  panel.number_list = list;
+  const Json::Value& shape = panel.number_shape;
+
+  // a field for a number, in the order of NumberLeaves
+  auto field = [this, &panel, integers](const Json::Value& number,
+                                        const QString& tip) {
+    QAbstractSpinBox* box;
+    if(integers) {
+      auto* spin = new IntegerSpinBox;
+      spin->setValue(number.asInt());
+      spin->on_return = [this] { ApplyParameterEdit(); };
+      box = spin;
+    } else {
+      auto* spin = new NumberSpinBox;
+      spin->setValue(number.asDouble());
+      spin->on_return = [this] { ApplyParameterEdit(); };
+      box = spin;
+    }
+    box->setToolTip(tip);
+    box->setMinimumWidth(60);
+    panel.numbers.push_back(box);
+    return box;
+  };
+
+  if(shape.isNumeric()) {
+    layout->addWidget(field(shape, QString()), 1);
+  } else if(shape.isArray() && !shape.empty() && shape[0].isArray()) {
+    // a matrix, row by row
+    auto* grid_widget = new QWidget;
+    auto* grid = new QGridLayout(grid_widget);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setSpacing(2);
+    for(Json::ArrayIndex r = 0; r < shape.size(); r++) {
+      for(Json::ArrayIndex c = 0; c < shape[r].size(); c++) {
+        grid->addWidget(field(shape[r][c],
+                              QString("row %1, column %2").arg(r).arg(c)),
+                        int(r), int(c));
+      }
+    }
+    layout->addWidget(grid_widget, 1);
+  } else if(shape.isArray()) {
+    for(Json::ArrayIndex i = 0; i < shape.size(); i++) {
+      layout->addWidget(field(shape[i], QString("element %1").arg(i)), 1);
+    }
+  } else if(shape.isObject()) {
+    // each number by its key, three to a row
+    auto* grid_widget = new QWidget;
+    auto* grid = new QGridLayout(grid_widget);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setSpacing(2);
+    int k = 0;
+    for(const std::string& key : shape.getMemberNames()) {
+      const QString name = QString::fromStdString(key);
+      grid->addWidget(new QLabel(name), k / 3, 2 * (k % 3));
+      grid->addWidget(field(shape[key], name), k / 3, 2 * (k % 3) + 1);
+      grid->setColumnStretch(2 * (k % 3) + 1, 1);
+      k++;
+    }
+    layout->addWidget(grid_widget, 1);
+  }
+
+  if(panel.number_list) {
+    // a list of any length: add a number after the last, or remove the last
+    auto* add = new QToolButton;
+    add->setText("+");
+    add->setToolTip("add a number at the end");
+    auto* remove = new QToolButton;
+    remove->setText("\u2212");
+    remove->setToolTip("remove the last number");
+    remove->setEnabled(shape.isArray() && shape.size() > 1);
+    connect(add, &QToolButton::clicked, this, [this, integers] {
+      Json::Value json = NumberFieldsJson();
+      // a copy of the last number, or row
+      json.append(json.empty() ? Json::Value(0) : json[json.size() - 1]);
+      parameter_panel_.number_shape = json;
+      BuildNumberFields(integers);
+    });
+    connect(remove, &QToolButton::clicked, this, [this, integers] {
+      Json::Value json = NumberFieldsJson();
+      if(json.size() > 1) { // the model file needs one at least
+        json.resize(json.size() - 1);
+      }
+      parameter_panel_.number_shape = json;
+      BuildNumberFields(integers);
+    });
+    layout->addWidget(add);
+    layout->addWidget(remove);
+  }
+}
+
+Json::Value shift::gui::Workspace::NumberFieldsJson() const {
+  const auto& panel = parameter_panel_;
+  Json::Value json = panel.number_shape;
+  if(panel.number_list && !json.isArray()) {
+    json = Json::Value(Json::arrayValue);
+  }
+  std::vector<Json::Value*> leaves;
+  NumberLeaves(json, leaves);
+  for(size_t i = 0; i < leaves.size() && i < panel.numbers.size(); i++) {
+    if(auto* integer = dynamic_cast<IntegerSpinBox*>(panel.numbers[i])) {
+      *leaves[i] = Json::Value(integer->value());
+    } else if(auto* number = dynamic_cast<NumberSpinBox*>(panel.numbers[i])) {
+      // a whole number the file gives as one stays one: [0, 0, 1]
+      const double value = number->value();
+      const bool whole = (leaves[i]->type() == Json::intValue ||
+                          leaves[i]->type() == Json::uintValue) &&
+                         std::floor(value) == value &&
+                         std::fabs(value) < 2147483647.0;
+      *leaves[i] = whole ? Json::Value(int(value)) : Json::Value(value);
+    }
+  }
+  return json;
 }
 
 void shift::gui::Workspace::ApplyParameterEdit() {
@@ -3967,6 +4214,8 @@ void shift::gui::Workspace::ApplyParameterEdit() {
     const Json::Value* given =
       row.in_file ? JsonAt(model_json_, key_path) : nullptr;
     json = OrientationToJson(RotationOfRollPitchYaw(rpy), type, given);
+  } else if(!panel.numbers.empty() || panel.number_list) {
+    json = NumberFieldsJson();
   } else if(panel.line_edit) {
     const QString text = panel.line_edit->text().trimmed();
     bool ok = true;
@@ -3984,6 +4233,19 @@ void shift::gui::Workspace::ApplyParameterEdit() {
     }
     if(!ok) {
       fail("not a valid value");
+      return;
+    }
+  }
+
+  // an axis of no length has no direction
+  if(row.keys.front() == "axis" && json.isArray()) {
+    double length = 0.0;
+    for(const Json::Value& element : json) {
+      length += element.isNumeric() ? element.asDouble() * element.asDouble()
+                                    : 0.0;
+    }
+    if(!(length > 0.0)) {
+      fail("an axis needs a length above 0");
       return;
     }
   }
