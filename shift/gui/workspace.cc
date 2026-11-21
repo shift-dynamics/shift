@@ -2285,6 +2285,7 @@ bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
   case EyeItem::kBody:
     return hidden_bodies_.count(eye.path) == 0;
   case EyeItem::kTerrain:
+  case EyeItem::kSoil:
     return hidden_terrains_.count(eye.path) == 0;
   }
   return false;
@@ -2361,8 +2362,9 @@ void shift::gui::Workspace::ToggleVisibility(QTreeWidgetItem* item) {
                              : eye.kind == EyeItem::kJoint ? shown_joints_
                              : eye.kind == EyeItem::kBody  ? hidden_bodies_
                                                            : hidden_terrains_;
-    const bool hides =
-      eye.kind == EyeItem::kBody || eye.kind == EyeItem::kTerrain;
+    const bool hides = eye.kind == EyeItem::kBody ||
+                       eye.kind == EyeItem::kTerrain ||
+                       eye.kind == EyeItem::kSoil;
     if(show != hides) {
       set.insert(eye.path);
     } else {
@@ -2382,6 +2384,9 @@ void shift::gui::Workspace::UpdateVisibility() {
   std::vector<bool> hidden_terrains(
     simulation_.is_loaded() ? simulation_.get_scene().terrains.size() : 0,
     false);
+  std::vector<bool> hidden_particles(
+    simulation_.is_loaded() ? simulation_.get_scene().particles.size() : 0,
+    false);
   for(const EyeItem& eye : eye_items_) {
     const bool shown = IsShown(eye);
     eye.item->setData(0, kVisibleRole, shown ? 1 : 0);
@@ -2395,6 +2400,9 @@ void shift::gui::Workspace::UpdateVisibility() {
     } else if(eye.kind == EyeItem::kTerrain && !shown &&
               eye.body_index < static_cast<int>(hidden_terrains.size())) {
       hidden_terrains[eye.body_index] = true;
+    } else if(eye.kind == EyeItem::kSoil && !shown &&
+              eye.body_index < static_cast<int>(hidden_particles.size())) {
+      hidden_particles[eye.body_index] = true;
     }
   }
   for(QTreeWidgetItem* folder : eye_folders_) {
@@ -2412,6 +2420,7 @@ void shift::gui::Workspace::UpdateVisibility() {
   viewport_->set_frame_axes(std::move(frames));
   viewport_->set_joint_axes(std::move(joints));
   viewport_->set_hidden_terrains(std::move(hidden_terrains));
+  viewport_->set_hidden_particles(std::move(hidden_particles));
   // the surface of each flexible body, and its elements' edges
   std::vector<bool> mesh_surface(hidden.size(), false);
   std::vector<bool> mesh_edges(hidden.size(), false);
@@ -2873,9 +2882,25 @@ void shift::gui::Workspace::SettingsDialog() {
     "at each point, the greatest (in magnitude) over the states recorded up "
     "to the time shown, rather than the stress now");
   stress->addRow("", peak);
+  // each map shown by its colors, from the start of the map to its end
   auto* color_map = new QComboBox;
+  const QSize swatch_size(96, 14);
+  color_map->setIconSize(swatch_size);
   for(const ColorMap& map : ColorMaps()) {
-    color_map->addItem(map.label, QString(map.key));
+    const std::vector<ksl_vec3f_t> samples =
+      ColorMapSamples(map.key, swatch_size.width());
+    QImage swatch(swatch_size, QImage::Format_RGB32);
+    for(int x = 0; x < swatch_size.width(); x++) {
+      const ksl_vec3f_t& c = samples[size_t(x)];
+      const QRgb rgb = qRgb(int(std::lround(std::clamp(c.x, 0.f, 1.f) * 255)),
+                            int(std::lround(std::clamp(c.y, 0.f, 1.f) * 255)),
+                            int(std::lround(std::clamp(c.z, 0.f, 1.f) * 255)));
+      for(int y = 0; y < swatch_size.height(); y++) {
+        swatch.setPixel(x, y, rgb);
+      }
+    }
+    color_map->addItem(QIcon(QPixmap::fromImage(swatch)), map.label,
+                       QString(map.key));
   }
   color_map->setCurrentIndex(std::max(
     0, color_map->findData(
@@ -3246,10 +3271,15 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
   } else if(auto* terrain =
               dynamic_cast<shift::core::terrain::Base*>(object)) {
     const int terrain_index = simulation_.get_terrain_index(terrain);
+    const int particles_index = simulation_.get_particles_index(terrain);
     if(terrain_index >= 0) {
       eye.kind = EyeItem::kTerrain;
       eye.body_index = terrain_index;
       eye_tip = "the eye shows or hides the terrain";
+    } else if(particles_index >= 0) {
+      eye.kind = EyeItem::kSoil;
+      eye.body_index = particles_index;
+      eye_tip = "the eye shows or hides the soil's particles";
     }
   }
   if(eye_tip) {

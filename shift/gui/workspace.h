@@ -409,12 +409,13 @@ private:
   /*! an item of the tree with an eye: a coordinate frame (its axes), a
    * joint (the line of its axis, two for a gear) or a body (its meshes) */
   struct EyeItem {
-    enum Kind { kFrame, kJoint, kBody, kTerrain };
+    enum Kind { kFrame, kJoint, kBody, kTerrain, kSoil };
     Kind kind = kFrame;
     QTreeWidgetItem* item = nullptr;
     QString path;       /*!< see PathKey */
     int body_index = 0; /*!< of the simulation: of the frame, or the body;
-                         * a terrain's index in Scene::terrains */
+                         * a terrain's index in Scene::terrains, an SPH
+                         * soil's in Scene::particles */
     ksl_SE3f_t frame = Identity(); /*!< a frame, with respect to the body
                                       origin */
     std::vector<Viewport::JointAxis> lines; /*!< a joint */
@@ -428,7 +429,8 @@ private:
   std::set<QString> shown_frames_;
   std::set<QString> shown_joints_;
   std::set<QString> hidden_bodies_;
-  std::set<QString> hidden_terrains_; /*!< as hidden_bodies_ */
+  std::set<QString> hidden_terrains_; /*!< as hidden_bodies_, and the SPH
+                                       * soils hidden */
   /*! by body name, kept when the model is loaded again: the flexible
    * bodies drawn by their mesh's surface rather than their CAD, and those
    * with the edges of their elements drawn (Viewport::

@@ -239,6 +239,15 @@ public:
   /*! \brief hide the terrains (Scene::terrains) that are true here, as the
    * eye beside a terrain in the Scene tree does */
   void set_hidden_terrains(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_terrains() const {
+    return hidden_terrains_;
+  }
+  /*! \brief hide the particles of the SPH soils (Scene::particles) that
+   * are true here, as the eye beside a soil in the Scene tree does */
+  void set_hidden_particles(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_particles() const {
+    return hidden_particles_;
+  }
   const std::vector<bool>& get_hidden_bodies() const {
     return hidden_bodies_;
   }
@@ -672,6 +681,12 @@ private:
   uint32_t axes_frame_instance_count_ = 0;
   std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
   std::vector<bool> hidden_terrains_; /*!< see set_hidden_terrains */
+  std::vector<bool> hidden_particles_; /*!< see set_hidden_particles */
+  /*! \brief whether the particles of Scene::particles[index] are drawn */
+  bool is_particles_shown(int index) const {
+    return index < 0 || index >= static_cast<int>(hidden_particles_.size()) ||
+           !hidden_particles_[size_t(index)];
+  }
   std::vector<bool> flex_mesh_surfaces_; /*!< see set_flex_mesh_surfaces */
   std::vector<bool> flex_mesh_edges_; /*!< see set_flex_mesh_edges */
   /*! see set_flex_constrained_nodes */

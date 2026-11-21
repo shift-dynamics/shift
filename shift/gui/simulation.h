@@ -133,6 +133,12 @@ public:
     const auto found = terrain_indices_.find(terrain);
     return found == terrain_indices_.end() ? -1 : found->second;
   }
+  /*! \brief the index in get_scene().particles of the particles drawn for
+   * an SPH soil of the model, -1 if it is not one */
+  int get_particles_index(const shift::core::terrain::Base* terrain) const {
+    const auto found = particles_indices_.find(terrain);
+    return found == particles_indices_.end() ? -1 : found->second;
+  }
 
   const std::vector<shift::core::body::Base*>& get_bodies() const {
     return bodies_;
@@ -470,6 +476,8 @@ private:
   std::vector<SphView> sph_views_;
   /*! see get_terrain_index */
   std::map<const shift::core::terrain::Base*, int> terrain_indices_;
+  /*! see get_particles_index */
+  std::map<const shift::core::terrain::Base*, int> particles_indices_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */
   size_t partial_end_ = 0;

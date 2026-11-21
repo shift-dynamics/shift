@@ -899,6 +899,11 @@ void shift::gui::Viewport::set_hidden_terrains(std::vector<bool> hidden) {
   update();
 }
 
+void shift::gui::Viewport::set_hidden_particles(std::vector<bool> hidden) {
+  hidden_particles_ = std::move(hidden);
+  update();
+}
+
 bool shift::gui::Viewport::is_mesh_shown(int mesh) const {
   if(!simulation_ || hidden_terrains_.empty()) {
     return true;
@@ -4017,7 +4022,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     const Scene& scene = simulation_->get_scene();
     bool bound = false;
     for(const auto& gpu : gpu_particles_) {
-      if(gpu.count == 0 || !gpu.centers) {
+      if(gpu.count == 0 || !gpu.centers ||
+         !is_particles_shown(gpu.particles_index)) {
         continue;
       }
       if(!bound) {
@@ -4141,7 +4147,7 @@ bool shift::gui::Viewport::RenderFluidDepth(
   float radius = 0.f;
   bool any = false;
   for(const auto& gpu : gpu_particles_) {
-    if(gpu.count > 0 && gpu.centers) {
+    if(gpu.count > 0 && gpu.centers && is_particles_shown(gpu.particles_index)) {
       any = true;
       radius = std::max(radius, scene.particles[gpu.particles_index].radius);
     }
@@ -4179,7 +4185,8 @@ bool shift::gui::Viewport::RenderFluidDepth(
   cb->setViewport(viewport);
   cb->setShaderResources(fluid_sphere_bindings_.get());
   for(const auto& gpu : gpu_particles_) {
-    if(gpu.count == 0 || !gpu.centers) {
+    if(gpu.count == 0 || !gpu.centers ||
+       !is_particles_shown(gpu.particles_index)) {
       continue;
     }
     const QRhiCommandBuffer::VertexInput input(gpu.centers.get(), 0);

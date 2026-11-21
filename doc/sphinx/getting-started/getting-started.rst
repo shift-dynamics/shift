@@ -142,7 +142,8 @@ A model opens with its bodies shown and no frames or joint axes. Frames and
 joint axes are drawn over the model, so that those inside a body still show.
 What is shown stays shown when an edit loads the model again.
 
-The eye beside a terrain shows or hides it in the same way.
+The eye beside a terrain shows or hides it in the same way, and the eye
+beside an SPH soil its particles.
 
 *Edit > Settings* lists its settings by category down its left side:
 *Interface*, *Rendering* and *Flexible Bodies*. Under *Interface* it sets the

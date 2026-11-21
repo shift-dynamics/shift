@@ -634,6 +634,49 @@ TEST(WorkspaceTree, EyeShowsTheAxesOfFrames) {
   EXPECT_EQ(FramesShown(workspace), 0u);
 }
 
+TEST(WorkspaceTree, EyeHidesTerrainAndSoil) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/terramechanics/sph_blade.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  const shift::gui::Viewport* viewport = workspace.get_viewport();
+
+  // an SCM ground and an SPH pit in it, both shown at first
+  QTreeWidgetItem* ground = FindItem(tree, "ground");
+  QTreeWidgetItem* pit = FindItem(tree, "pit");
+  ASSERT_TRUE(ground && pit);
+  EXPECT_EQ(Eye(ground), 1);
+  EXPECT_EQ(Eye(pit), 1);
+  auto any = [](const std::vector<bool>& hidden) {
+    return std::find(hidden.begin(), hidden.end(), true) != hidden.end();
+  };
+  EXPECT_FALSE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+
+  // the eye of the ground hides its surface, not the soil's particles
+  ClickEye(tree, ground);
+  EXPECT_EQ(Eye(ground), 0);
+  EXPECT_TRUE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+
+  // the eye of the pit hides its particles
+  ClickEye(tree, pit);
+  EXPECT_EQ(Eye(pit), 0);
+  EXPECT_TRUE(any(viewport->get_hidden_particles()));
+
+  // and shows them again
+  ClickEye(tree, ground);
+  ClickEye(tree, pit);
+  EXPECT_FALSE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+}
+
 TEST(WorkspaceTree, EyeShowsJointAxesAndHidesBodies) {
   EnsureWorkspaceApplication();
   InBuildDirectory directory;
