@@ -106,7 +106,7 @@ std::string shift::core::terrain::Basic::FindFile(const std::string& name) const
   if(shift::core::utility::IsResourcePath(name)) {
     return name;
   }
-  const std::string file = context_->FindFile(name);
+  const std::string file = context_->FindFile(name, get_source());
   if(!file.empty()) {
     return file;
   }

@@ -5,4 +5,6 @@ core_src += files(
   'array.cc',
   'array_base.cc',
   'yaml.cc',
+  'include.cc',
+  'model_writer.cc',
 )

@@ -909,12 +909,15 @@ void shift::gui::Simulation::Reload(const Json::Value& model) {
   if(model_path_.empty()) {
     throw shift::core::Exception("no model has been loaded");
   }
-  // a copy: LoadModel sets it
+  // copies: LoadModel sets them
   const std::string path = model_path_;
+  // where the parts of the model that come from included files come from
+  const shift::core::parameter::Origins origins =
+    context_ ? context_->get_origins() : shift::core::parameter::Origins();
   Unload();
   // a log's files stay where they were taken out to
   try {
-    LoadModel(path, file_map_, &model);
+    LoadModel(path, file_map_, &model, &origins);
   } catch(...) {
     Unload();
     throw;
@@ -923,16 +926,16 @@ void shift::gui::Simulation::Reload(const Json::Value& model) {
 
 void shift::gui::Simulation::LoadModel(
   const std::string& path, std::map<std::string, std::string> file_map,
-  const Json::Value* model) {
+  const Json::Value* model, const shift::core::parameter::Origins* origins) {
   model_path_ = path;
   file_map_ = file_map;
   auto context = std::make_unique<shift::core::Context>();
   context->set_file_map(std::move(file_map));
   context->set_load_observer(load_observer_);
   if(model) {
-    context->LoadJSON(*model, path);
+    context->LoadJSON(*model, path, origins);
   } else {
-    context->LoadJSON(path);
+    context->LoadJSON(path, origins);
   }
   context->set_load_observer(nullptr);
   context_ = std::move(context);
@@ -2534,7 +2537,19 @@ void shift::gui::Simulation::LoadLog(const std::string& filename) {
       Json::StreamWriterBuilder builder;
       out << Json::writeString(builder, model);
     }
-    LoadModel(model_file.string(), std::move(file_map));
+    /* where the parts of the model that came from included files came
+    from, by the paths they had */
+    shift::core::parameter::Origins origins;
+    if(json_dataset.attrExists("origins")) {
+      Json::Value value;
+      Json::CharReaderBuilder builder;
+      std::string errors;
+      std::istringstream in(ReadStringAttribute(json_dataset, "origins"));
+      if(Json::parseFromStream(builder, in, &value, &errors)) {
+        origins = shift::core::parameter::Origins::FromJson(value);
+      }
+    }
+    LoadModel(model_file.string(), std::move(file_map), nullptr, &origins);
 
     /* the rows: q, dq and the states of free bodies */
     ReportLoad("Reading the results");

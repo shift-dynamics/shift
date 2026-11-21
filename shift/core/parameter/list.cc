@@ -35,7 +35,39 @@ void shift::core::parameter::List::RemoveParameter(std::string key) {
   parameters_.erase(key);
 }
 
+thread_local std::vector<
+  std::shared_ptr<const shift::core::parameter::List::Source>>
+  shift::core::parameter::List::reading_;
+
+thread_local const shift::core::parameter::List::Sources*
+  shift::core::parameter::List::reading_sources_ = nullptr;
+
 void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
+  /* an object from an included model file finds its files from that file,
+  as does everything read beneath it */
+  bool pushed = false;
+  if(reading_sources_) {
+    const auto source = reading_sources_->find(&json_value);
+    if(source != reading_sources_->end()) {
+      reading_.push_back(source->second);
+      pushed = true;
+    }
+  }
+  source_ = reading_.empty() ? nullptr : reading_.back();
+  try {
+    ReadParameters(json_value);
+  } catch(...) {
+    if(pushed) {
+      reading_.pop_back();
+    }
+    throw;
+  }
+  if(pushed) {
+    reading_.pop_back();
+  }
+}
+
+void shift::core::parameter::List::ReadParameters(Json::Value& json_value) {
   for(auto& parameter : parameters_) {
     if(!json_value.isMember(parameter.first) &&
        parameter.second.is_required()) {

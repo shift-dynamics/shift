@@ -321,7 +321,7 @@ void shift::core::force_module::Dem::Load() {
     const auto& spheres = g->spheres.get_data();
     shift::core::dem::Template t;
     auto file = [&](const std::string& name) {
-      const std::string path = context_->FindFile(name);
+      const std::string path = context_->FindFile(name, get_source());
       if(path.empty()) {
         throw shift::core::Exception(where + "file " + name + " not found");
       }
@@ -405,7 +405,7 @@ void shift::core::force_module::Dem::Load() {
           prefix + "a fill is a file or a lattice (grain, min, max, "
                    "spacing), not both");
       }
-      const std::string path = context_->FindFile(f->file);
+      const std::string path = context_->FindFile(f->file, get_source());
       if(path.empty()) {
         throw shift::core::Exception(prefix + "fill: file " + f->file +
                                      " not found");

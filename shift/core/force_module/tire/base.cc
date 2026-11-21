@@ -43,7 +43,7 @@ void shift::core::force_module::tire::Base::DeclareParameters() {
 
 std::string shift::core::force_module::tire::Base::FindFile(
   const std::string& name) const {
-  const std::string file = context_->FindFile(name);
+  const std::string file = context_->FindFile(name, get_source());
   if(!file.empty()) {
     return file;
   }

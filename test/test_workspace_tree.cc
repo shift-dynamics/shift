@@ -491,24 +491,28 @@ static void ArrayOrders(const Json::Value& json, const std::string& path,
 TEST(WorkspaceTree, SavedModelKeepsTheOrderOfArrays) {
   EnsureWorkspaceApplication();
   InBuildDirectory directory;
-  // a model with many arrays: saved without edits it is the model file
+  // a model with many arrays: saved without edits, nothing is written
   {
     shift::gui::Workspace workspace;
     QString error;
     const std::string original =
       std::string(SHIFT_EXAMPLES_DIR) + "/raptor/raptor.json";
+    const auto time = std::filesystem::last_write_time(original);
     ASSERT_TRUE(workspace.Open(QString::fromStdString(original), &error))
       << error.toStdString();
-    ASSERT_TRUE(workspace.SaveModel("raptor_saved.json", &error))
-      << error.toStdString();
-    EXPECT_EQ(ReadJson("raptor_saved.json"), ReadJson(original));
+    ASSERT_TRUE(workspace.SaveModel(&error)) << error.toStdString();
+    EXPECT_EQ(std::filesystem::last_write_time(original), time);
   }
-  // with an edit: only the edited value differs, every array in its order
-  shift::gui::Workspace workspace;
-  QString error;
+  // with an edit, saved in place to a copy: only the edited value differs,
+  // every array in its order
   const std::string original =
     std::string(SHIFT_EXAMPLES_DIR) + "/force_modules/gear_mesh.json";
-  ASSERT_TRUE(workspace.Open(QString::fromStdString(original), &error))
+  std::filesystem::copy_file(
+    original, "gear_mesh_saved.json",
+    std::filesystem::copy_options::overwrite_existing);
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open("gear_mesh_saved.json", &error))
     << error.toStdString();
   QTreeWidget* tree;
   QTreeWidget* parameters;
@@ -518,8 +522,7 @@ TEST(WorkspaceTree, SavedModelKeepsTheOrderOfArrays) {
   QTreeWidgetItem* row = FindItem(parameters, "initial_displacement");
   ASSERT_TRUE(row);
   EditParameter(parameters, "initial_displacement", "0.25");
-  ASSERT_TRUE(workspace.SaveModel("gear_mesh_saved.json", &error))
-    << error.toStdString();
+  ASSERT_TRUE(workspace.SaveModel(&error)) << error.toStdString();
   Json::Value expected = ReadJson(original);
   for(auto& joint : expected["assemblies"][0]["joints"]) {
     if(joint["name"].asString() == "wheel_bearing") {

@@ -2,11 +2,16 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <charconv>
 #include <cctype>
 #include <cerrno>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <map>
+#include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -223,4 +228,357 @@ Json::Value shift::core::parameter::YamlToJson(const std::string& text) {
                                  std::to_string(error.mark.column + 1) + ": " +
                                  error.msg);
   }
+}
+
+/** A real number as the shortest text that reads back as the same real. */
+static std::string RealText(double value) {
+  if(std::isnan(value)) {
+    return ".nan";
+  }
+  if(std::isinf(value)) {
+    return value > 0 ? ".inf" : "-.inf";
+  }
+  char buffer[64];
+  const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+  std::string text(buffer, result.ptr);
+  /* 1.0 is written 1, which reads as an integer */
+  if(IsDigits(text, text[0] == '-' ? 1 : 0)) {
+    text += ".0";
+  }
+  return text;
+}
+
+/** A string, quoted when it would read as something else unquoted. */
+static void EmitString(YAML::Emitter& out, const std::string& text) {
+  if(!PlainScalar(text).isString()) {
+    out << YAML::DoubleQuoted;
+  }
+  out << text;
+}
+
+static void EmitJson(YAML::Emitter& out, const Json::Value& value) {
+  switch(value.type()) {
+    case Json::nullValue:
+      out << YAML::Null;
+      break;
+    case Json::booleanValue:
+      out << value.asBool();
+      break;
+    case Json::intValue:
+      out << value.asInt64();
+      break;
+    case Json::uintValue:
+      out << value.asUInt64();
+      break;
+    case Json::realValue:
+      out << RealText(value.asDouble());
+      break;
+    case Json::stringValue:
+      EmitString(out, value.asString());
+      break;
+    case Json::arrayValue: {
+      bool scalars = true;
+      for(const Json::Value& element : value) {
+        scalars = scalars && !element.isArray() && !element.isObject();
+      }
+      if(scalars) {
+        out << YAML::Flow;
+      }
+      out << YAML::BeginSeq;
+      for(const Json::Value& element : value) {
+        EmitJson(out, element);
+      }
+      out << YAML::EndSeq;
+      break;
+    }
+    case Json::objectValue:
+      if(value.empty()) {
+        out << YAML::Flow;
+      }
+      out << YAML::BeginMap;
+      for(const std::string& key : value.getMemberNames()) {
+        out << YAML::Key;
+        EmitString(out, key);
+        out << YAML::Value;
+        EmitJson(out, value[key]);
+      }
+      out << YAML::EndMap;
+      break;
+  }
+}
+
+std::string shift::core::parameter::JsonToYaml(const Json::Value& value) {
+  YAML::Emitter out;
+  EmitJson(out, value);
+  return std::string(out.c_str()) + "\n";
+}
+
+namespace shift::core::parameter {
+
+/** Writing a YAML document with edits made (EditYaml). */
+struct YamlWriting {
+  YAML::Emitter out;
+  /* the nodes of the document, by the position they are read at, and how
+  many times the document names each */
+  std::map<int, std::vector<std::pair<YAML::Node, int>>> nodes;
+  /* the anchors written, each for a node written whole */
+  std::vector<std::pair<YAML::Node, std::string>> anchors;
+  std::set<const YamlEdit*> made;
+
+  void Count(const YAML::Node& node) {
+    const YAML::Mark mark = node.Mark();
+    if(!mark.is_null()) {
+      for(auto& [seen, count] : nodes[mark.pos]) {
+        if(seen.is(node)) {
+          count++;
+          return;
+        }
+      }
+      nodes[mark.pos].emplace_back(node, 1);
+    }
+    if(node.IsMap()) {
+      for(const auto& entry : node) {
+        Count(entry.second);
+      }
+    } else if(node.IsSequence()) {
+      for(const auto& element : node) {
+        Count(element);
+      }
+    }
+  }
+
+  bool Shared(const YAML::Node& node) const {
+    const YAML::Mark mark = node.Mark();
+    if(mark.is_null() || !nodes.count(mark.pos)) {
+      return false;
+    }
+    for(const auto& [seen, count] : nodes.at(mark.pos)) {
+      if(seen.is(node)) {
+        return count > 1;
+      }
+    }
+    return false;
+  }
+
+  /* the value of key in the entries that the merge keys of map add */
+  static YAML::Node Merged(const YAML::Node& map, const std::string& key,
+                           int depth) {
+    if(depth > kMaxDepth) {
+      return YAML::Node(YAML::NodeType::Undefined);
+    }
+    for(const auto& entry : map) {
+      if(!entry.first.IsScalar() || entry.first.Scalar() != "<<" ||
+         entry.first.Tag() != "?") {
+        continue;
+      }
+      std::vector<YAML::Node> sources;
+      if(entry.second.IsSequence()) {
+        for(const auto& source : entry.second) {
+          sources.push_back(source);
+        }
+      } else {
+        sources.push_back(entry.second);
+      }
+      for(const YAML::Node& source : sources) {
+        if(!source.IsMap()) {
+          continue;
+        }
+        for(const auto& own : source) {
+          if(own.first.IsScalar() && own.first.Scalar() == key) {
+            return own.second;
+          }
+        }
+        const YAML::Node found = Merged(source, key, depth + 1);
+        if(found.IsDefined()) {
+          return found;
+        }
+      }
+    }
+    return YAML::Node(YAML::NodeType::Undefined);
+  }
+
+  void Scalar(const YAML::Node& node) {
+    if(node.Tag() != "?") {
+      out << YAML::DoubleQuoted << node.Scalar();
+    } else if(PlainScalar(node.Scalar()).isNull()) {
+      out << YAML::Null;
+    } else {
+      out << node.Scalar();
+    }
+  }
+
+  void Key(const YAML::Node& key) {
+    out << YAML::Key;
+    if(key.IsScalar()) {
+      Scalar(key);
+    } else {
+      Write(key, {}, 0);
+    }
+    out << YAML::Value;
+  }
+
+  /* node, at depth in the document, with edits, those at or inside it */
+  void Write(const YAML::Node& node, const std::vector<const YamlEdit*>& edits,
+             Json::ArrayIndex depth) {
+    for(const YamlEdit* edit : edits) {
+      if(edit->path.size() == depth && !edit->remove) {
+        made.insert(edit);
+        EmitJson(out, edit->value);
+        return;
+      }
+    }
+    if(edits.empty() && Shared(node)) {
+      for(const auto& [anchored, name] : anchors) {
+        if(anchored.is(node)) {
+          out << YAML::Alias(name);
+          return;
+        }
+      }
+      const std::string name = "a" + std::to_string(anchors.size() + 1);
+      anchors.emplace_back(node, name);
+      out << YAML::Anchor(name);
+    }
+    if(node.IsScalar()) {
+      Scalar(node);
+    } else if(node.IsSequence()) {
+      if(node.Style() == YAML::EmitterStyle::Flow || node.size() == 0) {
+        out << YAML::Flow;
+      }
+      out << YAML::BeginSeq;
+      for(std::size_t i = 0; i < node.size(); i++) {
+        std::vector<const YamlEdit*> inside;
+        bool removed = false;
+        for(const YamlEdit* edit : edits) {
+          const Json::Value& step = edit->path[depth];
+          if(step.isIntegral() && step.asLargestUInt() == i) {
+            if(edit->remove && edit->path.size() == depth + 1) {
+              made.insert(edit);
+              removed = true;
+            } else {
+              inside.push_back(edit);
+            }
+          }
+        }
+        if(!removed) {
+          Write(node[i], inside, depth + 1);
+        }
+      }
+      out << YAML::EndSeq;
+    } else if(node.IsMap() || (node.IsNull() && !edits.empty())) {
+      if(node.Style() == YAML::EmitterStyle::Flow || node.size() == 0) {
+        out << YAML::Flow;
+      }
+      out << YAML::BeginMap;
+      std::set<std::string> keys;
+      for(const auto& entry : node) {
+        const std::string key =
+          entry.first.IsScalar() ? entry.first.Scalar() : std::string();
+        keys.insert(key);
+        std::vector<const YamlEdit*> inside;
+        bool removed = false;
+        for(const YamlEdit* edit : edits) {
+          const Json::Value& step = edit->path[depth];
+          if(entry.first.IsScalar() && step.isString() &&
+             step.asString() == key) {
+            if(edit->remove && edit->path.size() == depth + 1) {
+              made.insert(edit);
+              removed = true;
+            } else {
+              inside.push_back(edit);
+            }
+          }
+        }
+        if(!removed) {
+          Key(entry.first);
+          Write(entry.second, inside, depth + 1);
+        }
+      }
+      /* the entries that edits add, or that they make inside entries that
+      merge keys add */
+      std::vector<std::string> added;
+      std::map<std::string, std::vector<const YamlEdit*>> adding;
+      for(const YamlEdit* edit : edits) {
+        const Json::Value& step = edit->path[depth];
+        if(step.isString() && !keys.count(step.asString())) {
+          if(!adding.count(step.asString())) {
+            added.push_back(step.asString());
+          }
+          adding[step.asString()].push_back(edit);
+        }
+      }
+      for(const std::string& key : added) {
+        const YAML::Node merged = node.IsMap()
+                                    ? Merged(node, key, 0)
+                                    : YAML::Node(YAML::NodeType::Undefined);
+        const std::vector<const YamlEdit*>& inside = adding[key];
+        bool set = false;
+        for(const YamlEdit* edit : inside) {
+          if(edit->path.size() == depth + 1) {
+            if(edit->remove) {
+              if(merged.IsDefined()) {
+                throw shift::core::Exception(
+                  "'" + key +
+                  "' cannot be removed: a merge key '<<' adds it" +
+                  Where(node));
+              }
+            } else {
+              set = true;
+            }
+          }
+        }
+        if(set || merged.IsDefined()) {
+          out << YAML::Key;
+          EmitString(out, key);
+          out << YAML::Value;
+          Write(set ? YAML::Node() : merged, inside, depth + 1);
+        }
+      }
+      out << YAML::EndMap;
+    } else {
+      out << YAML::Null;
+    }
+  }
+};
+
+}  // namespace shift::core::parameter
+
+std::string
+shift::core::parameter::EditYaml(const std::string& text,
+                                 const std::vector<YamlEdit>& edits) {
+  YAML::Node root;
+  try {
+    root = YAML::Load(text);
+  } catch(const YAML::Exception& error) {
+    throw shift::core::Exception("Invalid YAML at line " +
+                                 std::to_string(error.mark.line + 1) +
+                                 ", column " +
+                                 std::to_string(error.mark.column + 1) + ": " +
+                                 error.msg);
+  }
+  YamlWriting writing;
+  writing.Count(root);
+  std::vector<const YamlEdit*> all;
+  for(const YamlEdit& edit : edits) {
+    all.push_back(&edit);
+  }
+  writing.Write(root, all, 0);
+  if(writing.made.size() != edits.size()) {
+    throw shift::core::Exception(
+      "the document no longer holds what was read from it");
+  }
+  if(!writing.out.good()) {
+    throw shift::core::Exception("the document could not be written: " +
+                                 writing.out.GetLastError());
+  }
+  /* the comments that open the document, which describe it, kept */
+  std::string heading;
+  std::istringstream lines(text);
+  for(std::string line; std::getline(lines, line);) {
+    const std::size_t first = line.find_first_not_of(" \t\r");
+    if(first != std::string::npos && line[first] != '#') {
+      break;
+    }
+    heading += line + "\n";
+  }
+  return heading + writing.out.c_str() + "\n";
 }

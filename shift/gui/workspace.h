@@ -73,7 +73,8 @@ class ModeWindow;
   declares, read from the object as it is, and edits the selected one: a
   parameter that may change while the model runs is set at once, any other
   is written into the model's JSON and the model is loaded again from it
-  (File > Save model as writes it out). Orientations are edited as roll,
+  (File > Save writes it to the model's files, File > Save and flatten to
+  one new file). Orientations are edited as roll,
   pitch and yaw. Each coordinate frame, joint with an axis (revolute,
   prismatic, screw, gear) and body has an eye beside its icon that shows
   or hides its axes, the line of its axis, or its meshes in the viewport;
@@ -148,11 +149,19 @@ public:
   /*! \brief the exposure of the image in stops, as View > Exposure */
   void set_exposure(float stops);
 
-  /*! \brief write the model, with the edits made to its parameters, to a
-   * JSON file (File > Save model as); the objects of each array keep the
-   * order of the model file. Returns false, with why in error, if it could
-   * not. */
-  bool SaveModel(const QString& filename, QString* error = nullptr);
+  /*! \brief write the edits made to the model's parameters to the files
+   * they belong to, in place (File > Save): the model file, or the model
+   * file an assembly includes that the edited object comes from, keeping
+   * their includes (parameter::ModelWriter::SaveInPlace). Returns false,
+   * with why in error, if it could not. */
+  bool SaveModel(QString* error = nullptr);
+
+  /*! \brief write the model, with its edits, to one model file without
+   * includes, with copies of the files it names in <name>_files beside it
+   * (File > Save and flatten; parameter::ModelWriter::SaveFlattened); the
+   * objects of each array keep the order of the model. The model open stays
+   * the one opened. Returns false, with why in error, if it could not. */
+  bool SaveFlattenedModel(const QString& filename, QString* error = nullptr);
 
   /*! \brief the settings of Edit > Settings, read at start from
    * Settings::get_default_path */
@@ -223,8 +232,10 @@ private:
   bool ReloadModel(const Json::Value& previous, QString& error);
   /*! \brief the file name, marked if the model has been edited */
   void UpdateWindowTitle();
-  /*! \brief File > Save model as: write model_json_ */
-  void SaveModelAs();
+  /*! \brief File > Save: SaveModel, saying why if it could not */
+  void SaveModelInPlace();
+  /*! \brief File > Save and flatten: SaveFlattenedModel to a file chosen */
+  void SaveFlattenedAs();
   /*! \brief File > Revert model: load the model file, dropping edits */
   void RevertModel();
   void OpenDialog();
@@ -379,6 +390,9 @@ private:
 
   /*! the model as read from its file, with the edits made in the viewer */
   Json::Value model_json_;
+  /*! the model as read from its files (or as last saved to them), against
+   * which File > Save finds the edits */
+  Json::Value saved_json_;
   bool model_edited_ = false;
   /*! what LoadModel selects again when it keeps the view */
   struct Reselect {

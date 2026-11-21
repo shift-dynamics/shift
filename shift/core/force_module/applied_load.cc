@@ -109,7 +109,7 @@ void shift::core::force_module::AppliedLoad::Load() {
       throw shift::core::Exception(prefix + ": give scale_curve or "
                                             "scale_file, not both");
     }
-    const std::string path = context_->FindFile(scale_file_);
+    const std::string path = context_->FindFile(scale_file_, get_source());
     std::ifstream in(path);
     if(path.empty() || !in) {
       throw shift::core::Exception(prefix + ": could not open " + scale_file_);

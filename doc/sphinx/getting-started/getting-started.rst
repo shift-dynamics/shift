@@ -187,13 +187,29 @@ editor says why, and the model is left as it was. Objects made when the
 model loads, such as the default floor, are not in the file and cannot be
 edited, apart from parameters that may change while the model runs.
 
-The title of the window marks a model with edits. *File > Save model as*
-writes the model with its edits to a JSON file, and *File > Revert model*
-drops them and loads the file again. The saved file keeps the objects of
-each list (bodies, joints, frames, ...) in the order of the model file; only
-the keys within each object come out in alphabetical order, and comments are
-dropped. Files the model names, such as meshes, are found relative to the
-model file, so save it in the same directory as the original.
+The title of the window marks a model with edits. *File > Save* writes the
+edits to the files they belong to, in place: an edit to an object that comes
+from a file an assembly includes (see :ref:`model-file`) goes to that file,
+any other edit, the model parameters among them, to the model file. Only the
+files edited are written, each in its own language, and they keep their
+includes. A JSON file keeps its comments and the order of the objects of each
+list (bodies, joints, frames, ...); only the keys within each object come out
+in alphabetical order. A YAML file keeps its order throughout, its lists
+written in flow (``[1, 0, 0]``) or block style as they were, and its anchors
+and aliases; an edit inside an aliased node is made only where it is, and an
+edit to an entry that a merge key ``<<`` adds becomes an entry of its own. A
+YAML file keeps the comments at its top, but not the others, which the YAML
+library does not read.
+
+*File > Save and flatten* writes the model with its edits to one new file
+without includes, in YAML if its name ends in ``.yaml`` or ``.yml`` and
+otherwise in JSON, the included assemblies written in place as the
+subassemblies they are. The files the model names, such as meshes, textures
+and elevation maps, are copied into a folder ``<name>_files`` beside it, as
+they lay relative to one another, so that files of the same name from
+different directories stay apart, and the saved file names the copies; it
+can be moved with its folder. *File > Revert model* drops the edits and loads
+the files again.
 
 The viewer can also render a model to an image without user input, which
 is how the pictures in these documents are made

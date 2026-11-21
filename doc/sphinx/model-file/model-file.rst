@@ -88,6 +88,151 @@ Sensors, controllers and force
 modules that name a joint or a sensor look for it in their own assembly.
 Each body has a frame ``origin`` at its origin, which needs no entry.
 
+Including other files
+---------------------
+
+A model file may include other model files, so that a vehicle, a robot or an
+environment is written once and used by many models. ``include`` is allowed
+only in an assembly. It is a file name, an object that names a file with
+``"file"`` and may give an ``"override"`` (see `Overrides`_), or an array of
+either. A relative name is
+taken from the directory of the file the ``include`` is written in, and an
+included file, JSON or YAML, may include others in the same way.
+
+Each file included is a model file. The assemblies at its top level become
+subassemblies of the assembly that includes it, after the subassemblies it
+lists itself; their bodies and joints stay in their own assembly. Its
+``model_parameters`` are folded into the model's, so a model needs only the
+one ``include``, and the other keys at its top level (``terrain``,
+``surface_materials``, ``scenery``, ``environment``, ``frames``, ``lights``,
+...) are merged into the top level of the model:
+
+.. code:: javascript
+
+   // rally.json
+   {
+     "model_parameters": {...},
+     "assemblies": [
+       {"name": "rally",
+        "bodies": [...],
+        "joints": [...],
+        "include": ["../vehicles/polo.json",
+                    "../environments/forest/forest.json"]}
+     ]
+   }
+
+   // as read: polo.json's assembly "polo" is a subassembly of "rally", and
+   // the forest's terrain, scenery and environment are the model's
+   {
+     "model_parameters": {...},   // rally.json's, then polo.json's, then the forest's
+     "terrain": [...], "surface_materials": [...], "scenery": [...],
+     "environment": {...},
+     "assemblies": [
+       {"name": "rally", "bodies": [...], "joints": [...],
+        "assemblies": [{"name": "polo", ...}]}
+     ]
+   }
+
+When merging, the including file comes first: objects are merged key by key;
+two arrays of objects (``terrain``, ``loggers``, ...) are joined, the
+including file's elements first, and an element that the same place of the
+same file gives twice alike (a file included twice) is kept once; anything else (a
+number, a string, a vector such as ``gravity`` or a frame's ``T``, a list of
+names) is the including file's when it gives one, so the model file's own
+value wins where both give one. ``solvers`` and ``integrators`` are settings,
+not collections: every solver listed runs, so each is taken whole, the model
+file's if it gives them, else those of the first included file that does. A
+warning names each value of an included file's ``model_parameters`` that the
+model's replaces. Names must still be unique at each level (see Names_): two
+included files that give frames or terrain of the same name do not load.
+
+The files that an included file names, such as meshes, textures and elevation
+maps, are found next to it, then in its own ``include_directories`` (in the
+``model_parameters`` at its top level), taken from its directory. They are not
+added to the model's include directories: each file finds what it names from
+where it is, so two included files may each name a ``textures/sand.jpg`` of
+their own. The program keeps, beside the model, the file and the place in it
+that each included part comes from; the model as printed, logged or saved
+holds only what its files hold. The viewer's *File > Save* writes each edit to
+the file, and the place in it, that the edited value comes from.
+
+Overrides
+*********
+
+``"override"`` in an include gives values that replace the included file's in
+the model that includes it, leaving the file as it is. The override is laid
+out as the file is: its keys are the file's keys, and an array of objects in
+the override (``assemblies``, ``bodies``, ``joints``, ``lights``, ...) gives
+the file's elements in order, by position. An empty object ``{}`` leaves an
+element as it is, and an array shorter than the file's leaves the elements
+after it as they are. Any other value, a vector such as ``T`` or ``axis``
+among them, replaces the file's whole:
+
+.. code:: javascript
+
+   {"name": "left",
+    "include": {
+      "file": "../arm/arm.json",
+      "override": {
+        "assemblies": [{                     // the file's first assembly
+          "bodies": [{}, {"inertia": {"mass": 2.0}}],   // its second body
+          "joints": [{"initial_displacement": 0.5}]}],  // its first joint
+        "lights": [{"name": "headlamp", "intensity": 200}]}}}
+
+An override is applied after the included file's own includes are expanded,
+so it reaches into the files that the file includes through their
+subassemblies, and before the file's ``model_parameters`` are folded into the
+model's, whose own values still win. An override that gives more elements
+than the file has, an object or an array where the file has something else,
+or ``include_directories`` (which are the file's own) is an error. The file
+names that an override gives are found as the included file's are.
+
+Elements are matched by position, so an override follows the file it is
+written for: when that file gains, loses or reorders elements of an array the
+override reaches into, the override applies to whichever elements are then in
+those positions, without an error. An override is best kept with the file it
+overrides in view, and checked when that file changes.
+
+An edit in the viewer to a value that an override gives is saved to the
+override; an edit to any other value of the included file is saved to that
+file, and so changes every model that includes it.
+
+Including a file more than once
+*******************************
+
+An included model is attached to the fixed body through the frames at the
+top level of its file (``[["fixed"], "pivot"]``). Overriding those frames
+places it, so one file can be included several times at different places.
+Names are unique on the fixed body, so each copy also overrides the names of
+its frames and lights, and the names that refer to them:
+
+.. code:: javascript
+
+   // arm.json: an arm hung from the frame "pivot", lit by the lamp "lamp"
+   {"frames": [{"name": "pivot", "T": [0.0, 0.0, -2.0]}],
+    "lights": [{"name": "lamp", "type": "point", "parent": ["fixed", "pivot"]}],
+    "assemblies": [{"name": "arm", "bodies": [...],
+                    "joints": [{"name": "hinge", "parent": [["fixed"], "pivot"], ...}]}]}
+
+   // the arm twice, three meters apart
+   "assemblies": [
+     {"name": "left", "include": {"file": "../arm/arm.json", "override": {
+        "frames": [{"name": "left_pivot", "T": [0.0, -3.0, -2.0]}],
+        "lights": [{"name": "left_lamp", "parent": ["fixed", "left_pivot"]}],
+        "assemblies": [{"joints": [{"parent": [["fixed"], "left_pivot"]}]}]}}},
+     {"name": "right", "include": {"file": "../arm/arm.json", "override": {
+        "frames": [{"name": "right_pivot", "T": [0.0, 3.0, -2.0]}],
+        "lights": [{"name": "right_lamp", "parent": ["fixed", "right_pivot"]}],
+        "assemblies": [{"joints": [{"parent": [["fixed"], "right_pivot"]}]}]}}}
+   ]
+
+A copy whose names are not overridden gives frames and lights of the same
+name as the other copy, which do not load (see Names_), unless they are
+alike, in which case both copies share them. A model that is to be placed
+attaches to frames of its own, not to ``[["fixed"], "origin"]``, which no
+override moves. The expanded model holds only the keys of its files, so
+*File > Save and flatten* writes each copy with its frames as overridden.
+
 Model parameters
 ----------------
 
@@ -549,7 +694,9 @@ Geometry
 Geometry is what the viewer draws, and what collision geometry is fitted
 to. Files are found next to the model file or in its
 ``include_directories``; a relative include directory is taken from the
-directory of the model file.
+directory of the model file. The files named in an included file are also
+found next to it and in its own include directories (see `Including other
+files`_).
 
 .. shift-parameters:: shift/core/geometry/base.cc
 

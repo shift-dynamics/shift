@@ -265,7 +265,7 @@ every change to the body at once (``element_size``,
 loads the model again: a new mesh size meshes and analyses the body again,
 while other modes among those already computed are read from the
 ``.fe.h5`` file. The changes are in the model the viewer holds, marked
-"(edited)" in the title; File > Save model as... writes them to a file.
+"(edited)" in the title; File > Save writes them to the model file.
 The same keys can also be edited in the parameters panel.
 
 Outside the viewer, change ``element_size`` (or anything else above) in

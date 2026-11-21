@@ -646,7 +646,7 @@ void shift::core::body::Flex::BuildElastic(Frame* reference,
   std::stringstream fingerprint;
   fingerprint.precision(17);
   if(cad) {
-    const std::string file = context_->FindFile(cad->get_filename());
+    const std::string file = context_->FindFile(cad->get_filename(), cad->get_source());
     std::ifstream in(file, std::ios::binary);
     const std::string bytes((std::istreambuf_iterator<char>(in)),
                             std::istreambuf_iterator<char>());

@@ -17,6 +17,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/jacobian.h"
 #include "shift/core/model_parameters.h"
+#include "shift/core/parameter/include.h"
 #include "shift/core/topology.h"
 #include "shift/core/body/fixed.h"
 #include "shift/core/joint/base.h"
@@ -513,6 +514,14 @@ public:
    * set_file_map is found where the map puts it. */
   std::string FindFile(const std::string& name);
 
+  /*! \brief the path of a file named in the included model file source
+   * (see parameter::Include): next to it, then in its include directories;
+   * a name given to set_file_map by the path it was found at, or by itself,
+   * is found where the map puts it. A null source is the model file itself
+   * (FindFile(name)). */
+  std::string FindFile(const std::string& name,
+                       const shift::core::parameter::List::Source* source);
+
   /*! \brief note that the model read the file at path, such as a texture
    * that a mesh file names, so that a logger can keep a copy of every file
    * the model needs (get_files_read) */
@@ -530,6 +539,14 @@ public:
     return file_names_;
   }
 
+  /*! \brief the path at which each name was found, by the included model
+   * file that names it (its absolute path; empty for the model file), as
+   * {file, name} -> the absolute path; see FindFile */
+  const std::map<std::pair<std::string, std::string>, std::string>&
+  get_files_found() const {
+    return files_found_;
+  }
+
   /*! \brief the paths of files by the names the model gives them, which
    * FindFile takes before looking for them, such as those of a model taken
    * from a log (set before LoadJSON) */
@@ -537,9 +554,16 @@ public:
     file_map_ = std::move(file_map);
   }
 
-  /*! \brief the model as read from its file (YAML as JSON) */
+  /*! \brief the model as read from its file (YAML as JSON), its includes
+   * expanded */
   const Json::Value& get_model_json() const {
     return root_;
+  }
+
+  /*! \brief where the parts of get_model_json that come from included files
+   * come from (see parameter::Origins) */
+  const shift::core::parameter::Origins& get_origins() const {
+    return origins_;
   }
 
   inline const std::vector<shift::core::joint::Base*>* get_active_joints_ptr() {
@@ -574,11 +598,17 @@ public:
   void ActivateObject(solver::Base*, bool);
   void ActivateObject(logger::Base*, bool);
 
-  void LoadJSON(const std::string);
+  /*! \brief load the model file filename. origins, when given, are those
+   * of a model expanded before and written to filename (a log's, see
+   * get_origins). */
+  void LoadJSON(const std::string filename,
+                const shift::core::parameter::Origins* origins = nullptr);
   /*! \brief load a model given as JSON, as if read from filename: the
    * files it names are found relative to filename (e.g. a model edited in
-   * the viewer, see get_model_json) */
-  void LoadJSON(const Json::Value& model, const std::string& filename);
+   * the viewer, see get_model_json); origins, when given, are those of the
+   * model when its includes were expanded (get_origins) */
+  void LoadJSON(const Json::Value& model, const std::string& filename,
+                const shift::core::parameter::Origins* origins = nullptr);
   void WriteJSON();
   void WriteJSON(std::ostream&);
   void WriteJSON(const std::string&);
@@ -838,6 +868,18 @@ private:
   /*! \brief read the objects of root_, the model of filename, and set
    * them up */
   void ReadModel(const std::string& filename);
+
+  /* origins, those of a model expanded before, added to origins_; the files
+  included and those origins come from recorded as read */
+  void AddOrigins(const shift::core::parameter::Origins* origins,
+                  const std::vector<std::string>& included);
+
+  /* sources, for List::set_reading_sources: each object inside value, at
+  pointer in the model, with the source of the file it comes from */
+  void BindSources(
+    Json::Value& value, const std::string& pointer,
+    std::shared_ptr<const shift::core::parameter::List::Source> inherited,
+    shift::core::parameter::List::Sources& sources);
 
   /*! \brief collect the fitted collision geometry for contact detection */
   void SetupContactDetection();
@@ -1118,9 +1160,11 @@ private:
 
   std::string filename_;
   Json::Value root_;
+  shift::core::parameter::Origins origins_;
   std::vector<std::string> files_read_;
   std::map<std::string, std::string> file_map_;
   std::map<std::string, std::string> file_names_;
+  std::map<std::pair<std::string, std::string>, std::string> files_found_;
   std::string indentation_ = "  ";
 
   /*! \brief Parameters used to configure a simulation */

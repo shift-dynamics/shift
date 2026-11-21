@@ -2,6 +2,7 @@
 #define SHIFT_GUI_SIMULATION_H_
 
 #include "shift/core/dem/dem.h"
+#include "shift/core/parameter/include.h"
 #include "shift/core/topology.h"
 #include "shift/gui/scene.h"
 
@@ -371,10 +372,12 @@ private:
   struct StopRequested {};
 
   /*! \brief load the model file path, with Context::set_file_map; from
-   * model if it is given, as if read from path */
+   * model if it is given, as if read from path; with origins, those of the
+   * model when its includes were expanded, if given (Context::LoadJSON) */
   void LoadModel(const std::string& path,
                  std::map<std::string, std::string> file_map,
-                 const Json::Value* model = nullptr);
+                 const Json::Value* model = nullptr,
+                 const shift::core::parameter::Origins* origins = nullptr);
   /*! \brief load the model of an HDF5 log and its rows */
   void LoadLog(const std::string& filename);
   /*! \brief no model loaded: the context, the scene and the results

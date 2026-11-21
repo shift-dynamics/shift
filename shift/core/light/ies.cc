@@ -27,7 +27,7 @@ void shift::core::light::IES::DeclareParameters() {
 }
 
 std::string shift::core::light::IES::FindFile(const std::string& name) const {
-  const std::string file = context_->FindFile(name);
+  const std::string file = context_->FindFile(name, get_source());
   if(!file.empty()) {
     return file;
   }

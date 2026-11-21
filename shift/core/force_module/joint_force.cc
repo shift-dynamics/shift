@@ -203,7 +203,7 @@ void shift::core::force_module::JointMap::Load() {
       throw shift::core::Exception(prefix + "give map_file or the values, "
                                             "not both");
     }
-    const std::string path = context_->FindFile(map_file_);
+    const std::string path = context_->FindFile(map_file_, get_source());
     std::ifstream in(path);
     if(path.empty() || !in) {
       throw shift::core::Exception(prefix + "could not open " + map_file_);

@@ -99,7 +99,7 @@ void shift::core::geometry::Mesh::Load() {
     if(extension != ".obj" && extension != ".gltf" && extension != ".glb") {
       continue;
     }
-    const std::string file = context_->FindFile(str);
+    const std::string file = context_->FindFile(str, get_source());
     if(file.empty()) {
       throw shift::core::Exception("File: " + str + " not found");
     }

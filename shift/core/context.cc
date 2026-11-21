@@ -62,6 +62,7 @@
 #include "shift/core/solver/base.h"
 #include "shift/core/gpu/device.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/parameter/include.h"
 
 #include "shift/core/log.h"
 
@@ -83,10 +84,12 @@ void shift::core::Context::DeclareParameters() {
     true);
 }
 
-void shift::core::Context::LoadJSON(const std::string filename) {
+void shift::core::Context::LoadJSON(
+  const std::string filename, const shift::core::parameter::Origins* origins) {
   filename_ = filename;
   files_read_.clear();
   file_names_.clear();
+  files_found_.clear();
   std::error_code error;
   if(!std::filesystem::exists(filename, error)) {
     throw shift::core::Exception("The file '" + filename +
@@ -95,47 +98,103 @@ void shift::core::Context::LoadJSON(const std::string filename) {
   if(!std::filesystem::is_regular_file(filename, error)) {
     throw shift::core::Exception("'" + filename + "' is not a file");
   }
-  std::ifstream file(filename);
-  if(!file) {
+  /* JSON or YAML, by its extension, with the files it includes */
+  std::vector<std::string> included;
+  origins_ = shift::core::parameter::Origins();
+  root_ = shift::core::parameter::Include::ReadFile(filename, &included,
+                                                    &origins_);
+  if(!root_.isObject()) {
     throw shift::core::Exception("The file '" + filename +
-                                 "' could not be opened: " +
-                                 std::strerror(errno));
+                                 "' must hold an object at its top level");
   }
-  std::string extension = std::filesystem::path(filename).extension().string();
-  for(char& c : extension) {
-    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-  }
-  if(extension == ".yaml" || extension == ".yml") {
-    /* the same structure as JSON, in YAML */
-    std::stringstream text;
-    text << file.rdbuf();
-    root_ = shift::core::parameter::YamlToJson(text.str());
-    if(!root_.isObject()) {
-      throw shift::core::Exception("The file '" + filename +
-                                   "' must hold a mapping at its top level");
-    }
-  } else {
-    file >> root_;
-  }
+  AddOrigins(origins, included);
   ReadModel(filename);
 }
 
-void shift::core::Context::LoadJSON(const Json::Value& model,
-                                    const std::string& filename) {
+void shift::core::Context::LoadJSON(
+  const Json::Value& model, const std::string& filename,
+  const shift::core::parameter::Origins* origins) {
   filename_ = filename;
   files_read_.clear();
   file_names_.clear();
+  files_found_.clear();
   if(!model.isObject()) {
     throw shift::core::Exception("The model of '" + filename +
                                  "' must be an object at its top level");
   }
-  root_ = model;
+  /* its includes taken from the directory of filename */
+  std::vector<std::string> included;
+  origins_ = shift::core::parameter::Origins();
+  root_ = shift::core::parameter::Include::Expand(model, filename, &included,
+                                                  &origins_);
+  AddOrigins(origins, included);
   ReadModel(filename);
+}
+
+void shift::core::Context::AddOrigins(
+  const shift::core::parameter::Origins* origins,
+  const std::vector<std::string>& included) {
+  /* a model expanded before has no includes left: its origins are given */
+  if(origins) {
+    for(const auto& [pointer, origin] : origins->get_entries()) {
+      origins_.Set(pointer, origin);
+    }
+  }
+  for(const std::string& path : included) {
+    RecordFile(path);
+  }
+  for(const std::string& path : origins_.Files()) {
+    RecordFile(path);
+  }
+}
+
+void shift::core::Context::BindSources(
+  Json::Value& value, const std::string& pointer,
+  std::shared_ptr<const shift::core::parameter::List::Source> inherited,
+  shift::core::parameter::List::Sources& sources) {
+  const shift::core::parameter::Origin* origin = origins_.At(pointer);
+  /* an override's values are found as those of the file they patch */
+  if(origin && !origin->patch) {
+    /* the model file itself: found as the model's files are */
+    const std::string model =
+      std::filesystem::absolute(filename_).lexically_normal().string();
+    if(origin->file == model) {
+      inherited = nullptr;
+    } else {
+      auto source = std::make_shared<shift::core::parameter::List::Source>();
+      source->file = origin->file;
+      source->include_directories = origin->include_directories;
+      inherited = std::move(source);
+    }
+  }
+  if(value.isObject()) {
+    sources[&value] = inherited;
+    for(const std::string& key : value.getMemberNames()) {
+      BindSources(value[key],
+                  shift::core::parameter::Origins::Append(pointer, key),
+                  inherited, sources);
+    }
+  } else if(value.isArray()) {
+    for(Json::ArrayIndex i = 0; i < value.size(); i++) {
+      BindSources(value[i], shift::core::parameter::Origins::Append(pointer, i),
+                  inherited, sources);
+    }
+  }
 }
 
 void shift::core::Context::ReadModel(const std::string& filename) {
   ReportLoad("Reading the model");
-  ReadJSON(root_);
+  /* each object read finds its files from the file it comes from */
+  shift::core::parameter::List::Sources sources;
+  BindSources(root_, "", nullptr, sources);
+  shift::core::parameter::List::set_reading_sources(&sources);
+  try {
+    ReadJSON(root_);
+  } catch(...) {
+    shift::core::parameter::List::set_reading_sources(nullptr);
+    throw;
+  }
+  shift::core::parameter::List::set_reading_sources(nullptr);
   AddDefaultFloor();
   set_parent(this);
   /* collision geometry given at the top level belongs to the fixed body */
@@ -1053,7 +1112,7 @@ void shift::core::Context::LoadEnvironment() {
     if(shift::core::utility::IsResourcePath(sky.get_filename())) {
       sky.set_path(sky.get_filename());
     } else {
-      sky.set_path(FindFile(sky.get_filename()));
+      sky.set_path(FindFile(sky.get_filename(), sky.get_source()));
       if(sky.get_path().empty()) {
         SHIFT_WARNING("environment: sky: file " + sky.get_filename() +
                       " not found; drawn as a gradient sky");
@@ -1116,7 +1175,7 @@ void shift::core::Context::LoadSurfaceMaterials() {
       if(shift::core::utility::IsResourcePath(name)) {
         return name;
       }
-      const std::string path = FindFile(name);
+      const std::string path = FindFile(name, material->get_source());
       if(path.empty()) {
         SHIFT_WARNING("surface material " + material->get_name() + ": " +
                       what + " " + name + " not found; drawn without it");
@@ -3877,6 +3936,51 @@ std::string shift::core::Context::FindFile(const std::string& name) {
     const auto absolute = std::filesystem::absolute(file, error);
     if(!error && !shift::core::utility::IsResourcePath(file)) {
       file_names_[name] = absolute.lexically_normal().string();
+      files_found_[{std::string(), name}] = file_names_[name];
+    }
+  }
+  return file;
+}
+
+std::string shift::core::Context::FindFile(
+  const std::string& name,
+  const shift::core::parameter::List::Source* source) {
+  if(!source || name.empty() || std::filesystem::path(name).is_absolute() ||
+     shift::core::utility::IsResourcePath(name)) {
+    return FindFile(name);
+  }
+  std::vector<std::filesystem::path> candidates{
+    std::filesystem::path(source->file).parent_path() / name};
+  for(const std::string& directory : source->include_directories) {
+    candidates.push_back(std::filesystem::path(directory) / name);
+  }
+  std::string file;
+  for(const auto& candidate : candidates) {
+    const std::string path = candidate.lexically_normal().string();
+    /* a log's files are mapped by the paths they were found at */
+    const auto mapped = file_map_.find(path);
+    if(mapped != file_map_.end()) {
+      file = mapped->second;
+      break;
+    }
+    if(shift::core::utility::FileExists(path)) {
+      file = path;
+      break;
+    }
+  }
+  if(file.empty()) {
+    const auto mapped = file_map_.find(name);
+    if(mapped != file_map_.end()) {
+      file = mapped->second;
+    }
+  }
+  if(!file.empty()) {
+    RecordFile(file);
+    std::error_code error;
+    const auto absolute = std::filesystem::absolute(file, error);
+    if(!error) {
+      file_names_[name] = absolute.lexically_normal().string();
+      files_found_[{source->file, name}] = file_names_[name];
     }
   }
   return file;

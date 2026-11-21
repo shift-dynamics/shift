@@ -14,6 +14,7 @@
 #include "shift/core/light/base.h"
 #include "shift/core/parameter/array_base.h"
 #include "shift/core/parameter/list.h"
+#include "shift/core/parameter/model_writer.h"
 #include "shift/core/parameter/value.h"
 #include "shift/core/terrain/base.h"
 #include "shift/gui/playback_slider.h"
@@ -248,11 +249,20 @@ void shift::gui::Workspace::InitializeMenus() {
   QAction* open_action = file_menu->addAction("&Open…");
   open_action->setShortcut(QKeySequence::Open);
   connect(open_action, &QAction::triggered, this, &Workspace::OpenDialog);
-  QAction* save_action = file_menu->addAction("&Save model as…");
-  save_action->setShortcut(QKeySequence::SaveAs);
-  save_action->setToolTip("write the model, with the edits made to its "
-                          "parameters, to a JSON file");
-  connect(save_action, &QAction::triggered, this, &Workspace::SaveModelAs);
+  QAction* save_action = file_menu->addAction("&Save");
+  save_action->setShortcut(QKeySequence::Save);
+  save_action->setToolTip("write the edits made to the model's parameters "
+                          "to the files they belong to, keeping their "
+                          "includes");
+  connect(save_action, &QAction::triggered, this,
+          &Workspace::SaveModelInPlace);
+  QAction* flatten_action = file_menu->addAction("Save and &flatten…");
+  flatten_action->setShortcut(QKeySequence::SaveAs);
+  flatten_action->setToolTip(
+    "write the model, with its edits, to one new file without includes, "
+    "with copies of the files it names beside it");
+  connect(flatten_action, &QAction::triggered, this,
+          &Workspace::SaveFlattenedAs);
   QAction* revert_action = file_menu->addAction("&Revert model");
   revert_action->setToolTip("drop the edits and load the model file again");
   connect(revert_action, &QAction::triggered, this, &Workspace::RevertModel);
@@ -539,8 +549,8 @@ void shift::gui::Workspace::InitializeLeftPanel() {
   body_panel_.apply->setToolTip(
     "write the changes to this flexible body (its mesh sizes, the modes "
     "checked in the mode window) to the model and load it again; a new "
-    "mesh size meshes and analyses the body again. File > Save model as... "
-    "keeps them");
+    "mesh size meshes and analyses the body again. File > Save keeps "
+    "them");
   body_layout->addWidget(body_panel_.apply, 12, 0, 1, 4);
   for(QLineEdit* edit :
       {body_panel_.element_size, body_panel_.minimum_element_size}) {
@@ -1436,6 +1446,7 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   }
   if(!model) {
     model_json_ = simulation_.get_context()->get_model_json();
+    saved_json_ = model_json_;
     model_edited_ = false;
     model_filename_ = filename;
   }
@@ -1756,46 +1767,75 @@ void shift::gui::Workspace::UpdateWindowTitle() {
                         model_edited_ ? " (edited)" : ""));
 }
 
-void shift::gui::Workspace::SaveModelAs() {
-  if(!simulation_.is_loaded()) {
-    return;
-  }
-  // the files the model names are found relative to it: save it beside the
-  // file it was read from
-  const QFileInfo info(model_filename_);
-  const QString suggestion =
-    info.dir().filePath(info.completeBaseName() + ".json");
-  const QString filename = QFileDialog::getSaveFileName(
-    this, "Save model as", suggestion, "Shift models (*.json)");
+void shift::gui::Workspace::SaveModelInPlace() {
   QString error;
-  if(!filename.isEmpty() && !SaveModel(filename, &error)) {
+  if(simulation_.is_loaded() && !SaveModel(&error)) {
     QMessageBox::critical(this, "Save failed", error);
   }
 }
 
-bool shift::gui::Workspace::SaveModel(const QString& filename,
-                                      QString* error) {
+void shift::gui::Workspace::SaveFlattenedAs() {
+  if(!simulation_.is_loaded()) {
+    return;
+  }
+  const QFileInfo info(model_filename_);
+  /* in the language of the model file */
+  const QString suffix = info.suffix().toLower();
+  const QString suggestion = info.dir().filePath(
+    info.completeBaseName() + "_flat." +
+    (suffix == "yaml" || suffix == "yml" ? info.suffix() : QString("json")));
+  const QString filename =
+    QFileDialog::getSaveFileName(this, "Save and flatten", suggestion,
+                                 "Shift models (*.json *.yaml *.yml)");
+  QString error;
+  if(!filename.isEmpty() && !SaveFlattenedModel(filename, &error)) {
+    QMessageBox::critical(this, "Save failed", error);
+  }
+}
+
+bool shift::gui::Workspace::SaveModel(QString* error) {
   if(!simulation_.is_loaded()) {
     if(error) {
       *error = "no model is loaded";
     }
     return false;
   }
-  // the elements of each array keep their order; the keys of an object are
-  // written in alphabetical order
-  std::ofstream file(filename.toStdString());
-  Json::StreamWriterBuilder builder;
-  builder.settings_["indentation"] = "  ";
-  file << Json::writeString(builder, model_json_) << std::endl;
-  if(!file) {
+  try {
+    shift::core::parameter::ModelWriter::SaveInPlace(
+      saved_json_, model_json_, model_filename_.toStdString(),
+      simulation_.get_context()->get_origins());
+  } catch(const std::exception& e) {
     if(error) {
-      *error = "Could not write " + filename;
+      *error = QString::fromStdString(e.what());
     }
     return false;
   }
-  model_filename_ = filename;
+  saved_json_ = model_json_;
   model_edited_ = false;
   UpdateWindowTitle();
+  return true;
+}
+
+bool shift::gui::Workspace::SaveFlattenedModel(const QString& filename,
+                                               QString* error) {
+  if(!simulation_.is_loaded()) {
+    if(error) {
+      *error = "no model is loaded";
+    }
+    return false;
+  }
+  const shift::core::Context* context = simulation_.get_context();
+  try {
+    shift::core::parameter::ModelWriter::SaveFlattened(
+      model_json_, model_filename_.toStdString(), context->get_origins(),
+      context->get_files_found(), context->get_files_read(),
+      filename.toStdString());
+  } catch(const std::exception& e) {
+    if(error) {
+      *error = QString::fromStdString(e.what());
+    }
+    return false;
+  }
   return true;
 }
 

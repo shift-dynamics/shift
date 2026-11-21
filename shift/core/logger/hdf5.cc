@@ -372,6 +372,12 @@ void shift::core::logger::HDF5::WriteModel() {
       model.createDataSet("json", type, H5::DataSpace(H5S_SCALAR));
     json.write(text.c_str(), type);
     write_string(json, "filename", model_file.filename().string());
+    /* where the parts of the model that come from included files come
+    from, which the model, its includes expanded, does not hold */
+    if(!context_->get_origins().empty()) {
+      write_string(json, "origins",
+                   Json::writeString(builder, context_->get_origins().ToJson()));
+    }
   }
   H5::Group files = model.createGroup("files");
   int k = 0;

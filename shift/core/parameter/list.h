@@ -117,6 +117,29 @@ public:
     return parameters_.count(key);
   }
 
+  /*! \brief where an object read from an included model file finds the
+   * files it names: next to file, then in include_directories (absolute);
+   * see parameter::Include */
+  struct Source {
+    std::string file;
+    std::vector<std::string> include_directories;
+  };
+
+  /*! \brief the included model file this object was read from, null when
+   * it was read from the model file itself (or not read from a file) */
+  const Source* get_source() const {
+    return source_.get();
+  }
+
+  /*! \brief the sources of the objects about to be read, by the address of
+   * their JSON in the model being read (a null source: the model file
+   * itself); the objects read beneath one have its source, unless given
+   * their own. Set by the Context around reading its model, null after. */
+  using Sources = std::map<const Json::Value*, std::shared_ptr<const Source>>;
+  static void set_reading_sources(const Sources* sources) {
+    reading_sources_ = sources;
+  }
+
   virtual void ActivateObjects(bool parent_is_active) {
     for(auto& parameter : parameters_) {
       parameter.second.ActivateObjects(active_ && parent_is_active);
@@ -356,6 +379,15 @@ protected:
   bool active_ = true;
   bool is_body_ = false;
   bool is_assembly_ = false;
+
+private:
+  void ReadParameters(Json::Value& json_value);
+
+  /* the source of the object read, and of everything read beneath it */
+  std::shared_ptr<const Source> source_;
+  /* the sources of the objects being read, innermost last */
+  static thread_local std::vector<std::shared_ptr<const Source>> reading_;
+  static thread_local const Sources* reading_sources_;
 };
 
 } // namespace parameter

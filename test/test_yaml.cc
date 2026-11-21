@@ -145,3 +145,101 @@ TEST(Yaml, TheLoaderChoosesTheLanguageByTheExtension) {
   shift::core::Context context;
   EXPECT_THROW(context.LoadJSON(dir + "/list.yaml"), shift::core::Exception);
 }
+
+static Json::Value Path(const std::string& json) {
+  Json::Value path;
+  std::stringstream(json) >> path;
+  return path;
+}
+
+TEST(Yaml, JsonWrittenAsYamlReadsBackTheSame) {
+  Json::Value value;
+  std::stringstream(R"({
+    "name": "arm", "count": 12, "big": 18446744073709551615,
+    "mass": 1.0, "small": 1e-7, "third": 0.3333333333333333,
+    "numeric": "12", "truth": "true", "tilde": "~", "empty": "",
+    "colon": "a: b", "lines": "one\ntwo", "flag": false, "nothing": null,
+    "T": [1, 0, 0.5], "bodies": [{"name": "link", "T": []}], "none": {}
+  })") >> value;
+  const std::string text = shift::core::parameter::JsonToYaml(value);
+  EXPECT_EQ(shift::core::parameter::YamlToJson(text), value) << text;
+  EXPECT_NE(text.find("T: [1, 0, 0.5]"), std::string::npos) << text;
+  EXPECT_NE(text.find("mass: 1.0"), std::string::npos) << text;
+  EXPECT_NE(text.find("name: arm"), std::string::npos) << text;
+}
+
+TEST(Yaml, AnEditedDocumentKeepsItsOrderAndStyles) {
+  const std::string text =
+    "# a comment\n"
+    "name: arm\n"
+    "zeta: \"12\"\n"
+    "alpha: 1.50\n"
+    "T: [1, 0, 0]\n"
+    "nothing: ~\n"
+    "bodies:\n"
+    "  - name: link\n"
+    "    mass: 2\n"
+    "  - name: tip\n"
+    "    mass: 3\n";
+  const std::string edited = shift::core::parameter::EditYaml(
+    text, {{Path(R"(["bodies", 1, "mass"])"), false, Json::Value(4.5)},
+           {Path(R"(["T", 2])"), false, Json::Value(-1)},
+           {Path(R"(["alpha"])"), true, Json::Value()},
+           {Path(R"(["added"])"), false, Json::Value("true")}});
+  EXPECT_EQ(edited,
+            "# a comment\n"
+            "name: arm\n"
+            "zeta: \"12\"\n"
+            "T: [1, 0, -1]\n"
+            "nothing: ~\n"
+            "bodies:\n"
+            "  - name: link\n"
+            "    mass: 2\n"
+            "  - name: tip\n"
+            "    mass: 4.5\n"
+            "added: \"true\"\n");
+  // with no edits, the document reads as it did
+  EXPECT_EQ(
+    shift::core::parameter::YamlToJson(
+      shift::core::parameter::EditYaml(text, {})),
+    shift::core::parameter::YamlToJson(text));
+}
+
+TEST(Yaml, AnEditInsideAnAliasIsMadeOnlyWhereItIs) {
+  const std::string text =
+    "steel: &steel {density: 7800, color: [0.5, 0.5, 0.5]}\n"
+    "a: *steel\n"
+    "b: *steel\n"
+    "c:\n"
+    "  <<: *steel\n"
+    "  name: c\n";
+  Json::Value expected = shift::core::parameter::YamlToJson(text);
+  expected["b"]["density"] = 7900;
+  expected["c"]["color"][0] = 0.25;
+  const std::string edited = shift::core::parameter::EditYaml(
+    text, {{Path(R"(["b", "density"])"), false, Json::Value(7900)},
+           {Path(R"(["c", "color", 0])"), false, Json::Value(0.25)}});
+  EXPECT_EQ(shift::core::parameter::YamlToJson(edited), expected) << edited;
+  // the nodes not edited are still one, named by an anchor
+  EXPECT_NE(edited.find("a: *"), std::string::npos) << edited;
+  EXPECT_NE(edited.find("<<: *"), std::string::npos) << edited;
+}
+
+TEST(Yaml, AnEditTheDocumentDoesNotHoldIsAnError) {
+  const std::string text =
+    "base: &base {mass: 1}\n"
+    "body:\n"
+    "  <<: *base\n"
+    "  name: link\n"
+    "T: [1, 0, 0]\n";
+  EXPECT_THROW(shift::core::parameter::EditYaml(
+                 text, {{Path(R"(["T", 3])"), false, Json::Value(1)}}),
+               shift::core::Exception);
+  EXPECT_THROW(shift::core::parameter::EditYaml(
+                 text, {{Path(R"(["body", "name", "x"])"), false,
+                         Json::Value(1)}}),
+               shift::core::Exception);
+  EXPECT_THROW(shift::core::parameter::EditYaml(
+                 text, {{Path(R"(["body", "mass"])"), true, Json::Value()}}),
+               shift::core::Exception);
+}

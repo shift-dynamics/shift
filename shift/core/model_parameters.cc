@@ -34,7 +34,8 @@ void shift::core::ModelParameters::DeclareParameters() {
     "include_directories", &include_directories_,
     "External include directories, these directories will be searched when "
     "searching for external files. A relative directory is taken from the "
-    "directory of the model file.",
+    "directory of the file it is written in: the model file, or an included "
+    "model file, whose include directories serve only the files it names.",
     false);
 
   DeclareParameter("enable_contact_detection", &contact_detection_enabled_,
