@@ -16,6 +16,8 @@
 #include "shift/core/parameter/list.h"
 #include "shift/core/parameter/value.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/scm.h"
+#include "shift/core/terrain/sph.h"
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
 #include "shift/gui/video_trimmer.h"
@@ -2171,6 +2173,7 @@ static const char* FolderIcon(const std::string& key) {
     {"frames", ":/icons/frame_folder.png"},
     {"lights", ":/icons/light_folder.png"},
     {"terrain", ":/icons/terrain_folder.png"},
+    {"regions", ":/icons/terrain_folder.png"},
     {"solvers", ":/icons/clipboard_folder.png"},
     {"integrators", ":/icons/clipboard_folder.png"},
     {"loggers", ":/icons/clipboard_folder.png"},
@@ -2183,10 +2186,31 @@ static const char* FolderIcon(const std::string& key) {
   return ":/icons/blank_folder.png";
 }
 
+/* the icon of a terrain, or of a region of one, by its class (an SPH or
+ * SCM soil is also a heightmap); nullptr if object is not a terrain */
+static const char* TerrainIcon(shift::core::parameter::List* object) {
+  if(dynamic_cast<shift::core::terrain::Sph*>(object)) {
+    return ":/icons/sph.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Scm*>(object)) {
+    return ":/icons/scm.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Basic*>(object)) {
+    return ":/icons/heightmap.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Base*>(object)) {
+    return ":/icons/terrain.png";
+  }
+  return nullptr;
+}
+
 /* the icon of an element of the array key, or of the object parameter key */
 static const char* ObjectIcon(const std::string& key, const std::string& type) {
   if(key == "collision_geometry") {
     return GeometryIcon(type);
+  }
+  if(key == "regions") {
+    return ":/icons/terrain.png";
   }
   static const std::pair<const char*, const char*> kIcons[] = {
     {"assemblies", ":/icons/assembly.png"},
@@ -3235,7 +3259,9 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
   }
 
   QTreeWidgetItem* item =
-    NewItem(parent, nullptr, text, ObjectIcon(key, type), item_type);
+    NewItem(parent, nullptr, text,
+            TerrainIcon(object) ? TerrainIcon(object) : ObjectIcon(key, type),
+            item_type);
   item->setData(0, Qt::UserRole, index);
   item->setData(0, kObjectRole,
                 QVariant::fromValue(reinterpret_cast<quintptr>(object)));

@@ -18,6 +18,7 @@ parameters panel lists every parameter of the selected object */
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QTreeWidgetItemIterator>
+#include <QFile>
 #include <QTreeWidget>
 
 #include <algorithm>
@@ -654,6 +655,15 @@ TEST(WorkspaceTree, EyeHidesTerrainAndSoil) {
   // the pit is in view at once: the ground and its regions open
   EXPECT_TRUE(ground->isExpanded());
   EXPECT_TRUE(pit->parent()->isExpanded());
+  // each with the icon of its type
+  for(const char* icon : {":/icons/heightmap.png", ":/icons/scm.png",
+                          ":/icons/sph.png"}) {
+    EXPECT_TRUE(QFile::exists(icon)) << icon;
+  }
+  EXPECT_FALSE(ground->icon(0).isNull());
+  EXPECT_FALSE(pit->icon(0).isNull());
+  EXPECT_NE(ground->icon(0).pixmap(32).toImage(),
+            pit->icon(0).pixmap(32).toImage());
   EXPECT_EQ(Eye(ground), 1);
   EXPECT_EQ(Eye(pit), 1);
   auto any = [](const std::vector<bool>& hidden) {

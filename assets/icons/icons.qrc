@@ -13,6 +13,9 @@
     <file>light.png</file>
     <file>restraint.png</file>
     <file>terrain.png</file>
+    <file>heightmap.png</file>
+    <file>scm.png</file>
+    <file>sph.png</file>
     <file>pointcloud.png</file>
     <file>convexhull.png</file>
     <file>normal.png</file>
