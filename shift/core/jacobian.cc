@@ -747,6 +747,15 @@ unsigned int shift::core::Jacobian::CheckCondition(
 
 unsigned int shift::core::Jacobian::CheckCondition(
     double time, double* q, const double* dq, const double infinity_norm_multiplier) {
+  return CheckCondition(time, q, dq, infinity_norm_multiplier,
+                        shift::core::Substructure::Refactor::INFINITY_NORM, 0.0);
+}
+
+unsigned int shift::core::Jacobian::CheckCondition(
+    double time, double* q, const double* dq,
+    const double infinity_norm_multiplier,
+    shift::core::Substructure::Refactor criterion,
+    const double epsilon_mobility) {
 
   iterations_since_last_infinity_norm_failure_++;
 
@@ -754,12 +763,10 @@ unsigned int shift::core::Jacobian::CheckCondition(
   std::vector<unsigned int> substructure_failure_indices;
   for(auto& substructure : substructures_) {
 
-    unsigned int substructure_failure = 
-      substructure.CheckCondition(infinity_norm_multiplier);
+    unsigned int substructure_failure = substructure.CheckCondition(
+      infinity_norm_multiplier, criterion, epsilon_mobility);
 
-    if(substructure_failure & (
-        shift::core::Jacobian::Failure::INFINITY_NORM_B | 
-        shift::core::Jacobian::Failure::PIVOT_RATIO)) {
+    if(substructure_failure & shift::core::Jacobian::Failure::REFACTOR) {
       substructure_failure_indices.push_back(substructure.get_index());
     }
     if(substructure_failure) {
@@ -769,7 +776,8 @@ unsigned int shift::core::Jacobian::CheckCondition(
     failure |= substructure_failure;
   }
 
-  if(failure & shift::core::Jacobian::Failure::INFINITY_NORM_B) {
+  if(failure & (shift::core::Jacobian::Failure::INFINITY_NORM_B |
+                shift::core::Jacobian::Failure::MOBILITY_EPSILON)) {
     infinity_norm_failures_.push_back({time, substructure_failure_indices});
     iterations_since_last_infinity_norm_failure_ = 0;
   }

@@ -222,6 +222,35 @@ where :math:`k` is the total number of joints.
 
 A mobility number of zero indicates that the joint is orthogonal to the manifold. A mobility number of one indicates that the joint is perfectly aligned with the manifold. If more than one joint align with the mechanism manifold, the total mobility will be shared between the joints.
 
+Refactoring by Mobility Numbers
+-------------------------------
+
+The ``rnca`` solver reapplies Gaussian elimination with complete pivoting
+(GECP), choosing a new partition of each substructure's generalized
+velocities, when a run-time check fails. ``refactor_criterion`` chooses the
+check; the refactorization is the same whichever is chosen, and the pivot
+ratio is checked with each.
+
+* ``"infinity_norm"`` (the default): the infinity norm of :math:`B` reaches
+  ``infinity_norm_multiplier`` times its value at the last GECP.
+* ``"mobility_epsilon"``: an independent velocity :math:`j` has
+
+  .. math::
+
+      \frac{\mu_j}{m} < \epsilon
+
+  where :math:`m = \sum_i \mu_i` is the mobility of the substructure and
+  :math:`\epsilon` is ``epsilon_mobility`` (default 0.01).
+
+  An independent velocity can have a low mobility number and still be
+  integrated accurately: in the Polo R WRC suspension, GECP chooses an
+  independent velocity with :math:`\mu_j / m = 0.013`, and the motion matches
+  a reference integrated at a tighter tolerance as closely as with the
+  infinity norm check. GECP chooses the partition by pivot size, not by
+  mobility. An :math:`\epsilon` above the mobility number it chooses
+  therefore refactors at every check without changing the partition. In
+  the Polo that happens from :math:`\epsilon = 0.03` upward.
+
 Connection to Singular Value Decomposition
 ------------------------------------------
 
