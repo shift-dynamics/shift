@@ -651,6 +651,9 @@ TEST(WorkspaceTree, EyeHidesTerrainAndSoil) {
   QTreeWidgetItem* ground = FindItem(tree, "ground");
   QTreeWidgetItem* pit = FindItem(tree, "pit");
   ASSERT_TRUE(ground && pit);
+  // the pit is in view at once: the ground and its regions open
+  EXPECT_TRUE(ground->isExpanded());
+  EXPECT_TRUE(pit->parent()->isExpanded());
   EXPECT_EQ(Eye(ground), 1);
   EXPECT_EQ(Eye(pit), 1);
   auto any = [](const std::vector<bool>& hidden) {

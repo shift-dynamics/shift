@@ -3295,9 +3295,14 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
     item->setToolTip(0, "inactive: not part of the simulation");
   }
   AddObjectChildren(object, item, depth, path);
-  // an assembly shows what it holds; other objects show their own arrays
-  // (as the frames and geometry of a body) when opened
-  item->setExpanded(key == "assemblies");
+  // an assembly shows what it holds, and a terrain its SPH regions, each
+  // with an eye; other objects show their own arrays (as the frames and
+  // geometry of a body) when opened
+  bool regions = false;
+  for(int i = 0; key == "terrain" && i < item->childCount(); i++) {
+    regions = regions || item->child(i)->data(0, kVisibleRole).isValid();
+  }
+  item->setExpanded(key == "assemblies" || regions);
   return item;
 }
 
