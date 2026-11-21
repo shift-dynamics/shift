@@ -145,6 +145,8 @@ public:
    * the work is done from the event loop once the viewport can render. */
   void SaveImage(const ImageRequest& request);
 
+  /*! \brief the tone curve, as View > Tone mapping */
+  void set_tone_curve(Viewport::ToneCurve curve);
   /*! \brief the exposure of the image in stops, as View > Exposure */
   void set_exposure(float stops);
 
@@ -570,6 +572,8 @@ private:
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
   QDoubleSpinBox* exposure_box_ = nullptr; /*!< View > Exposure */
+  QAction* reinhard_action_ = nullptr; /*!< View > Tone mapping > Reinhard */
+  QAction* aces_action_ = nullptr;     /*!< View > Tone mapping > ACES */
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
   QAction* particle_surface_action_ = nullptr;

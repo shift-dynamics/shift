@@ -211,11 +211,14 @@ A mesh whose material has an opacity below 1 (``d`` in an OBJ's ``.mtl`` file) l
 light through in the ray traced view: it shows what is behind it and casts a lighter
 shadow, with no refraction. The other render modes draw it solid.
 
-The viewer maps the light of the scene to the colors of the screen with the
-ACES filmic curve, which deepens the shadows and rolls off the highlights
-without clipping them. **View > Exposure** brightens or darkens the image in
-stops: each stop doubles or halves the light before the curve is applied.
-With ``--image``, ``--exposure STOPS`` sets the same value (default 0).
+The viewer maps the light of the scene to the colors of the screen with a
+tone curve, chosen in **View > Tone mapping**. *Reinhard*, the default, maps a
+light :math:`x` to :math:`x / (1 + x)`. *ACES filmic* gives more contrast in
+the mid tones, deepens the shadows and rolls off the highlights without
+clipping them. **View > Exposure** brightens or darkens the image in stops:
+each stop doubles or halves the light before the curve is applied. With
+``--image``, ``--tone-map reinhard|aces`` and ``--exposure STOPS`` set the
+same values (defaults ``reinhard`` and 0).
 
 To keep a moving body in view, tick *follow* in the *Camera* box of the
 *Simulation* tab and pick the body. The camera then keeps its place relative to

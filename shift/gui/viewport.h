@@ -85,6 +85,10 @@ class Viewport : public QWindow {
 
 public:
   enum class RenderMode { kRaster, kRayTraced };
+  /*! The curve that maps the light of the scene to the colors of the
+   * screen (shaders/tonemap.glsl): Reinhard's x / (1 + x), or the ACES
+   * filmic curve, with more contrast in the mid tones */
+  enum class ToneCurve { kReinhard, kAces };
   /*! What the camera holds its transform to: the body itself, or the frame
    * on the ground under it (Camera::GroundFrame), which shows the body
    * bounce and tilt */
@@ -103,9 +107,14 @@ public:
     return render_mode_;
   }
 
+  /*! \brief the tone curve (default Reinhard) */
+  void set_tone_curve(ToneCurve curve);
+  ToneCurve get_tone_curve() const {
+    return tone_curve_;
+  }
   /*! \brief the exposure of the image, in stops (powers of two) above the
-   * default 0: scene colors are scaled by 2^stops before the ACES filmic
-   * tone mapping (shaders/tonemap.glsl) */
+   * default 0: scene colors are scaled by 2^stops before the tone curve
+   * (set_tone_curve) */
   void set_exposure(float stops);
   float get_exposure() const {
     return exposure_;
@@ -583,6 +592,7 @@ private:
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   float exposure_ = 0.f; /*!< stops, see set_exposure */
+  ToneCurve tone_curve_ = ToneCurve::kReinhard;
   bool smooth_terrain_ = true;
   bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
@@ -880,7 +890,7 @@ private:
   std::unique_ptr<QRhiTexture> rt_history_moments_[2];
   std::unique_ptr<QRhiTexture> rt_history_albedo_[2];
   std::unique_ptr<QRhiTexture> rt_filter_[2]; /*!< a-trous ping-pong */
-  std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, tonemapped */
+  std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, x / (1 + x) */
   /*! anti-aliased history, at the output's size */
   std::unique_ptr<QRhiTexture> rt_taa_[2];
   std::unique_ptr<QRhiBuffer> svgf_ubo_; /*!< one slot per pass/iteration */

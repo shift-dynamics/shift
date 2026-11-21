@@ -29,6 +29,7 @@
 #include "ksl/quaternion.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QCheckBox>
 #include <QSignalBlocker>
@@ -289,8 +290,26 @@ void shift::gui::Workspace::InitializeMenus() {
   connect(smooth_terrain, &QAction::toggled, viewport_,
           &Viewport::set_smooth_terrain);
   smooth_terrain_action_ = smooth_terrain;
+  // the curve that maps the light of the scene to the colors of the screen
+  QMenu* tone_menu = view_menu->addMenu("&Tone mapping");
+  auto* tone_group = new QActionGroup(this);
+  reinhard_action_ = tone_menu->addAction("&Reinhard");
+  reinhard_action_->setToolTip("x / (1 + x), soft contrast");
+  aces_action_ = tone_menu->addAction("&ACES filmic");
+  aces_action_->setToolTip("film-like contrast: deeper shadows, highlights "
+                           "rolled off");
+  for(QAction* action : {reinhard_action_, aces_action_}) {
+    action->setCheckable(true);
+    tone_group->addAction(action);
+  }
+  reinhard_action_->setChecked(true);
+  connect(tone_group, &QActionGroup::triggered, this, [this](QAction* action) {
+    viewport_->set_tone_curve(action == aces_action_
+                                ? Viewport::ToneCurve::kAces
+                                : Viewport::ToneCurve::kReinhard);
+  });
   // the exposure of the image: scene colors scaled by 2^stops before the
-  // ACES filmic tone mapping
+  // tone curve
   auto* exposure_row = new QWidget;
   auto* exposure_layout = new QHBoxLayout(exposure_row);
   exposure_layout->setContentsMargins(28, 2, 8, 2);
@@ -1811,6 +1830,12 @@ void shift::gui::Workspace::RevertModel() {
     return;
   }
   Open(model_filename_);
+}
+
+void shift::gui::Workspace::set_tone_curve(Viewport::ToneCurve curve) {
+  (curve == Viewport::ToneCurve::kAces ? aces_action_ : reinhard_action_)
+    ->setChecked(true);
+  viewport_->set_tone_curve(curve);
 }
 
 void shift::gui::Workspace::set_exposure(float stops) {

@@ -25,7 +25,7 @@ layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   ivec4 control; // x = instance count
   mat4 view_projection; // current frame
   vec4 upscale;  // read by svgf_taa.comp
-  vec4 tone;     // x = exposure (stops), see tonemap.glsl
+  vec4 tone;     // x = exposure (stops), y = curve, see tonemap.glsl
 } u;
 
 layout(rgba32f, binding = 1) uniform readonly image2D position;

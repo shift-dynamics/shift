@@ -52,7 +52,7 @@ struct FrameUniforms {
   float sun_direction[4];
   float sun_color[4];
   float sky_zenith[4]; // w = exposure (stops), see tonemap.glsl
-  float sky_horizon[4];
+  float sky_horizon[4]; // w = tone curve (0 Reinhard, 1 ACES)
   float floor_params[4];
   float floor_frame[16]; // column major: axes u, v, normal, origin
   float fog_params[4]; // density, height falloff, height, 1 if any fog
@@ -450,7 +450,7 @@ struct DenoiseUniforms {
   float view_projection[16]; // current frame
   float upscale[4]; // xy = the primary rays' jitter (ray traced pixels),
                     // zw = ray traced size / output size (1 = not scaled)
-  float tone[4];    // x = exposure (stops), see tonemap.glsl
+  float tone[4];    // x = exposure (stops), y = curve, see tonemap.glsl
 };
 static_assert(sizeof(DenoiseUniforms) == 208);
 
@@ -803,10 +803,20 @@ void shift::gui::Viewport::set_particle_surface(bool surface) {
   update();
 }
 
+/* the tone curve as the shaders take it (tonemap.glsl) */
+static float ToneCurveValue(shift::gui::Viewport::ToneCurve curve) {
+  return curve == shift::gui::Viewport::ToneCurve::kAces ? 1.f : 0.f;
+}
+
+void shift::gui::Viewport::set_tone_curve(ToneCurve curve) {
+  tone_curve_ = curve;
+  // as the exposure, applied after the ray traced history
+  update();
+}
+
 void shift::gui::Viewport::set_exposure(float stops) {
   exposure_ = stops;
-  // the ray traced history is kept tone mapped
-  rt_history_valid_ = false;
+  // the ray traced history is kept before the filmic curve, so it stays
   update();
 }
 
@@ -3668,7 +3678,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   CopyVector(camera_.get_position(), 1.f, frame.camera_position);
   SunUniforms(lights_on, frame.sun_direction, frame.sun_color);
   CopyVector(sky_zenith_, exposure_, frame.sky_zenith);
-  CopyVector(sky_horizon_, 0.f, frame.sky_horizon);
+  CopyVector(sky_horizon_, ToneCurveValue(tone_curve_), frame.sky_horizon);
   FogUniforms(frame.fog_params, frame.fog_color);
   UploadWaves(batch);
   WaterUniforms(frame.water_params, frame.water_wave, frame.water_color,
@@ -4505,6 +4515,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     denoise.blend[3] = bodies_moved ? kHistoryCamera : denoise.params[1];
     denoise.control[0] = instance_count;
     denoise.tone[0] = exposure_;
+    denoise.tone[1] = ToneCurveValue(tone_curve_);
     // the jitter of this frame's primary rays (raytrace.comp), from which
     // the anti-aliasing pass places the samples in its larger image
     const uint32_t halton_index = uint32_t(rt_sample_) + 1u;

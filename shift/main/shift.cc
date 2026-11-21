@@ -147,8 +147,12 @@ int main(int argc, char* argv[]) {
      "body"},
     {"exposure",
      "brightness of the image in stops (default 0): each stop doubles the "
-     "light before the filmic tone mapping",
+     "light before the tone curve",
      "stops"},
+    {"tone-map",
+     "the curve from the light of the scene to the colors of the screen: "
+     "reinhard (default) or aces (filmic)",
+     "curve"},
     {"follow-ground",
      "with --follow: follow the ground under the body, level, so that the "
      "body is seen to bounce and tilt"},
@@ -194,6 +198,15 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     window.set_exposure(float(stops));
+  }
+  if(parser.isSet("tone-map")) {
+    const QString curve = parser.value("tone-map");
+    if(curve == "aces") {
+      window.set_tone_curve(shift::gui::Viewport::ToneCurve::kAces);
+    } else if(curve != "reinhard") {
+      std::fprintf(stderr, "shift: --tone-map takes reinhard or aces\n");
+      return 1;
+    }
   }
   window.show();
   if(!parser.positionalArguments().isEmpty()) {

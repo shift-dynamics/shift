@@ -65,6 +65,6 @@ void main() {
     color = Aerial(c, crossing, color, frame.fog_params, frame.fog_color,
                    WaterSky(HorizonDirection(d)));
   }
-  color = ToneMap(color, frame.sky_zenith.w);
+  color = ToneMap(color, frame.sky_zenith.w, frame.sky_horizon.w);
   out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
 }
