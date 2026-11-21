@@ -236,6 +236,9 @@ public:
   /*! \brief whether the meshes of each body, by index into the poses, are
    * hidden; bodies past its end are shown */
   void set_hidden_bodies(std::vector<bool> hidden);
+  /*! \brief hide the terrains (Scene::terrains) that are true here, as the
+   * eye beside a terrain in the Scene tree does */
+  void set_hidden_terrains(std::vector<bool> hidden);
   const std::vector<bool>& get_hidden_bodies() const {
     return hidden_bodies_;
   }
@@ -668,6 +671,7 @@ private:
   uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
   uint32_t axes_frame_instance_count_ = 0;
   std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
+  std::vector<bool> hidden_terrains_; /*!< see set_hidden_terrains */
   std::vector<bool> flex_mesh_surfaces_; /*!< see set_flex_mesh_surfaces */
   std::vector<bool> flex_mesh_edges_; /*!< see set_flex_mesh_edges */
   /*! see set_flex_constrained_nodes */
@@ -681,6 +685,9 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> spider_pipeline_;
   /*! the lines of the edges of flexible bodies' elements (mesh_edges.vert) */
   std::unique_ptr<QRhiGraphicsPipeline> edges_pipeline_;
+  /*! \brief whether a mesh (Scene::meshes) is drawn: false for that of a
+   * hidden terrain */
+  bool is_mesh_shown(int mesh) const;
   /*! \brief whether the meshes of body are drawn */
   bool is_body_shown(int body) const {
     return body >= static_cast<int>(hidden_bodies_.size()) ||

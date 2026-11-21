@@ -142,13 +142,19 @@ A model opens with its bodies shown and no frames or joint axes. Frames and
 joint axes are drawn over the model, so that those inside a body still show.
 What is shown stays shown when an edit loads the model again.
 
-*Edit > Settings* sets the length of the arrows (*Coordinate frame scale*,
-0.25 m at first); the arrow of a joint axis is twice as long, from minus to
-plus that length along the axis. It also sets the color of the joint axes
-(*Joint color*, purple at first), picked from a color dialog, and the
-diameter of their shafts (*Joint axis thickness*, 7.5 mm at first; the
-heads are three times as wide). The settings
-are saved in ``~/.shift/settings.json`` and read each time the viewer starts.
+The eye beside a terrain shows or hides it in the same way.
+
+*Edit > Settings* lists its settings by category down its left side:
+*Interface*, *Rendering* and *Flexible Bodies*. Under *Interface* it sets the
+length of the arrows (*Coordinate frame scale*, 0.25 m at first); the arrow
+of a joint axis is twice as long, from minus to plus that length along the
+axis. It also sets the color of the joint axes (*Joint color*, purple at
+first), picked from a color dialog, and the diameter of their shafts
+(*Joint axis thickness*, 7.5 mm at first; the heads are three times as
+wide). The view shows each change at once, and *Cancel* restores the
+settings of before. The settings are saved in ``~/.shift/settings.json``,
+grouped as the dialog's categories (``"interface"``, ``"rendering"`` and
+``"flexible_bodies"``), and read each time the viewer starts.
 
 Selecting an object lists all of its parameters below the tree, read from the
 object as it is. Parameters that the file leaves at their defaults are greyed
@@ -224,13 +230,14 @@ light through in the ray traced view: it shows what is behind it and casts a lig
 shadow, with no refraction. The other render modes draw it solid.
 
 The viewer maps the light of the scene to the colors of the screen with a
-tone curve, chosen in **View > Tone mapping**. *Reinhard*, the default, maps a
-light :math:`x` to :math:`x / (1 + x)`. *ACES filmic* gives more contrast in
-the mid tones, deepens the shadows and rolls off the highlights without
-clipping them. **View > Exposure** brightens or darkens the image in stops:
-each stop doubles or halves the light before the curve is applied. With
-``--image``, ``--tone-map reinhard|aces`` and ``--exposure STOPS`` set the
-same values (defaults ``reinhard`` and 0).
+tone curve, chosen in *Edit > Settings > Rendering > Tone mapping*.
+*Reinhard*, the default, maps a light :math:`x` to :math:`x / (1 + x)`.
+*ACES filmic* gives more contrast in the mid tones, deepens the shadows and
+rolls off the highlights without clipping them. *Exposure* brightens or
+darkens the image in stops: each stop doubles or halves the light before the
+curve is applied. Images and videos rendered from the command line use the
+saved settings; ``--tone-map reinhard|aces`` and ``--exposure STOPS`` set
+other values for one render.
 
 To keep a moving body in view, tick *follow* in the *Camera* box of the
 *Simulation* tab and pick the body. The camera then keeps its place relative to

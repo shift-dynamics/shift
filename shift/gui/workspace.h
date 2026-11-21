@@ -134,7 +134,9 @@ public:
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
-    double deformation_scale = 1.0; /*!< View > Deformation scale */
+    double deformation_scale = -1.0; /*!< Settings > Flexible Bodies >
+                                      * Deformation scale; below 0, as
+                                      * saved */
     bool flex_mesh_surface = false; /*!< draw every flexible body by its
                                      * mesh's surface, not its CAD */
     bool flex_mesh_edges = false;   /*!< draw the edges of the elements of
@@ -407,11 +409,12 @@ private:
   /*! an item of the tree with an eye: a coordinate frame (its axes), a
    * joint (the line of its axis, two for a gear) or a body (its meshes) */
   struct EyeItem {
-    enum Kind { kFrame, kJoint, kBody };
+    enum Kind { kFrame, kJoint, kBody, kTerrain };
     Kind kind = kFrame;
     QTreeWidgetItem* item = nullptr;
     QString path;       /*!< see PathKey */
-    int body_index = 0; /*!< of the simulation: of the frame, or the body */
+    int body_index = 0; /*!< of the simulation: of the frame, or the body;
+                         * a terrain's index in Scene::terrains */
     ksl_SE3f_t frame = Identity(); /*!< a frame, with respect to the body
                                       origin */
     std::vector<Viewport::JointAxis> lines; /*!< a joint */
@@ -420,10 +423,12 @@ private:
   /*! folders of items with an eye, whose eye is for all of them */
   std::vector<QTreeWidgetItem*> eye_folders_;
   /*! by path, kept when the model is loaded again: the frames and joints
-   * shown, and the bodies hidden; a model opens with none of them */
+   * shown, and the bodies and terrains hidden; a model opens with none of
+   * them */
   std::set<QString> shown_frames_;
   std::set<QString> shown_joints_;
   std::set<QString> hidden_bodies_;
+  std::set<QString> hidden_terrains_; /*!< as hidden_bodies_ */
   /*! by body name, kept when the model is loaded again: the flexible
    * bodies drawn by their mesh's surface rather than their CAD, and those
    * with the edges of their elements drawn (Viewport::
@@ -515,7 +520,6 @@ private:
    * a body whose mesh sizes changed is meshed and analysed again */
   void ApplyFlexChanges();
   /*! \brief View > Deformation scale */
-  void DeformationScaleDialog();
 
   /* collision geometry of the fixed body; the pose of a plane can be set */
   struct {
@@ -586,9 +590,6 @@ private:
   } playback_panel_;
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
-  QDoubleSpinBox* exposure_box_ = nullptr; /*!< View > Exposure */
-  QAction* reinhard_action_ = nullptr; /*!< View > Tone mapping > Reinhard */
-  QAction* aces_action_ = nullptr;     /*!< View > Tone mapping > ACES */
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
   QAction* particle_surface_action_ = nullptr;

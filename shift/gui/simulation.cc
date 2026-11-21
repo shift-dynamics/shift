@@ -872,6 +872,7 @@ void shift::gui::Simulation::Unload() {
   JoinWorker();
   scm_views_.clear();
   sph_views_.clear();
+  terrain_indices_.clear();
   dem_views_.clear();
   grain_records_ = 0;
   flex_views_.clear();
@@ -1157,6 +1158,7 @@ void shift::gui::Simulation::LoadModel(
   scm_views_.clear();
   ReportLoad("Preparing the terrain for drawing");
   sph_views_.clear();
+  terrain_indices_.clear();
   /* the terrains and their regions: a region drawn as a surface of its
   own (e.g. SCM sand in rigid ground) is a hole in the terrain that holds
   it; an SPH soil is drawn by its particles alone */
@@ -1175,6 +1177,9 @@ void shift::gui::Simulation::LoadModel(
       continue;
     }
     const int index = AddTerrain(*basic, textures, scene_);
+    if(index >= 0) {
+      terrain_indices_[terrain] = index;
+    }
     auto scm = dynamic_cast<shift::core::terrain::Scm*>(basic);
     if(scm && index >= 0) {
       AddScmView(*scm, index);

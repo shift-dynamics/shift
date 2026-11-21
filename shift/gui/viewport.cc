@@ -892,6 +892,26 @@ void shift::gui::Viewport::set_hidden_bodies(std::vector<bool> hidden) {
   update();
 }
 
+void shift::gui::Viewport::set_hidden_terrains(std::vector<bool> hidden) {
+  hidden_terrains_ = std::move(hidden);
+  rt_instances_dirty_ = true;
+  rt_frame_ = 0;
+  update();
+}
+
+bool shift::gui::Viewport::is_mesh_shown(int mesh) const {
+  if(!simulation_ || hidden_terrains_.empty()) {
+    return true;
+  }
+  const Scene& scene = simulation_->get_scene();
+  if(mesh < 0 || mesh >= static_cast<int>(scene.meshes.size())) {
+    return true;
+  }
+  const int terrain = scene.meshes[size_t(mesh)].terrain;
+  return terrain < 0 || terrain >= static_cast<int>(hidden_terrains_.size()) ||
+         !hidden_terrains_[size_t(terrain)];
+}
+
 void shift::gui::Viewport::set_flex_mesh_surfaces(
   std::vector<bool> mesh_surface) {
   flex_mesh_surfaces_ = std::move(mesh_surface);
@@ -2561,7 +2581,8 @@ shift::gui::Viewport::DrawnInstances() const {
 
 bool shift::gui::Viewport::is_instance_drawn(
   const SceneInstance& instance) const {
-  if(!is_body_shown(instance.body_index)) {
+  if(!is_body_shown(instance.body_index) ||
+     !is_mesh_shown(instance.mesh_index)) {
     return false;
   }
   const Scene& scene = simulation_->get_scene();
@@ -3764,7 +3785,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
         ksl_subtract_vvf(&center, &eye, &offset);
         const float distance = ksl_vec3f_l2norm(&offset);
         if(placed) {
-          bool shown = is_body_shown(body);
+          bool shown =
+            is_body_shown(body) && is_mesh_shown(instance.mesh_index);
           if(mesh.draw_distance > 0.f) {
             shown = shown && distance - radius < mesh.draw_distance;
           }
@@ -3805,7 +3827,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       const size_t l = size_t(levels[i]);
       InstanceAttributes& drawn =
         instances[gpu.level_first[l] + gpu.level_count[l]++];
-      if(is_body_shown(instance.body_index)) {
+      if(is_body_shown(instance.body_index) &&
+         is_mesh_shown(instance.mesh_index)) {
         CopyPlacedMatrix(poses_.bodies[instance.body_index], instance,
                          drawn.model);
       } else {
@@ -4025,6 +4048,9 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       for(const SceneInstance& instance : scene.instances) {
         shown = shown || (instance.mesh_index == mesh_index &&
                           is_body_shown(instance.body_index));
+      }
+      if(!is_mesh_shown(mesh_index)) {
+        shown = false;
       }
       if(!shown) {
         continue;

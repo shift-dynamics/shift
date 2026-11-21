@@ -23,7 +23,8 @@ while read -r name model time args; do
   before=$(ls "$dir")
   log=$(mktemp)
   if (cd "$dir" && "$viewer" "$(basename "$model")" --image "$out/$name.jpg" \
-    --time "$time" --size 960x640 --samples 256 $args) >"$log" 2>&1; then
+    --time "$time" --size 960x640 --samples 256 --tone-map reinhard \
+    --exposure 0 $args) >"$log" 2>&1; then
     grep '^shift:' "$log"
   else
     echo "failed: $name; the last lines of its output:" >&2

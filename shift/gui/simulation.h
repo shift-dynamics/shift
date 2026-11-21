@@ -33,6 +33,7 @@ namespace light {
 class Base;
 }
 namespace terrain {
+class Base;
 class Scm;
 class Sph;
 } // namespace terrain
@@ -125,6 +126,12 @@ public:
 
   const Scene& get_scene() const {
     return scene_;
+  }
+  /*! \brief the index in get_scene().terrains of the surface drawn for a
+   * terrain of the model, -1 if it has none (an SPH soil) */
+  int get_terrain_index(const shift::core::terrain::Base* terrain) const {
+    const auto found = terrain_indices_.find(terrain);
+    return found == terrain_indices_.end() ? -1 : found->second;
   }
 
   const std::vector<shift::core::body::Base*>& get_bodies() const {
@@ -461,6 +468,8 @@ private:
   size_t shown_i0_ = 1, shown_i1_ = 0;
   double shown_p_ = 0.0;
   std::vector<SphView> sph_views_;
+  /*! see get_terrain_index */
+  std::map<const shift::core::terrain::Base*, int> terrain_indices_;
   size_t base_delta_ = 0;    /*!< deltas_ applied to ScmView::base */
   size_t partial_begin_ = 0; /*!< deltas_ shown in part */
   size_t partial_end_ = 0;

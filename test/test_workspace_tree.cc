@@ -788,14 +788,19 @@ TEST(WorkspaceTree, SettingsPersist) {
   std::ifstream file(path);
   Json::Value json;
   file >> json;
-  EXPECT_EQ(json["frame_scale"].asDouble(), 0.75);
-  EXPECT_EQ(json["joint_color"].asString(), "#a040e0");
-  EXPECT_EQ(json["joint_thickness"].asDouble(),
+  // grouped as the pages of the Settings dialog
+  EXPECT_EQ(json["interface"]["frame_scale"].asDouble(), 0.75);
+  EXPECT_EQ(json["interface"]["joint_color"].asString(), "#a040e0");
+  EXPECT_EQ(json["interface"]["joint_thickness"].asDouble(),
             shift::gui::Settings::kDefaultJointThickness);
   EXPECT_EQ(json["from_a_later_version"].asInt(), 7);
+  EXPECT_FALSE(json.isMember("frame_scale"));
 
-  EXPECT_EQ(json["lod_tolerance"].asDouble(),
+  EXPECT_EQ(json["rendering"]["lod_tolerance"].asDouble(),
             shift::gui::Settings::kDefaultLodTolerance);
+  EXPECT_EQ(json["rendering"]["tone_mapping"].asString(), "reinhard");
+  EXPECT_EQ(json["flexible_bodies"]["stress_quantity"].asString(),
+            "von_mises");
 
   // the level of detail tolerance, 0 (the meshes themselves) allowed
   read.set_lod_tolerance(0.0);
@@ -806,7 +811,7 @@ TEST(WorkspaceTree, SettingsPersist) {
   read.set_lod_tolerance(shift::gui::Settings::kDefaultLodTolerance);
 
   // the ray tracer's render scale, from kMinimumRenderScale to 1
-  EXPECT_EQ(json["render_scale"].asDouble(),
+  EXPECT_EQ(json["rendering"]["render_scale"].asDouble(),
             shift::gui::Settings::kDefaultRenderScale);
   read.set_render_scale(0.5);
   ASSERT_TRUE(read.Save(path));
@@ -865,8 +870,9 @@ TEST(WorkspaceTree, SettingsPersist) {
     std::ifstream saved_file(path);
     Json::Value saved_json;
     saved_file >> saved_json;
-    EXPECT_FALSE(saved_json["dlss"].asBool());
-    EXPECT_EQ(saved_json["dlss_mode"].asString(), "ultra_performance");
+    EXPECT_FALSE(saved_json["rendering"]["dlss"].asBool());
+    EXPECT_EQ(saved_json["rendering"]["dlss_mode"].asString(),
+              "ultra_performance");
   }
   shift::gui::Settings upscaled;
   ASSERT_TRUE(upscaled.Load(path));
@@ -878,6 +884,52 @@ TEST(WorkspaceTree, SettingsPersist) {
   std::string mode_error;
   EXPECT_FALSE(bad_mode.Load(path, &mode_error));
   EXPECT_NE(mode_error.find("dlss_mode"), std::string::npos);
+
+  // the tone curve, the exposure, how terrain and soil are drawn, and how
+  // flexible bodies are drawn
+  thick.set_tone_aces(true);
+  thick.set_exposure(-1.5);
+  thick.set_smooth_terrain(false);
+  thick.set_soil_surface(false);
+  thick.set_deformation_scale(20.0);
+  thick.set_flex_mesh_surface(true);
+  thick.set_flex_element_edges(true);
+  thick.set_flex_constrained_nodes(true);
+  thick.set_flex_stresses(true);
+  ASSERT_TRUE(thick.Save(path));
+  shift::gui::Settings drawn;
+  ASSERT_TRUE(drawn.Load(path));
+  EXPECT_TRUE(drawn.is_tone_aces());
+  EXPECT_EQ(drawn.get_exposure(), -1.5);
+  EXPECT_FALSE(drawn.is_smooth_terrain());
+  EXPECT_FALSE(drawn.is_soil_surface());
+  EXPECT_EQ(drawn.get_deformation_scale(), 20.0);
+  EXPECT_TRUE(drawn.is_flex_mesh_surface());
+  EXPECT_TRUE(drawn.is_flex_element_edges());
+  EXPECT_TRUE(drawn.is_flex_constrained_nodes());
+  EXPECT_TRUE(drawn.is_flex_stresses());
+  std::ofstream(path) << "{\"rendering\": {\"tone_mapping\": \"filmic\"}}";
+  shift::gui::Settings bad_tone;
+  std::string tone_error;
+  EXPECT_FALSE(bad_tone.Load(path, &tone_error));
+  EXPECT_NE(tone_error.find("tone_mapping"), std::string::npos);
+
+  // a file of an earlier version, its keys at the top level, is read and
+  // written grouped
+  std::ofstream(path) << "{\"frame_scale\": 0.3, \"render_scale\": 0.5}";
+  shift::gui::Settings earlier;
+  ASSERT_TRUE(earlier.Load(path));
+  EXPECT_EQ(earlier.get_frame_scale(), 0.3);
+  EXPECT_EQ(earlier.get_render_scale(), 0.5);
+  ASSERT_TRUE(earlier.Save(path));
+  {
+    std::ifstream grouped_file(path);
+    Json::Value grouped;
+    grouped_file >> grouped;
+    EXPECT_FALSE(grouped.isMember("frame_scale"));
+    EXPECT_EQ(grouped["interface"]["frame_scale"].asDouble(), 0.3);
+    EXPECT_EQ(grouped["rendering"]["render_scale"].asDouble(), 0.5);
+  }
 
   // a bad value is reported and the defaults kept
   std::ofstream(path) << "{\"frame_scale\": -1}";

@@ -34,11 +34,15 @@ const std::vector<StressQuantity>& StressQuantities();
 They are the length of the arrows of the coordinate frames, the
 thickness and color of the lines of the joint axes, the tolerance of the
 meshes' levels of detail, the resolution of the ray traced view, whether it
-is upscaled with NVIDIA DLSS and in which mode, and the quantity, color map
-and range of the stress drawn on flexible bodies. They are read from and
-written to a JSON file,
-~/.shift/settings.json (get_default_path). Keys the file has that this
-version does not know are kept when it is written again.
+is upscaled with NVIDIA DLSS and in which mode, the tone curve and the
+exposure, how deformable terrain and SPH soil are drawn, and the quantity,
+color map and range of the stress drawn on flexible bodies, and how flexible
+bodies are drawn. They are read from and written to a JSON file,
+~/.shift/settings.json (get_default_path), whose keys are grouped as the
+pages of the Settings dialog: "interface", "rendering" and
+"flexible_bodies" (SectionOf). A file of an earlier version, with its keys
+at the top level, is read as well and written grouped. Keys the file has
+that this version does not know are kept when it is written again.
 */
 class Settings {
 public:
@@ -190,8 +194,91 @@ public:
     render_scale_ = scale;
   }
 
+  /*! \brief the tone curve: ACES filmic if true, else Reinhard (the
+   * default); "tone_mapping" in the file, "aces" or "reinhard" */
+  bool is_tone_aces() const {
+    return tone_aces_;
+  }
+  void set_tone_aces(bool aces) {
+    tone_aces_ = aces;
+  }
+  /*! \brief the exposure in stops (default 0); "exposure" in the file */
+  double get_exposure() const {
+    return exposure_;
+  }
+  void set_exposure(double stops) {
+    exposure_ = stops;
+  }
+  /*! \brief whether deformable terrain is drawn by a smooth surface through
+   * its nodes (default true); "smooth_terrain" in the file */
+  bool is_smooth_terrain() const {
+    return smooth_terrain_;
+  }
+  void set_smooth_terrain(bool smooth) {
+    smooth_terrain_ = smooth;
+  }
+  /*! \brief whether SPH soil is drawn as one surface over its particles
+   * (default true); "soil_surface" in the file */
+  bool is_soil_surface() const {
+    return soil_surface_;
+  }
+  void set_soil_surface(bool surface) {
+    soil_surface_ = surface;
+  }
+
+  /*! \brief the factor the deformation of flexible bodies is drawn with
+   * (default 1); "deformation_scale" in the file */
+  double get_deformation_scale() const {
+    return deformation_scale_;
+  }
+  void set_deformation_scale(double scale) {
+    deformation_scale_ = scale;
+  }
+  /*! \brief how every flexible body is drawn when a model opens (a body's
+   * panel then sets its own): by its mesh's surface ("mesh_surface"), with
+   * its elements' edges ("element_edges"), its constrained nodes
+   * ("constrained_nodes") and its stress ("stresses"); all false by
+   * default */
+  bool is_flex_mesh_surface() const {
+    return flex_mesh_surface_;
+  }
+  void set_flex_mesh_surface(bool on) {
+    flex_mesh_surface_ = on;
+  }
+  bool is_flex_element_edges() const {
+    return flex_element_edges_;
+  }
+  void set_flex_element_edges(bool on) {
+    flex_element_edges_ = on;
+  }
+  bool is_flex_constrained_nodes() const {
+    return flex_constrained_nodes_;
+  }
+  void set_flex_constrained_nodes(bool on) {
+    flex_constrained_nodes_ = on;
+  }
+  bool is_flex_stresses() const {
+    return flex_stresses_;
+  }
+  void set_flex_stresses(bool on) {
+    flex_stresses_ = on;
+  }
+
+  /*! \brief the group of the file ("interface", "rendering" or
+   * "flexible_bodies") that a key of the settings is written in */
+  static const char* SectionOf(const std::string& key);
+
 private:
   double frame_scale_ = kDefaultFrameScale;
+  double deformation_scale_ = 1.0;
+  bool flex_mesh_surface_ = false;
+  bool flex_element_edges_ = false;
+  bool flex_constrained_nodes_ = false;
+  bool flex_stresses_ = false;
+  bool tone_aces_ = false;
+  double exposure_ = 0.0;
+  bool smooth_terrain_ = true;
+  bool soil_surface_ = true;
   double lod_tolerance_ = kDefaultLodTolerance;
   double render_scale_ = kDefaultRenderScale;
   QColor joint_color_ = get_default_joint_color();
