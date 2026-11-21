@@ -135,6 +135,8 @@ public:
 
 private:
   virtual void DeclareParameters() override;
+  /*! \brief also: the axis has a length */
+  void ReadJSON(Json::Value& value) override;
   static bool registered_;
   enum AxisType { X_AXIS, Y_AXIS, Z_AXIS, ARBITRARY_AXIS };
   ksl_vec3_t axis_ = ksl_vec3(0.0, 0.0, 1.0);

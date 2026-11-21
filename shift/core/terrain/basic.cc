@@ -69,15 +69,15 @@ void shift::core::terrain::Basic::DeclareParameters() {
     "\"sae\" and \"iso\". The \"sae\" coordinate convention has positive z "
     "pointing down, which is commonly used for space craft, robotics and "
     "vehicle dynamics applications. The \"iso\" coordinate convention has "
-    "positive z pointing up; defaults to \"sae\" if not specified",
-    false);
+    "positive z pointing up; defaults to \"sae\" if not specified", false,
+                   {"sae", "iso"});
   DeclareParameter(
     "interpolation_type", &interpolation_type_,
     "specify method to interpolate between control points: acceptable values "
     "are \"bilinear\" and \"bicubic\"; \"bilinear\" sampling is faster, but is "
     "only C0 continuous. \"bicubic\" sampling is C2 continuous but slower to "
-    "compute. defaults to \"bicubic\" if not specified.",
-    false);
+    "compute. defaults to \"bicubic\" if not specified.", false,
+                   {"bilinear", "bicubic"});
   DeclareParameter("soil", &soil_,
                    "the soil of the terrain (see force_module::Soil), for the "
                    "models that act on soil; optional",

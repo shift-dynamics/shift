@@ -126,6 +126,11 @@ void shift::core::joint::screwinv_dhva(const shift::core::Context& context,
   ScrewVelocity(dhva, offsets, dq);
 }
 
+void shift::core::joint::Screw::ReadJSON(Json::Value& value) {
+  shift::core::joint::Base::ReadJSON(value);
+  CheckAxis(axis_);
+}
+
 void shift::core::joint::Screw::DeclareParameters() {
   DeclareParameter("axis", &axis_,
                    "Axis of the screw, expressed in the parent frame, "

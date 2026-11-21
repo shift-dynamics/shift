@@ -36,14 +36,13 @@ void shift::core::geometry::Mesh::DeclareParameters() {
   DeclareParameter(
     "color_space", &color_space_,
     "color space of material colors in OBJ/MTL files, 'linear' (default, as "
-    "written by Blender) or 'srgb'; glTF colors are always linear",
-    false);
+    "written by Blender) or 'srgb'; glTF colors are always linear", false,
+                   {"linear", "srgb"});
   DeclareParameter(
     "texture_mapping", &texture_mapping_,
     "how textures are mapped: 'uv' (default) uses the texture coordinates of "
     "the mesh, 'triplanar' projects textures along the body axes, for meshes "
-    "without usable texture coordinates",
-    false);
+    "without usable texture coordinates", false, {"uv", "triplanar"});
   DeclareParameter("texture_scale", &texture_scale_,
                    "size of one texture tile for triplanar mapping, in model "
                    "length units, defaults to 1",

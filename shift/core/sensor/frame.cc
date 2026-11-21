@@ -25,11 +25,13 @@ void shift::core::sensor::Frame::DeclareParameters() {
                    true)
     .set_row_dim(2);
   DeclareParameter("quantity", &quantity_,
-                   "measured quantity: \"position\" or \"velocity\"", true);
+                   "measured quantity: \"position\" or \"velocity\"", true,
+                   {"position", "velocity"});
   DeclareParameter("coordinate_system", &coordinate_system_,
                    "\"global\" (default) or \"local\" (axes of the frame)",
-                   false);
-  DeclareParameter("dof", &dof_, "component: Tx, Ty, Tz, Rx, Ry or Rz", true);
+                   false, {"global", "local"});
+  DeclareParameter("dof", &dof_, "component: Tx, Ty, Tz, Rx, Ry or Rz", true,
+                   {"Tx", "Ty", "Tz", "Rx", "Ry", "Rz"});
 }
 
 void shift::core::sensor::Frame::Connect() {

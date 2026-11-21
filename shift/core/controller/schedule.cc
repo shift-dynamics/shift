@@ -27,8 +27,7 @@ void shift::core::controller::Schedule::DeclareParameters() {
                    "between the points: \"linear\", \"cubic\" (a smooth "
                    "curve that does not overshoot the points) or \"step\" "
                    "(the value of the last point passed); defaults to "
-                   "\"linear\"",
-                   false);
+                   "\"linear\"", false, {"linear", "cubic", "step"});
   DeclareParameter("points", &points_,
                    "the control points, [t0, v0, t1, v1, ...], with time "
                    "increasing; before the first and after the last point "

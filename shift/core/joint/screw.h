@@ -68,6 +68,8 @@ public:
 private:
   void Initialize();
   void DeclareParameters() override;
+  /*! \brief also: the axis has a length */
+  void ReadJSON(Json::Value& value) override;
   static bool registered_;
   ksl_vec3_t axis_ = {{0.0, 0.0, 1.0}};
   double pitch_ = 0.0;

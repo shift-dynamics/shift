@@ -686,6 +686,11 @@ void shift::core::joint::rainv_dhva(const shift::core::Context& context,
   SHIFT_TRACE_DHVA("rainv_dhva", offsets);
 }
 
+void shift::core::joint::Revolute::ReadJSON(Json::Value& value) {
+  shift::core::joint::Base::ReadJSON(value);
+  CheckAxis(axis_);
+}
+
 void shift::core::joint::Revolute::DeclareParameters() {
   DeclareParameter(
     "axis", &axis_,

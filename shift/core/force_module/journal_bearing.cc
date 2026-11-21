@@ -51,8 +51,7 @@ void shift::core::force_module::JournalBearing::DeclareParameters() {
   DeclareParameter("model", &model_,
                    "\"short\" (Ocvirk's narrow bearing) or \"finite\" (the "
                    "Reynolds equation solved for the length of the bearing); "
-                   "optional, default \"short\"",
-                   false);
+                   "optional, default \"short\"", false, {"short", "finite"});
   DeclareParameter("groove_width", &groove_width_,
                    "width of a circumferential groove at the middle of the "
                    "bearing; optional, default 0 (none)",

@@ -619,6 +619,11 @@ void shift::core::joint::tainv_dhva(const shift::core::Context& context,
   ksl_add_sst(aq_parent, &aq_relative, aq_child);
 }
 
+void shift::core::joint::Prismatic::ReadJSON(Json::Value& value) {
+  shift::core::joint::Base::ReadJSON(value);
+  CheckAxis(axis_);
+}
+
 void shift::core::joint::Prismatic::DeclareParameters() {
 
   DeclareParameter("axis", &axis_,

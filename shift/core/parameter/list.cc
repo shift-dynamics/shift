@@ -52,6 +52,29 @@ void shift::core::parameter::List::ReadJSON(Json::Value& json_value) {
       parameter.second.ReadJSON(json_value[parameter.first]);
     }
   }
+  // a string of a set of values (DeclareParameter's valid_values) the file
+  // gives is one of them; after the loop, which reads the name for the
+  // message
+  for(auto& parameter : parameters_) {
+    const Value& value = parameter.second;
+    const auto& valid = value.get_valid_string_values();
+    if(valid.empty() || value.get_value_type() != Value::STRING ||
+       !json_value.isMember(parameter.first) ||
+       !json_value[parameter.first].isString()) {
+      continue;
+    }
+    const std::string given = json_value[parameter.first].asString();
+    if(std::find(valid.begin(), valid.end(), given) != valid.end()) {
+      continue;
+    }
+    std::string options;
+    for(size_t i = 0; i < valid.size(); i++) {
+      options += (i == 0 ? "" : i + 1 == valid.size() ? " or " : ", ") +
+                 ("\"" + valid[i] + "\"");
+    }
+    throw shift::core::Exception(NameForMessages() + ": " + parameter.first +
+                                 " '" + given + "' is not " + options);
+  }
 }
 
 std::string shift::core::parameter::List::NameForMessages() const {

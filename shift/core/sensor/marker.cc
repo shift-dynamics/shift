@@ -33,8 +33,8 @@ void shift::core::sensor::Marker::DeclareParameters() {
     .set_column_dim(2);
   DeclareParameter("coordinate_system", &coordinate_system_,
                    "axes of the velocities: \"global\" (default) or "
-                   "\"local\" (axes of each frame)",
-                   false);
+                   "\"local\" (axes of each frame)", false,
+                   {"global", "local"});
 }
 
 void shift::core::sensor::Marker::Connect() {

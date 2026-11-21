@@ -108,3 +108,47 @@ TEST(JointAxis, RevoluteTurnsAboutArbitraryAxis) {
     EXPECT_NEAR(pose.t.z, 0.0, 1e-12) << way;
   }
 }
+
+/* a joint whose axis has no length, or no direction, is not loaded: the
+error names the joint */
+TEST(JointAxis, AxisOfNoLengthIsRefused) {
+  const char* joints[] = {
+    R"("type": "revolute", "axis": [0, 0, 0])",
+    R"("type": "prismatic", "axis": [0, 0, 0])",
+    R"("type": "screw", "pitch": 0.01, "axis": [0, 0, 0])",
+    R"("type": "revolute", "axis": [0, 1e400, 0])",
+  };
+  int k = 0;
+  for(const char* properties : joints) {
+    const std::string path =
+      testing::TempDir() + "/joint_axis_zero_" + std::to_string(k++) + ".json";
+    {
+      std::ofstream file(path);
+      file << R"({"model_parameters": {"version": "0.2",
+  "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+            "time": "seconds"},
+  "gravity": [0.0, 0.0, 9.81], "include_directories": ["."],
+  "solvers": [{"type": "rnca"}],
+  "integrators": [{"type": "ode113", "time_span": 0.01, "time_step": 0.01,
+                   "relative_error": 1e-10, "absolute_error": 1e-10}]},
+ "assemblies": [{"name": "a",
+  "bodies": [{"name": "b", "geometry": [], "center_of_mass": [0, 0, 0],
+              "inertia": {"mass": 2.0, "Ixx": 0.2, "Iyy": 0.2, "Izz": 0.2,
+                          "Ixy": 0, "Iyz": 0, "Izx": 0}}],
+  "joints": [{"name": "J", )"
+           << properties << R"(, "parent": [["fixed"], "origin"],
+               "child": [["b"], "origin"]}]}]})";
+    }
+    shift::core::Context context;
+    std::string message;
+    try {
+      context.LoadJSON(path);
+    } catch(const std::exception& e) {
+      message = e.what();
+    }
+    std::remove(path.c_str());
+    EXPECT_NE(message.find("Joint J: the axis has no length"),
+              std::string::npos)
+      << properties << ": " << message;
+  }
+}

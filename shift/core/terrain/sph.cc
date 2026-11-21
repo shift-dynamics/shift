@@ -73,8 +73,7 @@ void shift::core::terrain::Sph::DeclareParameters() {
                    false);
   DeclareParameter("device", &device_,
                    "\"gpu\" (default) or \"cpu\" (single threaded, for small "
-                   "soils)",
-                   false);
+                   "soils)", false, {"gpu", "cpu"});
 }
 
 /*!

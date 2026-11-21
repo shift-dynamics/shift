@@ -335,3 +335,40 @@ TEST(ComponentIo, AnOutputCannotTakeAParametersKey) {
   EXPECT_EQ(component.Find("friction")->get_data<double>(),
             &component.friction_);
 }
+
+/* a string parameter declared with its valid values: the model file gives
+one of them, or the component is not read; leaving it out keeps the default */
+class ModeComponent : public shift::core::parameter::List {
+public:
+  ModeComponent() {
+    DeclareParameters();
+  }
+
+  void DeclareParameters() override {
+    DeclareParameter("name", &name_, "name", false);
+    DeclareParameter("mode", &mode_, "how it runs", false,
+                     {"fast", "accurate", "off"});
+  }
+
+  std::string name_ = "solver";
+  std::string mode_ = "fast";
+};
+
+TEST(ComponentIo, AStringOfASetIsOneOfIt) {
+  ModeComponent component;
+  EXPECT_EQ(component["mode"].get_valid_string_values(),
+            (std::vector<std::string>{"fast", "accurate", "off"}));
+
+  Json::Value json;
+  json["name"] = "s";
+  component.ReadJSON(json);
+  EXPECT_EQ(component.mode_, "fast");
+
+  json["mode"] = "accurate";
+  component.ReadJSON(json);
+  EXPECT_EQ(component.mode_, "accurate");
+
+  json["mode"] = "slow";
+  EXPECT_EQ(Message([&] { component.ReadJSON(json); }),
+            "'s': mode 'slow' is not \"fast\", \"accurate\" or \"off\"");
+}
