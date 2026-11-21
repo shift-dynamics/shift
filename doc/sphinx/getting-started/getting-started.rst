@@ -204,6 +204,18 @@ is how the pictures in these documents are made
    build/shift/main/shift examples/pendulum/double_pendulum.json \
      --image pendulum.png --time 1 --size 1200x800 --view 30,20 --samples 256
 
+``--video FILE`` renders a run from ``--start`` to ``--time`` to a video, at
+``--fps`` frames per second, with ``--samples`` ray traced frames for each
+frame of the video (1 shows the run as the viewer plays it); a ``.png``
+file writes numbered images instead:
+
+.. code:: bash
+
+   # 2 s of the rally car, following its chassis, level with the ground
+   build/shift/main/shift examples/forest/polo_r_wrc_forest.json \
+     --video polo.mp4 --time 2 --size 1920x1080 --samples 1 \
+     --follow chassis --follow-ground
+
 ``shift --help`` lists the options. ``--frame X,Y,Z,RADIUS`` aims the view at a
 sphere instead of the whole model, for a close up.
 

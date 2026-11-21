@@ -1917,8 +1917,12 @@ bool shift::gui::Workspace::AdvanceImage() {
     viewport_->EndOffscreen();
     return fail("no body named " + request.follow_body);
   }
-  // with a body to follow, the view is set at the start and carried along
-  simulation_.ShowTime(request.follow_body.isEmpty() ? request.time : 0.0);
+  // with a body to follow, the view is set at the start and carried along;
+  // a video's view is set at its first frame
+  const double first = request.video ? request.start : 0.0;
+  simulation_.ShowTime(request.follow_body.isEmpty() && !request.video
+                         ? request.time
+                         : first);
   viewport_->UpdatePoses();
   if(request.set_view) {
     viewport_->set_view(request.azimuth, request.elevation);
@@ -1932,8 +1936,19 @@ bool shift::gui::Workspace::AdvanceImage() {
     viewport_->set_follow_body(follow, request.follow_ground
                                          ? Viewport::FollowMode::kGround
                                          : Viewport::FollowMode::kBody);
-    simulation_.ShowTime(request.time);
-    viewport_->UpdatePoses();
+    if(!request.video) {
+      simulation_.ShowTime(request.time);
+      viewport_->UpdatePoses();
+    }
+  }
+  if(request.video) {
+    const bool rendered = RenderRequestedVideo(error);
+    viewport_->EndOffscreen();
+    if(!rendered) {
+      return fail(error);
+    }
+    QCoreApplication::exit(0);
+    return true;
   }
   std::vector<uint8_t> rgba;
   const bool rendered = viewport_->RenderOffscreen(request.samples, rgba);
@@ -1949,6 +1964,60 @@ bool shift::gui::Workspace::AdvanceImage() {
   std::printf("shift: saved %s at t = %g s\n",
               request.filename.toLocal8Bit().constData(), request.time);
   QCoreApplication::exit(0);
+  return true;
+}
+
+bool shift::gui::Workspace::RenderRequestedVideo(QString& error) {
+  const ImageRequest& request = image_request_;
+  const QSize size = request.size;
+  std::vector<uint8_t> rgba;
+  // the view as it would be had it been still this long before playing
+  if(request.settle > 0 && !viewport_->RenderOffscreen(request.settle, rgba)) {
+    error = "could not render the first frame";
+    return false;
+  }
+  const QFileInfo file(request.filename);
+  const bool images = file.suffix().compare("png", Qt::CaseInsensitive) == 0;
+  const QString stem = file.path() + "/" + file.completeBaseName();
+  const int frames = VideoTrimmer::FrameCount(request.start, request.time, 1.0,
+                                              request.frame_rate);
+  VideoEncoder encoder;
+  try {
+    if(!images) {
+      encoder.Open(request.filename.toStdString(), size.width(), size.height(),
+                   request.frame_rate);
+    }
+    for(int i = 0; i < frames; i++) {
+      simulation_.ShowTime(VideoTrimmer::FrameTime(
+        i, request.start, request.time, 1.0, request.frame_rate));
+      viewport_->UpdatePoses();
+      if(!viewport_->RenderOffscreen(std::max(request.samples, 1), rgba)) {
+        error = QString("could not render frame %1").arg(i);
+        return false;
+      }
+      if(images) {
+        const QString name =
+          QString("%1_%2.png").arg(stem).arg(i, 4, 10, QChar('0'));
+        QImage image(rgba.data(), size.width(), size.height(),
+                     4 * size.width(), QImage::Format_RGBA8888);
+        if(!image.convertToFormat(QImage::Format_RGB888).save(name)) {
+          error = "could not write " + name;
+          return false;
+        }
+      } else {
+        encoder.Write(rgba.data(), 4 * size.width());
+      }
+    }
+    if(!images) {
+      encoder.Close();
+    }
+  } catch(const std::exception& e) {
+    error = QString("could not write %1: %2").arg(request.filename, e.what());
+    return false;
+  }
+  std::printf("shift: saved %d frames from t = %g s to %g s to %s\n", frames,
+              request.start, request.time,
+              request.filename.toLocal8Bit().constData());
   return true;
 }
 

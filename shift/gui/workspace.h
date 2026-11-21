@@ -109,7 +109,17 @@ public:
   /*! What SaveImage renders */
   struct ImageRequest {
     QString filename;          /*!< image file; the format from its suffix */
-    double time = 0.0;         /*!< simulated time shown */
+    double time = 0.0;         /*!< simulated time shown; the end of a
+                                * video */
+    /*! render a video from start to time, not an image: to filename, as
+     * Simulation > Video exports, or, if its suffix is png, to numbered
+     * PNG images, filename with _0000, _0001, ... before the suffix */
+    bool video = false;
+    double start = 0.0;        /*!< the time of a video's first frame */
+    int frame_rate = 30;       /*!< a video's frames per second */
+    int settle = 0;            /*!< ray traced frames of the first frame's
+                                * pose before a video's first frame, as if
+                                * the view had been still that long */
     QSize size{1200, 800};     /*!< pixels */
     bool set_view = false;     /*!< use azimuth and elevation */
     float azimuth = 0.6f;      /*!< radians, see Camera */
@@ -139,7 +149,8 @@ public:
     float frame_radius = 1.f;  /*!< of the sphere */
   };
 
-  /*! \brief render the open model at request.time to an image file and
+  /*! \brief render the open model at request.time to an image file, or
+   * from request.start to request.time to a video (request.video), and
    * quit the application with exit status 0, or 1 on failure. Simulates
    * up to request.time first if it is after the start. Returns at once;
    * the work is done from the event loop once the viewport can render. */
@@ -312,6 +323,10 @@ private:
   /*! \brief one step of SaveImage: wait for the viewport and the results,
    * then render; returns true when done */
   bool AdvanceImage();
+  /*! \brief render the frames of image_request_, a video, with the
+   * offscreen render begun and the camera set at its start; false, with
+   * why in error, on failure */
+  bool RenderRequestedVideo(QString& error);
 
   /*! \brief advance playback and jogging, once per display frame */
   void Tick();

@@ -1050,9 +1050,10 @@ void shift::gui::Viewport::LowerFloorBelowModel() {
   const float gap = 0.01f * ksl_vec3f_l2norm(&size);
   const float level = box_max.z + gap;
   if(level > floor_origin_.z) {
+    // lowered as the model settles, by a little in each frame
     PlaceFloor(ksl_vec3f(0.5f * (box_min.x + box_max.x),
                          0.5f * (box_min.y + box_max.y), level),
-               ksl_vec3f(0.f, 0.f, -1.f));
+               ksl_vec3f(0.f, 0.f, -1.f), true);
   }
 }
 
@@ -1063,7 +1064,8 @@ void shift::gui::Viewport::set_floor(const ksl_vec3f_t& point,
 }
 
 void shift::gui::Viewport::PlaceFloor(const ksl_vec3f_t& point,
-                                      const ksl_vec3f_t& normal) {
+                                      const ksl_vec3f_t& normal,
+                                      bool keep_history) {
   floor_origin_ = point;
   floor_normal_ = Normalized(normal);
   // in-plane axes: the x axis projected onto the plane, so a level floor
@@ -1075,8 +1077,12 @@ void shift::gui::Viewport::PlaceFloor(const ksl_vec3f_t& point,
   ksl_axpy_vvf(-ksl_dot_vvf(&x, &floor_normal_), &floor_normal_, &x);
   floor_u_ = Normalized(x);
   ksl_cross_vvf(&floor_normal_, &floor_u_, &floor_v_);
-  rt_frame_ = 0;
-  rt_history_valid_ = false;
+  if(floor_enabled_) {
+    rt_frame_ = 0;
+    if(!keep_history) {
+      rt_history_valid_ = false;
+    }
+  }
   update();
 }
 

@@ -163,8 +163,12 @@ public:
   /*! \brief with set_floor_below_model, lower the floor below the poses
    * shown if they reach below it */
   void LowerFloorBelowModel();
-  /*! \brief move the floor, see set_floor */
-  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
+  /*! \brief move the floor, see set_floor. A hidden floor is in no image,
+   * so the ray traced images are kept; a small move (keep_history, as the
+   * floor follows a model that settles) restarts the progressive mean but
+   * keeps the denoiser's history, as the motion of a body does. */
+  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal,
+                  bool keep_history = false);
 
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
