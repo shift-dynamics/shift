@@ -34,7 +34,7 @@ void shift::core::force_module::AppliedLoad::DeclareParameters() {
                    false);
   DeclareParameter("coordinates", &coordinates_,
                    "\"frame\" (default), turning with the body, or \"fixed\"",
-                   false);
+                   false, {"frame", "fixed"});
   DeclareParameter("force", &force_, "optional, default zero", false)
     .set_runtime();
   DeclareParameter("moment", &moment_, "optional, default zero", false)

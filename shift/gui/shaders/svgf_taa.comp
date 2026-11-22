@@ -2,7 +2,8 @@
 #extension GL_GOOGLE_include_directive : require
 layout(local_size_x = 8, local_size_y = 8) in;
 
-// Temporal anti-aliasing of the composited (tonemapped) image: the pixel's
+// Temporal anti-aliasing of the composited image, in the x / (1 + x) space
+// svgf_composite.comp writes (the filmic curve is applied to the result): the pixel's
 // color in the previous frame, found through the motion of its primary hit
 // (moving bodies through their previous pose) and resampled with a
 // Catmull-Rom filter, is clamped to the color range of the current 3x3
@@ -65,7 +66,7 @@ layout(std140, binding = 0) uniform Denoise { // keep in sync with svgf_*.comp
   mat4 view_projection; // current frame
   vec4 upscale;  // xy = the primary rays' jitter (ray traced pixels),
                  // zw = ray traced size / output size (1 = not scaled)
-  vec4 tone;     // x = exposure (stops), see tonemap.glsl
+  vec4 tone;     // x = exposure (stops), y = curve, see tonemap.glsl
 } u;
 
 #include "tonemap.glsl"
@@ -551,6 +552,7 @@ void main() {
   } else {
     mean = imageLoad(accumulation, pixel).rgb;
   }
-  vec3 display = mix(result, ToneMap(mean, u.tone.x), k);
+  vec3 display = mix(ToneMap(FromReinhard(result), u.tone.x, u.tone.y),
+                     ToneMap(mean, u.tone.x, u.tone.y), k);
   imageStore(out_image, pixel, vec4(pow(display, vec3(1.0 / 2.2)), 1.0));
 }

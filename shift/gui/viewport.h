@@ -85,6 +85,10 @@ class Viewport : public QWindow {
 
 public:
   enum class RenderMode { kRaster, kRayTraced };
+  /*! The curve that maps the light of the scene to the colors of the
+   * screen (shaders/tonemap.glsl): Reinhard's x / (1 + x), or the ACES
+   * filmic curve, with more contrast in the mid tones */
+  enum class ToneCurve { kReinhard, kAces };
   /*! What the camera holds its transform to: the body itself, or the frame
    * on the ground under it (Camera::GroundFrame), which shows the body
    * bounce and tilt */
@@ -103,9 +107,14 @@ public:
     return render_mode_;
   }
 
+  /*! \brief the tone curve (default Reinhard) */
+  void set_tone_curve(ToneCurve curve);
+  ToneCurve get_tone_curve() const {
+    return tone_curve_;
+  }
   /*! \brief the exposure of the image, in stops (powers of two) above the
-   * default 0: scene colors are scaled by 2^stops before the ACES filmic
-   * tone mapping (shaders/tonemap.glsl) */
+   * default 0: scene colors are scaled by 2^stops before the tone curve
+   * (set_tone_curve) */
   void set_exposure(float stops);
   float get_exposure() const {
     return exposure_;
@@ -154,8 +163,12 @@ public:
   /*! \brief with set_floor_below_model, lower the floor below the poses
    * shown if they reach below it */
   void LowerFloorBelowModel();
-  /*! \brief move the floor, see set_floor */
-  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal);
+  /*! \brief move the floor, see set_floor. A hidden floor is in no image,
+   * so the ray traced images are kept; a small move (keep_history, as the
+   * floor follows a model that settles) restarts the progressive mean but
+   * keeps the denoiser's history, as the motion of a body does. */
+  void PlaceFloor(const ksl_vec3f_t& point, const ksl_vec3f_t& normal,
+                  bool keep_history = false);
 
   /*! \brief the poses currently drawn */
   void get_poses(Poses& poses) const {
@@ -223,6 +236,18 @@ public:
   /*! \brief whether the meshes of each body, by index into the poses, are
    * hidden; bodies past its end are shown */
   void set_hidden_bodies(std::vector<bool> hidden);
+  /*! \brief hide the terrains (Scene::terrains) that are true here, as the
+   * eye beside a terrain in the Scene tree does */
+  void set_hidden_terrains(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_terrains() const {
+    return hidden_terrains_;
+  }
+  /*! \brief hide the particles of the SPH soils (Scene::particles) that
+   * are true here, as the eye beside a soil in the Scene tree does */
+  void set_hidden_particles(std::vector<bool> hidden);
+  const std::vector<bool>& get_hidden_particles() const {
+    return hidden_particles_;
+  }
   const std::vector<bool>& get_hidden_bodies() const {
     return hidden_bodies_;
   }
@@ -583,6 +608,7 @@ private:
   RenderMode render_mode_ = RenderMode::kRaster;
   bool floor_enabled_ = true;
   float exposure_ = 0.f; /*!< stops, see set_exposure */
+  ToneCurve tone_curve_ = ToneCurve::kReinhard;
   bool smooth_terrain_ = true;
   bool particle_surface_ = true;
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
@@ -654,6 +680,13 @@ private:
   uint32_t axes_arrow_index_count_ = 0; /*!< the arrows, then the line */
   uint32_t axes_frame_instance_count_ = 0;
   std::vector<bool> hidden_bodies_; /*!< see set_hidden_bodies */
+  std::vector<bool> hidden_terrains_; /*!< see set_hidden_terrains */
+  std::vector<bool> hidden_particles_; /*!< see set_hidden_particles */
+  /*! \brief whether the particles of Scene::particles[index] are drawn */
+  bool is_particles_shown(int index) const {
+    return index < 0 || index >= static_cast<int>(hidden_particles_.size()) ||
+           !hidden_particles_[size_t(index)];
+  }
   std::vector<bool> flex_mesh_surfaces_; /*!< see set_flex_mesh_surfaces */
   std::vector<bool> flex_mesh_edges_; /*!< see set_flex_mesh_edges */
   /*! see set_flex_constrained_nodes */
@@ -667,6 +700,9 @@ private:
   std::unique_ptr<QRhiGraphicsPipeline> spider_pipeline_;
   /*! the lines of the edges of flexible bodies' elements (mesh_edges.vert) */
   std::unique_ptr<QRhiGraphicsPipeline> edges_pipeline_;
+  /*! \brief whether a mesh (Scene::meshes) is drawn: false for that of a
+   * hidden terrain */
+  bool is_mesh_shown(int mesh) const;
   /*! \brief whether the meshes of body are drawn */
   bool is_body_shown(int body) const {
     return body >= static_cast<int>(hidden_bodies_.size()) ||
@@ -880,7 +916,7 @@ private:
   std::unique_ptr<QRhiTexture> rt_history_moments_[2];
   std::unique_ptr<QRhiTexture> rt_history_albedo_[2];
   std::unique_ptr<QRhiTexture> rt_filter_[2]; /*!< a-trous ping-pong */
-  std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, tonemapped */
+  std::unique_ptr<QRhiTexture> rt_color_;  /*!< composited, x / (1 + x) */
   /*! anti-aliased history, at the output's size */
   std::unique_ptr<QRhiTexture> rt_taa_[2];
   std::unique_ptr<QRhiBuffer> svgf_ubo_; /*!< one slot per pass/iteration */

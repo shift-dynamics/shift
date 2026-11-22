@@ -15,13 +15,17 @@
 #include "shift/core/parameter/array_base.h"
 #include "shift/core/parameter/list.h"
 #include "shift/core/parameter/value.h"
+#include "shift/core/environment/scenery.h"
 #include "shift/core/terrain/base.h"
+#include "shift/core/terrain/scm.h"
+#include "shift/core/terrain/sph.h"
 #include "shift/gui/playback_slider.h"
 #include "shift/gui/video_encoder.h"
 #include "shift/gui/video_trimmer.h"
 #include "shift/core/body/flex.h"
 #include "shift/gui/color_map.h"
 #include "shift/gui/mode_window.h"
+#include "shift/gui/number_spin_box.h"
 #include "shift/gui/viewport.h"
 
 #include "ksl/axis.h"
@@ -54,9 +58,9 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QImage>
-#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -64,19 +68,21 @@
 #include <QPalette>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStackedWidget>
 #include <QSplitter>
 #include <QStyledItemDelegate>
 #include <QStringList>
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
-#include <QWidgetAction>
 
 #include <algorithm>
 #include <atomic>
@@ -275,88 +281,44 @@ void shift::gui::Workspace::InitializeMenus() {
     viewport_->set_render_mode(checked ? Viewport::RenderMode::kRayTraced
                                        : Viewport::RenderMode::kRaster);
   });
-  QAction* floor = view_menu->addAction(QIcon(":/icons/floor.png"), "&Floor");
-  floor->setCheckable(true);
-  floor->setChecked(true);
-  connect(floor, &QAction::toggled, viewport_, &Viewport::set_floor_enabled);
-  floor_action_ = floor;
-  QAction* smooth_terrain = view_menu->addAction("&Smooth deformable terrain");
-  smooth_terrain->setCheckable(true);
-  smooth_terrain->setChecked(true);
-  smooth_terrain->setToolTip("draw SCM terrain by a Catmull-Rom surface "
-                             "through its nodes; unchecked, bilinear between "
-                             "them as the soil models see it");
-  connect(smooth_terrain, &QAction::toggled, viewport_,
-          &Viewport::set_smooth_terrain);
-  smooth_terrain_action_ = smooth_terrain;
-  // the exposure of the image: scene colors scaled by 2^stops before the
-  // ACES filmic tone mapping
-  auto* exposure_row = new QWidget;
-  auto* exposure_layout = new QHBoxLayout(exposure_row);
-  exposure_layout->setContentsMargins(28, 2, 8, 2);
-  exposure_layout->addWidget(new QLabel("Exposure"));
-  exposure_box_ = new QDoubleSpinBox;
-  exposure_box_->setRange(-6.0, 6.0);
-  exposure_box_->setSingleStep(0.25);
-  exposure_box_->setDecimals(2);
-  exposure_box_->setSuffix(" EV");
-  exposure_box_->setToolTip("brightness of the image in stops: each stop "
-                            "doubles the light before tone mapping");
-  connect(exposure_box_, &QDoubleSpinBox::valueChanged, this,
-          [this](double stops) { viewport_->set_exposure(float(stops)); });
-  exposure_layout->addWidget(exposure_box_);
-  auto* exposure = new QWidgetAction(this);
-  exposure->setDefaultWidget(exposure_row);
-  view_menu->addAction(exposure);
-  QAction* particle_surface = view_menu->addAction("Soil &surface");
-  particle_surface->setCheckable(true);
-  particle_surface->setChecked(true);
-  particle_surface->setToolTip("draw SPH soil as one surface over its "
-                               "particles; unchecked, as the particles");
-  connect(particle_surface, &QAction::toggled, viewport_,
-          &Viewport::set_particle_surface);
-  particle_surface_action_ = particle_surface;
-  QAction* deformation = view_menu->addAction("&Deformation scale...");
-  deformation->setToolTip("the factor the deformation of flexible bodies is "
-                          "drawn with");
-  connect(deformation, &QAction::triggered, this,
-          &Workspace::DeformationScaleDialog);
-  // every flexible body at once; a body's panel sets its own
-  auto flex_option = [this, view_menu](const char* text, const char* tip,
-                                       std::set<QString>& bodies) {
-    QAction* action = view_menu->addAction(text);
+  // the floor is the viewer's, not the model's: it has no item in the tree
+  floor_action_ = view_menu->addAction(QIcon(":/icons/floor.png"), "&Floor");
+  floor_action_->setCheckable(true);
+  floor_action_->setChecked(true);
+  connect(floor_action_, &QAction::toggled, viewport_,
+          &Viewport::set_floor_enabled);
+  view_menu->addSeparator();
+  QAction* frame = view_menu->addAction("&Frame model");
+  frame->setShortcut(Qt::Key_F);
+  connect(frame, &QAction::triggered, viewport_, &Viewport::FrameScene);
+
+  // what is drawn, set in Edit > Settings (SettingsDialog): checkable
+  // actions, so that the model, the command line and the dialog set them
+  // alike
+  auto toggle = [this](bool checked) {
+    auto* action = new QAction(this);
     action->setCheckable(true);
-    action->setToolTip(tip);
+    action->setChecked(checked);
+    return action;
+  };
+  smooth_terrain_action_ = toggle(true);
+  connect(smooth_terrain_action_, &QAction::toggled, viewport_,
+          &Viewport::set_smooth_terrain);
+  particle_surface_action_ = toggle(true);
+  connect(particle_surface_action_, &QAction::toggled, viewport_,
+          &Viewport::set_particle_surface);
+  // every flexible body at once; a body's panel sets its own
+  auto flex_option = [this, &toggle](std::set<QString>& bodies) {
+    QAction* action = toggle(false);
     connect(action, &QAction::toggled, this, [this, &bodies](bool on) {
       SetAllFlexBodies(bodies, on);
     });
     return action;
   };
-  flex_mesh_surface_action_ = flex_option(
-    "Flexible bodies: &mesh surface",
-    "draw flexible bodies by the surface of their finite element mesh "
-    "rather than their CAD",
-    flex_mesh_surface_bodies_);
-  flex_mesh_edges_action_ = flex_option(
-    "Flexible bodies: element &edges",
-    "draw the edges of the finite elements of flexible bodies over their "
-    "surface (raster only)",
-    flex_mesh_edge_bodies_);
-  flex_constrained_nodes_action_ = flex_option(
-    "Flexible bodies: &constrained nodes",
-    "draw as points the nodes of flexible bodies that their joints' "
-    "attachments (RBE2/RBE3 spiders) tie to their frames (raster only)",
-    flex_constrained_node_bodies_);
-  flex_stresses_action_ = flex_option(
-    "Flexible bodies: &stresses",
-    "draw the stress on flexible bodies, on the surface drawn (the CAD "
-    "solid's or the mesh's): the quantity, color map and range of "
-    "Edit > Settings",
-    flex_stress_bodies_);
-  view_menu->addSeparator();
-  QAction* frame = view_menu->addAction("&Frame model");
-  frame->setShortcut(Qt::Key_F);
-  connect(frame, &QAction::triggered, viewport_, &Viewport::FrameScene);
+  flex_mesh_surface_action_ = flex_option(flex_mesh_surface_bodies_);
+  flex_mesh_edges_action_ = flex_option(flex_mesh_edge_bodies_);
+  flex_constrained_nodes_action_ = flex_option(flex_constrained_node_bodies_);
+  flex_stresses_action_ = flex_option(flex_stress_bodies_);
 
   QMenu* help_menu = menuBar()->addMenu("&Help");
   QAction* about = help_menu->addAction("&About");
@@ -1404,15 +1366,22 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
     shown_frames_.clear();
     shown_joints_.clear();
     hidden_bodies_.clear();
+    hidden_terrains_.clear();
     flex_mesh_surface_bodies_.clear();
     flex_mesh_edge_bodies_.clear();
     flex_constrained_node_bodies_.clear();
     flex_stress_bodies_.clear();
-    for(QAction* action : {flex_mesh_surface_action_, flex_mesh_edges_action_,
-                           flex_constrained_nodes_action_,
-                           flex_stresses_action_}) {
-      const QSignalBlocker block(action);
-      action->setChecked(false);
+    // every flexible body drawn as the settings say, once it is loaded
+    const bool flex[] = {settings_.is_flex_mesh_surface(),
+                         settings_.is_flex_element_edges(),
+                         settings_.is_flex_constrained_nodes(),
+                         settings_.is_flex_stresses()};
+    QAction* actions[] = {flex_mesh_surface_action_, flex_mesh_edges_action_,
+                          flex_constrained_nodes_action_,
+                          flex_stresses_action_};
+    for(int i = 0; i < 4; i++) {
+      const QSignalBlocker block(actions[i]);
+      actions[i]->setChecked(flex[i]);
     }
   }
   geometry_panel_.selected = nullptr;
@@ -1469,6 +1438,17 @@ bool shift::gui::Workspace::LoadModel(const QString& filename,
   if(!keep_view) {
     // the floor plane would cut through a terrain
     floor_action_->setChecked(simulation_.get_scene().terrains.empty());
+    simulation_.set_deformation_scale(settings_.get_deformation_scale());
+    const std::pair<QAction*, std::set<QString>*> flex[] = {
+      {flex_mesh_surface_action_, &flex_mesh_surface_bodies_},
+      {flex_mesh_edges_action_, &flex_mesh_edge_bodies_},
+      {flex_constrained_nodes_action_, &flex_constrained_node_bodies_},
+      {flex_stresses_action_, &flex_stress_bodies_}};
+    for(const auto& [action, bodies] : flex) {
+      if(action->isChecked()) {
+        SetAllFlexBodies(*bodies, true);
+      }
+    }
   }
   UpdateWindowTitle();
 
@@ -1720,18 +1700,6 @@ void shift::gui::Workspace::ApplyFlexChanges() {
   LoadModelParameters();
 }
 
-void shift::gui::Workspace::DeformationScaleDialog() {
-  bool ok = false;
-  const double scale = QInputDialog::getDouble(
-    this, "Deformation scale",
-    "Draw the deformation of flexible bodies times:",
-    simulation_.get_deformation_scale(), 0.0, 1e9, 3, &ok);
-  if(ok) {
-    simulation_.set_deformation_scale(scale);
-    viewport_->update();
-  }
-}
-
 bool shift::gui::Workspace::ReloadModel(const Json::Value& previous,
                                         QString& error) {
   if(LoadModel(model_filename_, &model_json_, &error, true)) {
@@ -1813,8 +1781,12 @@ void shift::gui::Workspace::RevertModel() {
   Open(model_filename_);
 }
 
+void shift::gui::Workspace::set_tone_curve(Viewport::ToneCurve curve) {
+  viewport_->set_tone_curve(curve);
+}
+
 void shift::gui::Workspace::set_exposure(float stops) {
-  exposure_box_->setValue(stops);
+  viewport_->set_exposure(stops);
 }
 
 void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
@@ -1828,7 +1800,9 @@ void shift::gui::Workspace::SaveImage(const ImageRequest& request) {
   if(request.hide_floor) {
     floor_action_->setChecked(false);
   }
-  simulation_.set_deformation_scale(request.deformation_scale);
+  if(request.deformation_scale >= 0.0) {
+    simulation_.set_deformation_scale(request.deformation_scale);
+  }
   if(request.flex_mesh_surface) {
     flex_mesh_surface_action_->setChecked(true);
   }
@@ -1892,8 +1866,12 @@ bool shift::gui::Workspace::AdvanceImage() {
     viewport_->EndOffscreen();
     return fail("no body named " + request.follow_body);
   }
-  // with a body to follow, the view is set at the start and carried along
-  simulation_.ShowTime(request.follow_body.isEmpty() ? request.time : 0.0);
+  // with a body to follow, the view is set at the start and carried along;
+  // a video's view is set at its first frame
+  const double first = request.video ? request.start : 0.0;
+  simulation_.ShowTime(request.follow_body.isEmpty() && !request.video
+                         ? request.time
+                         : first);
   viewport_->UpdatePoses();
   if(request.set_view) {
     viewport_->set_view(request.azimuth, request.elevation);
@@ -1907,8 +1885,19 @@ bool shift::gui::Workspace::AdvanceImage() {
     viewport_->set_follow_body(follow, request.follow_ground
                                          ? Viewport::FollowMode::kGround
                                          : Viewport::FollowMode::kBody);
-    simulation_.ShowTime(request.time);
-    viewport_->UpdatePoses();
+    if(!request.video) {
+      simulation_.ShowTime(request.time);
+      viewport_->UpdatePoses();
+    }
+  }
+  if(request.video) {
+    const bool rendered = RenderRequestedVideo(error);
+    viewport_->EndOffscreen();
+    if(!rendered) {
+      return fail(error);
+    }
+    QCoreApplication::exit(0);
+    return true;
   }
   std::vector<uint8_t> rgba;
   const bool rendered = viewport_->RenderOffscreen(request.samples, rgba);
@@ -1924,6 +1913,60 @@ bool shift::gui::Workspace::AdvanceImage() {
   std::printf("shift: saved %s at t = %g s\n",
               request.filename.toLocal8Bit().constData(), request.time);
   QCoreApplication::exit(0);
+  return true;
+}
+
+bool shift::gui::Workspace::RenderRequestedVideo(QString& error) {
+  const ImageRequest& request = image_request_;
+  const QSize size = request.size;
+  std::vector<uint8_t> rgba;
+  // the view as it would be had it been still this long before playing
+  if(request.settle > 0 && !viewport_->RenderOffscreen(request.settle, rgba)) {
+    error = "could not render the first frame";
+    return false;
+  }
+  const QFileInfo file(request.filename);
+  const bool images = file.suffix().compare("png", Qt::CaseInsensitive) == 0;
+  const QString stem = file.path() + "/" + file.completeBaseName();
+  const int frames = VideoTrimmer::FrameCount(request.start, request.time, 1.0,
+                                              request.frame_rate);
+  VideoEncoder encoder;
+  try {
+    if(!images) {
+      encoder.Open(request.filename.toStdString(), size.width(), size.height(),
+                   request.frame_rate);
+    }
+    for(int i = 0; i < frames; i++) {
+      simulation_.ShowTime(VideoTrimmer::FrameTime(
+        i, request.start, request.time, 1.0, request.frame_rate));
+      viewport_->UpdatePoses();
+      if(!viewport_->RenderOffscreen(std::max(request.samples, 1), rgba)) {
+        error = QString("could not render frame %1").arg(i);
+        return false;
+      }
+      if(images) {
+        const QString name =
+          QString("%1_%2.png").arg(stem).arg(i, 4, 10, QChar('0'));
+        QImage image(rgba.data(), size.width(), size.height(),
+                     4 * size.width(), QImage::Format_RGBA8888);
+        if(!image.convertToFormat(QImage::Format_RGB888).save(name)) {
+          error = "could not write " + name;
+          return false;
+        }
+      } else {
+        encoder.Write(rgba.data(), 4 * size.width());
+      }
+    }
+    if(!images) {
+      encoder.Close();
+    }
+  } catch(const std::exception& e) {
+    error = QString("could not write %1: %2").arg(request.filename, e.what());
+    return false;
+  }
+  std::printf("shift: saved %d frames from t = %g s to %g s to %s\n", frames,
+              request.start, request.time,
+              request.filename.toLocal8Bit().constData());
   return true;
 }
 
@@ -2133,6 +2176,7 @@ static const char* FolderIcon(const std::string& key) {
     {"frames", ":/icons/frame_folder.png"},
     {"lights", ":/icons/light_folder.png"},
     {"terrain", ":/icons/terrain_folder.png"},
+    {"regions", ":/icons/terrain_folder.png"},
     {"solvers", ":/icons/clipboard_folder.png"},
     {"integrators", ":/icons/clipboard_folder.png"},
     {"loggers", ":/icons/clipboard_folder.png"},
@@ -2145,10 +2189,67 @@ static const char* FolderIcon(const std::string& key) {
   return ":/icons/blank_folder.png";
 }
 
+/* the icon of a terrain, or of a region of one, by its class (an SPH or
+ * SCM soil is also a heightmap); nullptr if object is not a terrain */
+static const char* TerrainIcon(shift::core::parameter::List* object) {
+  if(dynamic_cast<shift::core::terrain::Sph*>(object)) {
+    return ":/icons/sph.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Scm*>(object)) {
+    return ":/icons/scm.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Basic*>(object)) {
+    return ":/icons/heightmap.png";
+  }
+  if(dynamic_cast<shift::core::terrain::Base*>(object)) {
+    return ":/icons/terrain.png";
+  }
+  return nullptr;
+}
+
+/* whether terrain, or a region inside it, is region */
+static bool HasRegion(const shift::core::terrain::Base& terrain,
+                      const shift::core::terrain::Base* region) {
+  for(const auto* inner : terrain.get_regions()) {
+    if(inner == region || HasRegion(*inner, region)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* whether the x and y of object do nothing: object is a heightmap (not a
+ * soil), not a region of another terrain, with no regions of its own, and no
+ * scenery strewn over it. A heightmap is sized by its map, scaled by x_scale
+ * and y_scale; x and y bound only its regions and its scenery. */
+static bool ExtentHasNoEffect(shift::core::parameter::List* object,
+                              shift::core::Context* context) {
+  auto* terrain = dynamic_cast<shift::core::terrain::Basic*>(object);
+  if(!terrain || !context || dynamic_cast<shift::core::terrain::Scm*>(object) ||
+     dynamic_cast<shift::core::terrain::Sph*>(object) ||
+     !terrain->get_regions().empty()) {
+    return false;
+  }
+  for(const auto* other : context->get_active_terrain()) {
+    if(HasRegion(*other, terrain)) {
+      return false;
+    }
+  }
+  for(const auto& scenery : context->get_scenery()) {
+    if(scenery->get_terrain_name() == terrain->get_name()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /* the icon of an element of the array key, or of the object parameter key */
 static const char* ObjectIcon(const std::string& key, const std::string& type) {
   if(key == "collision_geometry") {
     return GeometryIcon(type);
+  }
+  if(key == "regions") {
+    return ":/icons/terrain.png";
   }
   static const std::pair<const char*, const char*> kIcons[] = {
     {"assemblies", ":/icons/assembly.png"},
@@ -2246,6 +2347,9 @@ bool shift::gui::Workspace::IsShown(const EyeItem& eye) const {
     return shown_joints_.count(eye.path) > 0;
   case EyeItem::kBody:
     return hidden_bodies_.count(eye.path) == 0;
+  case EyeItem::kTerrain:
+  case EyeItem::kSoil:
+    return hidden_terrains_.count(eye.path) == 0;
   }
   return false;
 }
@@ -2319,8 +2423,12 @@ void shift::gui::Workspace::ToggleVisibility(QTreeWidgetItem* item) {
     }
     std::set<QString>& set = eye.kind == EyeItem::kFrame   ? shown_frames_
                              : eye.kind == EyeItem::kJoint ? shown_joints_
-                                                           : hidden_bodies_;
-    if(show == (eye.kind != EyeItem::kBody)) {
+                             : eye.kind == EyeItem::kBody  ? hidden_bodies_
+                                                           : hidden_terrains_;
+    const bool hides = eye.kind == EyeItem::kBody ||
+                       eye.kind == EyeItem::kTerrain ||
+                       eye.kind == EyeItem::kSoil;
+    if(show != hides) {
       set.insert(eye.path);
     } else {
       set.erase(eye.path);
@@ -2336,6 +2444,12 @@ void shift::gui::Workspace::UpdateVisibility() {
                              ? simulation_.get_bodies().size()
                              : 0,
                            false);
+  std::vector<bool> hidden_terrains(
+    simulation_.is_loaded() ? simulation_.get_scene().terrains.size() : 0,
+    false);
+  std::vector<bool> hidden_particles(
+    simulation_.is_loaded() ? simulation_.get_scene().particles.size() : 0,
+    false);
   for(const EyeItem& eye : eye_items_) {
     const bool shown = IsShown(eye);
     eye.item->setData(0, kVisibleRole, shown ? 1 : 0);
@@ -2346,6 +2460,12 @@ void shift::gui::Workspace::UpdateVisibility() {
     } else if(eye.kind == EyeItem::kBody && !shown &&
               eye.body_index < static_cast<int>(hidden.size())) {
       hidden[eye.body_index] = true;
+    } else if(eye.kind == EyeItem::kTerrain && !shown &&
+              eye.body_index < static_cast<int>(hidden_terrains.size())) {
+      hidden_terrains[eye.body_index] = true;
+    } else if(eye.kind == EyeItem::kSoil && !shown &&
+              eye.body_index < static_cast<int>(hidden_particles.size())) {
+      hidden_particles[eye.body_index] = true;
     }
   }
   for(QTreeWidgetItem* folder : eye_folders_) {
@@ -2362,6 +2482,8 @@ void shift::gui::Workspace::UpdateVisibility() {
   }
   viewport_->set_frame_axes(std::move(frames));
   viewport_->set_joint_axes(std::move(joints));
+  viewport_->set_hidden_terrains(std::move(hidden_terrains));
+  viewport_->set_hidden_particles(std::move(hidden_particles));
   // the surface of each flexible body, and its elements' edges
   std::vector<bool> mesh_surface(hidden.size(), false);
   std::vector<bool> mesh_edges(hidden.size(), false);
@@ -2532,12 +2654,71 @@ void shift::gui::Workspace::ApplySettings() {
   ApplyStresses();
   viewport_->set_dlss_enabled(settings_.is_dlss_enabled());
   viewport_->set_dlss_quality(settings_.get_dlss_quality());
+  viewport_->set_tone_curve(settings_.is_tone_aces()
+                              ? Viewport::ToneCurve::kAces
+                              : Viewport::ToneCurve::kReinhard);
+  viewport_->set_exposure(float(settings_.get_exposure()));
+  smooth_terrain_action_->setChecked(settings_.is_smooth_terrain());
+  particle_surface_action_->setChecked(settings_.is_soil_surface());
 }
 
 void shift::gui::Workspace::SettingsDialog() {
   QDialog dialog(this);
   dialog.setWindowTitle("Settings");
-  auto* layout = new QFormLayout(&dialog);
+  dialog.resize(760, 560);
+  auto* outer = new QVBoxLayout(&dialog);
+  auto* body = new QHBoxLayout;
+  outer->addLayout(body, 1);
+  // the categories down the left, each with its page on the right
+  auto* categories = new QListWidget;
+  categories->setFixedWidth(190);
+  categories->setIconSize(QSize(20, 20));
+  categories->setSpacing(2);
+  categories->setStyleSheet(
+    "QListWidget { border: none; padding-top: 8px; }"
+    "QListWidget::item { padding: 6px 8px; border-radius: 4px; }");
+  auto* pages = new QStackedWidget;
+  body->addWidget(categories);
+  body->addWidget(pages, 1);
+  connect(categories, &QListWidget::currentRowChanged, pages,
+          &QStackedWidget::setCurrentIndex);
+  // a page: its title above groups of labeled settings, scrolled if tall
+  auto add_page = [&](const QString& title, const char* icon) {
+    new QListWidgetItem(QIcon::fromTheme(icon), title, categories);
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    auto* heading = new QLabel(title);
+    QFont font = heading->font();
+    font.setPointSizeF(font.pointSizeF() * 1.5);
+    font.setBold(true);
+    heading->setFont(font);
+    layout->addWidget(heading);
+    auto* scroll = new QScrollArea;
+    scroll->setWidget(page);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    pages->addWidget(scroll);
+    return layout;
+  };
+  // a group of settings on a page, with a note under its title if given
+  auto add_group = [](QVBoxLayout* page, const QString& title,
+                      const QString& note = QString()) {
+    auto* group = new QGroupBox(title);
+    auto* form = new QFormLayout(group);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    if(!note.isEmpty()) {
+      auto* label = new QLabel(note);
+      label->setWordWrap(true);
+      label->setStyleSheet("color: gray");
+      form->addRow(label);
+    }
+    page->addWidget(group);
+    return form;
+  };
+
+  // ---------------------------------------------------------- Interface
+  QVBoxLayout* interface_page = add_page("Interface", "preferences-desktop");
+  QFormLayout* axes = add_group(interface_page, "Frames and joints");
   auto* frame_scale = new QDoubleSpinBox;
   frame_scale->setRange(0.001, 1000.0);
   frame_scale->setDecimals(3);
@@ -2546,7 +2727,7 @@ void shift::gui::Workspace::SettingsDialog() {
   frame_scale->setValue(settings_.get_frame_scale());
   frame_scale->setToolTip("the length of the arrows of the coordinate frames "
                           "shown (the eye beside a frame in the Scene tree)");
-  layout->addRow("Coordinate frame scale", frame_scale);
+  axes->addRow("Coordinate frame scale", frame_scale);
   // the color of the joint axes: a swatch that opens a color picker
   QColor joint_color = settings_.get_joint_color();
   auto* color_button = new QPushButton;
@@ -2560,7 +2741,7 @@ void shift::gui::Workspace::SettingsDialog() {
     color_button->setText(color.name(QColor::HexRgb));
   };
   show_color(joint_color);
-  layout->addRow("Joint color", color_button);
+  axes->addRow("Joint color", color_button);
   auto* joint_thickness = new QDoubleSpinBox;
   joint_thickness->setRange(0.0001, 10.0);
   joint_thickness->setDecimals(4);
@@ -2568,7 +2749,47 @@ void shift::gui::Workspace::SettingsDialog() {
   joint_thickness->setSuffix(" m");
   joint_thickness->setValue(settings_.get_joint_thickness());
   joint_thickness->setToolTip("the diameter of the lines of the joint axes");
-  layout->addRow("Joint axis thickness", joint_thickness);
+  axes->addRow("Joint axis thickness", joint_thickness);
+  interface_page->addStretch(1);
+
+  // ---------------------------------------------------------- Rendering
+  QVBoxLayout* rendering_page = add_page("Rendering", "video-display");
+  QFormLayout* image = add_group(rendering_page, "Image");
+  auto* tone = new QComboBox;
+  tone->addItem("Reinhard", false);
+  tone->addItem("ACES filmic", true);
+  tone->setCurrentIndex(viewport_->get_tone_curve() ==
+                            Viewport::ToneCurve::kAces
+                          ? 1
+                          : 0);
+  tone->setToolTip(
+    "<p>The curve from the light of the scene to the colors of the "
+    "screen.</p><ul><li><b>Reinhard</b> (default): x / (1 + x), soft "
+    "contrast</li><li><b>ACES filmic</b>: film-like contrast, deeper "
+    "shadows, highlights rolled off</li></ul>");
+  image->addRow("Tone mapping", tone);
+  auto* exposure = new QDoubleSpinBox;
+  exposure->setRange(-6.0, 6.0);
+  exposure->setSingleStep(0.25);
+  exposure->setDecimals(2);
+  exposure->setSuffix(" EV");
+  exposure->setValue(viewport_->get_exposure());
+  exposure->setToolTip("brightness of the image in stops: each stop doubles "
+                       "the light before the tone curve");
+  image->addRow("Exposure", exposure);
+  QFormLayout* scene = add_group(rendering_page, "Terrain and soil");
+  auto* smooth_terrain = new QCheckBox("Smooth deformable terrain");
+  smooth_terrain->setChecked(smooth_terrain_action_->isChecked());
+  smooth_terrain->setToolTip("draw SCM terrain by a Catmull-Rom surface "
+                             "through its nodes; unchecked, bilinear between "
+                             "them as the soil models see it");
+  scene->addRow(smooth_terrain);
+  auto* soil_surface = new QCheckBox("SPH soil as a surface");
+  soil_surface->setChecked(particle_surface_action_->isChecked());
+  soil_surface->setToolTip("draw SPH soil as one surface over its "
+                           "particles; unchecked, as the particles");
+  scene->addRow(soil_surface);
+  QFormLayout* quality = add_group(rendering_page, "Speed and detail");
   auto* lod_tolerance = new QDoubleSpinBox;
   // beyond 64 the coarsest levels of a vehicle's body, clustered, lose its
   // textures' layout
@@ -2581,16 +2802,16 @@ void shift::gui::Workspace::SettingsDialog() {
   lod_tolerance->setToolTip(
     "<p>Lower is sharper, higher is faster.</p>"
     "<p>The viewer draws simplified copies of meshes (levels of detail) "
-    "where they cannot be told apart from the mesh itself. This is the "
-    "largest error, in pixels on the screen, that a copy may show; far away "
-    "meshes get the coarsest copies.</p>"
+    "where they cannot be told apart from the mesh itself. The tolerance is "
+    "the largest error, in pixels on the screen, that a copy may show; far "
+    "away meshes get the coarsest copies.</p>"
     "<ul><li><b>0</b>: always the meshes themselves (slowest; for final "
     "renders)</li>"
     "<li><b>8</b> (default): the copies cannot be told apart</li>"
     "<li><b>above 8</b>: faster, with visible simplification and switching "
     "of copies</li></ul>"
     "<p>Shadows and reflected light allow four times as much.</p>");
-  layout->addRow("Level of detail tolerance", lod_tolerance);
+  quality->addRow("Level of detail tolerance", lod_tolerance);
   auto* render_scale = new QSpinBox;
   render_scale->setRange(int(std::lround(Settings::kMinimumRenderScale * 100)),
                          100);
@@ -2610,7 +2831,7 @@ void shift::gui::Workspace::SettingsDialog() {
     "<li><b>50 %</b>: softer while moving, about three times as fast</li>"
     "</ul>"
     "<p>Images and videos are always rendered at their full size.</p>");
-  layout->addRow("Ray tracing resolution", render_scale);
+  quality->addRow("Ray tracing resolution", render_scale);
   // upscaling of the ray traced view with NVIDIA DLSS, where the GPU and
   // driver support it; only the modes DLSS offers at the window's size are
   // listed, with the size they ray trace at
@@ -2630,10 +2851,10 @@ void shift::gui::Workspace::SettingsDialog() {
                         "modes trace fewer pixels, Ultra Performance the "
                         "fewest");
   for(int i = 0; i < Dlss::kQualityCount; i++) {
-    const auto quality = static_cast<Dlss::Quality>(i);
-    QString name = Dlss::get_quality_name(quality);
+    const auto mode = static_cast<Dlss::Quality>(i);
+    QString name = Dlss::get_quality_name(mode);
     if(dlss_available) {
-      const QSize render = viewport_->get_dlss_render_size(quality);
+      const QSize render = viewport_->get_dlss_render_size(mode);
       if(render.isEmpty()) {
         continue; // not offered at this size
       }
@@ -2646,8 +2867,8 @@ void shift::gui::Workspace::SettingsDialog() {
   if(mode_index >= 0) {
     dlss_mode->setCurrentIndex(mode_index);
   }
-  layout->addRow("Ray traced upscaling", dlss);
-  layout->addRow("DLSS mode", dlss_mode);
+  quality->addRow("Ray traced upscaling", dlss);
+  quality->addRow("DLSS mode", dlss_mode);
   if(dlss_available) {
     // DLSS's mode sets the resolution it traces at, in place of the
     // ray tracing resolution
@@ -2664,19 +2885,146 @@ void shift::gui::Workspace::SettingsDialog() {
                               viewport_->get_dlss_reason());
     reason->setWordWrap(true);
     reason->setStyleSheet("color: gray");
-    layout->addRow(reason);
+    quality->addRow(reason);
   }
+  rendering_page->addStretch(1);
+
+  // ---------------------------------------------------- Flexible Bodies
+  QVBoxLayout* flex_page =
+    add_page("Flexible Bodies", "applications-engineering");
+  QFormLayout* drawing = add_group(
+    flex_page, "Drawing",
+    "Every flexible body when a model opens; a body's own panel then sets "
+    "it alone.");
+  auto* deformation = new QDoubleSpinBox;
+  deformation->setRange(0.0, 1e9);
+  deformation->setDecimals(3);
+  deformation->setValue(simulation_.get_deformation_scale());
+  deformation->setToolTip("the factor the deformation of flexible bodies is "
+                          "drawn with");
+  drawing->addRow("Deformation scale", deformation);
+  struct FlexToggle {
+    QAction* action;
+    QCheckBox* box;
+  };
+  std::vector<FlexToggle> flex_toggles;
+  auto flex_toggle = [&](QAction* action, const char* text, const char* tip) {
+    auto* box = new QCheckBox(text);
+    box->setChecked(action->isChecked());
+    box->setToolTip(tip);
+    drawing->addRow(box);
+    flex_toggles.push_back({action, box});
+  };
+  flex_toggle(flex_mesh_surface_action_, "Mesh surface",
+              "draw flexible bodies by the surface of their finite element "
+              "mesh rather than their CAD");
+  flex_toggle(flex_mesh_edges_action_, "Element edges",
+              "draw the edges of the finite elements of flexible bodies over "
+              "their surface (raster only)");
+  flex_toggle(flex_constrained_nodes_action_, "Constrained nodes",
+              "draw as points the nodes of flexible bodies that their joints' "
+              "attachments (RBE2/RBE3 spiders) tie to their frames (raster "
+              "only)");
+  flex_toggle(flex_stresses_action_, "Stresses",
+              "draw the stress on flexible bodies, on the surface drawn (the "
+              "CAD solid's or the mesh's), as set under Stress");
+  QFormLayout* stress = add_group(flex_page, "Stress");
+  auto* quantity = new QComboBox;
+  for(const StressQuantity& known : StressQuantities()) {
+    quantity->addItem(known.label);
+  }
+  quantity->setCurrentIndex(int(settings_.get_stress_quantity()));
+  quantity->setToolTip(
+    "what the stress drawn on flexible bodies shows; components are in the "
+    "body's coordinates, and the safety factor is against the body's "
+    "yield_strength (bodies without one are not colored)");
+  stress->addRow("Stress drawn", quantity);
+  auto* peak = new QCheckBox("Greatest over the run so far");
+  peak->setChecked(settings_.is_stress_peak());
+  peak->setToolTip(
+    "at each point, the greatest (in magnitude) over the states recorded up "
+    "to the time shown, rather than the stress now");
+  stress->addRow("", peak);
+  // each map shown by its colors, from the start of the map to its end
+  auto* color_map = new QComboBox;
+  const QSize swatch_size(96, 14);
+  color_map->setIconSize(swatch_size);
+  for(const ColorMap& map : ColorMaps()) {
+    const std::vector<ksl_vec3f_t> samples =
+      ColorMapSamples(map.key, swatch_size.width());
+    QImage swatch(swatch_size, QImage::Format_RGB32);
+    for(int x = 0; x < swatch_size.width(); x++) {
+      const ksl_vec3f_t& c = samples[size_t(x)];
+      const QRgb rgb = qRgb(int(std::lround(std::clamp(c.x, 0.f, 1.f) * 255)),
+                            int(std::lround(std::clamp(c.y, 0.f, 1.f) * 255)),
+                            int(std::lround(std::clamp(c.z, 0.f, 1.f) * 255)));
+      for(int y = 0; y < swatch_size.height(); y++) {
+        swatch.setPixel(x, y, rgb);
+      }
+    }
+    color_map->addItem(QIcon(QPixmap::fromImage(swatch)), map.label,
+                       QString(map.key));
+  }
+  color_map->setCurrentIndex(std::max(
+    0, color_map->findData(
+         QString::fromStdString(settings_.get_stress_color_map()))));
+  color_map->setToolTip("the colors of the stress drawn on flexible bodies");
+  stress->addRow("Color map", color_map);
+  auto* range = new QComboBox;
+  range->addItem("Automatic: 0 (or minus the largest) to the largest on "
+                 "each body");
+  range->addItem("Fixed");
+  range->setCurrentIndex(settings_.is_stress_range_automatic() ? 0 : 1);
+  stress->addRow("Range", range);
+  auto* stress_minimum = new QLineEdit(
+    QString::number(settings_.get_stress_minimum(), 'g', 6));
+  auto* stress_maximum = new QLineEdit(
+    QString::number(settings_.get_stress_maximum(), 'g', 6));
+  for(QLineEdit* edit : {stress_minimum, stress_maximum}) {
+    edit->setValidator(new QDoubleValidator(edit));
+    edit->setToolTip("in the model's units of stress (Pa in SI units), "
+                     "e.g. 2.5e8");
+  }
+  stress->addRow("Stress at the map's start", stress_minimum);
+  stress->addRow("Stress at the map's end", stress_maximum);
+  auto* safety_minimum = new QLineEdit(
+    QString::number(settings_.get_safety_minimum(), 'g', 6));
+  auto* safety_maximum = new QLineEdit(
+    QString::number(settings_.get_safety_maximum(), 'g', 6));
+  for(QLineEdit* edit : {safety_minimum, safety_maximum}) {
+    edit->setValidator(new QDoubleValidator(edit));
+  }
+  safety_minimum->setToolTip("this safety factor and below are drawn in the "
+                             "color map's end");
+  safety_maximum->setToolTip("this safety factor and above are drawn in the "
+                             "color map's start");
+  stress->addRow("Safety factor at the map's end", safety_minimum);
+  stress->addRow("Safety factor at the map's start", safety_maximum);
+  flex_page->addStretch(1);
+
   // each label shows the hint of its field
-  for(int row = 0; row < layout->rowCount(); row++) {
-    QLayoutItem* label = layout->itemAt(row, QFormLayout::LabelRole);
-    QLayoutItem* field = layout->itemAt(row, QFormLayout::FieldRole);
-    if(label && label->widget() && field && field->widget()) {
-      label->widget()->setToolTip(field->widget()->toolTip());
+  for(QFormLayout* form : {axes, image, scene, quality, drawing, stress}) {
+    for(int row = 0; row < form->rowCount(); row++) {
+      QLayoutItem* label = form->itemAt(row, QFormLayout::LabelRole);
+      QLayoutItem* field = form->itemAt(row, QFormLayout::FieldRole);
+      if(label && label->widget() && field && field->widget()) {
+        label->widget()->setToolTip(field->widget()->toolTip());
+      }
     }
   }
-  // the viewport shows the settings as they are changed
+  categories->setCurrentRow(0);
+
+  // the viewport shows the settings as they are changed; Cancel puts back
+  // those of before
+  const Settings before = settings_;
+  const double deformation_before = simulation_.get_deformation_scale();
+  std::vector<bool> flex_before;
+  for(const FlexToggle& toggle : flex_toggles) {
+    flex_before.push_back(toggle.action->isChecked());
+  }
   auto preview = [this, frame_scale, joint_thickness, lod_tolerance,
-                  render_scale, &joint_color, dlss, dlss_mode] {
+                  render_scale, &joint_color, dlss, dlss_mode, tone, exposure,
+                  smooth_terrain, soil_surface] {
     viewport_->set_frame_axes_scale(float(frame_scale->value()));
     viewport_->set_joint_thickness(float(joint_thickness->value()));
     viewport_->set_lod_tolerance(float(lod_tolerance->value()));
@@ -2689,6 +3037,12 @@ void shift::gui::Workspace::SettingsDialog() {
       viewport_->set_dlss_quality(
         static_cast<Dlss::Quality>(dlss_mode->currentData().toInt()));
     }
+    viewport_->set_tone_curve(tone->currentData().toBool()
+                                ? Viewport::ToneCurve::kAces
+                                : Viewport::ToneCurve::kReinhard);
+    viewport_->set_exposure(float(exposure->value()));
+    smooth_terrain_action_->setChecked(smooth_terrain->isChecked());
+    particle_surface_action_->setChecked(soil_surface->isChecked());
   };
   connect(frame_scale, &QDoubleSpinBox::valueChanged, &dialog, preview);
   connect(joint_thickness, &QDoubleSpinBox::valueChanged, &dialog, preview);
@@ -2696,6 +3050,10 @@ void shift::gui::Workspace::SettingsDialog() {
   connect(render_scale, &QSpinBox::valueChanged, &dialog, preview);
   connect(dlss, &QComboBox::currentIndexChanged, &dialog, preview);
   connect(dlss_mode, &QComboBox::currentIndexChanged, &dialog, preview);
+  connect(tone, &QComboBox::currentIndexChanged, &dialog, preview);
+  connect(exposure, &QDoubleSpinBox::valueChanged, &dialog, preview);
+  connect(smooth_terrain, &QCheckBox::toggled, &dialog, preview);
+  connect(soil_surface, &QCheckBox::toggled, &dialog, preview);
   connect(color_button, &QPushButton::clicked, &dialog, [&] {
     const QColor color =
       QColorDialog::getColor(joint_color, &dialog, "Joint color");
@@ -2705,63 +3063,15 @@ void shift::gui::Workspace::SettingsDialog() {
       preview();
     }
   });
-  // the stress drawn on flexible bodies
-  auto* quantity = new QComboBox;
-  for(const StressQuantity& known : StressQuantities()) {
-    quantity->addItem(known.label);
+  connect(deformation, &QDoubleSpinBox::valueChanged, &dialog,
+          [this](double scale) {
+            simulation_.set_deformation_scale(scale);
+            viewport_->update();
+          });
+  for(const FlexToggle& toggle : flex_toggles) {
+    connect(toggle.box, &QCheckBox::toggled, toggle.action,
+            &QAction::setChecked);
   }
-  quantity->setCurrentIndex(int(settings_.get_stress_quantity()));
-  quantity->setToolTip(
-    "what the stress drawn on flexible bodies shows; components are in the "
-    "body's coordinates, and the safety factor is against the body's "
-    "yield_strength (bodies without one are not colored)");
-  layout->addRow("Stress drawn", quantity);
-  auto* peak = new QCheckBox("Greatest over the run so far");
-  peak->setChecked(settings_.is_stress_peak());
-  peak->setToolTip(
-    "at each point, the greatest (in magnitude) over the states recorded up "
-    "to the time shown, rather than the stress now");
-  layout->addRow("", peak);
-  auto* color_map = new QComboBox;
-  for(const ColorMap& map : ColorMaps()) {
-    color_map->addItem(map.label, QString(map.key));
-  }
-  color_map->setCurrentIndex(std::max(
-    0, color_map->findData(
-         QString::fromStdString(settings_.get_stress_color_map()))));
-  color_map->setToolTip("the colors of the stress drawn on flexible bodies "
-                        "(View > Flexible bodies: stresses)");
-  layout->addRow("Stress color map", color_map);
-  auto* range = new QComboBox;
-  range->addItem("Automatic: 0 (or minus the largest) to the largest on "
-                 "each body");
-  range->addItem("Fixed");
-  range->setCurrentIndex(settings_.is_stress_range_automatic() ? 0 : 1);
-  layout->addRow("Stress range", range);
-  auto* stress_minimum = new QLineEdit(
-    QString::number(settings_.get_stress_minimum(), 'g', 6));
-  auto* stress_maximum = new QLineEdit(
-    QString::number(settings_.get_stress_maximum(), 'g', 6));
-  for(QLineEdit* edit : {stress_minimum, stress_maximum}) {
-    edit->setValidator(new QDoubleValidator(edit));
-    edit->setToolTip("in the model's units of stress (Pa in SI units), "
-                     "e.g. 2.5e8");
-  }
-  layout->addRow("Stress at the map's start", stress_minimum);
-  layout->addRow("Stress at the map's end", stress_maximum);
-  auto* safety_minimum = new QLineEdit(
-    QString::number(settings_.get_safety_minimum(), 'g', 6));
-  auto* safety_maximum = new QLineEdit(
-    QString::number(settings_.get_safety_maximum(), 'g', 6));
-  for(QLineEdit* edit : {safety_minimum, safety_maximum}) {
-    edit->setValidator(new QDoubleValidator(edit));
-  }
-  safety_minimum->setToolTip("this safety factor and below are drawn in the "
-                             "color map's end");
-  safety_maximum->setToolTip("this safety factor and above are drawn in the "
-                             "color map's start");
-  layout->addRow("Safety factor at the map's end", safety_minimum);
-  layout->addRow("Safety factor at the map's start", safety_maximum);
   auto fixed_range = [quantity, range, stress_minimum, stress_maximum,
                       safety_minimum, safety_maximum] {
     const bool safety =
@@ -2773,7 +3083,6 @@ void shift::gui::Workspace::SettingsDialog() {
     safety_maximum->setEnabled(safety);
   };
   fixed_range();
-  // the stress settings as they are changed, as the others
   auto preview_stress = [this, quantity, peak, color_map, range,
                          stress_minimum, stress_maximum, safety_minimum,
                          safety_maximum, fixed_range] {
@@ -2793,34 +3102,37 @@ void shift::gui::Workspace::SettingsDialog() {
       settings_.get_stress_color_map(), Viewport::kColorMapSamples));
     ApplyStresses();
   };
-  const Settings before = settings_;
   connect(color_map, &QComboBox::currentIndexChanged, &dialog,
           preview_stress);
   connect(range, &QComboBox::currentIndexChanged, &dialog, preview_stress);
   connect(quantity, &QComboBox::currentIndexChanged, &dialog,
           preview_stress);
   connect(peak, &QCheckBox::toggled, &dialog, preview_stress);
-  connect(safety_minimum, &QLineEdit::editingFinished, &dialog,
-          preview_stress);
-  connect(safety_maximum, &QLineEdit::editingFinished, &dialog,
-          preview_stress);
-  connect(stress_minimum, &QLineEdit::editingFinished, &dialog,
-          preview_stress);
-  connect(stress_maximum, &QLineEdit::editingFinished, &dialog,
-          preview_stress);
+  for(QLineEdit* edit :
+      {safety_minimum, safety_maximum, stress_minimum, stress_maximum}) {
+    connect(edit, &QLineEdit::editingFinished, &dialog, preview_stress);
+  }
+
+  auto* footer = new QHBoxLayout;
   auto* note = new QLabel(QString("Saved in %1").arg(
     QDir::toNativeSeparators(QString::fromStdString(
       Settings::get_default_path()))));
   note->setStyleSheet("color: gray");
-  layout->addRow(note);
+  footer->addWidget(note, 1);
   auto* buttons =
     new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
   connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
   connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-  layout->addRow(buttons);
+  footer->addWidget(buttons);
+  outer->addLayout(footer);
   if(dialog.exec() != QDialog::Accepted) {
     settings_ = before;
     ApplySettings();
+    simulation_.set_deformation_scale(deformation_before);
+    for(size_t i = 0; i < flex_toggles.size(); i++) {
+      flex_toggles[i].action->setChecked(flex_before[i]);
+    }
+    viewport_->update();
     return;
   }
   preview_stress();
@@ -2834,6 +3146,15 @@ void shift::gui::Workspace::SettingsDialog() {
     settings_.set_dlss_quality(
       static_cast<Dlss::Quality>(dlss_mode->currentData().toInt()));
   }
+  settings_.set_tone_aces(tone->currentData().toBool());
+  settings_.set_exposure(exposure->value());
+  settings_.set_smooth_terrain(smooth_terrain->isChecked());
+  settings_.set_soil_surface(soil_surface->isChecked());
+  settings_.set_deformation_scale(deformation->value());
+  settings_.set_flex_mesh_surface(flex_toggles[0].box->isChecked());
+  settings_.set_flex_element_edges(flex_toggles[1].box->isChecked());
+  settings_.set_flex_constrained_nodes(flex_toggles[2].box->isChecked());
+  settings_.set_flex_stresses(flex_toggles[3].box->isChecked());
   ApplySettings();
   std::string error;
   if(!settings_.Save(Settings::get_default_path(), &error)) {
@@ -2977,7 +3298,9 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
   }
 
   QTreeWidgetItem* item =
-    NewItem(parent, nullptr, text, ObjectIcon(key, type), item_type);
+    NewItem(parent, nullptr, text,
+            TerrainIcon(object) ? TerrainIcon(object) : ObjectIcon(key, type),
+            item_type);
   item->setData(0, Qt::UserRole, index);
   item->setData(0, kObjectRole,
                 QVariant::fromValue(reinterpret_cast<quintptr>(object)));
@@ -3010,6 +3333,19 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
     eye.kind = EyeItem::kBody;
     eye.body_index = index;
     eye_tip = "the eye shows or hides the body";
+  } else if(auto* terrain =
+              dynamic_cast<shift::core::terrain::Base*>(object)) {
+    const int terrain_index = simulation_.get_terrain_index(terrain);
+    const int particles_index = simulation_.get_particles_index(terrain);
+    if(terrain_index >= 0) {
+      eye.kind = EyeItem::kTerrain;
+      eye.body_index = terrain_index;
+      eye_tip = "the eye shows or hides the terrain";
+    } else if(particles_index >= 0) {
+      eye.kind = EyeItem::kSoil;
+      eye.body_index = particles_index;
+      eye_tip = "the eye shows or hides the soil's particles";
+    }
   }
   if(eye_tip) {
     eye_items_.push_back(eye);
@@ -3024,9 +3360,14 @@ QTreeWidgetItem* shift::gui::Workspace::AddObjectItem(
     item->setToolTip(0, "inactive: not part of the simulation");
   }
   AddObjectChildren(object, item, depth, path);
-  // an assembly shows what it holds; other objects show their own arrays
-  // (as the frames and geometry of a body) when opened
-  item->setExpanded(key == "assemblies");
+  // an assembly shows what it holds, and a terrain its SPH regions, each
+  // with an eye; other objects show their own arrays (as the frames and
+  // geometry of a body) when opened
+  bool regions = false;
+  for(int i = 0; key == "terrain" && i < item->childCount(); i++) {
+    regions = regions || item->child(i)->data(0, kVisibleRole).isValid();
+  }
+  item->setExpanded(key == "assemblies" || regions);
   return item;
 }
 
@@ -3329,6 +3670,107 @@ static Json::Value ValueToJson(const shift::core::parameter::Value& value) {
   return Json::Value();
 }
 
+/* whether json is a number, or a list, a list of lists or an object of
+numbers: edited a number at a time (a list of any length may be empty) */
+static bool IsNumberShape(const Json::Value& json, bool any_length) {
+  if(json.isNumeric()) {
+    return true;
+  }
+  if(json.isArray() && json.empty()) {
+    return any_length;
+  }
+  if(json.isArray()) {
+    // the rows of a matrix, or the numbers of a list
+    bool rows = true;
+    bool numbers = true;
+    for(const Json::Value& element : json) {
+      numbers = numbers && element.isNumeric();
+      bool row = element.isArray() && !element.empty();
+      for(const Json::Value& entry : element) {
+        row = row && entry.isNumeric();
+      }
+      rows = rows && row;
+    }
+    return numbers || rows;
+  }
+  if(json.isObject() && !json.empty()) {
+    for(const std::string& key : json.getMemberNames()) {
+      if(!json[key].isNumeric()) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/* json, a list of numbers the model file gives (or none), if a parameter
+of rows rows (-1: any number, at least one) of columns numbers each (-1:
+any number; 1: a number or a row of one) reads it
+(parameter::Value::ReadJSON_DOUBLE_ARRAY); or else zeros, as many as it
+takes */
+static Json::Value ListTemplate(const Json::Value& json, int rows,
+                                int columns) {
+  auto is_row = [columns](const Json::Value& row) {
+    if(!row.isArray() || row.empty() ||
+       (columns > 0 && static_cast<int>(row.size()) != columns)) {
+      return false;
+    }
+    for(const Json::Value& entry : row) {
+      if(!entry.isNumeric()) {
+        return false;
+      }
+    }
+    return true;
+  };
+  bool fits = json.isArray() && !json.empty() &&
+              (rows < 0 || static_cast<int>(json.size()) == rows);
+  if(fits && json[0].isArray()) {
+    // rows, as long as each other
+    for(const Json::Value& row : json) {
+      fits = fits && is_row(row) && row.size() == json[0].size();
+    }
+  } else if(fits) {
+    // numbers, one to a row: not for rows of a fixed number of columns
+    fits = columns <= 1 || rows < 0;
+    for(const Json::Value& entry : json) {
+      fits = fits && entry.isNumeric();
+    }
+  }
+  if(fits) {
+    return json;
+  }
+  Json::Value zeros(Json::arrayValue);
+  const int count = rows > 0 ? rows : 1;
+  for(int i = 0; i < count; i++) {
+    if(columns > 1) {
+      Json::Value row(Json::arrayValue);
+      for(int j = 0; j < columns; j++) {
+        row.append(0);
+      }
+      zeros.append(row);
+    } else {
+      zeros.append(0);
+    }
+  }
+  return zeros;
+}
+
+/* the numbers of json, in order: by index, row by row, by key */
+static void NumberLeaves(Json::Value& json, std::vector<Json::Value*>& leaves) {
+  if(json.isNumeric()) {
+    leaves.push_back(&json);
+  } else if(json.isArray()) {
+    for(Json::Value& element : json) {
+      NumberLeaves(element, leaves);
+    }
+  } else if(json.isObject()) {
+    for(const std::string& key : json.getMemberNames()) {
+      NumberLeaves(json[key], leaves);
+    }
+  }
+}
+
 /* a rotation in the form of given, the orientation as the model file gives
 it: a quaternion [x, y, z, w], Euler angles {"angles": [...], "axes": [...]}
 about the same axes, or a 3x3 matrix row by row (also if the file gives
@@ -3481,10 +3923,19 @@ void shift::gui::Workspace::AddParameterRows(
       for(const auto& alias : keys) {
         from_file = from_file || object->Find(alias)->is_loaded_from_file();
       }
-      if(!from_file) {
-        // a default, not given in the model file
+      const bool no_effect = (key == "x" || key == "y") &&
+                             ExtentHasNoEffect(object,
+                                               simulation_.get_context());
+      if(!from_file || no_effect) {
         row->setForeground(0, default_brush);
         row->setForeground(1, default_brush);
+      }
+      if(no_effect) {
+        tooltip += "\n(no effect on a heightmap without regions or "
+                   "scenery: its size is that of its map, times x_scale "
+                   "and y_scale)";
+      } else if(!from_file) {
+        // a default, not given in the model file
         tooltip += "\n(default: not in the model file)";
       }
       SetRowValue(row, *value);
@@ -3493,6 +3944,7 @@ void shift::gui::Workspace::AddParameterRows(
       parameter_row.item = row;
       parameter_row.value = value;
       parameter_row.keys = keys;
+      parameter_row.no_effect = no_effect;
       parameter_row.in_file = path != nullptr;
       if(path) {
         parameter_row.path = *path;
@@ -3541,19 +3993,22 @@ void shift::gui::Workspace::SelectParameterRow() {
   const shift::core::parameter::Value& value = *row.value;
 
   // new fields for the value
-  for(QWidget* widget : panel.editor_fields->findChildren<QWidget*>(
-        QString(), Qt::FindDirectChildrenOnly)) {
-    delete widget;
-  }
-  delete panel.editor_fields->layout();
-  auto* layout = new QHBoxLayout(panel.editor_fields);
-  layout->setContentsMargins(0, 0, 0, 0);
-  panel.line_edit = nullptr;
-  panel.combo_box = nullptr;
-  for(auto& angle : panel.angles) {
-    angle = nullptr;
-  }
+  QHBoxLayout* layout = ClearEditorFields();
   const auto type = value.get_value_type();
+  // the value as JSON, as the file gives it if it does
+  std::vector<JsonStep> key_path = row.path;
+  key_path.push_back({row.keys.front(), -1});
+  const Json::Value* given =
+    row.in_file ? JsonAt(model_json_, key_path) : nullptr;
+  Json::Value json = given ? *given : ValueToJson(value);
+  // a list of numbers: as long as the parameter takes, any length only if
+  // it takes any
+  const bool list = type == shift::core::parameter::Value::INT_ARRAY ||
+                    type == shift::core::parameter::Value::DOUBLE_ARRAY;
+  const bool number_list = list && value.get_row_dim() < 0;
+  if(list) {
+    json = ListTemplate(json, value.get_row_dim(), value.get_column_dim());
+  }
   if(type == shift::core::parameter::Value::BOOLEAN) {
     panel.combo_box = new QComboBox;
     panel.combo_box->addItems({"false", "true"});
@@ -3565,8 +4020,12 @@ void shift::gui::Workspace::SelectParameterRow() {
     for(const auto& option : value.get_valid_string_values()) {
       panel.combo_box->addItem(QString::fromStdString(option));
     }
-    panel.combo_box->setCurrentText(
-      QString::fromStdString(value.get<std::string>()));
+    // a value the file gives that is not one of them is kept, first
+    const QString current = QString::fromStdString(value.get<std::string>());
+    if(panel.combo_box->findText(current) < 0) {
+      panel.combo_box->insertItem(0, current);
+    }
+    panel.combo_box->setCurrentText(current);
     layout->addWidget(panel.combo_box);
   } else if(IsOrientation(value)) {
     double rpy[3];
@@ -3584,25 +4043,22 @@ void shift::gui::Workspace::SelectParameterRow() {
         "R = Rz(yaw) Ry(pitch) Rx(roll), in degrees");
       layout->addWidget(panel.angles[i], 1);
     }
+  } else if(type != shift::core::parameter::Value::STRING &&
+            IsNumberShape(json, number_list)) {
+    // a field for each number, in the form the file gives the value in
+    panel.number_shape = json;
+    panel.number_list = number_list;
+    BuildNumberFields(type == shift::core::parameter::Value::INT ||
+                      type == shift::core::parameter::Value::INT_ARRAY);
   } else {
     panel.line_edit = new QLineEdit;
     QString text;
     if(type == shift::core::parameter::Value::STRING) {
       text = QString::fromStdString(value.get<std::string>());
-    } else if(type == shift::core::parameter::Value::DOUBLE) {
-      text = QString::number(value.get<double>(), 'g', 12);
-    } else if(type == shift::core::parameter::Value::INT) {
-      text = QString::number(value.get<int>());
     } else {
-      // JSON, as the file gives it if it does
-      std::vector<JsonStep> key_path = row.path;
-      key_path.push_back({row.keys.front(), -1});
-      const Json::Value* json =
-        row.in_file ? JsonAt(model_json_, key_path) : nullptr;
       Json::StreamWriterBuilder builder;
       builder.settings_["indentation"] = "";
-      text = QString::fromStdString(
-        Json::writeString(builder, json ? *json : ValueToJson(value)));
+      text = QString::fromStdString(Json::writeString(builder, json));
       panel.line_edit->setToolTip("the value as JSON, as in the model file");
     }
     panel.line_edit->setText(text);
@@ -3614,7 +4070,11 @@ void shift::gui::Workspace::SelectParameterRow() {
   panel.editor_key->setText(QString::fromStdString(row.keys.front()));
   QString note;
   bool editable = true;
-  if(value.is_runtime()) {
+  if(row.no_effect) {
+    note = "no effect on a heightmap without regions or scenery: its size "
+           "is that of its map, times x_scale and y_scale";
+    editable = false;
+  } else if(value.is_runtime()) {
     note = "applies at once, also while the model runs";
   } else if(!row.in_file) {
     note = "made when the model loads, not read from the model file: it "
@@ -3631,6 +4091,146 @@ void shift::gui::Workspace::SelectParameterRow() {
   panel.editor_fields->setEnabled(editable);
   panel.apply_button->setEnabled(editable);
   panel.editor->setVisible(true);
+}
+
+QHBoxLayout* shift::gui::Workspace::ClearEditorFields() {
+  auto& panel = parameter_panel_;
+  // later: an Apply or a button of the fields may be what empties them
+  for(QWidget* widget : panel.editor_fields->findChildren<QWidget*>(
+        QString(), Qt::FindDirectChildrenOnly)) {
+    widget->hide();
+    widget->setParent(nullptr);
+    widget->deleteLater();
+  }
+  delete panel.editor_fields->layout();
+  auto* layout = new QHBoxLayout(panel.editor_fields);
+  layout->setContentsMargins(0, 0, 0, 0);
+  panel.line_edit = nullptr;
+  panel.combo_box = nullptr;
+  for(auto& angle : panel.angles) {
+    angle = nullptr;
+  }
+  panel.numbers.clear();
+  panel.number_list = false;
+  return layout;
+}
+
+void shift::gui::Workspace::BuildNumberFields(bool integers) {
+  auto& panel = parameter_panel_;
+  const bool list = panel.number_list;
+  QHBoxLayout* layout = ClearEditorFields();
+  panel.number_list = list;
+  const Json::Value& shape = panel.number_shape;
+
+  // a field for a number, in the order of NumberLeaves
+  auto field = [this, &panel, integers](const Json::Value& number,
+                                        const QString& tip) {
+    QAbstractSpinBox* box;
+    if(integers) {
+      auto* spin = new IntegerSpinBox;
+      spin->setValue(number.asInt());
+      spin->on_return = [this] { ApplyParameterEdit(); };
+      box = spin;
+    } else {
+      auto* spin = new NumberSpinBox;
+      spin->setValue(number.asDouble());
+      spin->on_return = [this] { ApplyParameterEdit(); };
+      box = spin;
+    }
+    box->setToolTip(tip);
+    box->setMinimumWidth(60);
+    panel.numbers.push_back(box);
+    return box;
+  };
+
+  if(shape.isNumeric()) {
+    layout->addWidget(field(shape, QString()), 1);
+  } else if(shape.isArray() && !shape.empty() && shape[0].isArray()) {
+    // a matrix, row by row
+    auto* grid_widget = new QWidget;
+    auto* grid = new QGridLayout(grid_widget);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setSpacing(2);
+    for(Json::ArrayIndex r = 0; r < shape.size(); r++) {
+      for(Json::ArrayIndex c = 0; c < shape[r].size(); c++) {
+        grid->addWidget(field(shape[r][c],
+                              QString("row %1, column %2").arg(r).arg(c)),
+                        int(r), int(c));
+      }
+    }
+    layout->addWidget(grid_widget, 1);
+  } else if(shape.isArray()) {
+    for(Json::ArrayIndex i = 0; i < shape.size(); i++) {
+      layout->addWidget(field(shape[i], QString("element %1").arg(i)), 1);
+    }
+  } else if(shape.isObject()) {
+    // each number by its key, three to a row
+    auto* grid_widget = new QWidget;
+    auto* grid = new QGridLayout(grid_widget);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setSpacing(2);
+    int k = 0;
+    for(const std::string& key : shape.getMemberNames()) {
+      const QString name = QString::fromStdString(key);
+      grid->addWidget(new QLabel(name), k / 3, 2 * (k % 3));
+      grid->addWidget(field(shape[key], name), k / 3, 2 * (k % 3) + 1);
+      grid->setColumnStretch(2 * (k % 3) + 1, 1);
+      k++;
+    }
+    layout->addWidget(grid_widget, 1);
+  }
+
+  if(panel.number_list) {
+    // a list of any length: add a number after the last, or remove the last
+    auto* add = new QToolButton;
+    add->setText("+");
+    add->setToolTip("add a number at the end");
+    auto* remove = new QToolButton;
+    remove->setText("\u2212");
+    remove->setToolTip("remove the last number");
+    remove->setEnabled(shape.isArray() && shape.size() > 1);
+    connect(add, &QToolButton::clicked, this, [this, integers] {
+      Json::Value json = NumberFieldsJson();
+      // a copy of the last number, or row
+      json.append(json.empty() ? Json::Value(0) : json[json.size() - 1]);
+      parameter_panel_.number_shape = json;
+      BuildNumberFields(integers);
+    });
+    connect(remove, &QToolButton::clicked, this, [this, integers] {
+      Json::Value json = NumberFieldsJson();
+      if(json.size() > 1) { // the model file needs one at least
+        json.resize(json.size() - 1);
+      }
+      parameter_panel_.number_shape = json;
+      BuildNumberFields(integers);
+    });
+    layout->addWidget(add);
+    layout->addWidget(remove);
+  }
+}
+
+Json::Value shift::gui::Workspace::NumberFieldsJson() const {
+  const auto& panel = parameter_panel_;
+  Json::Value json = panel.number_shape;
+  if(panel.number_list && !json.isArray()) {
+    json = Json::Value(Json::arrayValue);
+  }
+  std::vector<Json::Value*> leaves;
+  NumberLeaves(json, leaves);
+  for(size_t i = 0; i < leaves.size() && i < panel.numbers.size(); i++) {
+    if(auto* integer = dynamic_cast<IntegerSpinBox*>(panel.numbers[i])) {
+      *leaves[i] = Json::Value(integer->value());
+    } else if(auto* number = dynamic_cast<NumberSpinBox*>(panel.numbers[i])) {
+      // a whole number the file gives as one stays one: [0, 0, 1]
+      const double value = number->value();
+      const bool whole = (leaves[i]->type() == Json::intValue ||
+                          leaves[i]->type() == Json::uintValue) &&
+                         std::floor(value) == value &&
+                         std::fabs(value) < 2147483647.0;
+      *leaves[i] = whole ? Json::Value(int(value)) : Json::Value(value);
+    }
+  }
+  return json;
 }
 
 void shift::gui::Workspace::ApplyParameterEdit() {
@@ -3665,6 +4265,8 @@ void shift::gui::Workspace::ApplyParameterEdit() {
     const Json::Value* given =
       row.in_file ? JsonAt(model_json_, key_path) : nullptr;
     json = OrientationToJson(RotationOfRollPitchYaw(rpy), type, given);
+  } else if(!panel.numbers.empty() || panel.number_list) {
+    json = NumberFieldsJson();
   } else if(panel.line_edit) {
     const QString text = panel.line_edit->text().trimmed();
     bool ok = true;
@@ -3682,6 +4284,19 @@ void shift::gui::Workspace::ApplyParameterEdit() {
     }
     if(!ok) {
       fail("not a valid value");
+      return;
+    }
+  }
+
+  // an axis of no length has no direction
+  if(row.keys.front() == "axis" && json.isArray()) {
+    double length = 0.0;
+    for(const Json::Value& element : json) {
+      length += element.isNumeric() ? element.asDouble() * element.asDouble()
+                                    : 0.0;
+    }
+    if(!(length > 0.0)) {
+      fail("an axis needs a length above 0");
       return;
     }
   }

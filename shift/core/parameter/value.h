@@ -463,6 +463,17 @@ public:
     return *this;
   }
 
+  /*! \brief the number of elements (rows) of an array, -1 for any number
+   * (at least one) */
+  int get_row_dim() const {
+    return row_dim_;
+  }
+
+  /*! \brief the numbers of each row of a nested array, -1 for any number */
+  int get_column_dim() const {
+    return col_dim_;
+  }
+
   Value& set_key(const std::string key) {
     key_ = key;
     return *this;

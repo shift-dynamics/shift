@@ -94,8 +94,8 @@ void shift::core::force_module::SpringDamper::DeclareParameters() {
     .set_row_dim(-1);
   DeclareParameter("acts", &acts_,
                    "\"both\" (default), \"compression\" or \"tension\": the "
-                   "sides on which the spring acts",
-                   false);
+                   "sides on which the spring acts", false,
+                   {"both", "compression", "tension"});
   DeclareParameter("gap", &gap_,
                    "deflection before the spring acts, on each side that "
                    "acts; optional, default 0",

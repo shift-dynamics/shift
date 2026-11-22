@@ -165,12 +165,14 @@ void shift::core::force_module::Contact::DeclareParameters() {
   DeclareParameter("friction_combine", &friction_combine_,
                    "how the friction of two materials combines: "
                    "geometric_mean (default), arithmetic_mean, minimum, "
-                   "maximum or product",
-                   false);
+                   "maximum or product", false,
+                   {"geometric_mean", "arithmetic_mean", "minimum", "maximum",
+                    "product"});
   DeclareParameter("restitution_combine", &restitution_combine_,
                    "how the restitution of two materials combines, as "
-                   "friction_combine; defaults to geometric_mean",
-                   false);
+                   "friction_combine; defaults to geometric_mean", false,
+                   {"geometric_mean", "arithmetic_mean", "minimum", "maximum",
+                    "product"});
   DeclareParameter("friction_velocity", &friction_velocity_,
                    "sliding speed below which friction is regularized "
                    "(reduced in proportion to the speed); defaults to 0.01",

@@ -159,9 +159,11 @@ void shift::core::force_module::JointMap::DeclareParameters() {
   DeclareParameter("y_joint", &y_joint_name_,
                    "the joint of y; optional, default joint", false);
   DeclareParameter("x", &x_kind_,
-                   "\"coordinate\" (default) or \"rate\" of joint", false);
+                   "\"coordinate\" (default) or \"rate\" of joint", false,
+                   {"coordinate", "rate"});
   DeclareParameter("y", &y_kind_,
-                   "\"coordinate\" or \"rate\" (default) of y_joint", false);
+                   "\"coordinate\" or \"rate\" (default) of y_joint", false,
+                   {"coordinate", "rate"});
   DeclareParameter("x_values", &x_values_, "the grid along x, increasing",
                    false)
     .set_row_dim(-1);

@@ -28,7 +28,10 @@ shift::core::force_module::tire::Base::Create() {
 
 void shift::core::force_module::tire::Base::DeclareParameters() {
   shift::core::force_module::Base::DeclareParameters();
-  DeclareParameter("tire_type", &tire_type_, "tire model: \"fiala\", \"pac2002\", \"bekker_wong\" or \"iowa\"", true);
+  DeclareParameter("tire_type", &tire_type_,
+                   "tire model: \"fiala\", \"pac2002\", \"bekker_wong\" "
+                   "or \"iowa\"",
+                   true, {"fiala", "pac2002", "bekker_wong", "iowa"});
   DeclareParameter("wheel_body", &wheel_body_name_,
                    "name of the wheel body, in the same assembly; the wheel "
                    "spins about the y axis of its origin frame",

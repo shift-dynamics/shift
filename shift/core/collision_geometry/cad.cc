@@ -41,8 +41,7 @@ void shift::core::collision_geometry::Cad::DeclareParameters() {
     "against each sample of the other; \"field\" looks each sample up in a "
     "field of the closest points of the other face, built at load, and starts "
     "Newton's method there. Two CAD geometries use the field only if both ask "
-    "for it",
-    false);
+    "for it", false, {"samples", "field"});
 }
 
 /* ------------------------------------------------------------------------ */

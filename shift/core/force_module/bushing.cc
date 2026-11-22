@@ -57,7 +57,7 @@ void shift::core::force_module::Bushing::DeclareParameters() {
   DeclareParameter("rest_pose", &rest_pose_,
                    "\"initial\" (default): the relative poses as the model "
                    "starts; \"frames\": the frames of each pair coincide",
-                   false);
+                   false, {"initial", "frames"});
 }
 
 std::string shift::core::force_module::Bushing::FindFile(

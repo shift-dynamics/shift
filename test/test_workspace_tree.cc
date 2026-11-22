@@ -18,6 +18,11 @@ parameters panel lists every parameter of the selected object */
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QTreeWidgetItemIterator>
+#include <QFile>
+#include <sstream>
+#include <QComboBox>
+#include <QToolButton>
+#include "shift/gui/number_spin_box.h"
 #include <QTreeWidget>
 
 #include <algorithm>
@@ -89,22 +94,82 @@ static QTreeWidgetItem* FindItem(QTreeWidget* tree, const QString& text) {
   return nullptr;
 }
 
-/* select the parameter key of the selected object, type text into its
-editor and apply it */
+/* the fields of the parameter editor for numbers, in order */
+static std::vector<QAbstractSpinBox*> NumberFields(QWidget* panel) {
+  std::vector<QAbstractSpinBox*> fields;
+  for(auto* box : panel->findChildren<QAbstractSpinBox*>()) {
+    if(dynamic_cast<shift::gui::NumberSpinBox*>(box) ||
+       dynamic_cast<shift::gui::IntegerSpinBox*>(box)) {
+      fields.push_back(box);
+    }
+  }
+  return fields;
+}
+
+/* the editor's text field, not one inside a spin box */
+static QLineEdit* TextField(QWidget* panel) {
+  for(auto* line_edit : panel->findChildren<QLineEdit*>()) {
+    if(!qobject_cast<QAbstractSpinBox*>(line_edit->parentWidget())) {
+      return line_edit;
+    }
+  }
+  return nullptr;
+}
+
+static void ClickApply(QWidget* panel) {
+  for(auto* button : panel->findChildren<QPushButton*>()) {
+    if(button->text() == "Apply") {
+      button->click();
+    }
+  }
+}
+
+/* the numbers of json, in the order of the editor's fields */
+static void JsonNumbers(const Json::Value& json, std::vector<double>& numbers) {
+  if(json.isNumeric()) {
+    numbers.push_back(json.asDouble());
+  } else if(json.isArray()) {
+    for(const Json::Value& element : json) {
+      JsonNumbers(element, numbers);
+    }
+  } else if(json.isObject()) {
+    for(const std::string& key : json.getMemberNames()) {
+      JsonNumbers(json[key], numbers);
+    }
+  }
+}
+
+/* select the parameter key of the selected object, enter text into its
+editor (a number or list of numbers into its number fields, as JSON) and
+apply it */
 static void EditParameter(QTreeWidget* parameters, const QString& key,
                           const QString& text) {
   QTreeWidgetItem* row = FindItem(parameters, key);
   ASSERT_TRUE(row) << key.toStdString();
   parameters->setCurrentItem(row);
   QWidget* panel = parameters->parentWidget();
-  auto* line_edit = panel->findChild<QLineEdit*>();
-  ASSERT_TRUE(line_edit);
-  line_edit->setText(text);
-  for(auto* button : panel->findChildren<QPushButton*>()) {
-    if(button->text() == "Apply") {
-      button->click();
+  const std::vector<QAbstractSpinBox*> fields = NumberFields(panel);
+  if(!fields.empty()) {
+    Json::Value json;
+    std::istringstream in(text.toStdString());
+    ASSERT_TRUE(Json::parseFromStream(Json::CharReaderBuilder(), in, &json,
+                                      nullptr));
+    std::vector<double> numbers;
+    JsonNumbers(json, numbers);
+    ASSERT_EQ(numbers.size(), fields.size()) << key.toStdString();
+    for(size_t i = 0; i < fields.size(); i++) {
+      if(auto* number = dynamic_cast<shift::gui::NumberSpinBox*>(fields[i])) {
+        number->setValue(numbers[i]);
+      } else {
+        static_cast<QSpinBox*>(fields[i])->setValue(int(numbers[i]));
+      }
     }
+  } else {
+    QLineEdit* line_edit = TextField(panel);
+    ASSERT_TRUE(line_edit);
+    line_edit->setText(text);
   }
+  ClickApply(panel);
 }
 
 TEST(WorkspaceTree, FollowsTheModelFile) {
@@ -195,8 +260,11 @@ TEST(WorkspaceTree, EditReloadsTheModel) {
 
   // a value the model rejects is not applied, and the model is as it was
   EditParameter(parameters, "teeth_1", "-3");
-  EditParameter(parameters, "contact_ratio", "[1, 2]");
   ASSERT_TRUE(FindItem(parameters, "contact_ratio"));
+  // a number is edited in one number field, not as text
+  parameters->setCurrentItem(FindItem(parameters, "contact_ratio"));
+  EXPECT_EQ(NumberFields(parameters->parentWidget()).size(), 1u);
+  EXPECT_FALSE(TextField(parameters->parentWidget()));
   EXPECT_EQ(FindItem(parameters, "contact_ratio")->text(1).toStdString(),
             "1.6");
   EXPECT_EQ(FindItem(parameters, "pitch_radius_1")->text(1).toStdString(),
@@ -634,6 +702,61 @@ TEST(WorkspaceTree, EyeShowsTheAxesOfFrames) {
   EXPECT_EQ(FramesShown(workspace), 0u);
 }
 
+TEST(WorkspaceTree, EyeHidesTerrainAndSoil) {
+  EnsureWorkspaceApplication();
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/terramechanics/sph_blade.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  const shift::gui::Viewport* viewport = workspace.get_viewport();
+
+  // an SCM ground and an SPH pit in it, both shown at first
+  QTreeWidgetItem* ground = FindItem(tree, "ground");
+  QTreeWidgetItem* pit = FindItem(tree, "pit");
+  ASSERT_TRUE(ground && pit);
+  // the pit is in view at once: the ground and its regions open
+  EXPECT_TRUE(ground->isExpanded());
+  EXPECT_TRUE(pit->parent()->isExpanded());
+  // each with the icon of its type
+  for(const char* icon : {":/icons/heightmap.png", ":/icons/scm.png",
+                          ":/icons/sph.png"}) {
+    EXPECT_TRUE(QFile::exists(icon)) << icon;
+  }
+  EXPECT_FALSE(ground->icon(0).isNull());
+  EXPECT_FALSE(pit->icon(0).isNull());
+  EXPECT_NE(ground->icon(0).pixmap(32).toImage(),
+            pit->icon(0).pixmap(32).toImage());
+  EXPECT_EQ(Eye(ground), 1);
+  EXPECT_EQ(Eye(pit), 1);
+  auto any = [](const std::vector<bool>& hidden) {
+    return std::find(hidden.begin(), hidden.end(), true) != hidden.end();
+  };
+  EXPECT_FALSE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+
+  // the eye of the ground hides its surface, not the soil's particles
+  ClickEye(tree, ground);
+  EXPECT_EQ(Eye(ground), 0);
+  EXPECT_TRUE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+
+  // the eye of the pit hides its particles
+  ClickEye(tree, pit);
+  EXPECT_EQ(Eye(pit), 0);
+  EXPECT_TRUE(any(viewport->get_hidden_particles()));
+
+  // and shows them again
+  ClickEye(tree, ground);
+  ClickEye(tree, pit);
+  EXPECT_FALSE(any(viewport->get_hidden_terrains()));
+  EXPECT_FALSE(any(viewport->get_hidden_particles()));
+}
+
 TEST(WorkspaceTree, EyeShowsJointAxesAndHidesBodies) {
   EnsureWorkspaceApplication();
   InBuildDirectory directory;
@@ -757,6 +880,176 @@ TEST(WorkspaceTree, JointArrowPointsAlongTheGivenAxis) {
   EXPECT_NEAR(ksl_dot_vvf(&reversed, &given), -1.f, 1e-5f);
 }
 
+/* numbers are edited in spin boxes that take only numbers, one for each
+number of a vector, with buttons to lengthen or shorten a list of any
+length; a string of a set of values is picked from a list */
+TEST(WorkspaceTree, ParameterEditorFields) {
+  EnsureWorkspaceApplication();
+  // only numbers are typed
+  shift::gui::NumberSpinBox number;
+  int position = 0;
+  for(const char* text : {"1", "-2.5e3", " 4E+06", "0.001", "1."}) {
+    QString typed(text);
+    EXPECT_EQ(number.validate(typed, position), QValidator::Acceptable)
+      << text;
+  }
+  for(const char* text : {"", "-", ".", "2e", "2e-"}) {
+    QString typed(text);
+    EXPECT_EQ(number.validate(typed, position), QValidator::Intermediate)
+      << text;
+  }
+  for(const char* text : {"x", "[1, 2]", "1,2", "nan", "1e3x"}) {
+    QString typed(text);
+    EXPECT_EQ(number.validate(typed, position), QValidator::Invalid) << text;
+  }
+  // its arrows step by a tenth of the place of its leading digit
+  number.setValue(9.81);
+  number.stepBy(1);
+  EXPECT_NEAR(number.value(), 9.91, 1e-12);
+  number.setValue(2.0e6);
+  number.stepBy(-1);
+  EXPECT_NEAR(number.value(), 1.9e6, 1e-6);
+
+  InBuildDirectory directory;
+  shift::gui::Workspace workspace;
+  QString error;
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/joints/screw_and_gear.json", &error))
+    << error.toStdString();
+  QTreeWidget* tree;
+  QTreeWidget* parameters;
+  FindTrees(workspace, tree, parameters);
+  QWidget* panel = parameters->parentWidget();
+  auto select = [&](const char* key) {
+    tree->setCurrentItem(FindItem(tree, "gear_a_bearing (revolute)"));
+    QTreeWidgetItem* row = FindItem(parameters, key);
+    EXPECT_TRUE(row) << key;
+    parameters->setCurrentItem(row);
+  };
+
+  // a vector: a field for each of its numbers, and no text
+  select("axis");
+  std::vector<QAbstractSpinBox*> fields = NumberFields(panel);
+  ASSERT_EQ(fields.size(), 3u);
+  EXPECT_FALSE(TextField(panel));
+  EXPECT_EQ(fields[2]->text().toStdString(), "1");
+
+  // an axis of no length is not applied: the model stays loaded as it was
+  for(auto* field : fields) {
+    static_cast<shift::gui::NumberSpinBox*>(field)->setValue(0.0);
+  }
+  ClickApply(panel);
+  QLabel* note = nullptr;
+  for(auto* label : panel->findChildren<QLabel*>()) {
+    if(label->text().contains("axis needs")) {
+      note = label;
+    }
+  }
+  EXPECT_TRUE(note);
+  const std::string axis = FindItem(parameters, "axis")->text(1).toStdString();
+  EXPECT_NE(axis.find('1'), std::string::npos) << axis;
+
+  // a list of any length: + adds a number after the last, - removes it
+  select("damping_coefficients");
+  const size_t count = NumberFields(panel).size();
+  // the buttons are made again with the fields
+  auto click = [&](const QString& text) {
+    QToolButton* found = nullptr;
+    for(auto* button : panel->findChildren<QToolButton*>()) {
+      if(button->text() == text) {
+        found = button;
+      }
+    }
+    ASSERT_TRUE(found) << text.toStdString();
+    found->click();
+    QApplication::processEvents();
+  };
+  const QString minus = QString::fromUtf8("\u2212");
+  click("+");
+  EXPECT_EQ(NumberFields(panel).size(), count + 1);
+  click(minus);
+  EXPECT_EQ(NumberFields(panel).size(), count);
+  // a list of one number, applied
+  while(NumberFields(panel).size() > 1) {
+    click(minus);
+  }
+  if(NumberFields(panel).empty()) {
+    click("+");
+  }
+  EditParameter(parameters, "damping_coefficients", "[0.25]");
+  select("damping_coefficients");
+  ASSERT_EQ(NumberFields(panel).size(), 1u);
+  EXPECT_EQ(NumberFields(panel)[0]->text().toStdString(), "0.25");
+
+  // the extent x of a heightmap with no regions or scenery does nothing:
+  // shown, greyed, with its fields, but not editable
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/terrain/bricard.json", &error))
+    << error.toStdString();
+  FindTrees(workspace, tree, parameters);
+  panel = parameters->parentWidget();
+  tree->setCurrentItem(FindItem(tree, "sinxx+cosyy"));
+  ASSERT_TRUE(FindItem(parameters, "x"));
+  EXPECT_TRUE(FindItem(parameters, "x")->toolTip(0).contains("no effect"));
+  parameters->setCurrentItem(FindItem(parameters, "x"));
+  ASSERT_EQ(NumberFields(panel).size(), 2u);
+  EXPECT_FALSE(NumberFields(panel)[0]->isEnabled());
+  bool noted = false;
+  for(auto* label : panel->findChildren<QLabel*>()) {
+    noted = noted || label->text().startsWith("no effect");
+  }
+  EXPECT_TRUE(noted);
+
+  // a list of a fixed length (the extent x of a soil, [first, last]): that
+  // many fields, and no buttons to lengthen or shorten it; applied as given
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/terramechanics/sph_blade.json", &error))
+    << error.toStdString();
+  FindTrees(workspace, tree, parameters);
+  panel = parameters->parentWidget();
+  tree->setCurrentItem(FindItem(tree, "ground"));
+  ASSERT_TRUE(FindItem(parameters, "x"));
+  EXPECT_FALSE(FindItem(parameters, "x")->toolTip(0).contains("no effect"));
+  parameters->setCurrentItem(FindItem(parameters, "x"));
+  ASSERT_EQ(NumberFields(panel).size(), 2u);
+  EXPECT_TRUE(NumberFields(panel)[0]->isEnabled());
+  EXPECT_TRUE(panel->findChildren<QToolButton*>().empty());
+  EditParameter(parameters, "x", "[-0.6, 2]");
+  for(auto* label : panel->findChildren<QLabel*>()) {
+    EXPECT_FALSE(label->text().startsWith("not applied"))
+      << label->text().toStdString();
+  }
+  tree->setCurrentItem(FindItem(tree, "ground"));
+  ASSERT_TRUE(FindItem(parameters, "x"));
+  EXPECT_EQ(FindItem(parameters, "x")->text(1).toStdString(), "[-0.6, 2]");
+
+  // a string of a set of values is picked from them
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/vehicle/tire_fiala_control.json", &error))
+    << error.toStdString();
+  FindTrees(workspace, tree, parameters);
+  panel = parameters->parentWidget();
+  QTreeWidgetItem* tire = nullptr;
+  for(QTreeWidgetItemIterator it(tree); *it; ++it) {
+    if((*it)->text(0).startsWith("tire (") &&
+       (*it)->text(0) != "tire (body)") {
+      tire = *it;
+    }
+  }
+  ASSERT_TRUE(tire);
+  tree->setCurrentItem(tire);
+  ASSERT_TRUE(FindItem(parameters, "tire_type"));
+  parameters->setCurrentItem(FindItem(parameters, "tire_type"));
+  QComboBox* choices = panel->findChild<QComboBox*>();
+  ASSERT_TRUE(choices);
+  QStringList items;
+  for(int i = 0; i < choices->count(); i++) {
+    items << choices->itemText(i);
+  }
+  EXPECT_EQ(items.join(",").toStdString(), "fiala,pac2002,bekker_wong,iowa");
+  EXPECT_EQ(choices->currentText().toStdString(), "fiala");
+}
+
 TEST(WorkspaceTree, SettingsPersist) {
   EnsureWorkspaceApplication();
   InBuildDirectory directory;
@@ -788,14 +1081,19 @@ TEST(WorkspaceTree, SettingsPersist) {
   std::ifstream file(path);
   Json::Value json;
   file >> json;
-  EXPECT_EQ(json["frame_scale"].asDouble(), 0.75);
-  EXPECT_EQ(json["joint_color"].asString(), "#a040e0");
-  EXPECT_EQ(json["joint_thickness"].asDouble(),
+  // grouped as the pages of the Settings dialog
+  EXPECT_EQ(json["interface"]["frame_scale"].asDouble(), 0.75);
+  EXPECT_EQ(json["interface"]["joint_color"].asString(), "#a040e0");
+  EXPECT_EQ(json["interface"]["joint_thickness"].asDouble(),
             shift::gui::Settings::kDefaultJointThickness);
   EXPECT_EQ(json["from_a_later_version"].asInt(), 7);
+  EXPECT_FALSE(json.isMember("frame_scale"));
 
-  EXPECT_EQ(json["lod_tolerance"].asDouble(),
+  EXPECT_EQ(json["rendering"]["lod_tolerance"].asDouble(),
             shift::gui::Settings::kDefaultLodTolerance);
+  EXPECT_EQ(json["rendering"]["tone_mapping"].asString(), "reinhard");
+  EXPECT_EQ(json["flexible_bodies"]["stress_quantity"].asString(),
+            "von_mises");
 
   // the level of detail tolerance, 0 (the meshes themselves) allowed
   read.set_lod_tolerance(0.0);
@@ -806,7 +1104,7 @@ TEST(WorkspaceTree, SettingsPersist) {
   read.set_lod_tolerance(shift::gui::Settings::kDefaultLodTolerance);
 
   // the ray tracer's render scale, from kMinimumRenderScale to 1
-  EXPECT_EQ(json["render_scale"].asDouble(),
+  EXPECT_EQ(json["rendering"]["render_scale"].asDouble(),
             shift::gui::Settings::kDefaultRenderScale);
   read.set_render_scale(0.5);
   ASSERT_TRUE(read.Save(path));
@@ -865,8 +1163,9 @@ TEST(WorkspaceTree, SettingsPersist) {
     std::ifstream saved_file(path);
     Json::Value saved_json;
     saved_file >> saved_json;
-    EXPECT_FALSE(saved_json["dlss"].asBool());
-    EXPECT_EQ(saved_json["dlss_mode"].asString(), "ultra_performance");
+    EXPECT_FALSE(saved_json["rendering"]["dlss"].asBool());
+    EXPECT_EQ(saved_json["rendering"]["dlss_mode"].asString(),
+              "ultra_performance");
   }
   shift::gui::Settings upscaled;
   ASSERT_TRUE(upscaled.Load(path));
@@ -878,6 +1177,52 @@ TEST(WorkspaceTree, SettingsPersist) {
   std::string mode_error;
   EXPECT_FALSE(bad_mode.Load(path, &mode_error));
   EXPECT_NE(mode_error.find("dlss_mode"), std::string::npos);
+
+  // the tone curve, the exposure, how terrain and soil are drawn, and how
+  // flexible bodies are drawn
+  thick.set_tone_aces(true);
+  thick.set_exposure(-1.5);
+  thick.set_smooth_terrain(false);
+  thick.set_soil_surface(false);
+  thick.set_deformation_scale(20.0);
+  thick.set_flex_mesh_surface(true);
+  thick.set_flex_element_edges(true);
+  thick.set_flex_constrained_nodes(true);
+  thick.set_flex_stresses(true);
+  ASSERT_TRUE(thick.Save(path));
+  shift::gui::Settings drawn;
+  ASSERT_TRUE(drawn.Load(path));
+  EXPECT_TRUE(drawn.is_tone_aces());
+  EXPECT_EQ(drawn.get_exposure(), -1.5);
+  EXPECT_FALSE(drawn.is_smooth_terrain());
+  EXPECT_FALSE(drawn.is_soil_surface());
+  EXPECT_EQ(drawn.get_deformation_scale(), 20.0);
+  EXPECT_TRUE(drawn.is_flex_mesh_surface());
+  EXPECT_TRUE(drawn.is_flex_element_edges());
+  EXPECT_TRUE(drawn.is_flex_constrained_nodes());
+  EXPECT_TRUE(drawn.is_flex_stresses());
+  std::ofstream(path) << "{\"rendering\": {\"tone_mapping\": \"filmic\"}}";
+  shift::gui::Settings bad_tone;
+  std::string tone_error;
+  EXPECT_FALSE(bad_tone.Load(path, &tone_error));
+  EXPECT_NE(tone_error.find("tone_mapping"), std::string::npos);
+
+  // a file of an earlier version, its keys at the top level, is read and
+  // written grouped
+  std::ofstream(path) << "{\"frame_scale\": 0.3, \"render_scale\": 0.5}";
+  shift::gui::Settings earlier;
+  ASSERT_TRUE(earlier.Load(path));
+  EXPECT_EQ(earlier.get_frame_scale(), 0.3);
+  EXPECT_EQ(earlier.get_render_scale(), 0.5);
+  ASSERT_TRUE(earlier.Save(path));
+  {
+    std::ifstream grouped_file(path);
+    Json::Value grouped;
+    grouped_file >> grouped;
+    EXPECT_FALSE(grouped.isMember("frame_scale"));
+    EXPECT_EQ(grouped["interface"]["frame_scale"].asDouble(), 0.3);
+    EXPECT_EQ(grouped["rendering"]["render_scale"].asDouble(), 0.5);
+  }
 
   // a bad value is reported and the defaults kept
   std::ofstream(path) << "{\"frame_scale\": -1}";

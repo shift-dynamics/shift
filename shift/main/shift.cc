@@ -13,14 +13,50 @@
 static bool ParseImageRequest(const QCommandLineParser& parser,
                               shift::gui::Workspace::ImageRequest& request,
                               QString& error) {
-  request.filename = parser.value("image");
+  request.video = parser.isSet("video");
+  request.filename = parser.value(request.video ? "video" : "image");
   bool ok = true;
+  if(request.video) {
+    if(!parser.isSet("time")) {
+      error = "--video needs --time, the time of its end";
+      return false;
+    }
+    if(parser.isSet("start")) {
+      request.start = parser.value("start").toDouble(&ok);
+      if(!ok || request.start < 0.0) {
+        error = "--start takes a time of at least 0 s";
+        return false;
+      }
+    }
+    if(parser.isSet("fps")) {
+      request.frame_rate = parser.value("fps").toInt(&ok);
+      if(!ok || request.frame_rate < 1) {
+        error = "--fps takes a number of frames per second of at least 1";
+        return false;
+      }
+    }
+    if(parser.isSet("settle")) {
+      request.settle = parser.value("settle").toInt(&ok);
+      if(!ok || request.settle < 0) {
+        error = "--settle takes a number of frames of at least 0";
+        return false;
+      }
+    }
+  } else if(parser.isSet("start") || parser.isSet("fps") ||
+            parser.isSet("settle")) {
+    error = "--start, --fps and --settle need --video";
+    return false;
+  }
   if(parser.isSet("time")) {
     request.time = parser.value("time").toDouble(&ok);
     if(!ok || request.time < 0.0) {
       error = "--time takes a time of at least 0 s";
       return false;
     }
+  }
+  if(request.video && request.time <= request.start) {
+    error = "--video needs --time after --start";
+    return false;
   }
   if(parser.isSet("size")) {
     const QStringList size = parser.value("size").split('x');
@@ -107,17 +143,33 @@ int main(int argc, char* argv[]) {
   parser.addOptions({
     {"image", "render the model to an image file (PNG, JPEG, ...) and quit",
      "file"},
-    {"time", "with --image: simulate to this time first, or show it from an HDF5 log (s)", "seconds"},
-    {"size", "with --image: image size (default 1200x800)", "WIDTHxHEIGHT"},
+    {"video",
+     "render the model from --start to --time to a video file (MP4, WebM, "
+     "...) and quit; a .png file writes numbered images instead",
+     "file"},
+    {"start", "with --video: the time of the first frame (default 0 s)",
+     "seconds"},
+    {"fps", "with --video: frames per second (default 30)", "n"},
+    {"settle",
+     "with --video and --samples: ray trace the first frame this many times "
+     "before recording, as if the view had been still that long",
+     "n"},
+    {"time", "with --image: simulate to this time first, or show it from an HDF5 log; with --video: the time of the end (s)", "seconds"},
+    {"size", "with --image or --video: size in pixels (default 1200x800)", "WIDTHxHEIGHT"},
     {"view",
-     "with --image: camera azimuth about +z from +x towards +y, and "
+     "with --image or --video: camera azimuth about +z from +x towards +y, "
+     "and "
      "elevation above the x-y plane, in degrees",
      "AZIMUTH,ELEVATION"},
     {"frame",
-     "with --image: frame this sphere of the scene, not all of it, in the "
+     "with --image or --video: frame this sphere of the scene, not all of "
+     "it, in the "
      "inertial frame",
      "X,Y,Z,RADIUS"},
-    {"samples", "with --image: ray trace, averaging this many frames", "n"},
+    {"samples",
+     "with --image: ray trace, averaging this many frames; with --video: "
+     "this many for each frame of the video",
+     "n"},
     {"no-floor", "with --image: hide the floor"},
     {"deformation-scale",
      "with --image: draw the deformation of flexible bodies this many times "
@@ -143,12 +195,17 @@ int main(int argc, char* argv[]) {
      "with --image: draw SPH soil as its particles, not as a surface over "
      "them"},
     {"follow",
-     "with --image: set the view at the start, and follow this body to --time",
+     "with --image or --video: set the view at the start, and follow this "
+     "body to --time",
      "body"},
     {"exposure",
      "brightness of the image in stops (default 0): each stop doubles the "
-     "light before the filmic tone mapping",
+     "light before the tone curve",
      "stops"},
+    {"tone-map",
+     "the curve from the light of the scene to the colors of the screen: "
+     "reinhard (default) or aces (filmic)",
+     "curve"},
     {"follow-ground",
      "with --follow: follow the ground under the body, level, so that the "
      "body is seen to bounce and tilt"},
@@ -156,11 +213,14 @@ int main(int argc, char* argv[]) {
   parser.process(app);
 
   shift::gui::Workspace::ImageRequest request;
-  const bool image = parser.isSet("image");
+  const bool image = parser.isSet("image") || parser.isSet("video");
   if(image) {
     QString error;
-    if(parser.positionalArguments().isEmpty()) {
-      error = "--image needs a model file";
+    if(parser.isSet("image") && parser.isSet("video")) {
+      error = "--image and --video cannot be given together";
+    } else if(parser.positionalArguments().isEmpty()) {
+      error = parser.isSet("video") ? "--video needs a model file"
+                                    : "--image needs a model file";
     }
     if(!error.isEmpty() || !ParseImageRequest(parser, request, error)) {
       std::fprintf(stderr, "shift: %s\n", error.toLocal8Bit().constData());
@@ -194,6 +254,15 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     window.set_exposure(float(stops));
+  }
+  if(parser.isSet("tone-map")) {
+    const QString curve = parser.value("tone-map");
+    if(curve == "aces") {
+      window.set_tone_curve(shift::gui::Viewport::ToneCurve::kAces);
+    } else if(curve != "reinhard") {
+      std::fprintf(stderr, "shift: --tone-map takes reinhard or aces\n");
+      return 1;
+    }
   }
   window.show();
   if(!parser.positionalArguments().isEmpty()) {

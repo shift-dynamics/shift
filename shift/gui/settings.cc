@@ -28,6 +28,25 @@ std::string shift::gui::Settings::get_default_path() {
   return QDir(QDir::homePath()).filePath(".shift/settings.json").toStdString();
 }
 
+const char* shift::gui::Settings::SectionOf(const std::string& key) {
+  for(const char* interface : {"frame_scale", "joint_color",
+                               "joint_thickness"}) {
+    if(key == interface) {
+      return "interface";
+    }
+  }
+  for(const char* flexible :
+      {"deformation_scale", "mesh_surface", "element_edges",
+       "constrained_nodes", "stresses", "stress_quantity", "stress_peak",
+       "stress_color_map", "stress_range", "stress_minimum", "stress_maximum",
+       "safety_factor_minimum", "safety_factor_maximum"}) {
+    if(key == flexible) {
+      return "flexible_bodies";
+    }
+  }
+  return "rendering";
+}
+
 bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
   if(!QFileInfo::exists(QString::fromStdString(path))) {
     return true; // not saved yet: the defaults
@@ -41,14 +60,25 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
   }
   Json::CharReaderBuilder builder;
   builder["allowComments"] = true;
-  Json::Value json;
+  Json::Value file_json;
   std::string message;
-  if(!Json::parseFromStream(builder, file, &json, &message) ||
-     !json.isObject()) {
+  if(!Json::parseFromStream(builder, file, &file_json, &message) ||
+     !file_json.isObject()) {
     if(error) {
       *error = path + ": " + (message.empty() ? "not a JSON object" : message);
     }
     return false;
+  }
+  // the keys of the groups, read as the top level keys of a file of an
+  // earlier version are, which a group's take the place of
+  Json::Value json = file_json;
+  for(const char* section : {"interface", "rendering", "flexible_bodies"}) {
+    json.removeMember(section);
+    if(file_json.isMember(section) && file_json[section].isObject()) {
+      for(const std::string& name : file_json[section].getMemberNames()) {
+        json[name] = file_json[section][name];
+      }
+    }
   }
   // a positive number at key, default if the file has none
   auto positive = [&](const char* key, double& value) {
@@ -174,14 +204,84 @@ bool shift::gui::Settings::Load(const std::string& path, std::string* error) {
       return false;
     }
   }
+  bool tone_aces = false;
+  if(json.isMember("tone_mapping")) {
+    const Json::Value& curve = json["tone_mapping"];
+    if(!curve.isString() ||
+       (curve.asString() != "aces" && curve.asString() != "reinhard")) {
+      if(error) {
+        *error = path + ": tone_mapping must be \"reinhard\" or \"aces\"";
+      }
+      return false;
+    }
+    tone_aces = curve.asString() == "aces";
+  }
+  double exposure = 0.0;
+  if(json.isMember("exposure")) {
+    if(!json["exposure"].isNumeric()) {
+      if(error) {
+        *error = path + ": exposure must be a number of stops";
+      }
+      return false;
+    }
+    exposure = json["exposure"].asDouble();
+  }
+  // true or false at key, default if the file has none
+  auto boolean = [&](const char* key, bool& value) {
+    if(!json.isMember(key)) {
+      return true;
+    }
+    if(!json[key].isBool()) {
+      if(error) {
+        *error = path + ": " + key + " must be true or false";
+      }
+      return false;
+    }
+    value = json[key].asBool();
+    return true;
+  };
+  bool smooth_terrain = true;
+  bool soil_surface = true;
+  bool flex_mesh_surface = false;
+  bool flex_element_edges = false;
+  bool flex_constrained_nodes = false;
+  bool flex_stresses = false;
+  if(!boolean("smooth_terrain", smooth_terrain) ||
+     !boolean("soil_surface", soil_surface) ||
+     !boolean("mesh_surface", flex_mesh_surface) ||
+     !boolean("element_edges", flex_element_edges) ||
+     !boolean("constrained_nodes", flex_constrained_nodes) ||
+     !boolean("stresses", flex_stresses)) {
+    return false;
+  }
+  double deformation_scale = 1.0;
+  if(json.isMember("deformation_scale")) {
+    const Json::Value& number = json["deformation_scale"];
+    if(!number.isNumeric() || number.asDouble() < 0.0) {
+      if(error) {
+        *error = path + ": deformation_scale must be a number of at least 0";
+      }
+      return false;
+    }
+    deformation_scale = number.asDouble();
+  }
   frame_scale_ = frame_scale;
+  tone_aces_ = tone_aces;
+  exposure_ = exposure;
+  smooth_terrain_ = smooth_terrain;
+  soil_surface_ = soil_surface;
+  flex_mesh_surface_ = flex_mesh_surface;
+  flex_element_edges_ = flex_element_edges;
+  flex_constrained_nodes_ = flex_constrained_nodes;
+  flex_stresses_ = flex_stresses;
+  deformation_scale_ = deformation_scale;
   joint_color_ = joint_color;
   joint_thickness_ = joint_thickness;
   lod_tolerance_ = lod_tolerance;
   render_scale_ = render_scale;
   dlss_enabled_ = dlss_enabled;
   dlss_quality_ = dlss_quality;
-  json_ = json;
+  json_ = file_json;
   return true;
 }
 
@@ -195,22 +295,40 @@ bool shift::gui::Settings::Save(const std::string& path,
     return false;
   }
   Json::Value json = json_;
-  json["frame_scale"] = frame_scale_;
-  json["joint_color"] = joint_color_.name(QColor::HexRgb).toStdString();
-  json["joint_thickness"] = joint_thickness_;
-  json["stress_color_map"] = stress_color_map_;
-  json["stress_range"] = stress_range_automatic_ ? "automatic" : "fixed";
-  json["stress_minimum"] = stress_minimum_;
-  json["stress_maximum"] = stress_maximum_;
-  json["stress_quantity"] =
-    StressQuantities()[size_t(stress_quantity_)].key;
-  json["stress_peak"] = stress_peak_;
-  json["safety_factor_minimum"] = safety_minimum_;
-  json["safety_factor_maximum"] = safety_maximum_;
-  json["lod_tolerance"] = lod_tolerance_;
-  json["render_scale"] = render_scale_;
-  json["dlss"] = dlss_enabled_;
-  json["dlss_mode"] = Dlss::get_quality_key(dlss_quality_);
+  // each key in its group, in place of where a file of an earlier version
+  // had it
+  auto put = [&json](const char* key, const Json::Value& value) {
+    json.removeMember(key);
+    const char* section = SectionOf(key);
+    if(!json[section].isObject()) {
+      json[section] = Json::Value(Json::objectValue);
+    }
+    json[section][key] = value;
+  };
+  put("frame_scale", frame_scale_);
+  put("joint_color", joint_color_.name(QColor::HexRgb).toStdString());
+  put("joint_thickness", joint_thickness_);
+  put("stress_color_map", stress_color_map_);
+  put("stress_range", stress_range_automatic_ ? "automatic" : "fixed");
+  put("stress_minimum", stress_minimum_);
+  put("stress_maximum", stress_maximum_);
+  put("stress_quantity", StressQuantities()[size_t(stress_quantity_)].key);
+  put("stress_peak", stress_peak_);
+  put("safety_factor_minimum", safety_minimum_);
+  put("safety_factor_maximum", safety_maximum_);
+  put("lod_tolerance", lod_tolerance_);
+  put("render_scale", render_scale_);
+  put("dlss", dlss_enabled_);
+  put("dlss_mode", Dlss::get_quality_key(dlss_quality_));
+  put("tone_mapping", tone_aces_ ? "aces" : "reinhard");
+  put("exposure", exposure_);
+  put("smooth_terrain", smooth_terrain_);
+  put("soil_surface", soil_surface_);
+  put("deformation_scale", deformation_scale_);
+  put("mesh_surface", flex_mesh_surface_);
+  put("element_edges", flex_element_edges_);
+  put("constrained_nodes", flex_constrained_nodes_);
+  put("stresses", flex_stresses_);
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  ";
   std::ofstream file(path);

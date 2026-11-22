@@ -195,8 +195,7 @@ void shift::core::force_module::Dem::DeclareParameters() {
                    false);
   DeclareParameter("device", &device_,
                    "\"gpu\" (default) or \"cpu\" (single threaded, for few "
-                   "grains)",
-                   false);
+                   "grains)", false, {"gpu", "cpu"});
   DeclareParameter("margin", &margin_,
                    "distance within which grains are listed as neighbors "
                    "(m); 0, the default, for a fifth of the smallest radius",
@@ -223,8 +222,8 @@ void shift::core::force_module::Dem::DeclareParameters() {
   DeclareParameter("contact_method", &contact_method_,
                    "\"smc\" (default): smooth contact, Hertz-Mindlin "
                    "forces; or \"nsc\": non-smooth contact, rigid contacts "
-                   "resolved as impulses (as Chrono's ChSystemNSC)",
-                   false);
+                   "resolved as impulses (as Chrono's ChSystemNSC)", false,
+                   {"smc", "nsc"});
   DeclareParameter("nsc_iterations", &nsc_iterations_,
                    "NSC: iterations of the solver each step; default 100",
                    false);
@@ -232,7 +231,7 @@ void shift::core::force_module::Dem::DeclareParameters() {
                    "NSC: \"apgd\" (default, accelerated projected "
                    "gradient descent), \"gauss_seidel\" (projected "
                    "Gauss-Seidel, on the CPU only) or \"jacobi\" (projected Jacobi)",
-                   false);
+                   false, {"apgd", "gauss_seidel", "jacobi"});
   DeclareParameter("nsc_relaxation", &nsc_relaxation_,
                    "NSC: relaxation of the iterations; 0, the default, for 1 "
                    "(Gauss-Seidel) or 0.2 (Jacobi)",

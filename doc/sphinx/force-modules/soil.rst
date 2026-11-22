@@ -440,7 +440,8 @@ to the sprocket carries 26 kN to the 17 to 20 kN of the others.
 The viewer (``build-release/shift/main/shift``) draws the rut while the track
 runs and when you play it back. At each output time it records only the nodes
 whose level changed, so it can scrub forward and back without storing the
-whole grid at every frame. **View > Smooth deformable terrain** draws a smooth
+whole grid at every frame. *Edit > Settings > Rendering > Smooth deformable
+terrain* draws a smooth
 (Catmull-Rom) surface through the nodes. Unchecked, the surface is bilinear
 between the nodes, which is the surface the soil contact module uses. **Run**
 continues from the rut shown: each node takes the level drawn and keeps it
@@ -451,7 +452,8 @@ triangle pairs per cell along each side, fewer on a large grid.
 
 The viewer draws an SPH soil from its particles, recorded at each output
 time; playback shows those of the output time at or before the time shown.
-**View > Soil surface** draws one surface over the particles, as the soil
+*Edit > Settings > Rendering > SPH soil as a surface* draws one surface
+over the particles, as the soil
 looks. The depth of the particles seen, each a sphere, is smoothed across
 the view, over a few particle spacings, by a filter that keeps a near surface
 apart from one behind it, and the smoothed depth is shaded as a surface. A

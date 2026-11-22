@@ -23,6 +23,8 @@ class QCheckBox;
 class QComboBox;
 class QDial;
 class QDoubleSpinBox;
+class QAbstractSpinBox;
+class QHBoxLayout;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
@@ -109,7 +111,17 @@ public:
   /*! What SaveImage renders */
   struct ImageRequest {
     QString filename;          /*!< image file; the format from its suffix */
-    double time = 0.0;         /*!< simulated time shown */
+    double time = 0.0;         /*!< simulated time shown; the end of a
+                                * video */
+    /*! render a video from start to time, not an image: to filename, as
+     * Simulation > Video exports, or, if its suffix is png, to numbered
+     * PNG images, filename with _0000, _0001, ... before the suffix */
+    bool video = false;
+    double start = 0.0;        /*!< the time of a video's first frame */
+    int frame_rate = 30;       /*!< a video's frames per second */
+    int settle = 0;            /*!< ray traced frames of the first frame's
+                                * pose before a video's first frame, as if
+                                * the view had been still that long */
     QSize size{1200, 800};     /*!< pixels */
     bool set_view = false;     /*!< use azimuth and elevation */
     float azimuth = 0.6f;      /*!< radians, see Camera */
@@ -124,7 +136,9 @@ public:
     bool follow_ground = false; /*!< follow the ground under the body, see
                                  * Viewport::FollowMode */
     int samples = 0;           /*!< ray traced frames; 0 renders raster */
-    double deformation_scale = 1.0; /*!< View > Deformation scale */
+    double deformation_scale = -1.0; /*!< Settings > Flexible Bodies >
+                                      * Deformation scale; below 0, as
+                                      * saved */
     bool flex_mesh_surface = false; /*!< draw every flexible body by its
                                      * mesh's surface, not its CAD */
     bool flex_mesh_edges = false;   /*!< draw the edges of the elements of
@@ -139,12 +153,15 @@ public:
     float frame_radius = 1.f;  /*!< of the sphere */
   };
 
-  /*! \brief render the open model at request.time to an image file and
+  /*! \brief render the open model at request.time to an image file, or
+   * from request.start to request.time to a video (request.video), and
    * quit the application with exit status 0, or 1 on failure. Simulates
    * up to request.time first if it is after the start. Returns at once;
    * the work is done from the event loop once the viewport can render. */
   void SaveImage(const ImageRequest& request);
 
+  /*! \brief the tone curve, as View > Tone mapping */
+  void set_tone_curve(Viewport::ToneCurve curve);
   /*! \brief the exposure of the image in stops, as View > Exposure */
   void set_exposure(float stops);
 
@@ -267,6 +284,14 @@ private:
   void SelectParameterRow();
   /*! \brief apply the editor to the selected parameter */
   void ApplyParameterEdit();
+  /*! \brief empty the editor's fields, and return their new layout */
+  QHBoxLayout* ClearEditorFields();
+  /*! \brief fields for the numbers of parameter_panel_.number_shape: one
+   * row of a list, a grid of a matrix, labeled fields of an object, and
+   * buttons that add or remove the last number of a list of any length */
+  void BuildNumberFields(bool integers);
+  /*! \brief parameter_panel_.number_shape with the numbers of its fields */
+  Json::Value NumberFieldsJson() const;
   /*! \brief read the shown values again; while the simulation runs, only
    * those of parameters that may change as it runs */
   void UpdateParameterPanel();
@@ -310,6 +335,10 @@ private:
   /*! \brief one step of SaveImage: wait for the viewport and the results,
    * then render; returns true when done */
   bool AdvanceImage();
+  /*! \brief render the frames of image_request_, a video, with the
+   * offscreen render begun and the camera set at its start; false, with
+   * why in error, on failure */
+  bool RenderRequestedVideo(QString& error);
 
   /*! \brief advance playback and jogging, once per display frame */
   void Tick();
@@ -353,6 +382,7 @@ private:
     shift::core::parameter::Value* value = nullptr;
     std::vector<std::string> keys;
     bool in_file = false; /*!< the object is in model_json_, at path */
+    bool no_effect = false; /*!< x, y of a heightmap: shown, not edited */
     std::vector<JsonStep> path;       /*!< of the object holding the parameter */
   };
   struct {
@@ -368,6 +398,11 @@ private:
     QLineEdit* line_edit = nullptr;   /*!< a number, string or JSON text */
     QComboBox* combo_box = nullptr;   /*!< a boolean or a string of a set */
     QDoubleSpinBox* angles[3] = {};   /*!< roll, pitch, yaw in degrees */
+    /*! the value as JSON, in the form the file gives it, its numbers each
+     * edited by one of numbers, in the order NumberLeaves visits them */
+    Json::Value number_shape;
+    std::vector<QAbstractSpinBox*> numbers;
+    bool number_list = false; /*!< a list of numbers of any length */
     QPushButton* apply_button = nullptr;
     QLabel* editor_note = nullptr;
     int editing_row = -1;
@@ -390,11 +425,13 @@ private:
   /*! an item of the tree with an eye: a coordinate frame (its axes), a
    * joint (the line of its axis, two for a gear) or a body (its meshes) */
   struct EyeItem {
-    enum Kind { kFrame, kJoint, kBody };
+    enum Kind { kFrame, kJoint, kBody, kTerrain, kSoil };
     Kind kind = kFrame;
     QTreeWidgetItem* item = nullptr;
     QString path;       /*!< see PathKey */
-    int body_index = 0; /*!< of the simulation: of the frame, or the body */
+    int body_index = 0; /*!< of the simulation: of the frame, or the body;
+                         * a terrain's index in Scene::terrains, an SPH
+                         * soil's in Scene::particles */
     ksl_SE3f_t frame = Identity(); /*!< a frame, with respect to the body
                                       origin */
     std::vector<Viewport::JointAxis> lines; /*!< a joint */
@@ -403,10 +440,13 @@ private:
   /*! folders of items with an eye, whose eye is for all of them */
   std::vector<QTreeWidgetItem*> eye_folders_;
   /*! by path, kept when the model is loaded again: the frames and joints
-   * shown, and the bodies hidden; a model opens with none of them */
+   * shown, and the bodies and terrains hidden; a model opens with none of
+   * them */
   std::set<QString> shown_frames_;
   std::set<QString> shown_joints_;
   std::set<QString> hidden_bodies_;
+  std::set<QString> hidden_terrains_; /*!< as hidden_bodies_, and the SPH
+                                       * soils hidden */
   /*! by body name, kept when the model is loaded again: the flexible
    * bodies drawn by their mesh's surface rather than their CAD, and those
    * with the edges of their elements drawn (Viewport::
@@ -498,7 +538,6 @@ private:
    * a body whose mesh sizes changed is meshed and analysed again */
   void ApplyFlexChanges();
   /*! \brief View > Deformation scale */
-  void DeformationScaleDialog();
 
   /* collision geometry of the fixed body; the pose of a plane can be set */
   struct {
@@ -569,7 +608,6 @@ private:
   } playback_panel_;
 
   QAction* floor_action_ = nullptr; /*!< View > Floor */
-  QDoubleSpinBox* exposure_box_ = nullptr; /*!< View > Exposure */
   /*! View > Smooth deformable terrain */
   QAction* smooth_terrain_action_ = nullptr;
   QAction* particle_surface_action_ = nullptr;

@@ -129,9 +129,16 @@ public:
 
   Value& DeclareParameter(const std::string key, Value parameter);
 
+  /*! \brief declare a string parameter; valid_values, if any, are the
+   * values it takes: a model file that gives another is not loaded
+   * (ReadJSON), and the viewer offers them in a list to pick from */
   Value& DeclareParameter(const std::string key, std::string* data,
-                          const std::string description, bool required = true) {
+                          const std::string description, bool required = true,
+                          const std::vector<std::string>& valid_values = {}) {
     Value value(data, description, required);
+    for(const std::string& valid_value : valid_values) {
+      value.AddValidStringValue(valid_value);
+    }
     return DeclareParameter(key, value);
   }
 

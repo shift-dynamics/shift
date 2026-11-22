@@ -144,13 +144,20 @@ A model opens with its bodies shown and no frames or joint axes. Frames and
 joint axes are drawn over the model, so that those inside a body still show.
 What is shown stays shown when an edit loads the model again.
 
-*Edit > Settings* sets the length of the arrows (*Coordinate frame scale*,
-0.25 m at first); the arrow of a joint axis is twice as long, from minus to
-plus that length along the axis. It also sets the color of the joint axes
-(*Joint color*, purple at first), picked from a color dialog, and the
-diameter of their shafts (*Joint axis thickness*, 7.5 mm at first; the
-heads are three times as wide). The settings
-are saved in ``~/.shift/settings.json`` and read each time the viewer starts.
+The eye beside a terrain shows or hides it in the same way, and the eye
+beside an SPH soil its particles.
+
+*Edit > Settings* lists its settings by category down its left side:
+*Interface*, *Rendering* and *Flexible Bodies*. Under *Interface* it sets the
+length of the arrows (*Coordinate frame scale*, 0.25 m at first); the arrow
+of a joint axis is twice as long, from minus to plus that length along the
+axis. It also sets the color of the joint axes (*Joint color*, purple at
+first), picked from a color dialog, and the diameter of their shafts
+(*Joint axis thickness*, 7.5 mm at first; the heads are three times as
+wide). The view shows each change at once, and *Cancel* restores the
+settings of before. The settings are saved in ``~/.shift/settings.json``,
+grouped as the dialog's categories (``"interface"``, ``"rendering"`` and
+``"flexible_bodies"``), and read each time the viewer starts.
 
 Selecting an object lists all of its parameters below the tree, read from the
 object as it is. Parameters that the file leaves at their defaults are greyed
@@ -165,7 +172,12 @@ Selecting a parameter opens an editor below the list:
 
 * a true/false value, or a string with a fixed set of choices, is picked
   from a list;
-* a number or a string is typed in;
+* a number, and each number of a vector, a matrix or an inertia, has a field
+  of its own that takes only a number; its arrows step it by a tenth of the
+  place of its leading digit (9.81 by 0.1). A list of numbers of any length
+  has buttons that add a number at its end (+) and remove its last
+  (−). Numbers the file gives as whole numbers stay whole;
+* a string is typed in;
 * an orientation is given as roll, pitch and yaw in degrees: turn the axes
   about z by the yaw, then about the new y by the pitch, then about the
   newest x by the roll, :math:`R = R_z(\psi)\, R_y(\theta)\, R_x(\phi)`
@@ -174,8 +186,14 @@ Selecting a parameter opens an editor below the list:
   for a frame whose file gives no orientation), ``[x, y, z, w]`` for a
   quaternion, and Euler angles about the file's own ``axes`` for
   ``euler_angles``;
-* any other value (a vector, an inertia, a list) is typed as in the model
-  file, e.g. ``[0, 0, 3]``.
+* any other value (a list of strings, a table) is typed as in the model
+  file, e.g. ``["front", "rear"]``.
+
+An axis of no length is not applied. The extent ``x`` and ``y`` of a
+heightmap is shown in grey and cannot be edited when it has no effect:
+when the heightmap is not a region of another terrain, has no regions, and
+has no scenery strewn over it. The size of a heightmap is that of its map,
+times ``x_scale`` and ``y_scale``.
 
 *Apply*, or Enter in a text field, sets the value. A parameter that may change while the
 model runs, such as the throttle of a powertrain, is set at once, also during
@@ -206,6 +224,18 @@ is how the pictures in these documents are made
    build/shift/main/shift examples/pendulum/double_pendulum.json \
      --image pendulum.png --time 1 --size 1200x800 --view 30,20 --samples 256
 
+``--video FILE`` renders a run from ``--start`` to ``--time`` to a video, at
+``--fps`` frames per second, with ``--samples`` ray traced frames for each
+frame of the video (1 shows the run as the viewer plays it); a ``.png``
+file writes numbered images instead:
+
+.. code:: bash
+
+   # 2 s of the rally car, following its chassis, level with the ground
+   build/shift/main/shift examples/forest/polo_r_wrc_forest.json \
+     --video polo.mp4 --time 2 --size 1920x1080 --samples 1 \
+     --follow chassis --follow-ground
+
 ``shift --help`` lists the options. ``--frame X,Y,Z,RADIUS`` aims the view at a
 sphere instead of the whole model, for a close up.
 
@@ -213,11 +243,15 @@ A mesh whose material has an opacity below 1 (``d`` in an OBJ's ``.mtl`` file) l
 light through in the ray traced view: it shows what is behind it and casts a lighter
 shadow, with no refraction. The other render modes draw it solid.
 
-The viewer maps the light of the scene to the colors of the screen with the
-ACES filmic curve, which deepens the shadows and rolls off the highlights
-without clipping them. **View > Exposure** brightens or darkens the image in
-stops: each stop doubles or halves the light before the curve is applied.
-With ``--image``, ``--exposure STOPS`` sets the same value (default 0).
+The viewer maps the light of the scene to the colors of the screen with a
+tone curve, chosen in *Edit > Settings > Rendering > Tone mapping*.
+*Reinhard*, the default, maps a light :math:`x` to :math:`x / (1 + x)`.
+*ACES filmic* gives more contrast in the mid tones, deepens the shadows and
+rolls off the highlights without clipping them. *Exposure* brightens or
+darkens the image in stops: each stop doubles or halves the light before the
+curve is applied. Images and videos rendered from the command line use the
+saved settings; ``--tone-map reinhard|aces`` and ``--exposure STOPS`` set
+other values for one render.
 
 To keep a moving body in view, tick *follow* in the *Camera* box of the
 *Simulation* tab and pick the body. The camera then keeps its place relative to

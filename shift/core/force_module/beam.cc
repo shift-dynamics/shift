@@ -25,8 +25,8 @@ void shift::core::force_module::Beam::DeclareBeamParameters() {
                    false);
   DeclareParameter("section", &section_,
                    "\"circle\", \"tube\", \"rectangle\" or \"general\" "
-                   "(default)",
-                   false);
+                   "(default)", false,
+                   {"circle", "tube", "rectangle", "general"});
   DeclareParameter("diameter", &diameter_,
                    "outer diameter of a circle or tube section", false);
   DeclareParameter("inner_diameter", &inner_diameter_,

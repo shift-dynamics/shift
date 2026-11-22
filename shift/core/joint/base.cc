@@ -1,3 +1,4 @@
+#include <cmath>
 #include <assert.h>
 #include <iostream>
 
@@ -51,6 +52,15 @@ void shift::core::joint::Base::DeclareParameters() {
   DeclareParameter("child", &child_, "child body/frame pair", true)
     .set_row_dim(2)
     .set_column_dim(-1);
+}
+
+void shift::core::joint::Base::CheckAxis(const ksl_vec3_t& axis) const {
+  const double length =
+    std::sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z);
+  if(!(length > 0.0) || !std::isfinite(length)) {
+    throw shift::core::Exception("Joint " + get_name() +
+                                 ": the axis has no length");
+  }
 }
 
 void shift::core::joint::Base::Load() {

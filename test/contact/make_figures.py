@@ -439,6 +439,7 @@ def outward(g_other, at, n, reach):
 def render(model, image, angles, center, radius):
     command = [VIEWER, os.path.basename(model), '--image', image,
                '--size', '%dx%d' % SIZE, '--samples', str(SAMPLES), '--no-floor',
+               '--tone-map', 'reinhard', '--exposure', '0',
                '--view', '%g,%g' % angles,
                '--frame', '%.9g,%.9g,%.9g,%.9g' % (*center, radius)]
     subprocess.run(command, cwd=os.path.dirname(model), check=True, timeout=180,

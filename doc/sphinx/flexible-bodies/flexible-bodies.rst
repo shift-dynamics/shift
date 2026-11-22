@@ -293,13 +293,15 @@ Select a flexible body in the viewer to open its panel:
   whether it is the held reference or gives six static modes (a sliding
   attachment on one line, with its stations);
 - *Draw the stresses*: the stress on the surface drawn, the CAD solid's
-  or the mesh's (the quantity, color map and range of Edit > Settings);
+  or the mesh's (the quantity, color map and range of *Edit > Settings >
+  Flexible Bodies*);
 - *Modes...*: the mode window;
 - *Element size*, *Minimum size* and *Apply*: see `Regenerating the
   mesh`_.
 
-View > Flexible bodies does each of these for every flexible body, and
-View > Deformation scale magnifies the deformation. To render an image
+*Edit > Settings > Flexible Bodies* does each of these for every flexible
+body when a model opens, and its *Deformation scale* magnifies the
+deformation. To render an image
 from the command line::
 
   build/shift/main/shift examples/flex/attachments.json --image link.png \

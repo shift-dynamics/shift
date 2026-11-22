@@ -20,7 +20,8 @@ void shift::core::sensor::Joint::DeclareParameters() {
   DeclareParameter("joint", &joint_name_,
                    "name of the measured joint, in the same assembly", true);
   DeclareParameter("quantity", &quantity_,
-                   "measured quantity: \"position\" or \"velocity\"", true);
+                   "measured quantity: \"position\" or \"velocity\"", true,
+                   {"position", "velocity"});
   DeclareParameter("index", &index_,
                    "degree of freedom of a multi-DOF joint, defaults to 0",
                    false);

@@ -24,8 +24,8 @@ void shift::core::solver::Auto::DeclareParameters() {
   DeclareParameter("tree_solver", &tree_solver_type_,
                    "Solver for the trees without closed loops: 'aba', the "
                    "articulated-body algorithm, or 'dca', the "
-                   "divide-and-conquer algorithm -- default: 'aba'.",
-                   false);
+                   "divide-and-conquer algorithm -- default: 'aba'.", false,
+                   {"aba", "dca"});
 }
 
 void shift::core::solver::Auto::Initialize() {

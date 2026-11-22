@@ -270,6 +270,10 @@ public:
   virtual void Service(const std::vector<double>&) {}
 
 protected:
+  /*! \brief throw a shift::core::Exception if axis, the axis the model file
+   * gives the joint, has no length or no direction (not finite) */
+  void CheckAxis(const ksl_vec3_t& axis) const;
+
   virtual void DeclareParameters() override;
   std::string type_;          //!< descriptive name of joint type
   unsigned int dof_ = 0;      //!< number of degrees of freedom

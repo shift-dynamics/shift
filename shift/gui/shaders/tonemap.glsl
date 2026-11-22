@@ -1,8 +1,9 @@
 // tone mapping of linear scene colors to display colors in [0, 1] (before
 // gamma), shared by every pass that writes the image: sky.frag, floor.frag,
-// mesh.frag (and cad.frag, fluid.frag), svgf_composite.comp and svgf_taa.comp.
+// mesh.frag (and cad.frag, fluid.frag), svgf_taa.comp and dlss_prepare.comp.
 //
-// The ACES filmic curve, as fitted by S. Hill (the reference rendering and
+// Two curves (Viewport::ToneCurve): Reinhard's x / (1 + x), the default, and
+// the ACES filmic curve, as fitted by S. Hill (the reference rendering and
 // output transforms, sRGB in and out): a toe that deepens the shadows, a
 // shoulder that rolls the highlights off without clipping, and the
 // desaturation of very bright colors toward white, as film does.
@@ -19,15 +20,30 @@ const mat3 kAcesOutput = mat3(1.60475, -0.10208, -0.00327,
 // did with the Reinhard curve x / (1 + x) this replaced
 const float kAcesGain = 1.4;
 
+// back from x / (1 + x), the space the ray traced image is composited and
+// temporally anti-aliased in (svgf_composite.comp), to linear radiance; the
+// filmic curve is applied after the anti-aliasing, since the anti-aliasing's
+// clamps let more noise through where the curve is steeper (the mid tones)
+vec3 FromReinhard(vec3 c) {
+  c = clamp(c, vec3(0.0), vec3(0.999));
+  return c / (vec3(1.0) - c);
+}
+
 vec3 AcesFit(vec3 v) {
   vec3 a = v * (v + 0.0245786) - 0.000090537;
   vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
   return a / b;
 }
 
-// color: linear scene radiance; exposure: in stops (Viewport::set_exposure),
-// frame.sky_zenith.w in the raster passes and u.tone.x in the ray traced ones
-vec3 ToneMap(vec3 color, float exposure) {
-  vec3 v = kAcesInput * (max(color, vec3(0.0)) * kAcesGain * exp2(exposure));
+// color: linear scene radiance; exposure: in stops (Viewport::set_exposure);
+// curve: 0 Reinhard, 1 ACES (Viewport::set_tone_curve). The raster passes
+// pass frame.sky_zenith.w and frame.sky_horizon.w, the ray traced ones
+// u.tone.x and u.tone.y
+vec3 ToneMap(vec3 color, float exposure, float curve) {
+  vec3 x = max(color, vec3(0.0)) * exp2(exposure);
+  if(curve < 0.5) {
+    return x / (x + vec3(1.0));
+  }
+  vec3 v = kAcesInput * (x * kAcesGain);
   return clamp(kAcesOutput * AcesFit(v), 0.0, 1.0);
 }

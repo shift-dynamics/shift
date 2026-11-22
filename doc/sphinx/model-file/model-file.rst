@@ -413,13 +413,13 @@ In the viewer, a flexible body is drawn deformed as the model runs: its
 ``fe_geometry`` CAD, the exact surface displaced as the surface of its mesh
 around it, where the graphics device has tessellation and compute shaders
 (Vulkan), and otherwise (and for a ``mesh`` geometry, in the color of its
-material) the surface of its mesh. View > Deformation scale
-magnifies the deformation (but not the part of it that moves the body as a
+material) the surface of its mesh. *Edit > Settings > Flexible Bodies >
+Deformation scale* magnifies the deformation (but not the part of it that moves the body as a
 whole). The body's panel can draw the surface of its mesh in place of the
 CAD, the edges of its elements over either surface and, as points, the nodes
 the joints' attachments tie to the body's frames (both in raster mode only),
 and the stress on the surface drawn, the CAD's or the mesh's, which the
-View menu and the viewer's
+*Flexible Bodies* settings and the viewer's
 ``--image`` options ``--mesh-surface``, ``--mesh-edges``,
 ``--constrained-nodes`` and ``--stresses`` do for every flexible body. The
 stress of each surface node in each shape is computed with the modes (at

@@ -52,7 +52,7 @@ struct FrameUniforms {
   float sun_direction[4];
   float sun_color[4];
   float sky_zenith[4]; // w = exposure (stops), see tonemap.glsl
-  float sky_horizon[4];
+  float sky_horizon[4]; // w = tone curve (0 Reinhard, 1 ACES)
   float floor_params[4];
   float floor_frame[16]; // column major: axes u, v, normal, origin
   float fog_params[4]; // density, height falloff, height, 1 if any fog
@@ -450,7 +450,7 @@ struct DenoiseUniforms {
   float view_projection[16]; // current frame
   float upscale[4]; // xy = the primary rays' jitter (ray traced pixels),
                     // zw = ray traced size / output size (1 = not scaled)
-  float tone[4];    // x = exposure (stops), see tonemap.glsl
+  float tone[4];    // x = exposure (stops), y = curve, see tonemap.glsl
 };
 static_assert(sizeof(DenoiseUniforms) == 208);
 
@@ -803,10 +803,20 @@ void shift::gui::Viewport::set_particle_surface(bool surface) {
   update();
 }
 
+/* the tone curve as the shaders take it (tonemap.glsl) */
+static float ToneCurveValue(shift::gui::Viewport::ToneCurve curve) {
+  return curve == shift::gui::Viewport::ToneCurve::kAces ? 1.f : 0.f;
+}
+
+void shift::gui::Viewport::set_tone_curve(ToneCurve curve) {
+  tone_curve_ = curve;
+  // as the exposure, applied after the ray traced history
+  update();
+}
+
 void shift::gui::Viewport::set_exposure(float stops) {
   exposure_ = stops;
-  // the ray traced history is kept tone mapped
-  rt_history_valid_ = false;
+  // the ray traced history is kept before the filmic curve, so it stays
   update();
 }
 
@@ -880,6 +890,31 @@ void shift::gui::Viewport::set_hidden_bodies(std::vector<bool> hidden) {
   rt_instances_dirty_ = true;
   rt_frame_ = 0;
   update();
+}
+
+void shift::gui::Viewport::set_hidden_terrains(std::vector<bool> hidden) {
+  hidden_terrains_ = std::move(hidden);
+  rt_instances_dirty_ = true;
+  rt_frame_ = 0;
+  update();
+}
+
+void shift::gui::Viewport::set_hidden_particles(std::vector<bool> hidden) {
+  hidden_particles_ = std::move(hidden);
+  update();
+}
+
+bool shift::gui::Viewport::is_mesh_shown(int mesh) const {
+  if(!simulation_ || hidden_terrains_.empty()) {
+    return true;
+  }
+  const Scene& scene = simulation_->get_scene();
+  if(mesh < 0 || mesh >= static_cast<int>(scene.meshes.size())) {
+    return true;
+  }
+  const int terrain = scene.meshes[size_t(mesh)].terrain;
+  return terrain < 0 || terrain >= static_cast<int>(hidden_terrains_.size()) ||
+         !hidden_terrains_[size_t(terrain)];
 }
 
 void shift::gui::Viewport::set_flex_mesh_surfaces(
@@ -1040,9 +1075,10 @@ void shift::gui::Viewport::LowerFloorBelowModel() {
   const float gap = 0.01f * ksl_vec3f_l2norm(&size);
   const float level = box_max.z + gap;
   if(level > floor_origin_.z) {
+    // lowered as the model settles, by a little in each frame
     PlaceFloor(ksl_vec3f(0.5f * (box_min.x + box_max.x),
                          0.5f * (box_min.y + box_max.y), level),
-               ksl_vec3f(0.f, 0.f, -1.f));
+               ksl_vec3f(0.f, 0.f, -1.f), true);
   }
 }
 
@@ -1053,7 +1089,8 @@ void shift::gui::Viewport::set_floor(const ksl_vec3f_t& point,
 }
 
 void shift::gui::Viewport::PlaceFloor(const ksl_vec3f_t& point,
-                                      const ksl_vec3f_t& normal) {
+                                      const ksl_vec3f_t& normal,
+                                      bool keep_history) {
   floor_origin_ = point;
   floor_normal_ = Normalized(normal);
   // in-plane axes: the x axis projected onto the plane, so a level floor
@@ -1065,8 +1102,12 @@ void shift::gui::Viewport::PlaceFloor(const ksl_vec3f_t& point,
   ksl_axpy_vvf(-ksl_dot_vvf(&x, &floor_normal_), &floor_normal_, &x);
   floor_u_ = Normalized(x);
   ksl_cross_vvf(&floor_normal_, &floor_u_, &floor_v_);
-  rt_frame_ = 0;
-  rt_history_valid_ = false;
+  if(floor_enabled_) {
+    rt_frame_ = 0;
+    if(!keep_history) {
+      rt_history_valid_ = false;
+    }
+  }
   update();
 }
 
@@ -2545,7 +2586,8 @@ shift::gui::Viewport::DrawnInstances() const {
 
 bool shift::gui::Viewport::is_instance_drawn(
   const SceneInstance& instance) const {
-  if(!is_body_shown(instance.body_index)) {
+  if(!is_body_shown(instance.body_index) ||
+     !is_mesh_shown(instance.mesh_index)) {
     return false;
   }
   const Scene& scene = simulation_->get_scene();
@@ -3668,7 +3710,7 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
   CopyVector(camera_.get_position(), 1.f, frame.camera_position);
   SunUniforms(lights_on, frame.sun_direction, frame.sun_color);
   CopyVector(sky_zenith_, exposure_, frame.sky_zenith);
-  CopyVector(sky_horizon_, 0.f, frame.sky_horizon);
+  CopyVector(sky_horizon_, ToneCurveValue(tone_curve_), frame.sky_horizon);
   FogUniforms(frame.fog_params, frame.fog_color);
   UploadWaves(batch);
   WaterUniforms(frame.water_params, frame.water_wave, frame.water_color,
@@ -3748,7 +3790,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
         ksl_subtract_vvf(&center, &eye, &offset);
         const float distance = ksl_vec3f_l2norm(&offset);
         if(placed) {
-          bool shown = is_body_shown(body);
+          bool shown =
+            is_body_shown(body) && is_mesh_shown(instance.mesh_index);
           if(mesh.draw_distance > 0.f) {
             shown = shown && distance - radius < mesh.draw_distance;
           }
@@ -3789,7 +3832,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       const size_t l = size_t(levels[i]);
       InstanceAttributes& drawn =
         instances[gpu.level_first[l] + gpu.level_count[l]++];
-      if(is_body_shown(instance.body_index)) {
+      if(is_body_shown(instance.body_index) &&
+         is_mesh_shown(instance.mesh_index)) {
         CopyPlacedMatrix(poses_.bodies[instance.body_index], instance,
                          drawn.model);
       } else {
@@ -3978,7 +4022,8 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
     const Scene& scene = simulation_->get_scene();
     bool bound = false;
     for(const auto& gpu : gpu_particles_) {
-      if(gpu.count == 0 || !gpu.centers) {
+      if(gpu.count == 0 || !gpu.centers ||
+         !is_particles_shown(gpu.particles_index)) {
         continue;
       }
       if(!bound) {
@@ -4009,6 +4054,9 @@ void shift::gui::Viewport::RenderRaster(QRhiCommandBuffer* cb,
       for(const SceneInstance& instance : scene.instances) {
         shown = shown || (instance.mesh_index == mesh_index &&
                           is_body_shown(instance.body_index));
+      }
+      if(!is_mesh_shown(mesh_index)) {
+        shown = false;
       }
       if(!shown) {
         continue;
@@ -4099,7 +4147,7 @@ bool shift::gui::Viewport::RenderFluidDepth(
   float radius = 0.f;
   bool any = false;
   for(const auto& gpu : gpu_particles_) {
-    if(gpu.count > 0 && gpu.centers) {
+    if(gpu.count > 0 && gpu.centers && is_particles_shown(gpu.particles_index)) {
       any = true;
       radius = std::max(radius, scene.particles[gpu.particles_index].radius);
     }
@@ -4137,7 +4185,8 @@ bool shift::gui::Viewport::RenderFluidDepth(
   cb->setViewport(viewport);
   cb->setShaderResources(fluid_sphere_bindings_.get());
   for(const auto& gpu : gpu_particles_) {
-    if(gpu.count == 0 || !gpu.centers) {
+    if(gpu.count == 0 || !gpu.centers ||
+       !is_particles_shown(gpu.particles_index)) {
       continue;
     }
     const QRhiCommandBuffer::VertexInput input(gpu.centers.get(), 0);
@@ -4505,6 +4554,7 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
     denoise.blend[3] = bodies_moved ? kHistoryCamera : denoise.params[1];
     denoise.control[0] = instance_count;
     denoise.tone[0] = exposure_;
+    denoise.tone[1] = ToneCurveValue(tone_curve_);
     // the jitter of this frame's primary rays (raytrace.comp), from which
     // the anti-aliasing pass places the samples in its larger image
     const uint32_t halton_index = uint32_t(rt_sample_) + 1u;
