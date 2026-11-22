@@ -15,6 +15,7 @@
 #include "shift/core/parameter/array_base.h"
 #include "shift/core/parameter/list.h"
 #include "shift/core/parameter/value.h"
+#include "shift/core/environment/scenery.h"
 #include "shift/core/terrain/base.h"
 #include "shift/core/terrain/scm.h"
 #include "shift/core/terrain/sph.h"
@@ -2206,6 +2207,42 @@ static const char* TerrainIcon(shift::core::parameter::List* object) {
   return nullptr;
 }
 
+/* whether terrain, or a region inside it, is region */
+static bool HasRegion(const shift::core::terrain::Base& terrain,
+                      const shift::core::terrain::Base* region) {
+  for(const auto* inner : terrain.get_regions()) {
+    if(inner == region || HasRegion(*inner, region)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* whether the x and y of object do nothing: object is a heightmap (not a
+ * soil), not a region of another terrain, with no regions of its own, and no
+ * scenery strewn over it. A heightmap is sized by its map, scaled by x_scale
+ * and y_scale; x and y bound only its regions and its scenery. */
+static bool ExtentHasNoEffect(shift::core::parameter::List* object,
+                              shift::core::Context* context) {
+  auto* terrain = dynamic_cast<shift::core::terrain::Basic*>(object);
+  if(!terrain || !context || dynamic_cast<shift::core::terrain::Scm*>(object) ||
+     dynamic_cast<shift::core::terrain::Sph*>(object) ||
+     !terrain->get_regions().empty()) {
+    return false;
+  }
+  for(const auto* other : context->get_active_terrain()) {
+    if(HasRegion(*other, terrain)) {
+      return false;
+    }
+  }
+  for(const auto& scenery : context->get_scenery()) {
+    if(scenery->get_terrain_name() == terrain->get_name()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /* the icon of an element of the array key, or of the object parameter key */
 static const char* ObjectIcon(const std::string& key, const std::string& type) {
   if(key == "collision_geometry") {
@@ -3886,10 +3923,19 @@ void shift::gui::Workspace::AddParameterRows(
       for(const auto& alias : keys) {
         from_file = from_file || object->Find(alias)->is_loaded_from_file();
       }
-      if(!from_file) {
-        // a default, not given in the model file
+      const bool no_effect = (key == "x" || key == "y") &&
+                             ExtentHasNoEffect(object,
+                                               simulation_.get_context());
+      if(!from_file || no_effect) {
         row->setForeground(0, default_brush);
         row->setForeground(1, default_brush);
+      }
+      if(no_effect) {
+        tooltip += "\n(no effect on a heightmap without regions or "
+                   "scenery: its size is that of its map, times x_scale "
+                   "and y_scale)";
+      } else if(!from_file) {
+        // a default, not given in the model file
         tooltip += "\n(default: not in the model file)";
       }
       SetRowValue(row, *value);
@@ -3898,6 +3944,7 @@ void shift::gui::Workspace::AddParameterRows(
       parameter_row.item = row;
       parameter_row.value = value;
       parameter_row.keys = keys;
+      parameter_row.no_effect = no_effect;
       parameter_row.in_file = path != nullptr;
       if(path) {
         parameter_row.path = *path;
@@ -4023,7 +4070,11 @@ void shift::gui::Workspace::SelectParameterRow() {
   panel.editor_key->setText(QString::fromStdString(row.keys.front()));
   QString note;
   bool editable = true;
-  if(value.is_runtime()) {
+  if(row.no_effect) {
+    note = "no effect on a heightmap without regions or scenery: its size "
+           "is that of its map, times x_scale and y_scale";
+    editable = false;
+  } else if(value.is_runtime()) {
     note = "applies at once, also while the model runs";
   } else if(!row.in_file) {
     note = "made when the model loads, not read from the model file: it "

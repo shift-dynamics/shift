@@ -187,7 +187,11 @@ Selecting a parameter opens an editor below the list:
 * any other value (a list of strings, a table) is typed as in the model
   file, e.g. ``["front", "rear"]``.
 
-An axis of no length is not applied.
+An axis of no length is not applied. The extent ``x`` and ``y`` of a
+heightmap is shown in grey and cannot be edited when it has no effect:
+when the heightmap is not a region of another terrain, has no regions, and
+has no scenery strewn over it. The size of a heightmap is that of its map,
+times ``x_scale`` and ``y_scale``.
 
 *Apply*, or Enter in a text field, sets the value. A parameter that may change while the
 model runs, such as the throttle of a powertrain, is set at once, also during

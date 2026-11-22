@@ -382,6 +382,7 @@ private:
     shift::core::parameter::Value* value = nullptr;
     std::vector<std::string> keys;
     bool in_file = false; /*!< the object is in model_json_, at path */
+    bool no_effect = false; /*!< x, y of a heightmap: shown, not edited */
     std::vector<JsonStep> path;       /*!< of the object holding the parameter */
   };
   struct {

@@ -981,9 +981,8 @@ TEST(WorkspaceTree, ParameterEditorFields) {
   ASSERT_EQ(NumberFields(panel).size(), 1u);
   EXPECT_EQ(NumberFields(panel)[0]->text().toStdString(), "0.25");
 
-  // a list of a fixed length the file does not give (the extent x of a
-  // heightmap, [first, last]): that many fields, of zeros, and no buttons
-  // to lengthen or shorten it; applied as given
+  // the extent x of a heightmap with no regions or scenery does nothing:
+  // shown, greyed, with its fields, but not editable
   ASSERT_TRUE(workspace.Open(
     QString(SHIFT_EXAMPLES_DIR) + "/terrain/bricard.json", &error))
     << error.toStdString();
@@ -991,17 +990,38 @@ TEST(WorkspaceTree, ParameterEditorFields) {
   panel = parameters->parentWidget();
   tree->setCurrentItem(FindItem(tree, "sinxx+cosyy"));
   ASSERT_TRUE(FindItem(parameters, "x"));
+  EXPECT_TRUE(FindItem(parameters, "x")->toolTip(0).contains("no effect"));
   parameters->setCurrentItem(FindItem(parameters, "x"));
   ASSERT_EQ(NumberFields(panel).size(), 2u);
+  EXPECT_FALSE(NumberFields(panel)[0]->isEnabled());
+  bool noted = false;
+  for(auto* label : panel->findChildren<QLabel*>()) {
+    noted = noted || label->text().startsWith("no effect");
+  }
+  EXPECT_TRUE(noted);
+
+  // a list of a fixed length (the extent x of a soil, [first, last]): that
+  // many fields, and no buttons to lengthen or shorten it; applied as given
+  ASSERT_TRUE(workspace.Open(
+    QString(SHIFT_EXAMPLES_DIR) + "/terramechanics/sph_blade.json", &error))
+    << error.toStdString();
+  FindTrees(workspace, tree, parameters);
+  panel = parameters->parentWidget();
+  tree->setCurrentItem(FindItem(tree, "ground"));
+  ASSERT_TRUE(FindItem(parameters, "x"));
+  EXPECT_FALSE(FindItem(parameters, "x")->toolTip(0).contains("no effect"));
+  parameters->setCurrentItem(FindItem(parameters, "x"));
+  ASSERT_EQ(NumberFields(panel).size(), 2u);
+  EXPECT_TRUE(NumberFields(panel)[0]->isEnabled());
   EXPECT_TRUE(panel->findChildren<QToolButton*>().empty());
-  EditParameter(parameters, "x", "[-10, 10]");
+  EditParameter(parameters, "x", "[-0.6, 2]");
   for(auto* label : panel->findChildren<QLabel*>()) {
     EXPECT_FALSE(label->text().startsWith("not applied"))
       << label->text().toStdString();
   }
-  tree->setCurrentItem(FindItem(tree, "sinxx+cosyy"));
+  tree->setCurrentItem(FindItem(tree, "ground"));
   ASSERT_TRUE(FindItem(parameters, "x"));
-  EXPECT_EQ(FindItem(parameters, "x")->text(1).toStdString(), "[-10, 10]");
+  EXPECT_EQ(FindItem(parameters, "x")->text(1).toStdString(), "[-0.6, 2]");
 
   // a string of a set of values is picked from them
   ASSERT_TRUE(workspace.Open(
