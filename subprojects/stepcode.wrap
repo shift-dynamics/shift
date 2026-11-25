@@ -1,0 +1,8 @@
+[wrap-git]
+url = https://github.com/stepcode/stepcode.git
+revision = v0.8.2
+depth = 1
+patch_directory = stepcode
+
+[provide]
+dependency_names = stepcode

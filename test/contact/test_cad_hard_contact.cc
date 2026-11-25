@@ -1118,7 +1118,10 @@ TEST_F(CadHard, FieldSeedsFindTheSameContact) {
         const auto& m = field[match];
         EXPECT_NEAR(m.depth, c.depth, 1e-12) << name << " pose " << i;
         EXPECT_NEAR(m.weight, c.weight, 1e-9) << name << " pose " << i;
-        EXPECT_NEAR(m.length, c.length, 1e-9 * std::max(c.length, 1e-3))
+        // the length of a line of a ring where the ball is nearly tangent to
+        // the seat amplifies rounding: the two seeds' points, the same to a
+        // few ulps, gave lengths 2e-8 apart with fused multiply-adds (arm64)
+        EXPECT_NEAR(m.length, c.length, 1e-7 * std::max(c.length, 1e-3))
           << name << " pose " << i;
         EXPECT_GT(m.normal.x * c.normal.x + m.normal.y * c.normal.y +
                     m.normal.z * c.normal.z,

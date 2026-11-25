@@ -814,8 +814,18 @@ bool shift::core::collision_geometry::ConvexHullEllipsoidContact(
   for(const auto& p : w) {
     extreme = std::max(extreme, Dot(p, n0));
   }
-  for(double margin = 1e-4 * scale; margin < 2.0 * scale && !best.found;
-      margin *= 10.0) {
+  /* as CylinderHullContact: the margin grows until it holds every feature
+  of a normal as near n0 as the best's, the hull's diameter times
+  |best.n - n0|, not only until a candidate passes */
+  const double diameter = 2.0 * std::sqrt(size);
+  auto covered = [&](double margin) {
+    if(!best.found) {
+      return false;
+    }
+    const ksl_vec3_t gap = Sub(best.n, n0);
+    return margin >= diameter * std::sqrt(Dot(gap, gap));
+  };
+  for(double margin = 1e-4 * scale; margin < 20.0 * scale; margin *= 10.0) {
     std::vector<char> near(w.size(), 0);
     for(size_t i = 0; i < w.size(); i++) {
       near[i] = Dot(w[i], n0) >= extreme - margin;
@@ -837,6 +847,9 @@ bool shift::core::collision_geometry::ConvexHullEllipsoidContact(
           edge(static_cast<unsigned int>(v), u);
         }
       }
+    }
+    if(covered(margin)) {
+      break;
     }
   }
   if(!best.found) {
@@ -1525,8 +1538,20 @@ bool shift::core::collision_geometry::CylinderHullContact(
   std::vector<unsigned int> near;
   std::vector<char> is_near;
   std::vector<char> seen(data.polygons.size(), 0);
-  for(double margin = 1e-4 * size; margin < 2.0 * size && !best.found;
-      margin *= 10.0) {
+  /* the vertices of the feature of a normal n drop below the extreme along
+  n0 by at most the hull's diameter times |n - n0|, so a margin of that holds
+  every feature of a normal as near n0 as the best's: grow it until it does,
+  not only until a candidate passes (the first may be far from n0, as an end
+  whose extreme vertex is also extreme along n0) */
+  const double diameter = 2.0 * hull.get_bounding_radius();
+  auto covered = [&](double margin) {
+    if(!best.found) {
+      return false;
+    }
+    const ksl_vec3_t gap = Sub(best.n, n0);
+    return margin >= diameter * std::sqrt(Dot(gap, gap));
+  };
+  for(double margin = 1e-4 * size; margin < 20.0 * size; margin *= 10.0) {
     NearVertices(w, n0, margin, hint, near, is_near);
     std::fill(seen.begin(), seen.end(), 0);
     for(unsigned int v : near) {
@@ -1567,6 +1592,9 @@ bool shift::core::collision_geometry::CylinderHullContact(
          is_near[end_hint]) {
         end(sign);
       }
+    }
+    if(covered(margin)) {
+      break;
     }
   }
   if(!best.found) {

@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QMouseEvent>
 #include <QPlatformSurfaceEvent>
+#include <QVulkanFunctions>
 #include <QVulkanInstance>
 #include <QWheelEvent>
 #include <rhi/qrhi.h>
@@ -1181,6 +1182,103 @@ void shift::gui::Viewport::InitializeRhi() {
   swapchain_render_pass_.reset(
     swapchain_->newCompatibleRenderPassDescriptor());
   swapchain_->setRenderPassDescriptor(swapchain_render_pass_.get());
+
+  // a device with lazily allocated memory gets the swap chain's depth buffer
+  // in it (QRhiVulkan::createTransientImage), which a split render pass loses
+  scene_in_texture_ = false;
+  const auto* handles =
+    static_cast<const QRhiVulkanNativeHandles*>(rhi_->nativeHandles());
+  if(handles && handles->physDev) {
+    VkPhysicalDeviceMemoryProperties memory{};
+    vulkanInstance()->functions()->vkGetPhysicalDeviceMemoryProperties(
+      handles->physDev, &memory);
+    for(uint32_t k = 0; k < memory.memoryTypeCount; k++) {
+      if(memory.memoryTypes[k].propertyFlags &
+         VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) {
+        scene_in_texture_ = true;
+      }
+    }
+  }
+  if(qEnvironmentVariableIsSet("SHIFT_SCENE_TEXTURE")) {
+    scene_in_texture_ = qEnvironmentVariableIntValue("SHIFT_SCENE_TEXTURE");
+  }
+  if(scene_in_texture_) {
+    SHIFT_INFO("Drawing the scene into a texture: the device has lazily "
+               "allocated memory, which does not keep the depth buffer");
+    // made here, before the pipeline worker uses the device
+    present_sampler_.reset(rhi_->newSampler(
+      QRhiSampler::Nearest, QRhiSampler::Nearest, QRhiSampler::None,
+      QRhiSampler::ClampToEdge, QRhiSampler::ClampToEdge));
+    present_sampler_->create();
+    present_bindings_.reset(rhi_->newShaderResourceBindings());
+    present_bindings_->create(); // the layout; UpdateSceneTarget binds it
+    present_pipeline_.reset(rhi_->newGraphicsPipeline());
+    present_pipeline_->setShaderStages(
+      {{QRhiShaderStage::Vertex, LoadShader("fullscreen.vert.qsb")},
+       {QRhiShaderStage::Fragment, LoadShader("blit.frag.qsb")}});
+    present_pipeline_->setRenderPassDescriptor(swapchain_render_pass_.get());
+    present_pipeline_->setTopology(QRhiGraphicsPipeline::Triangles);
+    present_pipeline_->setCullMode(QRhiGraphicsPipeline::None);
+  }
+}
+
+bool shift::gui::Viewport::UpdateSceneTarget() {
+  if(!scene_in_texture_) {
+    return true;
+  }
+  const QSize size = swapchain_->currentPixelSize();
+  if(scene_target_ && scene_color_->pixelSize() == size) {
+    return true;
+  }
+  scene_target_.reset();
+  scene_color_.reset(rhi_->newTexture(QRhiTexture::RGBA8, size, 1,
+                                      QRhiTexture::RenderTarget));
+  scene_depth_.reset(rhi_->newTexture(QRhiTexture::D32F, size, 1,
+                                      QRhiTexture::RenderTarget));
+  if(!scene_color_->create() || !scene_depth_->create()) {
+    qWarning("Failed to create the scene textures");
+    scene_target_.reset();
+    return false;
+  }
+  QRhiTextureRenderTargetDescription description(
+    QRhiColorAttachment(scene_color_.get()));
+  description.setDepthTexture(scene_depth_.get());
+  scene_target_.reset(rhi_->newTextureRenderTarget(description));
+  // one render pass for every size, so that a resize keeps the pipelines
+  if(!scene_render_pass_) {
+    scene_render_pass_.reset(scene_target_->newCompatibleRenderPassDescriptor());
+  }
+  scene_target_->setRenderPassDescriptor(scene_render_pass_.get());
+  if(!scene_target_->create()) {
+    qWarning("Failed to create the scene render target");
+    scene_target_.reset();
+    return false;
+  }
+  present_bindings_->setBindings({QRhiShaderResourceBinding::sampledTexture(
+    0, QRhiShaderResourceBinding::FragmentStage, scene_color_.get(),
+    present_sampler_.get())});
+  present_bindings_->create();
+  if(!present_pipeline_->shaderResourceBindings()) {
+    present_pipeline_->setShaderResourceBindings(present_bindings_.get());
+    if(!present_pipeline_->create()) {
+      qWarning("Failed to create the pipeline that presents the scene");
+      scene_target_.reset();
+      return false;
+    }
+  }
+  return true;
+}
+
+void shift::gui::Viewport::PresentScene(QRhiCommandBuffer* cb) {
+  QRhiRenderTarget* target = swapchain_->currentFrameRenderTarget();
+  const QSize size = target->pixelSize();
+  cb->beginPass(target, QColor(0, 0, 0), {1.0f, 0});
+  cb->setGraphicsPipeline(present_pipeline_.get());
+  cb->setViewport(QRhiViewport(0, 0, float(size.width()),
+                               float(size.height())));
+  cb->setShaderResources(present_bindings_.get());
+  cb->draw(6);
+  cb->endPass();
 }
 
 /* SHIFT_GPU_PROFILE: the mean GPU time of each pass of the ray traced
@@ -1216,8 +1314,17 @@ void shift::gui::Viewport::ReleaseRhi() {
   offscreen_target_.reset();
   offscreen_render_pass_.reset();
   offscreen_depth_.reset();
+  offscreen_depth_texture_.reset();
   offscreen_texture_.reset();
   ReleaseAll();
+  scene_target_.reset();
+  scene_render_pass_.reset();
+  scene_color_.reset();
+  scene_depth_.reset();
+  present_pipeline_.reset();
+  present_bindings_.reset();
+  present_sampler_.reset();
+  scene_in_texture_ = false;
   dlss_.Shutdown(); // before the device goes
   dlss_failed_ = false;
   device_resources_ready_ = false;
@@ -1235,6 +1342,9 @@ void shift::gui::Viewport::ReleaseRhi() {
 QRhiRenderTarget* shift::gui::Viewport::get_render_target() const {
   if(offscreen_target_) {
     return offscreen_target_.get();
+  }
+  if(scene_target_) {
+    return scene_target_.get();
   }
   return swapchain_->currentFrameRenderTarget();
 }
@@ -1259,16 +1369,26 @@ bool shift::gui::Viewport::BeginOffscreen(const QSize& size, QString& error) {
   offscreen_texture_.reset(rhi_->newTexture(
     QRhiTexture::RGBA8, size, 1,
     QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
-  offscreen_depth_.reset(
-    rhi_->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size, 1));
-  if(!offscreen_texture_->create() || !offscreen_depth_->create()) {
+  QRhiTextureRenderTargetDescription description(
+    QRhiColorAttachment(offscreen_texture_.get()));
+  bool depth_made = false;
+  if(scene_in_texture_) {
+    // as the scene's target: a depth buffer the device keeps
+    offscreen_depth_texture_.reset(rhi_->newTexture(
+      QRhiTexture::D32F, size, 1, QRhiTexture::RenderTarget));
+    depth_made = offscreen_depth_texture_->create();
+    description.setDepthTexture(offscreen_depth_texture_.get());
+  } else {
+    offscreen_depth_.reset(
+      rhi_->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size, 1));
+    depth_made = offscreen_depth_->create();
+    description.setDepthStencilBuffer(offscreen_depth_.get());
+  }
+  if(!offscreen_texture_->create() || !depth_made) {
     error = "could not allocate the image";
     EndOffscreen();
     return false;
   }
-  QRhiTextureRenderTargetDescription description(
-    QRhiColorAttachment(offscreen_texture_.get()));
-  description.setDepthStencilBuffer(offscreen_depth_.get());
   offscreen_target_.reset(rhi_->newTextureRenderTarget(description));
   offscreen_render_pass_.reset(
     offscreen_target_->newCompatibleRenderPassDescriptor());
@@ -1335,6 +1455,7 @@ void shift::gui::Viewport::EndOffscreen() {
   offscreen_target_.reset();
   offscreen_render_pass_.reset();
   offscreen_depth_.reset();
+  offscreen_depth_texture_.reset();
   offscreen_texture_.reset();
   // the pipelines were made for the offscreen render pass
   pipeline_render_pass_ = nullptr;
@@ -1348,7 +1469,11 @@ void shift::gui::Viewport::exposeEvent(QExposeEvent*) {
     InitializeRhi();
   }
   if(isExposed() && rhi_) {
-    RenderFrame();
+    // drawn on the update request, not here: the expose can be delivered
+    // while the window system is presenting (macOS delivers it from Core
+    // Animation's transaction commit), and a frame drawn then waits for a
+    // swap chain image that is only released once the commit ends
+    requestUpdate();
   }
 }
 
@@ -1386,6 +1511,10 @@ void shift::gui::Viewport::RenderFrame() {
       return; // zero size, e.g. minimized
     }
   }
+  if(!UpdateSceneTarget()) {
+    scene_in_texture_ = false; // drawn to the swap chain after all
+    pipeline_render_pass_ = nullptr; // the pipelines are made again for it
+  }
 
   if(cad_triangles_dirty_) {
     TriangulateCad(); // in a frame of its own, before the scene's upload
@@ -1405,6 +1534,9 @@ void shift::gui::Viewport::RenderFrame() {
   }
   initialize();
   render(swapchain_->currentFrameCommandBuffer());
+  if(scene_target_) {
+    PresentScene(swapchain_->currentFrameCommandBuffer());
+  }
   rhi_->endFrame(swapchain_.get());
   // the pipelines this frame queued, made before the next draws
   StartPipelineCompile();
@@ -1520,6 +1652,7 @@ void shift::gui::Viewport::ReleaseAll() {
   rt_illumination_.reset();
   svgf_ubo_.reset();
   rt_accumulation_.reset();
+  rt_images_to_clear_.clear();
   rt_upscaled_mean_.reset();
   rt_output_.reset();
   rt_instance_node_buffer_.reset();
@@ -1715,8 +1848,10 @@ void shift::gui::Viewport::CreateSizeDependentResources() {
       rhi_->newTexture(format, size.isEmpty() ? rt_size_ : size, 1,
                        QRhiTexture::UsedWithLoadStore));
     texture->create();
+    rt_images_to_clear_.push_back(texture.get());
     return texture;
   };
+  rt_images_to_clear_.clear(); // the images they were go below
   rt_output_ = make_image(QRhiTexture::RGBA8, output_size_);
   // the progressive mean at the output's size, only read when scaled
   rt_upscaled_mean_ =
@@ -2066,7 +2201,19 @@ void shift::gui::Viewport::CreatePipelines() {
                              linear_sampler_.get()),
      Binding::sampledTexture(10, Binding::FragmentStage,
                              fluid_depth_[0].get(), sampler_.get()),
-     Binding::uniformBuffer(11, Binding::FragmentStage, fluid_ubo_.get())});
+     Binding::uniformBuffer(11, Binding::FragmentStage, fluid_ubo_.get()),
+     // fluid.frag is mesh.frag, which also declares the ground, the sky and
+     // the water: every binding it declares must be in the layout (MoltenVK
+     // does not compile the pipeline otherwise)
+     Binding::bufferLoad(17, Binding::FragmentStage, ground_buffer_.get()),
+     Binding::sampledTexture(18, Binding::FragmentStage,
+                             environment_radiance_.get(),
+                             environment_sampler_.get()),
+     Binding::sampledTexture(20, Binding::FragmentStage, waves_texture_.get(),
+                             waves_sampler_.get()),
+     Binding::sampledTexture(21, Binding::FragmentStage,
+                             large_texture_array_.get(),
+                             texture_sampler_.get())});
   fluid_bindings_->create();
   fluid_pipeline_.reset(make_pipeline("fullscreen.vert.qsb", "fluid.frag.qsb",
                                       fluid_bindings_.get(), true));
@@ -4420,6 +4567,23 @@ void shift::gui::Viewport::RenderRayTraced(QRhiCommandBuffer* cb,
   // target's
   const QSize size = rt_size_;
   const QSize target_size = get_render_target()->pixelSize();
+  // new images start at zero, before any pass reads them
+  for(QRhiTexture* texture : rt_images_to_clear_) {
+    int bytes_per_pixel = 8; // RGBA16F
+    switch(texture->format()) {
+      case QRhiTexture::RGBA8:
+      case QRhiTexture::R32F: bytes_per_pixel = 4; break;
+      case QRhiTexture::RGBA32F: bytes_per_pixel = 16; break;
+      default: break;
+    }
+    const QSize s = texture->pixelSize();
+    const QByteArray zeros(qsizetype(s.width()) * s.height() * bytes_per_pixel,
+                           '\0');
+    batch->uploadTexture(
+      texture, QRhiTextureUploadEntry(
+                 0, 0, QRhiTextureSubresourceUploadDescription(zeros)));
+  }
+  rt_images_to_clear_.clear();
   const float aspect =
     float(target_size.width()) / float(std::max(target_size.height(), 1));
   const ksl_SE3f_t view = camera_.get_view_matrix();

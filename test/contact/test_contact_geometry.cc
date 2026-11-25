@@ -24,6 +24,20 @@ static ksl_vec3_t V(double x, double y, double z) {
   return {{x, y, z}};
 }
 
+/* random numbers drawn one statement at a time, in the order GCC evaluated
+the arguments of calls like V(unit(random), unit(random), unit(random)) when
+these tests were written (right to left): the order of a call's arguments is
+unspecified, and Clang's left to right gave other shapes and poses, so every
+compiler tests the same cases */
+template <class Unit>
+static ksl_vec3_t RandomVector(Unit& unit, std::mt19937& random, double sx,
+                               double sy, double sz) {
+  const double z = sz * unit(random);
+  const double y = sy * unit(random);
+  const double x = sx * unit(random);
+  return V(x, y, z);
+}
+
 static double Dot(const ksl_vec3_t& a, const ksl_vec3_t& b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -323,16 +337,16 @@ TEST(ContactGeometry, EllipsoidPairsGlobalDepth) {
       auto a = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sa.x, sa.y, sa.z));
       auto b = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
       for(int trial = 0; trial < 12; trial++) {
-        ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
-        ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+        ksl_vec3_t axis_a = RandomVector(unit, random, 1.0, 1.0, 1.0);
+        ksl_vec3_t axis_b = RandomVector(unit, random, 1.0, 1.0, 1.0);
         for(auto* axis : {&axis_a, &axis_b}) {
           const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
           *axis = V(k * axis->x, k * axis->y, k * axis->z);
         }
         const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
-        const ksl_SE3_t pose_b =
-          Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
-               axis_b, 3.0 * unit(random));
+        const double angle_b = 3.0 * unit(random);
+        const ksl_vec3_t t_b = RandomVector(unit, random, 0.3, 0.3, 0.3);
+        const ksl_SE3_t pose_b = Pose(t_b, axis_b, angle_b);
         const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
         ksl_vec3_t n;
         const double depth = BruteForceDepth(*a, *b, n);
@@ -359,8 +373,7 @@ static std::vector<ksl_vec3_t> IrregularPoints(int count, unsigned seed) {
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   std::vector<ksl_vec3_t> points;
   for(int i = 0; i < count; i++) {
-    points.push_back(V(0.3 * unit(random), 0.2 * unit(random),
-                       0.12 * unit(random)));
+    points.push_back(RandomVector(unit, random, 0.3, 0.2, 0.12));
   }
   return points;
 }
@@ -380,16 +393,16 @@ TEST(ContactGeometry, HullEllipsoidGlobalDepth) {
     for(const auto& sb : shapes) {
       auto ellipsoid = Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(sb.x, sb.y, sb.z));
       for(int trial = 0; trial < 12; trial++) {
-        ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
-        ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+        ksl_vec3_t axis_a = RandomVector(unit, random, 1.0, 1.0, 1.0);
+        ksl_vec3_t axis_b = RandomVector(unit, random, 1.0, 1.0, 1.0);
         for(auto* axis : {&axis_a, &axis_b}) {
           const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
           *axis = V(k * axis->x, k * axis->y, k * axis->z);
         }
         const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
-        const ksl_SE3_t pose_b =
-          Pose(V(0.35 * unit(random), 0.35 * unit(random), 0.35 * unit(random)),
-               axis_b, 3.0 * unit(random));
+        const double angle_b = 3.0 * unit(random);
+        const ksl_vec3_t t_b = RandomVector(unit, random, 0.35, 0.35, 0.35);
+        const ksl_SE3_t pose_b = Pose(t_b, axis_b, angle_b);
         const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
         ksl_vec3_t n;
         const double depth = BruteForceDepth(*hull, *ellipsoid, n);
@@ -444,13 +457,13 @@ TEST(ContactGeometry, HullEllipsoidSmooth) {
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
   for(int trial = 0; trial < 40; trial++) {
-    ksl_vec3_t axis = V(unit(random), unit(random), unit(random));
+    ksl_vec3_t axis = RandomVector(unit, random, 1.0, 1.0, 1.0);
     const double k = 1.0 / std::sqrt(Dot(axis, axis));
     axis = V(k * axis.x, k * axis.y, k * axis.z);
     const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis, 3.0 * unit(random));
-    const ksl_SE3_t pose_b =
-      Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
-           V(0, 0, 1), 3.0 * unit(random));
+    const double angle_b = 3.0 * unit(random);
+    const ksl_vec3_t t_b = RandomVector(unit, random, 0.3, 0.3, 0.3);
+    const ksl_SE3_t pose_b = Pose(t_b, V(0, 0, 1), angle_b);
     const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *ellipsoid, pose_b);
     if(!p.collision || p.depth < 1e-3) {
       continue;
@@ -555,16 +568,16 @@ TEST(ContactGeometry, HullCylinderGlobalDepth) {
     for(const auto& sb : shapes) {
       auto cylinder = Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(sb.x, sb.y));
       for(int trial = 0; trial < 15; trial++) {
-        ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
-        ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+        ksl_vec3_t axis_a = RandomVector(unit, random, 1.0, 1.0, 1.0);
+        ksl_vec3_t axis_b = RandomVector(unit, random, 1.0, 1.0, 1.0);
         for(auto* axis : {&axis_a, &axis_b}) {
           const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
           *axis = V(k * axis->x, k * axis->y, k * axis->z);
         }
         const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
-        const ksl_SE3_t pose_b =
-          Pose(V(0.35 * unit(random), 0.35 * unit(random), 0.35 * unit(random)),
-               axis_b, 3.0 * unit(random));
+        const double angle_b = 3.0 * unit(random);
+        const ksl_vec3_t t_b = RandomVector(unit, random, 0.35, 0.35, 0.35);
+        const ksl_SE3_t pose_b = Pose(t_b, axis_b, angle_b);
         const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *cylinder, pose_b);
         ksl_vec3_t n;
         const double depth = BruteForceDepth(*hull, *cylinder, n);
@@ -616,13 +629,13 @@ TEST(ContactGeometry, HullCylinderSmooth) {
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
   for(int trial = 0; trial < 40; trial++) {
-    ksl_vec3_t axis = V(unit(random), unit(random), unit(random));
+    ksl_vec3_t axis = RandomVector(unit, random, 1.0, 1.0, 1.0);
     const double k = 1.0 / std::sqrt(Dot(axis, axis));
     axis = V(k * axis.x, k * axis.y, k * axis.z);
     const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis, 3.0 * unit(random));
-    const ksl_SE3_t pose_b =
-      Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
-           V(0, 0, 1), 3.0 * unit(random));
+    const double angle_b = 3.0 * unit(random);
+    const ksl_vec3_t t_b = RandomVector(unit, random, 0.3, 0.3, 0.3);
+    const ksl_SE3_t pose_b = Pose(t_b, V(0, 0, 1), angle_b);
     const shift::core::collision_geometry::ContactPair p = Collide(*hull, pose_a, *cylinder, pose_b);
     if(!p.collision || p.depth < 1e-3) {
       continue;
@@ -707,16 +720,16 @@ TEST(ContactGeometry, HullPairMatchesEpa) {
         continue;
       }
       for(int trial = 0; trial < 15; trial++) {
-        ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
-        ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+        ksl_vec3_t axis_a = RandomVector(unit, random, 1.0, 1.0, 1.0);
+        ksl_vec3_t axis_b = RandomVector(unit, random, 1.0, 1.0, 1.0);
         for(auto* axis : {&axis_a, &axis_b}) {
           const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
           *axis = V(k * axis->x, k * axis->y, k * axis->z);
         }
         const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
-        const ksl_SE3_t pose_b =
-          Pose(V(0.3 * unit(random), 0.3 * unit(random), 0.3 * unit(random)),
-               axis_b, 3.0 * unit(random));
+        const double angle_b = 3.0 * unit(random);
+        const ksl_vec3_t t_b = RandomVector(unit, random, 0.3, 0.3, 0.3);
+        const ksl_SE3_t pose_b = Pose(t_b, axis_b, angle_b);
         const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
         if(!p.collision || p.depth < 1e-4) {
           continue;
@@ -829,13 +842,15 @@ TEST(ContactGeometry, ShapesOnTiltedPlane) {
   for(shift::core::collision_geometry::Base* shape : {hull.get(), ellipsoid.get(), ball.get()}) {
     int tested = 0;
     for(int trial = 0; trial < 50; trial++) {
-      ksl_vec3_t axis = V(unit(random), unit(random), unit(random));
+      ksl_vec3_t axis = RandomVector(unit, random, 1.0, 1.0, 1.0);
       const double k = 1.0 / std::sqrt(Dot(axis, axis));
       axis = V(k * axis.x, k * axis.y, k * axis.z);
       // around the plane: offset along the normal by -0.5 .. 0.5
       const double h = 0.5 * unit(random);
-      const ksl_vec3_t t = V(offset * n.x + h * n.x + 0.3 * unit(random),
-                             offset * n.y + h * n.y + 0.3 * unit(random),
+      const double ty = 0.3 * unit(random); // as RandomVector: y, then x
+      const double tx = 0.3 * unit(random);
+      const ksl_vec3_t t = V(offset * n.x + h * n.x + tx,
+                             offset * n.y + h * n.y + ty,
                              offset * n.z + h * n.z);
       const ksl_SE3_t pose = Pose(t, axis, 3.0 * unit(random));
       shape->UpdatePose(pose);
@@ -1026,16 +1041,16 @@ TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
   std::uniform_real_distribution<double> unit(-1.0, 1.0);
   int tested = 0;
   for(int trial = 0; trial < 60; trial++) {
-    ksl_vec3_t axis_a = V(unit(random), unit(random), unit(random));
-    ksl_vec3_t axis_b = V(unit(random), unit(random), unit(random));
+    ksl_vec3_t axis_a = RandomVector(unit, random, 1.0, 1.0, 1.0);
+    ksl_vec3_t axis_b = RandomVector(unit, random, 1.0, 1.0, 1.0);
     for(auto* axis : {&axis_a, &axis_b}) {
       const double k = 1.0 / std::sqrt(Dot(*axis, *axis));
       *axis = V(k * axis->x, k * axis->y, k * axis->z);
     }
     const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis_a, 3.0 * unit(random));
-    const ksl_SE3_t pose_b =
-      Pose(V(0.4 * unit(random), 0.4 * unit(random), 0.4 * unit(random)),
-           axis_b, 3.0 * unit(random));
+    const double angle_b = 3.0 * unit(random);
+    const ksl_vec3_t t_b = RandomVector(unit, random, 0.4, 0.4, 0.4);
+    const ksl_SE3_t pose_b = Pose(t_b, axis_b, angle_b);
     const shift::core::collision_geometry::ContactPair p = Collide(*a, pose_a, *b, pose_b);
     if(!p.collision) {
       continue;
@@ -1080,3 +1095,89 @@ TEST_P(ContactGeometryPairs, MinimumTranslationSeparates) {
 /* hull, ellipsoid, sphere, box, cylinder, capsule for a times the same for b */
 INSTANTIATE_TEST_SUITE_P(AllTypes, ContactGeometryPairs,
                          testing::Range(0, kPairTypes * kPairTypes));
+
+
+/* the hulls and poses of the smooth tests above drawn in the other order (x,
+y, z), which Clang's evaluation of V(unit(random), ...) once gave: among them
+a start 3 degrees from the contact (cylinder, trial 17) whose first passing
+candidate was an end of the cylinder, 90 degrees away and four times as deep,
+and a start 11 degrees off (ellipsoid, trial 1) whose first passing candidate
+was a local minimum 9 degrees from the least, both because the search stopped
+growing its margin at the first candidate that passed. The least found from a
+start near the contact is the contact; the one nearest the start is no
+farther from it than the contact (it may be another minimum of nearly equal
+depth nearer the start, as in the cylinder's trial 7) */
+static std::vector<ksl_vec3_t> IrregularPointsXyz(int count, unsigned seed) {
+  std::mt19937 random(seed);
+  std::uniform_real_distribution<double> unit(-1.0, 1.0);
+  std::vector<ksl_vec3_t> points;
+  for(int i = 0; i < count; i++) {
+    const double x = 0.3 * unit(random), y = 0.2 * unit(random);
+    points.push_back(V(x, y, 0.12 * unit(random)));
+  }
+  return points;
+}
+
+static ksl_vec3_t RandomVectorXyz(std::uniform_real_distribution<double>& unit,
+                                  std::mt19937& random, double scale) {
+  const double x = scale * unit(random), y = scale * unit(random);
+  return V(x, y, scale * unit(random));
+}
+
+TEST(ContactGeometry, HullFarStartsFindTheContact) {
+  auto hull = Make<shift::core::collision_geometry::ConvexHull>(IrregularPointsXyz(60, 5));
+  auto& hh = static_cast<shift::core::collision_geometry::ConvexHull&>(*hull);
+  int tested = 0;
+  for(int which = 0; which < 2; which++) {
+    const bool cylinder = which == 1;
+    auto other = cylinder
+      ? Make<shift::core::collision_geometry::Cylinder>(CylinderPoints(0.15, 0.25))
+      : Make<shift::core::collision_geometry::Ellipsoid>(EllipsoidPoints(0.25, 0.15, 0.1));
+    std::mt19937 random(cylinder ? 23 : 13);
+    std::uniform_real_distribution<double> unit(-1.0, 1.0);
+    for(int trial = 0; trial < 40; trial++) {
+      ksl_vec3_t axis = RandomVectorXyz(unit, random, 1.0);
+      const double k = 1.0 / std::sqrt(Dot(axis, axis));
+      axis = V(k * axis.x, k * axis.y, k * axis.z);
+      const ksl_SE3_t pose_a = Pose(V(0, 0, 0), axis, 3.0 * unit(random));
+      const ksl_vec3_t t = RandomVectorXyz(unit, random, 0.3);
+      const ksl_SE3_t pose_b = Pose(t, V(0, 0, 1), 3.0 * unit(random));
+      const shift::core::collision_geometry::ContactPair p =
+        Collide(*hull, pose_a, *other, pose_b);
+      if(!p.collision || p.depth < 1e-3) {
+        continue;
+      }
+      tested++;
+      for(int s = 0; s < 3; s++) {
+        ksl_vec3_t start = p.normal;
+        start.at[s] += cylinder ? 0.05 : 0.2;
+        const double l = std::sqrt(Dot(start, start));
+        const ksl_vec3_t n0 = V(start.x / l, start.y / l, start.z / l);
+        for(bool nearest : {false, true}) {
+          shift::core::collision_geometry::AnalyticContact c;
+          int hint = 0;
+          ASSERT_TRUE(
+            cylinder
+              ? shift::core::collision_geometry::CylinderHullContact(
+                  hh, static_cast<shift::core::collision_geometry::Cylinder&>(*other),
+                  start, nearest, hint, c)
+              : shift::core::collision_geometry::ConvexHullEllipsoidContact(
+                  hh, static_cast<shift::core::collision_geometry::Ellipsoid&>(*other),
+                  start, nearest, c))
+            << which << " trial " << trial;
+          if(!nearest) {
+            EXPECT_NEAR(c.depth, p.depth, 1e-14) << which << " trial " << trial;
+            for(int i = 0; i < 3; i++) {
+              EXPECT_NEAR(c.normal.at[i], p.normal.at[i], 1e-12)
+                << which << " trial " << trial;
+            }
+          } else {
+            EXPECT_GE(Dot(c.normal, n0), Dot(p.normal, n0) - 1e-12)
+              << which << " trial " << trial;
+          }
+        }
+      }
+    }
+  }
+  EXPECT_GT(tested, 20);
+}

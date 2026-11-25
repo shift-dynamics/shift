@@ -1181,7 +1181,7 @@ vec3 Brdf(Surface s, vec3 v, vec3 l, vec3 diffuse_light,
   float n_dot_l = max(dot(s.normal, l), 0.0);
   float n_dot_v = max(dot(s.normal, v), 1e-4);
   vec3 f0 = mix(vec3(0.04), s.albedo, s.metallic);
-  vec3 f = f0 + (1.0 - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
+  vec3 f = f0 + (1.0 - f0) * pow(clamp(1.0 - dot(h, v), 0.0, 1.0), 5.0);
   vec3 specular = DistributionGgx(max(dot(s.normal, h), 0.0), s.roughness) *
                   GeometrySmith(n_dot_v, n_dot_l, s.roughness) * f /
                   (4.0 * n_dot_v * n_dot_l + 1e-4);
@@ -1302,7 +1302,7 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
   // estimated reflectance
   float n_dot_v = max(dot(s.normal, v), 1e-4);
   vec3 f0 = mix(vec3(0.04), s.albedo, s.metallic);
-  vec3 f_v = f0 + (1.0 - f0) * pow(1.0 - n_dot_v, 5.0);
+  vec3 f_v = f0 + (1.0 - f0) * pow(clamp(1.0 - n_dot_v, 0.0, 1.0), 5.0);
   vec3 diffuse_albedo = (1.0 - f_v) * (1.0 - s.metallic) * s.albedo;
   float specular_weight = Luminance(f_v);
   float diffuse_weight = Luminance(diffuse_albedo);
@@ -1320,7 +1320,7 @@ vec3 Shade(Surface s, vec3 direction, float t, out vec3 direct) {
       return color; // sample below the surface
     }
     // f cos / pdf, with pdf = D (n.h) / (4 v.h)
-    vec3 f = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
+    vec3 f = f0 + (1.0 - f0) * pow(clamp(1.0 - v_dot_h, 0.0, 1.0), 5.0);
     float g = GeometrySmithIbl(n_dot_v, n_dot_l, s.roughness);
     throughput = f * g * v_dot_h /
                  (n_dot_v * max(dot(s.normal, h), 1e-4) * p_specular);

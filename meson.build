@@ -59,6 +59,7 @@ tiff_dep = dependency('libtiff-4') # terrain elevation maps
 # define the same global names, so only one can be linked: AP242, which also
 # reads the geometry of AP203 and AP214 files.
 fs = import('fs')
+cmake = import('cmake')
 step_opt = get_option('step')
 step_inc_root = ''
 foreach d : ['/usr/include', '/usr/local/include']
@@ -71,7 +72,7 @@ if step_opt.allowed() and step_inc_root != ''
   step_libs = []
   step_found = true
   foreach name : ['sdai_ap242', 'stepeditor', 'stepcore', 'stepdai', 'steputils']
-    lib = cpp.find_library(name, required: step_opt)
+    lib = cpp.find_library(name, required: false)
     step_found = step_found and lib.found()
     step_libs += lib
   endforeach
@@ -85,8 +86,17 @@ if step_opt.allowed() and step_inc_root != ''
       ),
     )
   endif
-elif step_opt.enabled()
-  error('step: STEPcode headers with the AP242 schema were not found in /usr/include or /usr/local/include')
+endif
+# without an installed STEPcode: built from subprojects/stepcode.wrap (static
+# libraries of the AP242 schema; see subprojects/packagefiles/stepcode)
+if step_opt.allowed() and not step_dep.found()
+  stepcode = subproject('stepcode', required: step_opt)
+  if stepcode.found()
+    step_dep = stepcode.get_variable('stepcode_dep')
+  endif
+endif
+if step_opt.enabled() and not step_dep.found()
+  error('step: STEPcode with the AP242 schema was found neither installed (/usr/include, /usr/local/include) nor as the subproject (subprojects/stepcode.wrap)')
 endif
 
 # GPU calculations in core (shift/core/gpu): the Vulkan loader, and glslc to
@@ -109,7 +119,6 @@ eigen_dep = dependency('eigen3', required: fea_opt)
 spectra_dep = dependency('spectra', required: fea_opt, allow_fallback: true)
 nglib_dep = dependency('', required: false)
 if eigen_dep.found() and spectra_dep.found()
-  cmake = import('cmake')
   netgen_opts = cmake.subproject_options()
   netgen_opts.add_cmake_defines({
     'USE_SUPERBUILD': false,

@@ -1,0 +1,33 @@
+#!/bin/sh
+# STEPcode's CMake files run as a configure script, for meson's
+# external_project module (see meson.build): CMake's own custom commands make
+# the schema's sources with exp2cxx, which meson's cmake module cannot
+# translate. The AP242 schema only; its tools (exp2cxx) link STEPcode's shared
+# libraries, so both kinds are built, and Shift links the static ones.
+set -e
+src=$(cd "$(dirname "$0")" && pwd)
+prefix=/usr/local
+libdir=
+includedir=
+for argument in "$@"; do
+  case "$argument" in
+    --prefix=*) prefix=${argument#*=} ;;
+    --libdir=*) libdir=${argument#*=} ;;
+    --includedir=*) includedir=${argument#*=} ;;
+  esac
+done
+# STEPcode's install directories are relative to the prefix
+libdir=${libdir#"$prefix"/}
+includedir=${includedir#"$prefix"/}
+exec cmake "$src" -G "Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$prefix" \
+  ${libdir:+-DLIB_DIR="$libdir"} \
+  ${includedir:+-DINCLUDE_DIR="$includedir"} \
+  -DBUILD_SHARED_LIBS=ON \
+  -DBUILD_STATIC_LIBS=ON \
+  -DSC_BUILD_STATIC_LIBS=ON \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DSC_BUILD_SCHEMAS=ap242 \
+  -DSC_PYTHON_GENERATOR=OFF \
+  -DSC_ENABLE_TESTING=OFF

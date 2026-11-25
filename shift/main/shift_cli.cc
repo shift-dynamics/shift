@@ -5,6 +5,7 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/linearization.h"
 #include "shift/core/exception.h"
+#include "shift/core/gpu/device.h"
 #include "shift/core/geometry/mesh.h"
 #include "shift/core/log.h"
 
@@ -63,6 +64,7 @@ static struct sigaction InstallThrowingHandler(int signum,
 #endif
 
 int main(int argc, char* argv[]) {
+  shift::core::gpu::ConfigureDriverEnvironment(); // before any Vulkan call
 
   argagg::parser argparser{
     {{"help", {"-h", "--help"}, "show this help message and exit", 0},

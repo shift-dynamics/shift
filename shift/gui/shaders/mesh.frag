@@ -256,7 +256,7 @@ vec3 DirectLight(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic,
   vec3 h = normalize(v + l);
   float n_dot_v = max(dot(n, v), 1e-4);
   vec3 f0 = mix(vec3(0.04), albedo, metallic);
-  vec3 f = f0 + (1.0 - f0) * pow(1.0 - max(dot(h, v), 0.0), 5.0);
+  vec3 f = f0 + (1.0 - f0) * pow(clamp(1.0 - dot(h, v), 0.0, 1.0), 5.0);
   vec3 specular = DistributionGgx(max(dot(n, h), 0.0), roughness) *
                   GeometrySmith(n_dot_v, n_dot_l, roughness) * f /
                   (4.0 * n_dot_v * n_dot_l + 1e-4);
@@ -620,7 +620,7 @@ void main() {
   vec2 brdf = texture(environment_brdf, vec2(n_dot_v, roughness)).rg;
   vec3 irradiance = DiffuseLight(environment_irradiance, n);
   vec3 f_ambient = f0 + (max(vec3(1.0 - roughness), f0) - f0) *
-                   pow(1.0 - n_dot_v, 5.0);
+                   pow(clamp(1.0 - n_dot_v, 0.0, 1.0), 5.0);
   color += (1.0 - f_ambient) * (1.0 - metallic) * albedo * irradiance +
            prefiltered * (f0 * brdf.x + brdf.y);
 
@@ -650,5 +650,5 @@ void main() {
                  WaterSky(HorizonDirection(world_position -
                                            frame.camera_position.xyz)));
   color = ToneMap(color, frame.sky_zenith.w, frame.sky_horizon.w);
-  out_color = vec4(pow(color, vec3(1.0 / 2.2)), mesh.variation.w);
+  out_color = vec4(pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)), mesh.variation.w);
 }

@@ -5,10 +5,12 @@
 #include <string>
 #include <system_error>
 
+#include "shift/core/gpu/device.h"
 #include "test/contact/contact_record.h"
 #include "gtest/gtest.h"
 
 int main(int argc, char** argv) {
+  shift::core::gpu::ConfigureDriverEnvironment(); // before any Vulkan call
   /* a temporary directory of this process's own (testing::TempDir), so
   that shards running in parallel do not write the same files */
   std::error_code error;

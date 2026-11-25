@@ -10,7 +10,29 @@ Refer to *Shift's* website at <https://shift-dynamics.github.io/shift/> for addi
 
 ## Building and running
 
-*Shift* builds with meson and ninja. The libraries it needs are listed in the [installation guide](https://shift-dynamics.github.io/shift/installation.html).
+*Shift* builds from source with meson and ninja. The libraries it needs, and what each is for, are listed in the [installation guide](https://shift-dynamics.github.io/shift/installation.html). Binary files (meshes, textures, terrain) are stored with [Git LFS](https://git-lfs.com): install it before cloning, or run `git lfs install && git lfs pull` in the clone.
+
+### Linux
+
+Install the dependencies with your distribution's package manager. On Arch Linux:
+
+```bash
+sudo pacman -S --needed base-devel meson ninja cmake pkgconf git-lfs jsoncpp yaml-cpp assimp graphviz hdf5 cblas lapacke qhull libtiff eigen qt6-base qt6-shadertools ffmpeg openexr vulkan-headers vulkan-icd-loader shaderc gtest
+```
+
+On Debian 13 or Ubuntu 25.04 and newer (older releases lack the Qt 6.7 and FFmpeg 7.1 that the viewer needs):
+
+```bash
+sudo apt install build-essential meson ninja-build cmake pkg-config git-lfs libjsoncpp-dev libyaml-cpp-dev libassimp-dev libgraphviz-dev libhdf5-dev libblas-dev liblapacke-dev libqhull-dev libtiff-dev libeigen3-dev qt6-base-dev qt6-base-private-dev qt6-shader-baker libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libopenexr-dev libvulkan-dev glslc libgtest-dev
+```
+
+On Fedora (or, with EPEL, a distribution based on Red Hat Enterprise Linux):
+
+```bash
+sudo dnf install gcc-c++ meson ninja-build cmake pkgconf git-lfs jsoncpp-devel yaml-cpp-devel assimp-devel graphviz-devel hdf5-devel blas-devel lapack-devel qhull-devel libtiff-devel eigen3-devel qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtshadertools-devel ffmpeg-free-devel openexr-devel vulkan-headers vulkan-loader-devel glslc gtest-devel
+```
+
+Then clone and build:
 
 ```bash
 git clone https://github.com/shift-dynamics/shift.git
@@ -20,12 +42,39 @@ meson compile -C build
 meson test -C build
 ```
 
-`build/` is a debug build. For simulation work, keep an optimized build next to it, which is 4–8 times faster:
+STEPcode, which reads STEP CAD files, is not packaged by these distributions; meson builds it from its subproject.
+
+### macOS
+
+Install the dependencies with [Homebrew](https://brew.sh), and set up the build with the native file `machine/macos-homebrew.ini`, which gives meson the paths of Homebrew's keg-only LAPACK and OpenMP (see the [installation guide](https://shift-dynamics.github.io/shift/installation.html#macos)):
+
+```bash
+brew install meson ninja cmake pkgconf git-lfs jsoncpp yaml-cpp assimp graphviz hdf5 lapack qhull libtiff libomp eigen qtbase qtshadertools ffmpeg openexr vulkan-headers vulkan-loader molten-vk shaderc googletest
+git clone https://github.com/shift-dynamics/shift.git
+cd shift
+git lfs install && git lfs pull
+meson setup build --native-file machine/macos-homebrew.ini
+meson compile -C build
+meson test -C build
+```
+
+### Optimized build
+
+`build/` is a debug build. For simulation work, keep an optimized build next to it, which is 4–8 times faster. On Linux:
 
 ```bash
 meson setup build-release --buildtype=release -Dcpu=native
 meson compile -C build-release
 ```
+
+On macOS, with the native file (which sets the CPU to Apple's):
+
+```bash
+meson setup build-release --buildtype=release --native-file machine/macos-homebrew.ini
+meson compile -C build-release
+```
+
+### Running
 
 Run a model from the top of the repository with the command line program, or open it in the 3D viewer:
 
