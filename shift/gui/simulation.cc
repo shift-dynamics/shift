@@ -2221,6 +2221,28 @@ void shift::gui::Simulation::TakeTerrainUpdates(
   }
 }
 
+bool shift::gui::Simulation::HasShownUpdates() {
+  for(const auto& view : scm_views_) {
+    if(view.x_min <= view.x_max) {
+      return true;
+    }
+  }
+  for(const auto& view : flex_views_) {
+    // as TakeFlexUpdates, which also sends a new yield strength
+    if(view.changed ||
+       view.flex->get_yield_strength() != view.yield_strength) {
+      return true;
+    }
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+  for(const auto& view : sph_views_) {
+    if(view.changed) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // ------------------------------------------------------------ grains
 
 /*!
