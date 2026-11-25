@@ -5098,7 +5098,8 @@ void shift::gui::Workspace::Tick() {
     simulation_.ShowTime(playback_time_);
     playback_panel_.slider->set_time(playback_time_);
     tree_dirty_ = true;
-    viewport_->update();
+    // a frame only if the poses moved, e.g. not while waiting for the worker
+    viewport_->RequestPoses();
   }
 
   if(was_computing_ && !computing) {

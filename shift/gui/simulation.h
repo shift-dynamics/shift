@@ -204,6 +204,10 @@ public:
    * call; Scene::terrains already holds them, for a viewport that uploads
    * the whole scene again */
   void TakeTerrainUpdates(std::vector<TerrainUpdate>& updates);
+  /*! \brief true if a terrain, the particles of an SPH soil or a deformable
+   * mesh changed since TakeTerrainUpdates, TakeParticleUpdates or
+   * TakeFlexUpdates */
+  bool HasShownUpdates();
 
   /*! \brief the ray tracing hierarchies of the scene's meshes, built while
    * the model loaded (per mesh, a deformable terrain's tagged), handed

@@ -158,8 +158,9 @@ public:
     return follow_body_;
   }
 
-  /*! \brief take the shown poses of the simulation, if they changed */
-  void UpdatePoses();
+  /*! \brief take the shown poses of the simulation, if they changed;
+   * returns true if they differ from the poses shown before */
+  bool UpdatePoses();
   /*! \brief with set_floor_below_model, lower the floor below the poses
    * shown if they reach below it */
   void LowerFloorBelowModel();
@@ -300,6 +301,14 @@ public:
 
   /*! \brief schedule a frame */
   void update() {
+    frame_stale_ = true;
+    requestUpdate();
+  }
+  /*! \brief schedule a frame that is rendered only if the shown poses,
+   * terrains, particles or deformable meshes of the simulation changed
+   * (Simulation::HasShownUpdates); otherwise the window keeps the previous
+   * frame */
+  void RequestPoses() {
     requestUpdate();
   }
 
@@ -614,7 +623,9 @@ private:
   /*! smooth_terrain_ when the ray tracer's terrains were shaped */
   bool rt_terrain_smooth_ = true;
   bool scene_dirty_ = false;
-  bool frame_pending_ = false;
+  /*! the window's frame no longer shows the viewport's state: set by
+   * update, cleared by each frame rendered to the window */
+  bool frame_stale_ = true;
   int frame_count_ = 0;
 
   // environment, in world coordinates

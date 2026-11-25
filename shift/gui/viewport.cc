@@ -746,7 +746,7 @@ void shift::gui::Viewport::StartPipelineCompile() {
       pending.ok = pending.create();
     }
     pipelines_made_ = true;
-    QMetaObject::invokeMethod(this, [this]() { requestUpdate(); },
+    QMetaObject::invokeMethod(this, [this]() { update(); },
                               Qt::QueuedConnection);
   });
 }
@@ -782,6 +782,7 @@ void shift::gui::Viewport::set_simulation(Simulation* simulation,
     simulation_->TakePoses(poses_);
   }
   scene_dirty_ = true;
+  frame_stale_ = true;
   if(frame_scene) {
     FrameScene();
   }
@@ -1005,8 +1006,23 @@ void shift::gui::Viewport::set_view(float azimuth, float elevation) {
   FrameScene();
 }
 
-void shift::gui::Viewport::UpdatePoses() {
-  if(simulation_ && simulation_->TakePoses(poses_)) {
+/*! true if two lists of poses differ, bit for bit */
+static bool PosesDiffer(const std::vector<ksl_SE3f_t>& a,
+                        const std::vector<ksl_SE3f_t>& b) {
+  return a.size() != b.size() ||
+         (!a.empty() &&
+          std::memcmp(a.data(), b.data(), a.size() * sizeof(ksl_SE3f_t)) != 0);
+}
+
+bool shift::gui::Viewport::UpdatePoses() {
+  Poses poses;
+  if(!simulation_ || !simulation_->TakePoses(poses)) {
+    return false;
+  }
+  const bool changed =
+    PosesDiffer(poses.bodies, poses_.bodies) || poses.lights != poses_.lights;
+  poses_ = std::move(poses);
+  if(changed) {
     rt_instances_dirty_ = true;
     LowerFloorBelowModel();
     if(follow_body_ >= 0 &&
@@ -1017,6 +1033,7 @@ void shift::gui::Viewport::UpdatePoses() {
       camera_.set_follow(follow);
     }
   }
+  return changed;
 }
 
 ksl_SE3f_t shift::gui::Viewport::FollowFrame(int body, FollowMode mode) const {
@@ -1461,7 +1478,7 @@ void shift::gui::Viewport::EndOffscreen() {
   pipeline_render_pass_ = nullptr;
   rt_history_valid_ = false;
   rt_frame_ = 0;
-  requestUpdate();
+  update();
 }
 
 void shift::gui::Viewport::exposeEvent(QExposeEvent*) {
@@ -1473,7 +1490,7 @@ void shift::gui::Viewport::exposeEvent(QExposeEvent*) {
     // while the window system is presenting (macOS delivers it from Core
     // Animation's transaction commit), and a frame drawn then waits for a
     // swap chain image that is only released once the commit ends
-    requestUpdate();
+    update();
   }
 }
 
@@ -1481,7 +1498,14 @@ bool shift::gui::Viewport::event(QEvent* event) {
   switch(event->type()) {
     case QEvent::UpdateRequest:
       if(isExposed() && rhi_) {
-        RenderFrame();
+        if(UpdatePoses() ||
+           (simulation_ && simulation_->HasShownUpdates())) {
+          frame_stale_ = true;
+        }
+        // otherwise the window keeps showing the previous frame
+        if(frame_stale_) {
+          RenderFrame();
+        }
       }
       break;
     case QEvent::PlatformSurface:
@@ -1526,13 +1550,16 @@ void shift::gui::Viewport::RenderFrame() {
   const QRhi::FrameOpResult result = rhi_->beginFrame(swapchain_.get());
   if(result == QRhi::FrameOpSwapChainOutOfDate) {
     swapchain_ready_ = false;
-    requestUpdate();
+    update();
     return;
   }
   if(result != QRhi::FrameOpSuccess) {
     return;
   }
   initialize();
+  // before render, which marks the frame stale again while ray traced
+  // samples are accumulating
+  frame_stale_ = false;
   render(swapchain_->currentFrameCommandBuffer());
   if(scene_target_) {
     PresentScene(swapchain_->currentFrameCommandBuffer());
@@ -3802,6 +3829,7 @@ void shift::gui::Viewport::render(QRhiCommandBuffer* cb) {
     // draws
     cb->beginPass(get_render_target(), QColor(0, 0, 0), {1.0f, 0}, batch);
     cb->endPass();
+    frame_stale_ = true;
     return;
   }
   if(simulation_) {
