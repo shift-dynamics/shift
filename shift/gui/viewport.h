@@ -640,9 +640,31 @@ private:
   QRhiRenderPassDescriptor* pipeline_render_pass_ = nullptr;
   QSize output_size_;
 
+  /* The scene drawn into textures of its own and copied to the swap chain,
+   * on devices with lazily allocated memory (tile-based GPUs): there QRhi
+   * puts the swap chain's depth buffer in memory that is not kept when a
+   * driver splits a render pass, as MoltenVK does at every tessellated draw,
+   * and the depth test then fails. A depth texture is always kept.
+   * SHIFT_SCENE_TEXTURE=1 or 0 turns it on or off on any device. */
+  bool scene_in_texture_ = false;
+  std::unique_ptr<QRhiTexture> scene_color_;
+  std::unique_ptr<QRhiTexture> scene_depth_;
+  std::unique_ptr<QRhiTextureRenderTarget> scene_target_;
+  std::unique_ptr<QRhiRenderPassDescriptor> scene_render_pass_;
+  std::unique_ptr<QRhiSampler> present_sampler_;
+  std::unique_ptr<QRhiShaderResourceBindings> present_bindings_;
+  std::unique_ptr<QRhiGraphicsPipeline> present_pipeline_;
+  /* the scene target at the swap chain's size; false if it could not be
+   * made */
+  bool UpdateSceneTarget();
+  /* copies the scene texture to the swap chain's image, in a pass of its
+   * own */
+  void PresentScene(QRhiCommandBuffer* cb);
+
   // offscreen rendering (BeginOffscreen)
   std::unique_ptr<QRhiTexture> offscreen_texture_;
   std::unique_ptr<QRhiRenderBuffer> offscreen_depth_;
+  std::unique_ptr<QRhiTexture> offscreen_depth_texture_; // scene_in_texture_
   std::unique_ptr<QRhiTextureRenderTarget> offscreen_target_;
   std::unique_ptr<QRhiRenderPassDescriptor> offscreen_render_pass_;
 
@@ -868,6 +890,11 @@ private:
   std::unique_ptr<QRhiBuffer> rt_instance_node_buffer_;
   std::unique_ptr<QRhiTexture> rt_output_;
   std::unique_ptr<QRhiTexture> rt_accumulation_; /*!< progressive mean */
+  /* the ray tracer's images made since its last frame, which it fills with
+   * zeros before using them: a new image's memory is undefined (on Metal it
+   * holds what was there before, NaNs too, which a history weighted by 0
+   * still spreads) */
+  std::vector<QRhiTexture*> rt_images_to_clear_;
   /*! the progressive mean at the output's size when the ray tracer's is
       smaller (set_render_scale): rgb = sum, a = samples */
   std::unique_ptr<QRhiTexture> rt_upscaled_mean_;

@@ -49,6 +49,24 @@ static ksl_SE3_t Pose(const ksl_vec3_t& axis, double angle,
 }
 
 /* p in the frame of d */
+/* a uniform integer in [0, n), n < 2^32, as libstdc++'s
+std::uniform_int_distribution draws it from a 32 bit engine (Lemire's
+nearly divisionless method): the standard leaves the algorithm to each
+library, and libc++'s uses the engine differently, which changed the rays of
+the later poses; with this every library tests the same ones */
+static uint32_t PickBelow(std::mt19937& random, uint32_t n) {
+  uint64_t product = uint64_t(random()) * n;
+  uint32_t low = uint32_t(product);
+  if(low < n) {
+    const uint32_t threshold = uint32_t(-n) % n;
+    while(low < threshold) {
+      product = uint64_t(random()) * n;
+      low = uint32_t(product);
+    }
+  }
+  return uint32_t(product >> 32);
+}
+
 static ksl_vec3_t ToFrame(const ksl_SE3_t& d, const ksl_vec3_t& p) {
   const ksl_vec3_t r = {{p.x - d.t.x, p.y - d.t.y, p.z - d.t.z}};
   return {{Dot(d.R.v0, r), Dot(d.R.v1, r), Dot(d.R.v2, r)}};
@@ -556,10 +574,9 @@ TEST(RayCast, CadGridMatchesRays) {
     EXPECT_EQ(later, 0) << "pose " << pose;
     EXPECT_GT(hits, 1000) << "pose " << pose;
     EXPECT_GT(inside, 100) << "pose " << pose;
-    std::uniform_int_distribution<long> pick(0, grid.count_i * grid.count_j - 1);
     int checked = 0, wrong = 0;
     for(int n = 0; n < 300; n++) {
-      const long k = pick(random);
+      const long k = PickBelow(random, uint32_t(grid.count_i * grid.count_j));
       if(std::isnan(offsets[k])) {
         continue;
       }

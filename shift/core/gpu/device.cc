@@ -207,6 +207,20 @@ static bool HasLayer(const char* name) {
   return false;
 }
 
+/* whether the Vulkan loader has the instance extension name */
+static bool HasInstanceExtension(const char* name) {
+  uint32_t count = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+  std::vector<VkExtensionProperties> extensions(count);
+  vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+  for(const auto& extension : extensions) {
+    if(std::strcmp(extension.extensionName, name) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /* whether the device has the extension name */
 static bool HasExtension(VkPhysicalDevice device, const std::string& name) {
   uint32_t count = 0;
@@ -270,6 +284,12 @@ shift::core::gpu::Device::Device(const DeviceOptions& options)
       }
       VkInstanceCreateInfo info{};
       info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+      // drivers that implement Vulkan over another API (MoltenVK on macOS)
+      // are listed only when the instance asks for portability devices
+      if(HasInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+      }
       info.pApplicationInfo = &application;
       info.enabledLayerCount = uint32_t(layers.size());
       info.ppEnabledLayerNames = layers.data();
@@ -375,6 +395,10 @@ shift::core::gpu::Device::Device(const DeviceOptions& options)
       VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME};
     for(const auto& extension : options.extensions) {
       extensions.push_back(extension.c_str());
+    }
+    // a portability device (MoltenVK) must have its subset enabled
+    if(HasExtension(d.physical, "VK_KHR_portability_subset")) {
+      extensions.push_back("VK_KHR_portability_subset");
     }
     VkDeviceCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -898,3 +922,8 @@ void shift::core::gpu::Commands::Update(const Buffer&, const void*, size_t,
 void shift::core::gpu::Commands::Submit() {}
 
 #endif
+
+void shift::core::gpu::ConfigureDriverEnvironment() {
+  // overwrite = 0: a value the user set stays
+  setenv("MVK_CONFIG_FAST_MATH_ENABLED", "0", 0);
+}

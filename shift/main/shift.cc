@@ -1,4 +1,5 @@
 #include "shift/gui/workspace.h"
+#include "shift/core/gpu/device.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -132,6 +133,7 @@ static bool ParseImageRequest(const QCommandLineParser& parser,
 }
 
 int main(int argc, char* argv[]) {
+  shift::core::gpu::ConfigureDriverEnvironment(); // before any Vulkan call
   QApplication app(argc, argv);
   QApplication::setApplicationName("shift");
   QApplication::setStyle(QStyleFactory::create("Fusion"));

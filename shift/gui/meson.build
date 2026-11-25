@@ -43,8 +43,14 @@ endif
 # The RHI headers live in a versioned private include directory
 qt_include_dir = run_command('pkg-config', '--variable=includedir', 'Qt6Core',
                              check: true).stdout().strip()
-rhi_inc = include_directories(
-  qt_include_dir / 'QtGui' / qt6_dep.version() / 'QtGui', is_system: true)
+rhi_dir = qt_include_dir / 'QtGui' / qt6_dep.version() / 'QtGui'
+if not fs.is_dir(rhi_dir)
+  # a framework build of Qt (macOS) keeps them inside QtGui.framework
+  qt_lib_dir = run_command('pkg-config', '--variable=libdir', 'Qt6Core',
+                           check: true).stdout().strip()
+  rhi_dir = qt_lib_dir / 'QtGui.framework/Headers' / qt6_dep.version() / 'QtGui'
+endif
+rhi_inc = include_directories(rhi_dir, is_system: true)
 
 # Qt host tools (qsb, rcc) are not always in PATH
 qt_tool_candidates = {'qsb': [], 'rcc': []}

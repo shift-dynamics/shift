@@ -243,6 +243,10 @@ shift::gui::Workspace::Workspace(QWidget* parent)
 }
 
 shift::gui::Workspace::~Workspace() {
+  // the viewport, a child widget, outlives the members: its signals (e.g.
+  // CompilingPipelines, when it releases its device) must not reach slots
+  // that use them
+  disconnect(viewport_, nullptr, this, nullptr);
   simulation_.Stop();
   viewport_->set_simulation(nullptr);
 }

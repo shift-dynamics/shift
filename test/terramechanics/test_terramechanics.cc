@@ -624,7 +624,11 @@ TEST(BekkerWong, CamberedCompactionResistance) {
       if(std::fabs(sin_g) < 1e-12) {
         integral = p.width * std::pow(depth, n + 1.0);
       } else {
-        auto h = [&](double y) { return std::pow(depth + y * sin_g, n + 2.0); };
+        // the sinkage is 0 at the edge of the contact (lo or hi), where
+        // rounding (e.g. a fused multiply-add) may leave it at -1e-19
+        auto h = [&](double y) {
+          return std::pow(std::max(depth + y * sin_g, 0.0), n + 2.0);
+        };
         integral = (h(hi) - h(lo)) / ((n + 2.0) * sin_g);
       }
       const double resistance =

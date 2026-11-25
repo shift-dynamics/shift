@@ -66,5 +66,5 @@ void main() {
                    WaterSky(HorizonDirection(d)));
   }
   color = ToneMap(color, frame.sky_zenith.w, frame.sky_horizon.w);
-  out_color = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
+  out_color = vec4(pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
 }

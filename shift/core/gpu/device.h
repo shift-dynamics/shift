@@ -192,6 +192,20 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 
+/*!
+ * \brief Settings of Vulkan drivers that the shaders need, made in the
+ * environment before any Vulkan call: the first one loads the driver, which
+ * reads them once. Call it first in main(). A setting already in the
+ * environment is kept.
+ *
+ * MoltenVK (macOS): IEEE floating point (MVK_CONFIG_FAST_MATH_ENABLED=0).
+ * With Metal's fast math the compiler may assume there are no infinities,
+ * which the ray tracer's box tests take from 1 / 0 for directions along an
+ * axis; shadow rays then miss or hit whole frames at random. Other drivers
+ * ignore the variable.
+ */
+void ConfigureDriverEnvironment();
+
 } // namespace gpu
 } // namespace core
 } // namespace shift

@@ -16,6 +16,12 @@ Getting the source
 (``subprojects/*.wrap``); meson fetches them the first time the build is
 set up.
 
+Meshes, textures, terrain maps and other binary files are stored with
+`Git LFS <https://git-lfs.com>`_. Install it before cloning (or run
+``git lfs install && git lfs pull`` in a clone made without it): without it
+those files are small text pointers, models that use them fail to load, and
+the viewer has no textures.
+
 Dependencies
 ------------
 
@@ -35,7 +41,10 @@ LAPACKE                   eigenvalues of ``shift-cli --linearize``
 qhull                     convex hulls for collision geometry
 libtiff                   terrain elevation maps
 OpenMP, threads
-STEPcode (optional)       reading STEP CAD files (meson option ``step``)
+STEPcode (optional)       reading STEP CAD files (meson option ``step``); an
+                          installed one with its AP242 schema, or else
+                          built from ``subprojects/stepcode.wrap`` (needs
+                          CMake and make)
 Vulkan loader and headers calculations on the GPU, such as the SPH soil
 and glslc (optional)      (meson option ``gpu``)
 Qt 6.7+, ffmpeg libraries the 3D viewer ``shift`` (meson option ``gui``)
@@ -94,7 +103,9 @@ option               default   purpose
 ``tests``            auto      build the GoogleTest suite
 ``docs``             auto      add the ``docs`` target (this site)
 ``gui``              auto      build the Qt 6 viewer ``shift``
-``step``             auto      read STEP files with STEPcode
+``step``             auto      read STEP files with STEPcode (installed in
+                               ``/usr`` or ``/usr/local``, or else the
+                               subproject)
 ``gpu``              auto      run calculations on the GPU with Vulkan
                                compute (see below)
 ``dlss``             auto      upscale the viewer's ray traced view with
@@ -111,6 +122,137 @@ option               default   purpose
                                motion against the assembled equations (slow;
                                for debugging the solver)
 ==================== ========= =================================================
+
+Linux
+-----
+
+Install the compiler, the build tools and the libraries with your
+distribution's package manager, then build as above (`Building`_).
+
+Arch Linux:
+
+.. code:: bash
+
+   sudo pacman -S --needed base-devel meson ninja cmake pkgconf git-lfs \
+     jsoncpp yaml-cpp assimp graphviz hdf5 cblas lapacke qhull libtiff \
+     eigen qt6-base qt6-shadertools ffmpeg openexr \
+     vulkan-headers vulkan-icd-loader shaderc gtest
+
+Debian and Ubuntu (Debian 13 or Ubuntu 25.04 and newer: the viewer needs Qt
+6.7 and FFmpeg 7.1, which older releases do not have; without them the build
+leaves out the viewer):
+
+.. code:: bash
+
+   sudo apt install build-essential meson ninja-build cmake pkg-config git-lfs \
+     libjsoncpp-dev libyaml-cpp-dev libassimp-dev libgraphviz-dev libhdf5-dev \
+     libblas-dev liblapacke-dev libqhull-dev libtiff-dev libeigen3-dev \
+     qt6-base-dev qt6-base-private-dev qt6-shader-baker \
+     libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libopenexr-dev \
+     libvulkan-dev glslc libgtest-dev
+
+Fedora (and, with EPEL, the distributions based on Red Hat Enterprise Linux,
+whose Qt may be older than the viewer needs):
+
+.. code:: bash
+
+   sudo dnf install gcc-c++ meson ninja-build cmake pkgconf git-lfs \
+     jsoncpp-devel yaml-cpp-devel assimp-devel graphviz-devel hdf5-devel \
+     blas-devel lapack-devel qhull-devel libtiff-devel eigen3-devel \
+     qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtshadertools-devel \
+     ffmpeg-free-devel openexr-devel \
+     vulkan-headers vulkan-loader-devel glslc gtest-devel
+
+GCC brings OpenMP. STEPcode is not packaged by these distributions: meson
+builds it from its subproject (``subprojects/stepcode.wrap``), or uses one
+installed in ``/usr`` or ``/usr/local``. A GPU's Vulkan driver comes with its
+graphics driver (Mesa's ``vulkan-radeon`` or ``vulkan-intel`` on Arch,
+``mesa-vulkan-drivers`` on Debian and Fedora, or NVIDIA's); Mesa's software
+driver lavapipe (``vulkan-swrast`` on Arch, part of ``mesa-vulkan-drivers``
+elsewhere) runs the GPU tests without a GPU. For this documentation, add
+doxygen and Sphinx (see `Building this documentation`_).
+
+Then fetch the binary files with Git LFS, if the clone was made without it,
+and build:
+
+.. code:: bash
+
+   git lfs install
+   git lfs pull
+   meson setup build
+   meson compile -C build
+   meson test -C build
+
+macOS
+-----
+
+*Shift* builds on macOS with Apple's compiler and the libraries from
+`Homebrew <https://brew.sh>`_; it has been built on Apple silicon (macOS 26,
+Apple clang 21, Qt 6.12). Install the command line tools (or Xcode) and
+Homebrew first:
+
+.. code:: bash
+
+   xcode-select --install
+
+Then the build tools and the libraries:
+
+.. code:: bash
+
+   brew install meson ninja cmake pkgconf git-lfs \
+     jsoncpp yaml-cpp assimp graphviz hdf5 lapack qhull libtiff libomp \
+     eigen qtbase qtshadertools ffmpeg openexr \
+     vulkan-headers vulkan-loader molten-vk shaderc googletest
+
+``vulkan-tools`` adds ``vulkaninfo``, which lists the GPU as Vulkan sees it,
+and ``vulkan-validationlayers`` the layer that ``SHIFT_VULKAN_VALIDATION=1``
+turns on; neither is needed to build. Homebrew has no STEPcode: meson builds
+it from its subproject (``subprojects/stepcode.wrap``), which adds a few
+minutes to the first build.
+
+Fetch the binary files of the clone with Git LFS (see above):
+
+.. code:: bash
+
+   git lfs install
+   git lfs pull
+
+Build with the native file ``machine/macos-homebrew.ini``, which gives meson
+what it cannot find by itself: the paths of Homebrew's LAPACK and OpenMP
+(both keg-only, so not on the default search paths), ``cpu=apple-m1``, and
+``fp_trap=false``:
+
+.. code:: bash
+
+   meson setup build --native-file machine/macos-homebrew.ini
+   meson compile -C build
+   meson test -C build
+
+and the optimized build:
+
+.. code:: bash
+
+   meson setup build-release --native-file machine/macos-homebrew.ini --buildtype=release
+   meson compile -C build-release
+
+On an Intel Mac, Homebrew is in ``/usr/local``: copy the native file and set
+``brew = '/usr/local'`` and ``cpu = 'native'`` in it.
+
+What differs from Linux:
+
+* The viewer and the GPU calculations use Vulkan through MoltenVK, which
+  Homebrew's Qt is built with. *Shift* turns off MoltenVK's fast math
+  (``MVK_CONFIG_FAST_MATH_ENABLED=0``, unless it is already set), which the
+  ray tracer needs.
+* The ray traced view traces rays in compute shaders: MoltenVK has no
+  hardware ray tracing, and NVIDIA DLSS is not available.
+* ``fp_trap`` does nothing: macOS has no ``feenableexcept``, so
+  ``shift-cli`` does not stop on a floating point division by zero.
+* The viewer draws its scene into a texture of its own and copies it to the
+  window, as on any GPU whose memory is lazily allocated (Apple's, and
+  mobile GPUs): there the window's depth buffer is not kept while MoltenVK
+  splits a render pass for a tessellated draw. ``SHIFT_SCENE_TEXTURE=0`` or
+  ``1`` turns this off or on on any device.
 
 GPU calculations
 ----------------
