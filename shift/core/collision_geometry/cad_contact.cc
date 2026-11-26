@@ -5888,6 +5888,18 @@ bool shift::core::collision_geometry::CadCadContact(shift::core::collision_geome
   return Finish(pair, frame, points);
 }
 
+void shift::core::collision_geometry::CopyCadCache(
+  const std::shared_ptr<CadPairCache>& from,
+  std::shared_ptr<CadPairCache>& to) {
+  if(!from) {
+    to.reset();
+  } else if(!to || to == from) {
+    to = std::make_shared<CadPairCache>(*from);
+  } else {
+    *to = *from;
+  }
+}
+
 /* ------------------------------------------------------------------------ */
 /* CAD geometry on a plane */
 

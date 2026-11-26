@@ -29,6 +29,7 @@ class Frame;
 class Substructure;
 class Context;
 class Assembly;
+class Tangents;
 
 namespace joint {
 
@@ -268,6 +269,16 @@ public:
   }
  
   virtual void Service(const std::vector<double>&) {}
+
+  /*! \brief add the derivatives of the working forces of Service with
+   * respect to the joint's coordinates and velocities at the state y to
+   * \p tangents (see Tangents), for the iteration matrix of the implicit
+   * integrators; a joint without springs or dampers adds nothing */
+  virtual void AddTangents(const std::vector<double>& y,
+                           Tangents& tangents) const {
+    (void)y;
+    (void)tangents;
+  }
 
 protected:
   /*! \brief throw a shift::core::Exception if axis, the axis the model file

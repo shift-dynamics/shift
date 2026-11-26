@@ -104,6 +104,7 @@ public:
   void Connect() override;
   void Load() override;
   void Service(const double* y, double* dy) override;
+  bool AddTangents(const double* y, Tangents& tangents) override;
 
   void UpdateOutputs(double t, const double* y) override;
 

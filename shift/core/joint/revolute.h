@@ -127,6 +127,8 @@ public:
   topology::dh_fptr DHfptr() override;
   topology::dhva_fptr DHVAfptr() override;
   virtual void Service(const std::vector<double>& y) override;
+  void AddTangents(const std::vector<double>& y,
+                   Tangents& tangents) const override;
 
 private:
   virtual void DeclareParameters() override;

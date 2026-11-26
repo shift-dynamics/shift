@@ -10,6 +10,7 @@
 
 #include "shift/core/body/base.h"
 #include "shift/core/context.h"
+#include "shift/core/tangents.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/frame.h"
@@ -319,4 +320,138 @@ void shift::core::force_module::Bushing::Apply() {
     }
     context_->AddBodyLoad(attachments_[pair.i].load_index, load);
   }
+}
+
+/* the stiffness and damping of the bushing law, f = -K x - C v, between the
+bodies: a small displacement or twist s of a body (fixed coordinates,
+referred to the fixed origin) moves the origin p of j's frame and turns the
+rest axes A of a pair by x = G s, G = [A^T, -A^T [p x]; 0, A^T], and the
+force f of a pair acts on j as G^T f and on i as -G^T f. The blocks are
+G_k^T K_kl G_l, with the signs of the bodies of the pairs. The changes of A
+and p with the motion (of the order of the deflection times the force) are
+left out. */
+bool shift::core::force_module::Bushing::AddTangents(const double*,
+                                                     Tangents& tangents) {
+  const size_t count = pairs_.size();
+  const size_t n = 6 * count;
+  /* G of each pair, row major 6 x 6 */
+  std::vector<double> g(36 * count, 0.0);
+  for(size_t k = 0; k < count; k++) {
+    const ksl_mat3x3_t& A = axes_[k];
+    const ksl_vec3_t& p = poses_[pairs_[k].j].t;
+    double* G = &g[36 * k];
+    for(int r = 0; r < 3; r++) {
+      /* row r of A^T is column r of A */
+      /* row r of A^T is column a of A; row r of -A^T [p x] is (p x a)^T,
+      as a . (w x p) = w . (p x a) */
+      const ksl_vec3_t a = A.v[r];
+      ksl_vec3_t a_cross_p;
+      ksl_cross_vv(&p, &a, &a_cross_p);
+      for(int c = 0; c < 3; c++) {
+        G[r * 6 + c] = a.at[c];
+        G[r * 6 + 3 + c] = a_cross_p.at[c];
+        G[(3 + r) * 6 + 3 + c] = a.at[c];
+      }
+    }
+  }
+  double block_k[36], block_c[36];
+  for(size_t k = 0; k < count; k++) {
+    for(size_t l = 0; l < count; l++) {
+      /* G_k^T X_kl G_l for the stiffness and the damping */
+      double kg[36] = {}, cg[36] = {};
+      bool any = false;
+      for(int r = 0; r < 6; r++) {
+        for(int c = 0; c < 6; c++) {
+          const double kv = stiffness_[(6 * k + r) * n + 6 * l + c];
+          const double cv = damping_[(6 * k + r) * n + 6 * l + c];
+          any = any || kv != 0.0 || cv != 0.0;
+          for(int m = 0; m < 6; m++) {
+            kg[r * 6 + m] += kv * g[36 * l + c * 6 + m];
+            cg[r * 6 + m] += cv * g[36 * l + c * 6 + m];
+          }
+        }
+      }
+      if(!any) {
+        continue;
+      }
+      for(int r = 0; r < 6; r++) {
+        for(int m = 0; m < 6; m++) {
+          double sk = 0.0, sc = 0.0;
+          for(int c = 0; c < 6; c++) {
+            sk += g[36 * k + c * 6 + r] * kg[c * 6 + m];
+            sc += g[36 * k + c * 6 + r] * cg[c * 6 + m];
+          }
+          block_k[r * 6 + m] = sk;
+          block_c[r * 6 + m] = sc;
+        }
+      }
+      const int bodies_k[2] = {attachments_[pairs_[k].j].load_index,
+                               attachments_[pairs_[k].i].load_index};
+      const int bodies_l[2] = {attachments_[pairs_[l].j].load_index,
+                               attachments_[pairs_[l].i].load_index};
+      for(int a = 0; a < 2; a++) {
+        for(int b = 0; b < 2; b++) {
+          const double sign = a == b ? 1.0 : -1.0;
+          double sk[36], sc[36];
+          for(int e = 0; e < 36; e++) {
+            sk[e] = sign * block_k[e];
+            sc[e] = sign * block_c[e];
+          }
+          tangents.AddBodyStiffness(bodies_k[a], bodies_l[b], sk);
+          tangents.AddBodyDamping(bodies_k[a], bodies_l[b], sc);
+        }
+      }
+    }
+  }
+
+  /* the terms of the load itself: the force F and moment M on j turn with
+  the axes of i, dF = -[F x] dtheta_i (and M), and F acts at the origin p of
+  j, which moves with j's body (Tangents::AddMomentArmBlock) */
+  for(size_t k = 0; k < count; k++) {
+    const Pair& pair = pairs_[k];
+    const ksl_vec3_t force_rest = {{f_[6 * k], f_[6 * k + 1], f_[6 * k + 2]}};
+    const ksl_vec3_t moment_rest = {
+      {f_[6 * k + 3], f_[6 * k + 4], f_[6 * k + 5]}};
+    ksl_vec3_t force, moment;
+    ksl_product_drv(&axes_[k], &force_rest, &force);
+    ksl_product_drv(&axes_[k], &moment_rest, &moment);
+    const ksl_vec3_t& p = poses_[pair.j].t;
+    /* -d g_j / d theta_i: [F x] in the force rows, and [M x] + [p x][F x]
+    in the moment rows, M and F turning with i and p staying with j */
+    auto cross = [](const ksl_vec3_t& w, double m[9]) {
+      const double values[9] = {0.0,      -w.at[2], w.at[1], w.at[2], 0.0,
+                                -w.at[0], -w.at[1], w.at[0], 0.0};
+      for(int e = 0; e < 9; e++) {
+        m[e] = values[e];
+      }
+    };
+    double f_cross[9], m_cross[9], p_cross[9];
+    cross(force, f_cross);
+    cross(moment, m_cross);
+    cross(p, p_cross);
+    double turn[36] = {};
+    for(int r = 0; r < 3; r++) {
+      for(int c = 0; c < 3; c++) {
+        double pf = 0.0;
+        for(int m = 0; m < 3; m++) {
+          pf += p_cross[r * 3 + m] * f_cross[m * 3 + c];
+        }
+        turn[r * 6 + 3 + c] = f_cross[r * 3 + c];
+        turn[(r + 3) * 6 + 3 + c] = m_cross[r * 3 + c] + pf;
+      }
+    }
+    double arm[36] = {}, arm_i[36] = {}, turn_i[36];
+    Tangents::AddMomentArmBlock(p, force, 1.0, arm);
+    Tangents::AddMomentArmBlock(p, force, -1.0, arm_i);
+    for(int e = 0; e < 36; e++) {
+      turn_i[e] = -turn[e];
+    }
+    const int body_j = attachments_[pair.j].load_index;
+    const int body_i = attachments_[pair.i].load_index;
+    tangents.AddBodyStiffness(body_j, body_i, turn);
+    tangents.AddBodyStiffness(body_i, body_i, turn_i);
+    tangents.AddBodyStiffness(body_j, body_j, arm);
+    tangents.AddBodyStiffness(body_i, body_j, arm_i);
+  }
+  return true;
 }

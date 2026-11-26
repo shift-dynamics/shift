@@ -78,6 +78,8 @@ struct SoilProperties {
   /*! \brief Bekker's pressure under a plate of width \f$b\f$ at sinkage
    * \f$z\f$ */
   double Pressure(double b, double z) const;
+  /*! \brief \f$\partial p / \partial z\f$ of Pressure */
+  double PressureSlope(double b, double z) const;
 
   /*! \brief the share of a layer's volume that compaction takes, from the
    * unit weight \f$w\f$ of the soil as it lies to the most
@@ -102,6 +104,8 @@ struct SoilProperties {
    * \f$\frac{1}{2} w h^2 \kappa_p + 2 c h \sqrt{\kappa_p}\f$, with the unit_weight
    * \f$w\f$, the cohesion \f$c\f$ and the coefficient \f$\kappa_p\f$ */
   double PassiveForce(double h) const;
+  /*! \brief \f$d P_p / d h\f$ of PassiveForce */
+  double PassiveForceSlope(double h) const;
 };
 
 /*!

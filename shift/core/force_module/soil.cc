@@ -13,6 +13,14 @@ double shift::core::force_module::SoilProperties::Pressure(double b,
   return (k_c / b + k_phi) * std::pow(z, n);
 }
 
+double shift::core::force_module::SoilProperties::PressureSlope(
+  double b, double z) const {
+  if(!(z > 0.0)) {
+    return 0.0;
+  }
+  return n * (k_c / b + k_phi) * std::pow(z, n - 1.0);
+}
+
 /* s of Coulomb's coefficients; see SoilProperties */
 static double CoulombRoot(double friction_angle, double wall_friction) {
   return std::sqrt(std::sin(friction_angle + wall_friction) *
@@ -44,6 +52,15 @@ double shift::core::force_module::SoilProperties::PassiveForce(double h) const {
   }
   const double kp = PassiveCoefficient();
   return 0.5 * unit_weight * h * h * kp + 2.0 * cohesion * h * std::sqrt(kp);
+}
+
+double shift::core::force_module::SoilProperties::PassiveForceSlope(
+  double h) const {
+  if(!(h > 0.0)) {
+    return 0.0;
+  }
+  const double kp = PassiveCoefficient();
+  return unit_weight * h * kp + 2.0 * cohesion * std::sqrt(kp);
 }
 
 struct SoilRow {

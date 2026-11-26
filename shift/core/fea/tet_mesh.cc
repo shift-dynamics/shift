@@ -9,6 +9,7 @@
 #include <string>
 
 #include "shift/core/exception.h"
+#include "shift/core/fea/trap_suspension.h"
 
 namespace nglib {
 #include <nglib.h>
@@ -111,36 +112,6 @@ bool shift::core::fea::InsideSurface(const ClosedSurface& surface,
   return angle / (4.0 * M_PI) > 0.5;
 }
 
-namespace shift {
-namespace core {
-namespace fea {
-/* the divide-by-zero trap (SHIFT_FP_TRAP) suspended while Netgen meshes: its
-vectorized atan2 divides by zero when x is 0, e.g. for a point of a surface
-on an axis, and returns the right angle */
-class NetgenTrapSuspension {
-public:
-  NetgenTrapSuspension() {
-#if defined(SHIFT_FP_TRAP) && defined(__linux__)
-    enabled_ = fedisableexcept(FE_DIVBYZERO);
-#endif
-  }
-  ~NetgenTrapSuspension() {
-#if defined(SHIFT_FP_TRAP) && defined(__linux__)
-    if(enabled_ != -1) {
-      feenableexcept(enabled_ & FE_DIVBYZERO);
-    }
-#endif
-  }
-  NetgenTrapSuspension(const NetgenTrapSuspension&) = delete;
-  NetgenTrapSuspension& operator=(const NetgenTrapSuspension&) = delete;
-
-private:
-  int enabled_ = -1;
-};
-} // namespace fea
-} // namespace core
-} // namespace shift
-
 /* Netgen keeps its meshing parameters in a global object: one meshing at a
 time */
 static std::mutex& NetgenMutex() {
@@ -230,7 +201,9 @@ shift::core::fea::ClosedSurface shift::core::fea::RemeshSurface(
   ClosedSurface remeshed;
   {
     std::lock_guard<std::mutex> lock(NetgenMutex());
-    const shift::core::fea::NetgenTrapSuspension suspension;
+    /* Netgen's vectorized atan2 divides by zero (see
+    DivideByZeroTrapSuspension) */
+    const shift::core::fea::DivideByZeroTrapSuspension suspension;
     nglib::Ng_STL_Geometry* geometry = nglib::Ng_STL_NewGeometry();
     for(const std::array<int, 3>& t : surface.triangles) {
       double p[3][3];
@@ -445,7 +418,9 @@ shift::core::fea::TetMesh shift::core::fea::MeshVolume(
   }
 
   std::lock_guard<std::mutex> lock(NetgenMutex());
-  const shift::core::fea::NetgenTrapSuspension suspension;
+  /* Netgen's vectorized atan2 divides by zero (see
+  DivideByZeroTrapSuspension) */
+  const shift::core::fea::DivideByZeroTrapSuspension suspension;
 
   nglib::Ng_Mesh* mesh = nglib::Ng_NewMesh();
   for(const ksl_vec3_t& p : surface.points) {

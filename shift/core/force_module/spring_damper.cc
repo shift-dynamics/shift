@@ -1,6 +1,7 @@
 #include "shift/core/force_module/spring_damper.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 #include "ksl/mat3x3.h"
@@ -10,6 +11,7 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/frame.h"
+#include "shift/core/tangents.h"
 
 bool shift::core::force_module::SpringDamper::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -360,6 +362,178 @@ void shift::core::force_module::SpringDamper::Apply() {
     }
     context_->AddBodyLoad(attachments_[k].load_index, load);
   }
+}
+
+bool shift::core::force_module::SpringDamper::AddTangents(
+  const double* y, Tangents& tangents) {
+  assert(context_);
+  const int body[2] = {attachments_[0].load_index, attachments_[1].load_index};
+  if(body[0] == -2 || body[1] == -2) {
+    return true; // not yet serviced
+  }
+  ksl_screw_t velocity[2];
+  for(int k = 0; k < 2; k++) {
+    velocity[k] = context_->GetBodyVelocity(body[k]);
+  }
+
+  /* the states, as Compute reads them */
+  int state = torsion_ ? 1 : 0;
+  const int angle_state = torsion_ ? static_cast<int>(state_offset_) : -1;
+  const int hysteresis_state =
+    hysteresis_.is_used() ? static_cast<int>(state_offset_) + state++ : -1;
+  const int crush_state =
+    unloading_stiffness_ > 0.0 ? static_cast<int>(state_offset_) + state : -1;
+  const int absorbed_state = crush_state > -1 ? crush_state + 1 : -1;
+  const double z = hysteresis_state > -1 ? y[hysteresis_state] : 0.0;
+
+  /* the derivatives of the law with respect to the deflection and its rate */
+  const double x = length_ - free_;
+  const double v = rate_;
+  const double f = force_;
+  const double step_x =
+    std::min(1e-7 * std::max(1.0, std::fabs(x)), 1e-3 * smoothing_);
+  const double step_v = 1e-7 * std::max(1.0, std::fabs(v));
+  const double f_x =
+    (Force(x + step_x, v, z, crush_) - Force(x - step_x, v, z, crush_)) /
+    (2.0 * step_x);
+  const double f_v =
+    (Force(x, v + step_v, z, crush_) - Force(x, v - step_v, z, crush_)) /
+    (2.0 * step_v);
+
+  /* the rates of the states, a_x dx + a_v dv */
+  struct StateRate {
+    int state;
+    double a_x, a_v;
+  };
+  std::vector<StateRate> state_rates;
+  if(angle_state > -1) {
+    state_rates.push_back({angle_state, 0.0, 1.0});
+  }
+  if(hysteresis_state > -1) {
+    const double rate_v =
+      (hysteresis_.Rate(z, v + step_v) - hysteresis_.Rate(z, v - step_v)) /
+      (2.0 * step_v);
+    state_rates.push_back({hysteresis_state, 0.0, rate_v});
+  }
+  if(crush_state > -1) {
+    /* about an axis the deflection is a state, whose terms the integrator
+    differences */
+    const double a_x =
+      !torsion_ && -x - crush_ > 0.0 ? -1.0 / crush_time_ : 0.0;
+    state_rates.push_back({crush_state, a_x, 0.0});
+    state_rates.push_back(
+      {absorbed_state, torsion_ ? 0.0 : f_x * v, f_v * v + f});
+  }
+
+  /* the blocks (i, i), (i, j), (j, j), (j, i), and the derivatives of x and
+  v with respect to the displacement (x, v) and the twist (v) of each body */
+  double stiffness[4][36] = {};
+  double damping[4][36] = {};
+  double x_row[2][6] = {}, v_row[2][6] = {}, v_twist_row[2][6] = {};
+  const ksl_vec3_t& n = direction_;
+
+  if(torsion_) {
+    /* the moment f a on i and -f a on j, the axis a turning with body i:
+    da = -[a x] dtheta_i, and dv = w . da for the relative angular velocity
+    w */
+    ksl_vec3_t w;
+    ksl_subtract_vv(&velocity[1].ang, &velocity[0].ang, &w);
+    const double a_cross[9] = {0.0,      -n.at[2], n.at[1], n.at[2], 0.0,
+                               -n.at[0], -n.at[1], n.at[0], 0.0};
+    for(int r = 0; r < 3; r++) {
+      for(int c = 0; c < 3; c++) {
+        double h = 0.0;
+        for(int m = 0; m < 3; m++) {
+          h += ((r == m ? f : 0.0) + f_v * n.at[r] * w.at[m]) *
+               -a_cross[m * 3 + c];
+        }
+        const double g = f_v * n.at[r] * n.at[c];
+        const int e = (r + 3) * 6 + c + 3;
+        stiffness[0][e] -= h;
+        stiffness[3][e] += h;
+        damping[0][e] += g;
+        damping[1][e] -= g;
+        damping[2][e] += g;
+        damping[3][e] -= g;
+      }
+      double turn = 0.0;
+      for(int m = 0; m < 3; m++) {
+        turn += w.at[m] * -a_cross[m * 3 + r];
+      }
+      v_row[0][r + 3] = turn;
+      v_twist_row[0][r + 3] = -n.at[r];
+      v_twist_row[1][r + 3] = n.at[r];
+    }
+  } else {
+    /* the force f n on point i and -f n on point j, which change with the
+    displacement d of j relative to i */
+    const ksl_vec3_t& p_i = poses_[0].t;
+    const ksl_vec3_t& p_j = poses_[1].t;
+    ksl_vec3_t wi, wj, u;
+    ksl_cross_vv(&velocity[0].ang, &p_i, &wi);
+    ksl_cross_vv(&velocity[1].ang, &p_j, &wj);
+    for(int c = 0; c < 3; c++) {
+      u.at[c] = (velocity[1].lin.at[c] + wj.at[c]) -
+                (velocity[0].lin.at[c] + wi.at[c]);
+    }
+    const double l = std::max(length_, 1e-12);
+    const double u_n = ksl_dot_vv(&u, &n);
+    double pu_l[3], projection[9];
+    for(int r = 0; r < 3; r++) {
+      pu_l[r] = (u.at[r] - u_n * n.at[r]) / l;
+      for(int c = 0; c < 3; c++) {
+        projection[r * 3 + c] = (r == c ? 1.0 : 0.0) - n.at[r] * n.at[c];
+      }
+    }
+    double g[9], gc[9];
+    for(int r = 0; r < 3; r++) {
+      for(int c = 0; c < 3; c++) {
+        g[r * 3 + c] = n.at[r] * (f_x * n.at[c] + f_v * pu_l[c]) +
+                       f * projection[r * 3 + c] / l;
+        gc[r * 3 + c] = f_v * n.at[r] * n.at[c];
+      }
+    }
+    Tangents::AddPointBlock(p_i, g, p_i, 1.0, stiffness[0]);
+    Tangents::AddPointBlock(p_i, g, p_j, -1.0, stiffness[1]);
+    Tangents::AddPointBlock(p_j, g, p_j, 1.0, stiffness[2]);
+    Tangents::AddPointBlock(p_j, g, p_i, -1.0, stiffness[3]);
+    ksl_vec3_t force_i = n, force_j = n;
+    ksl_vec3_scale(&force_i, f);
+    ksl_vec3_scale(&force_j, -f);
+    Tangents::AddMomentArmBlock(p_i, force_i, 1.0, stiffness[0]);
+    Tangents::AddMomentArmBlock(p_j, force_j, 1.0, stiffness[2]);
+    Tangents::AddPointBlock(p_i, gc, p_i, 1.0, damping[0]);
+    Tangents::AddPointBlock(p_i, gc, p_j, -1.0, damping[1]);
+    Tangents::AddPointBlock(p_j, gc, p_j, 1.0, damping[2]);
+    Tangents::AddPointBlock(p_j, gc, p_i, -1.0, damping[3]);
+
+    Tangents::AddPointRow(n.at, p_i, -1.0, x_row[0]);
+    Tangents::AddPointRow(n.at, p_j, 1.0, x_row[1]);
+    Tangents::AddPointRow(pu_l, p_i, -1.0, v_row[0]);
+    Tangents::AddPointRow(pu_l, p_j, 1.0, v_row[1]);
+    Tangents::AddPointRow(n.at, p_i, -1.0, v_twist_row[0]);
+    Tangents::AddPointRow(n.at, p_j, 1.0, v_twist_row[1]);
+  }
+
+  const int pairs[4][2] = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+  for(int k = 0; k < 4; k++) {
+    tangents.AddBodyStiffness(body[pairs[k][0]], body[pairs[k][1]],
+                              stiffness[k]);
+    tangents.AddBodyDamping(body[pairs[k][0]], body[pairs[k][1]],
+                            damping[k]);
+  }
+  for(const auto& rate : state_rates) {
+    for(int k = 0; k < 2; k++) {
+      double row_k[6], row_c[6];
+      for(int c = 0; c < 6; c++) {
+        row_k[c] = rate.a_x * x_row[k][c] + rate.a_v * v_row[k][c];
+        row_c[c] = rate.a_v * v_twist_row[k][c];
+      }
+      tangents.AddStateBodyStiffness(rate.state, body[k], row_k);
+      tangents.AddStateBodyDamping(rate.state, body[k], row_c);
+    }
+  }
+  return true;
 }
 
 void shift::core::force_module::SpringDamper::Service(const double* y,

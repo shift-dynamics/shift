@@ -111,6 +111,21 @@ public:
   void Connect() override;
   void Load() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief the stiffness and damping of the SCM soil's force at each node
+   * in contact: the pressure with the sinkage (the body's displacement along
+   * the terrain's z axis at the point over the node) and with its rate (the
+   * damping), the shear stress with that pressure and with the slip
+   * velocity through the shear displacement. The ray's point over the node
+   * stays on the node's vertical: a displacement \f$\underline{\delta}\f$
+   * of the body moves it along the terrain's z axis by \f$\underline{g}^T E
+   * \underline{\delta}\f$, \f$\underline{g} = \underline{n} /
+   * (\underline{n} \cdot \underline{e}_z)\f$ with the normal
+   * \f$\underline{n}\f$ of the body's surface there (by RayCast; the
+   * terrain's z axis where the surface is steeper than 84 degrees), which
+   * changes the sinkage, the velocity of the body's point there and the
+   * moment arm of the force. The SPH soils' loads, of the last accepted step,
+   * do not change within a step. */
+  bool AddTangents(const double* y, Tangents& tangents) override;
 
   void UpdateOutputs(double t, const double* y) override;
 
@@ -142,6 +157,8 @@ private:
     int body;               //!< index in bodies_
     ksl_vec3_t point;       //!< inertial frame
     double width;           //!< b of its patch
+    int geometry = -1;      //!< index in geometry_ of the body's surface
+    double start = 0.0;     //!< z of the start of its ray, terrain frame
   };
   /*! \brief the nodes under a geometry, and its lowest point */
   struct Range {
@@ -150,8 +167,8 @@ private:
   };
 
   /*! \brief the forces on the bodies, and the trials of the nodes in
-   * contact if apply */
-  void Evaluate(bool apply);
+   * contact if apply, and their derivatives (if tangents) */
+  void Evaluate(bool apply, Tangents* tangents = nullptr);
 
   static bool registered_;
 

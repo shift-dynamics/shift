@@ -12,6 +12,7 @@ convex hull */
 #include "test/contact/contact_record.h"
 #include "shift/config.h"
 #include "shift/core/body/base.h"
+#include "shift/core/collision_geometry/gjk.h"
 #include "shift/core/integrator/base.h"
 #include "shift/core/context.h"
 
@@ -585,3 +586,146 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_ManyBunnies, CollisionExample,
 INSTANTIATE_TEST_SUITE_P(Skulls, CollisionExample, testing::Values("skull_5"));
 INSTANTIATE_TEST_SUITE_P(DISABLED_ManySkulls, CollisionExample,
                          testing::Values("skull_50"));
+
+/* the contacts of a context, for comparing them exactly: with the normal of
+the accepted state that each pair keeps */
+static std::vector<double> ContactValues(shift::core::Context& context) {
+  std::vector<double> values;
+  for(const auto* pair : context.get_contacts()) {
+    values.push_back(pair->depth);
+    for(int k = 0; k < 3; k++) {
+      values.push_back(pair->normal.at[k]);
+      values.push_back(pair->accepted_normal.at[k]);
+    }
+    for(const auto& c : pair->manifold) {
+      values.insert(values.end(), {c.depth, c.weight, c.area, c.length,
+                                   c.point_a.x, c.point_a.y, c.point_a.z,
+                                   c.normal.x, c.normal.y, c.normal.z});
+    }
+  }
+  return values;
+}
+
+/* the contacts of a model at its state moved by retry, after its state was
+accepted, whether or not a trial step moved by excursion was tested in
+between (as an integrator does before it rejects that step): the same, since
+a test starts from what the pair kept at the accepted state */
+static void CheckContactsAfterExcursion(const std::string& name,
+                                        const std::string& model,
+                                        const ksl_vec3_t& excursion,
+                                        const ksl_vec3_t& retry) {
+  SCOPED_TRACE(name);
+  const std::string path = testing::TempDir() + "/" + name + ".json";
+  {
+    std::ofstream file(path);
+    file << model;
+  }
+  std::vector<double> results[2];
+  for(int trial = 0; trial < 2; trial++) {
+    shift::core::Context context;
+    context.LoadJSON(path);
+    int t_index = -1;
+    for(auto* joint : context.get_active_joints()) {
+      if(joint->get_name() == "j") {
+        t_index = joint->get_q_index();
+      }
+    }
+    ASSERT_GT(t_index, -1);
+    const std::vector<double> y(context.get_q().begin(),
+                                context.get_q().end());
+    const std::vector<double> dq(context.get_dq_count(), 0.0);
+    auto detect = [&](const ksl_vec3_t& offset) {
+      std::vector<double> state(y);
+      for(int k = 0; k < 3; k++) {
+        state[t_index + k] += offset.at[k];
+      }
+      context.UpdateDHVA(state.data(), dq.data());
+      context.DetectContacts();
+      return ContactValues(context);
+    };
+    ASSERT_FALSE(detect({{0.0, 0.0, 0.0}}).empty());
+    context.AcceptStep(y);
+    if(trial) {
+      detect(excursion);
+    }
+    results[trial] = detect(retry);
+    ASSERT_FALSE(results[trial].empty());
+  }
+  std::remove(path.c_str());
+  EXPECT_EQ(results[1], results[0]);
+}
+
+/* a box 1 mm into a fixed box: a trial that lifts it 2 m, out of the broad
+phase's scope, does not lose the pair's normal of the accepted state, so the
+contact of the hulls is found again from it */
+TEST(ContactHistory, PairOutOfScopeInATrialKeepsItsHistory) {
+  CheckContactsAfterExcursion("contact_history_hulls", R"({
+  "model_parameters": {"version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0, 0, 9.81], "enable_contact_detection": true,
+    "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]},
+  "collision_geometry": [{"name": "slab", "type": "box",
+    "half_extents": [1, 1, 0.1], "pose": {"T": [0, 0, 0.1]},
+    "material": "steel"}],
+  "assemblies": [{"name": "a",
+    "bodies": [{"name": "block", "center_of_mass": [0, 0, 0],
+      "collision_geometry": [{"name": "block", "type": "box",
+        "half_extents": [0.1, 0.05, 0.05], "material": "steel"}],
+      "inertia": {"mass": 1, "Ixx": 1, "Iyy": 1, "Izz": 1, "Ixy": 0,
+                  "Iyz": 0, "Izx": 0}}],
+    "joints": [{"name": "j", "type": "float", "parent": [["fixed"], "origin"],
+      "child": [["block"], "origin"],
+      "initial_displacement": {"T": [0, 0, -0.049],
+        "R": [[0.99995, 0, 0.01], [0.0002, 0.9998, -0.02],
+              [-0.01, 0.02, 0.99975]]}}],
+    "force_modules": [{"type": "contact", "name": "contact",
+      "materials": [{"name": "steel", "youngs_modulus": 2e11,
+                     "poisson_ratio": 0.3, "restitution": 0.3,
+                     "friction": 0.3, "contact_stiffness": 1e6}]}]}]
+})", {{0.0, 0.0, -2.0}}, {{0.0, 0.0, 0.0}});
+}
+
+/* a brake shoe pressed 10 um onto a drum (CAD faces that conform), moved a
+millimeter in a trial: the test of a retried step near the trial starts from
+the cache of the pair at the accepted state, not from the trial's */
+TEST(ContactHistory, CadCacheOfATrialIsNotKept) {
+  std::ostringstream m;
+  m << R"({"model_parameters": {"version": "0.2",
+    "units": {"angle": "radians", "length": "meters", "mass": "kilograms",
+              "time": "seconds"},
+    "gravity": [0, 0, 9.81], "include_directories": [")"
+    << SHIFT_EXAMPLES_DIR << R"(/cad"],
+    "enable_contact_detection": true, "solvers": [{"type": "rnca"}],
+    "integrators": [{"type": "ode113", "time_span": 0.0, "time_step": 0.01}]},
+  "assemblies": [{"name": "a",
+    "bodies": [
+      {"name": "drum",
+       "geometry": [{"type": "cad", "filename": "drum.step"}],
+       "collision_geometry": [{"name": "drum", "type": "cad",
+         "filename": "drum.step", "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 1, "Ixx": 1, "Iyy": 1, "Izz": 1, "Ixy": 0,
+                   "Iyz": 0, "Izx": 0}},
+      {"name": "shoe",
+       "geometry": [{"type": "cad", "filename": "brake_shoe.step"}],
+       "collision_geometry": [{"name": "shoe", "type": "cad",
+         "filename": "brake_shoe.step", "material": "steel"}],
+       "center_of_mass": [0, 0, 0],
+       "inertia": {"mass": 1, "Ixx": 1, "Iyy": 1, "Izz": 1, "Ixy": 0,
+                   "Iyz": 0, "Izx": 0}}],
+    "joints": [
+      {"name": "drum_joint", "type": "rigid", "parent": [["fixed"], "origin"],
+       "child": [["drum"], "origin"]},
+      {"name": "j", "type": "float", "parent": [["fixed"], "origin"],
+       "child": [["shoe"], "origin"],
+       "initial_displacement": {"T": [0, 0, 1e-5]}}],
+    "force_modules": [{"type": "contact", "name": "contact",
+      "materials": [{"name": "steel", "youngs_modulus": 2e11,
+                     "poisson_ratio": 0.3, "restitution": 0.3,
+                     "friction": 0.3}]}]}]
+})";
+  CheckContactsAfterExcursion("contact_history_cad", m.str(),
+                              {{1e-3, 0.0, 2e-5}}, {{1.1e-3, 0.0, 1.5e-5}});
+}

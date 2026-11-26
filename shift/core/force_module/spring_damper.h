@@ -159,6 +159,19 @@ public:
 
   void UpdateOutputs(double t, const double* y) override;
 
+  /*! \brief the stiffness and damping of the force (moment) between the two
+   * bodies, from the derivatives of the law with respect to the deflection
+   * and its rate (central differences of Force) and the geometry of the
+   * line: \f$\partial \underline{f}_i / \partial \underline{d} = \underline{n}
+   * (f_x \underline{n}^T + f_v (P \underline{u})^T / l) + f P / l\f$ for the
+   * relative displacement \f$\underline{d}\f$ of the two points, with
+   * \f$P = I - \underline{n}\,\underline{n}^T\f$ and the relative velocity
+   * \f$\underline{u}\f$ of the points, and the moments about the fixed
+   * origin; about an axis, the turn of the axis with body i. The rates of
+   * the states (the angle about an axis, the hysteresis, the crush and the
+   * work absorbed) are given with respect to the bodies' motion too. */
+  bool AddTangents(const double* y, Tangents& tangents) override;
+
   /*! \brief the length (angle), its rate and the force (moment), positive in
    * tension, as of the last Service or UpdateOutputs */
   double get_length() const {

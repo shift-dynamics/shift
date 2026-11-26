@@ -166,11 +166,32 @@ public:
   void SetupSubstructurePointers();
   unsigned int RemoveConstraintViolations();
   void RemoveConstraintViolationsFast(bool);
+  /*! \brief the dependent coordinates of every substructure corrected by
+   * Newton-Raphson, with the independent ones held, until the error of each
+   * substructure's position constraints (Substructure::EvaluateConstraints)
+   * is at most \p tolerance: RemoveConstraintViolationsFast with the
+   * substructures iterated together, one update of the displacements and
+   * influence coefficients (Context::UpdateDH) per iteration for all of
+   * them, and no factorization when the constraints already hold. Works on
+   * Context::get_q. Throws shift::core::Exception when Newton-Raphson
+   * diverges or does not converge in 100 iterations. Called by
+   * integrator::Alpha at each Newton iteration. */
+  void ProjectPositions(double tolerance);
   /*! \brief make the generalized velocities satisfy the velocity constraints
    * of every substructure (Substructure::MakeVelocitiesConsistent) and update
    * the velocities of DHVA; call after RemoveConstraintViolations. Called at
    * load (Initialize) and by solver::RNCA::Initialize */
   void MakeVelocitiesConsistent();
+  /*! \brief the corrections of one Newton-Raphson iteration of every
+   * substructure at the current displacements (DHVA) and the factors of the
+   * last FactorPO2, \f$\delta\underline{q}_d = J_d^{-1}
+   * \underline{\Phi}\f$, into the dependent velocities' entries of
+   * Context::get_delta_q (velocity order), as RemoveConstraintViolations
+   * computes them before it subtracts them (Substructure::Updateq); the
+   * coordinates are not changed. Their derivative with respect to the
+   * coordinates is \f$[B_{di} \; I]\f$. Overwrites the constraints
+   * (get_constraints), which Context::EvaluateConstraints restores. */
+  void EvaluateNewtonRaphsonCorrections();
 
   /*! check if infinity norm of B matrix is greater than a threshold times the
    * initial starting value

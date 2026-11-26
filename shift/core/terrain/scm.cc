@@ -495,6 +495,25 @@ double shift::core::terrain::Scm::Pressure(
   return std::max(0.0, std::min(load, reached - k_u * (plastic_sinkage - s)));
 }
 
+double shift::core::terrain::Scm::PressureSlope(
+  const shift::core::force_module::SoilProperties& soil, double b, double s,
+  double plastic_sinkage) const {
+  if(!(s > 0.0)) {
+    return 0.0;
+  }
+  if(!(plastic_sinkage > 0.0) || s >= plastic_sinkage) {
+    return soil.PressureSlope(b, s);
+  }
+  const double load = soil.Pressure(b, s);
+  const double reached = soil.Pressure(b, plastic_sinkage);
+  const double k_u = unloading_ratio_ * reached / plastic_sinkage;
+  const double unload = reached - k_u * (plastic_sinkage - s);
+  if(!(unload > 0.0)) {
+    return 0.0;
+  }
+  return unload < load ? k_u : soil.PressureSlope(b, s);
+}
+
 double shift::core::terrain::Scm::Level(long i, long j) const {
   const Node* node = FindNode(i, j);
   return node ? node->level : 0.0;

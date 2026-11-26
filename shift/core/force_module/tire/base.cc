@@ -11,6 +11,7 @@
 #include "shift/core/assembly.h"
 #include "shift/core/body/base.h"
 #include "shift/core/context.h"
+#include "shift/core/tangents.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/frame.h"
@@ -446,31 +447,10 @@ void shift::core::force_module::tire::Base::Service(const double* y,
   const ksl_SE3_t& hub = context_->get_dhva().d[wheel_origin_->get_index()];
   const ksl_screw_t velocity = context_->GetBodyVelocity(load_index_);
 
-  UpdateContact(hub, velocity);
-  /* 35: spin rate about the wheel axis */
-  contact_.omega = ksl_dot_vv(&hub.R.v1, &velocity.ang);
-
-  model_->Evaluate(contact_, y + state_offset_, dy + state_offset_, &force_w_);
+  const ksl_coscrew_t load =
+    WheelLoad(hub, velocity, y + state_offset_, dy + state_offset_);
   if(!contact_.in_contact) {
     return;
-  }
-
-  /* force and moment at the contact point, in the fixed frame and referred
-  to its origin: (R f, R m + p x R f) */
-  const ksl_SE3_t& w = contact_.w_frame;
-  ksl_coscrew_t load;
-  for(int i = 0; i < 3; i++) {
-    load.lin.at[i] = w.R.v0.at[i] * force_w_.lin.x +
-                     w.R.v1.at[i] * force_w_.lin.y +
-                     w.R.v2.at[i] * force_w_.lin.z;
-    load.ang.at[i] = w.R.v0.at[i] * force_w_.ang.x +
-                     w.R.v1.at[i] * force_w_.ang.y +
-                     w.R.v2.at[i] * force_w_.ang.z;
-  }
-  ksl_vec3_t p_cross_f;
-  ksl_cross_vv(&w.t, &load.lin, &p_cross_f);
-  for(int i = 0; i < 3; i++) {
-    load.ang.at[i] += p_cross_f.at[i];
   }
   context_->AddBodyLoad(load_index_, load);
 }
@@ -516,4 +496,133 @@ void shift::core::force_module::tire::Base::UpdateOutputs(double,
   outputs_[4] = wheel->get_shear_torque();
   outputs_[5] = wheel->get_camber();
   outputs_[6] = touching ? force_w_.lin.y : 0.0;
+}
+
+ksl_coscrew_t shift::core::force_module::tire::Base::WheelLoad(
+  const ksl_SE3_t& hub, const ksl_screw_t& velocity, const double* states,
+  double* rates) {
+  ksl_coscrew_t load = ksl_coscrew(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  UpdateContact(hub, velocity);
+  /* 35: spin rate about the wheel axis */
+  contact_.omega = ksl_dot_vv(&hub.R.v1, &velocity.ang);
+
+  model_->Evaluate(contact_, states, rates, &force_w_);
+  if(!contact_.in_contact) {
+    return load;
+  }
+
+  /* force and moment at the contact point, in the fixed frame and referred
+  to its origin: (R f, R m + p x R f) */
+  const ksl_SE3_t& w = contact_.w_frame;
+  for(int i = 0; i < 3; i++) {
+    load.lin.at[i] = w.R.v0.at[i] * force_w_.lin.x +
+                     w.R.v1.at[i] * force_w_.lin.y +
+                     w.R.v2.at[i] * force_w_.lin.z;
+    load.ang.at[i] = w.R.v0.at[i] * force_w_.ang.x +
+                     w.R.v1.at[i] * force_w_.ang.y +
+                     w.R.v2.at[i] * force_w_.ang.z;
+  }
+  ksl_vec3_t p_cross_f;
+  ksl_cross_vv(&w.t, &load.lin, &p_cross_f);
+  for(int i = 0; i < 3; i++) {
+    load.ang.at[i] += p_cross_f.at[i];
+  }
+  return load;
+}
+
+/* forward differences of WheelLoad: a small rigid displacement exp(e s_k)
+of the wheel, a twist s_k in fixed coordinates referred to the fixed origin,
+with the velocity of the hub kept, and a change e of its twist; the
+contact, the force and the outputs of the state at y are restored */
+bool shift::core::force_module::tire::Base::AddTangents(const double* y,
+                                                        Tangents& tangents) {
+  assert(context_ && model_ && wheel_origin_);
+  if(load_index_ < 0) {
+    return true; // not yet serviced, or fixed
+  }
+  const ksl_SE3_t hub = context_->get_dhva().d[wheel_origin_->get_index()];
+  const ksl_screw_t velocity = context_->GetBodyVelocity(load_index_);
+  const double* states = y + state_offset_;
+  std::vector<double> rates(model_->get_state_count() + 1, 0.0);
+  const Contact contact = contact_;
+  const ksl_coscrew_t force_w = force_w_;
+
+  WheelLoad(hub, velocity, states, rates.data());
+  const unsigned int state_count = model_->get_state_count();
+  const bool in_contact = contact_.in_contact;
+  double stiffness[36] = {}, damping[36] = {};
+  /* the derivatives of the rates of the states, a row of six for each */
+  std::vector<double> state_stiffness(size_t(state_count) * 6, 0.0);
+  std::vector<double> state_damping(size_t(state_count) * 6, 0.0);
+  if(in_contact) {
+    const double epsilon = 1e-7;
+    const double scale_v = std::max(
+      1.0, std::sqrt(ksl_dot_vv(&velocity.lin, &velocity.lin) +
+                     ksl_dot_vv(&velocity.ang, &velocity.ang)));
+    /* the load and the rates of the states for the hub displaced by the
+    small twist delta, or for the wheel's twist changed by it */
+    std::vector<double> rates_minus(rates.size(), 0.0);
+    auto displaced = [&](const ksl_screw_t& delta, double* state_rates) {
+      /* the hub keeps its velocity and the wheel its angular velocity: the
+      twist referred to the fixed origin is carried with the hub,
+      v' = v + w x (c - c'), which is exact for a displacement of the whole
+      vehicle and for a turn of the wheel about its axle */
+      ksl_SE3_t displacement, moved;
+      ksl_SE3_exp(&delta, &displacement);
+      ksl_product_dd(&displacement, &hub, &moved);
+      ksl_screw_t moved_velocity = velocity;
+      const ksl_vec3_t shift = {{hub.t.x - moved.t.x, hub.t.y - moved.t.y,
+                                 hub.t.z - moved.t.z}};
+      ksl_vec3_t w_cross_shift;
+      ksl_cross_vv(&velocity.ang, &shift, &w_cross_shift);
+      for(int r = 0; r < 3; r++) {
+        moved_velocity.lin.at[r] += w_cross_shift.at[r];
+      }
+      return WheelLoad(moved, moved_velocity, states, state_rates);
+    };
+    auto faster = [&](const ksl_screw_t& delta, double* state_rates) {
+      ksl_screw_t changed = velocity;
+      for(int r = 0; r < 3; r++) {
+        changed.lin.at[r] += delta.lin.at[r];
+        changed.ang.at[r] += delta.ang.at[r];
+      }
+      return WheelLoad(hub, changed, states, state_rates);
+    };
+    /* central differences: the slip of a tire turns sharply near zero */
+    auto difference = [&](int k, double step, auto&& evaluate, double* block,
+                          std::vector<double>& state_block) {
+      ksl_screw_t delta = ksl_screw(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      (k < 3 ? delta.lin.at[k] : delta.ang.at[k - 3]) = step;
+      const ksl_coscrew_t plus = evaluate(delta, rates.data());
+      (k < 3 ? delta.lin.at[k] : delta.ang.at[k - 3]) = -step;
+      const ksl_coscrew_t minus = evaluate(delta, rates_minus.data());
+      for(int r = 0; r < 3; r++) {
+        block[r * 6 + k] = -(plus.lin.at[r] - minus.lin.at[r]) / (2.0 * step);
+        block[(r + 3) * 6 + k] =
+          -(plus.ang.at[r] - minus.ang.at[r]) / (2.0 * step);
+      }
+      for(unsigned int i = 0; i < state_count; i++) {
+        state_block[size_t(i) * 6 + k] =
+          (rates[i] - rates_minus[i]) / (2.0 * step);
+      }
+    };
+    for(int k = 0; k < 6; k++) {
+      difference(k, epsilon, displaced, stiffness, state_stiffness);
+      difference(k, epsilon * scale_v, faster, damping, state_damping);
+    }
+  }
+  contact_ = contact;
+  force_w_ = force_w;
+  if(in_contact) {
+    tangents.AddBodyStiffness(load_index_, load_index_, stiffness);
+    tangents.AddBodyDamping(load_index_, load_index_, damping);
+    for(unsigned int i = 0; i < state_count; i++) {
+      const int state = static_cast<int>(state_offset_ + i);
+      tangents.AddStateBodyStiffness(state, load_index_,
+                                     &state_stiffness[size_t(i) * 6]);
+      tangents.AddStateBodyDamping(state, load_index_,
+                                   &state_damping[size_t(i) * 6]);
+    }
+  }
+  return true;
 }

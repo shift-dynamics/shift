@@ -192,6 +192,226 @@ of ``step_size``.
 
 .. shift-parameters:: shift/core/integrator/rk4.cc
 
+``"type": "generalized_alpha"`` and ``"type": "hht"``: implicit methods,
+which evaluate the forces at the end of each step and solve for the
+accelerations there by Newton's method. Their steps are not limited by the
+stability bound above, so a stiff model takes steps set by
+``absolute_error`` and ``relative_error`` alone; each step costs more than
+an explicit step. The fastest modes are damped rather than followed: with
+``generalized_alpha``, ``rho_infinity`` sets how much (1 keeps them, 0 damps
+them most), with ``hht``, ``alpha`` (0 keeps them, -1/3 damps them most).
+All the generalized coordinates are integrated. The velocity constraints of
+closed loops are solved with the equations of motion, and the position
+constraints hold at the end of every step by a correction of the dependent
+coordinates, without Baumgarte stabilization, so ``omega_n`` is not used;
+the methods are second order with ``alpha`` 0 or ``rho_infinity`` 1 as
+well. They work with the ``rnca``, ``aba``, ``dca`` and ``auto`` solvers.
+
+.. shift-parameters:: shift/core/integrator/alpha.cc
+
+.. shift-parameters:: shift/core/integrator/generalized_alpha.cc
+
+.. shift-parameters:: shift/core/integrator/hht.cc
+
+.. code:: javascript
+
+   "integrators": [{"type": "generalized_alpha", "time_span": 10,
+                    "time_step": 0.01, "rho_infinity": 0.8,
+                    "absolute_error": 1e-6, "relative_error": 1e-4}]
+
+Which models benefit from an implicit integrator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The choice depends on what limits the steps of ``ode113``, and on the
+tolerance.
+
+*Stiff models take fewer, longer steps with an implicit integrator.* When
+the steps of ``ode113`` are held down by the stability bound
+:math:`h\,|\lambda| \lesssim 1` of a fast mode that the motion of interest
+does not need (a stiff bushing, a torsionally stiff shaft, a clutch, the
+high elastic modes of a flexible body, stiff contact closing a loop of track
+links), ``hht`` and ``generalized_alpha`` take steps set by the tolerance
+instead and damp the fast mode. A step costs more: Newton's method
+evaluates the equations of motion two to six times a step and factors an
+iteration matrix from time to time. The longer steps more than repay the
+cost when the fast mode is far faster than the motion. ``shift-cli
+--linearize`` (above) shows the fast modes of a model and the steps they
+allow; when those steps are much shorter than the reporting interval, an
+implicit integrator is likely to be faster.
+
+*Non-stiff models at tight tolerances are faster with ode113.* ``ode113``
+raises its order (up to 12) as the tolerance is tightened, so its steps
+shrink slowly. The implicit methods are second order: their local error
+grows as the cube of the step, so a tolerance 100 times tighter takes about
+:math:`100^{1/3} \approx 4.6` times as many steps. At absolute tolerances
+of :math:`10^{-8}` and below on a model without stiff modes (a pendulum, a
+robot arm, a rigid linkage, a quarter car), ``ode113`` is three to fifty
+times faster.
+
+*Models near the balance run at about the same speed.* The vehicles, at
+tolerances of :math:`10^{-4}`, have fast modes that limit the steps of
+``ode113`` only part of the time (tires, suspension stops, drivelines).
+Both integrators take a few hundred steps over a few seconds, within 30% of
+each other in time. The steps of ``hht`` follow the internal states of the
+force modules as well as the displacements: the hydraulic pressures of the
+excavator take more than twice as many steps as its motion alone (444
+against 188), and ``ode113`` is twice as fast there. A model whose steps are short
+for reasons other than a stiff mode gains nothing from the implicit
+integrator, which then pays for its iterations without taking longer
+steps: on the tracked frame on deformable soil (``track_frame_scm``),
+``hht`` takes 341 steps in 0.1 s, as fast as ``ode113``. Its shoes have 353
+internal states, which the integrator eliminates before the motion, and
+the soil modules give the derivatives of their forces and of the rates of
+the states, so the iteration matrix is formed without differences.
+
+*The same tolerance does not give the same accuracy.* Against a reference
+at :math:`10^{-10}`, at the models' own tolerances, ``hht`` ended 10 to 100 times further off than ``ode113``: the
+vehicle's velocities by 1.4% against 0.015%, the excavator's pressures by
+0.4% against 0.06%. A comparison at equal accuracy tightens the tolerance
+of the implicit integrator.
+
+The steps of the implicit integrators are no longer than ``hmax``, which
+defaults to ``time_step``: a model reported often takes at least one step
+per report.
+
+The release build (``-Dcpu=native``) gives the following simulation times,
+each model with its own tolerances and ``hht`` with ``alpha`` -0.1, over the
+time span shown:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 10 14 14 14 12
+
+   * - Model
+     - Span (s)
+     - Tolerance (absolute, relative)
+     - ``ode113`` (s)
+     - ``hht`` (s)
+     - Speed-up
+   * - ``force_modules/powertrain``
+     - 1
+     - 1e-9, 1e-6
+     - 0.141
+     - 0.02
+     - 7.0
+   * - ``force_modules/bushing``
+     - 1
+     - 1e-8, 1e-6
+     - 0.09
+     - 0.013
+     - 6.9
+   * - ``cad/track_loop``
+     - 0.2
+     - 1e-4, 1e-4
+     - 12.2
+     - 5.1
+     - 2.4
+   * - ``klann_linkage/klann_walker``
+     - 2
+     - 1e-5, 1e-5
+     - 0.249
+     - 0.11
+     - 2.3
+   * - ``strandbeest/strandbeest``
+     - 2
+     - 1e-5, 1e-5
+     - 0.602
+     - 0.314
+     - 1.9
+   * - ``flex/slider_crank_flexible_rod``
+     - 1
+     - 1e-8, 1e-6
+     - 0.271
+     - 0.149
+     - 1.8
+   * - ``beach/strandbeest_beach``
+     - 0.1
+     - 1e-5, 1e-5
+     - 0.046
+     - 0.03
+     - 1.5
+   * - ``raptor/raptor``
+     - 1
+     - 1e-4, 1e-4
+     - 0.047
+     - 0.044
+     - 1.1
+   * - ``m1a2/m1a2``
+     - 0.5
+     - 1e-4, 1e-4
+     - 3.84
+     - 3.92
+     - 1.0
+   * - ``terramechanics/track_frame_scm``
+     - 0.1
+     - 1e-6, 1e-4
+     - 0.833
+     - 0.834
+     - 1.0
+   * - ``vehicle/vehicle``
+     - 2
+     - 1e-4, 1e-4
+     - 0.023
+     - 0.027
+     - 0.85
+   * - ``slider_crank/slider_crank``
+     - 2
+     - 1e-4, 1e-4
+     - 0.0009
+     - 0.0011
+     - 0.82
+   * - ``polo_r_wrc/polo_r_wrc``
+     - 2
+     - 1e-4, 1e-4
+     - 0.057
+     - 0.075
+     - 0.76
+   * - ``excavator/excavator``
+     - 2
+     - 1e-4, 1e-4
+     - 0.006
+     - 0.011
+     - 0.55
+   * - ``force_modules/quarter_car``
+     - 1
+     - 1e-8, 1e-6
+     - 0.0019
+     - 0.0048
+     - 0.40
+   * - ``force_modules/gear_mesh``
+     - 1
+     - 1e-10, 1e-7
+     - 0.096
+     - 0.319
+     - 0.30
+   * - ``force_modules/rubber_mount``
+     - 1
+     - 1e-8, 1e-6
+     - 0.0043
+     - 0.0158
+     - 0.27
+   * - ``kuka_lbr_iiwa_14_r820/kuka_iiwa``
+     - 2
+     - 1e-9, 1e-9
+     - 0.0014
+     - 0.0116
+     - 0.12
+   * - ``bricard/bricard``
+     - 2
+     - 1e-11, 1e-11
+     - 0.0013
+     - 0.041
+     - 0.03
+   * - ``pendulum/double_pendulum``
+     - 2
+     - 1e-9, 1e-9
+     - 0.06
+     - 3.26
+     - 0.02
+
+The double pendulum starts both joints at 1000 rad/s, so the second-order
+method needs steps of about :math:`2 \times 10^{-6}` s at its tolerance.
+
 Loggers
 *******
 

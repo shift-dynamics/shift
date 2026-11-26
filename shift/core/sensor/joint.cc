@@ -78,3 +78,15 @@ void shift::core::sensor::Joint::Update(const double* y) {
     value_ = velocity;
   }
 }
+
+bool shift::core::sensor::Joint::GetGeneralizedSignal(int& dq_index,
+                                                      bool& position) const {
+  assert(joint_);
+  /* a quaternion's components are not generalized coordinates */
+  if(position_ && joint_->get_q_count() != joint_->get_dq_count()) {
+    return false;
+  }
+  dq_index = joint_->get_dq_index() + index_;
+  position = position_;
+  return true;
+}

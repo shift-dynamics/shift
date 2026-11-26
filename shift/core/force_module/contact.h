@@ -347,6 +347,13 @@ public:
    * properties of each pair of materials and exclude jointed bodies */
   virtual void Load() override;
   virtual void Service(const double* y, double* dy) override;
+  /*! \brief the stiffness and damping of the points of contact of the last
+   * Service, which records them while Context::is_collecting_tangents. They
+   * leave out how a point of contact moves over curved geometry as a body
+   * turns, and the derivatives of the rates of the bristle and wear states
+   * with respect to the motion, which a matrix from the tangents then does
+   * not have. */
+  virtual bool AddTangents(const double* y, Tangents& tangents) override;
   /*! \brief the volume worn from each collision geometry whose material
    * wears, named wear_\<geometry\> */
   virtual void UpdateOutputs(double t, const double* y) override;
@@ -451,6 +458,18 @@ private:
   /* the pairs with stick-slip friction, and how they are found from the
   pair of collision geometry (in either order) */
   std::vector<Bristles> bristles_;
+
+  /*! \brief the derivatives of the force on b of a point of contact at p,
+   * with respect to the displacement and the velocity of b relative to a
+   * there (3 x 3, row major) */
+  struct PointTangent {
+    int load_index_a = -1;
+    int load_index_b = -1;
+    ksl_vec3_t p;
+    double stiffness[9];
+    double damping[9];
+  };
+  std::vector<PointTangent> point_tangents_;
   std::map<std::pair<const collision_geometry::Base*,
                      const collision_geometry::Base*>,
            int>

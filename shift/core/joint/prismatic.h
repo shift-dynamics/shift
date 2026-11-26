@@ -125,6 +125,10 @@ public:
 
   virtual void Service(const std::vector<double>& y) override;
 
+  void AddTangents(const std::vector<double>& y,
+
+                   Tangents& tangents) const override;
+
   /*! \brief the translation axis, a unit vector in the coordinates of the
    * joint's frames */
   ksl_vec3_t get_axis() const {

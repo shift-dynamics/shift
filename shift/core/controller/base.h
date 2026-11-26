@@ -11,6 +11,7 @@ namespace shift {
 namespace core {
 
 class Context;
+class Tangents;
 
 namespace controller {
 
@@ -89,6 +90,16 @@ public:
   virtual void Service(const double* y, double* dy) {
     (void)y;
     (void)dy;
+  }
+
+  /*! \brief add the derivatives of the controller's actuator efforts with
+   * respect to the generalized coordinates and velocities at the state y to
+   * \p tangents, as force_module::Base::AddTangents; returns false when the
+   * controller gives none (finite differences are used) */
+  virtual bool AddTangents(const double* y, Tangents& tangents) {
+    (void)y;
+    (void)tangents;
+    return false;
   }
 
   /*! \brief compute the controller's outputs (DeclareOutput) for the state y

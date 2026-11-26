@@ -668,6 +668,50 @@ public:
     return force_time_;
   }
 
+  /*! \brief while set, SetForces lets the modules that need it record what
+   * their AddTangents uses (the points of contact), and records the body
+   * loads and joint forces each force module applies (see CollectTangents);
+   * the implicit integrators set it for the evaluation at which they form an
+   * iteration matrix */
+  void set_collecting_tangents(bool collecting) {
+    collecting_tangents_ = collecting;
+  }
+  bool is_collecting_tangents() const {
+    return collecting_tangents_;
+  }
+
+  /*! \brief add the tangent stiffness and damping of the joints'
+   * springs and dampers, the controllers and the force modules at the state
+   * y of the last SetForces to \p tangents (see Tangents). Returns true if
+   * every controller and force module gave its own, false if one did not:
+   * the tangents then leave out its terms. The derivatives of the inertia
+   * forces and of gravity are not among them. The force modules that give
+   * the derivatives with respect to their internal states
+   * (force_module::Base::AddStateTangents) add those too, and their states
+   * are marked as given (Tangents::AddGivenStates).
+   *
+   * With \p differenced, it is set to the generalized velocities whose
+   * columns the integrator finds by differences in place of the tangents,
+   * in increasing order: for a force module that gives no tangents, those
+   * of the paths of the bodies it loaded (GetLoadPath) and the joints it
+   * drove in the last SetForces while is_collecting_tangents, on which its
+   * forces depend; for a controller that gives none, all of them, since it
+   * reads sensors anywhere in the model. Empty when every module gave its
+   * own. */
+  bool CollectTangents(const std::vector<double>& y, Tangents& tangents,
+                       std::vector<int>* differenced = nullptr);
+
+  /*! \brief the generalized velocities that move the body of \p load_index
+   * (Context::GetBodyLoadIndex): those of its compressed joint and of its
+   * ancestors, and their influence screws \f$\mathbf{h}\f$ at the last
+   * UpdateDHVA, without the angular part of a translation (as the solver
+   * projects the body loads), in fixed coordinates referred to the fixed
+   * origin; empty for the fixed body. A tangent block between bodies a and b
+   * maps to \f$\mathbf{h}_j^T K_{ab} \mathbf{h}_k\f$, and a row of a state
+   * to \f$r \cdot \mathbf{h}_k\f$ (see Tangents). */
+  void GetLoadPath(int load_index, std::vector<int>& velocities,
+                   std::vector<ksl_screw_t>& screws) const;
+
   /*! copies \f$\underline{\dot{q}}\f$ and \f$\underline{\ddot{q}}\f$ quantities to dy array using
   vectors quaternion_indices_ and non_quaternion_indices_; for
   quaternion_indices_, converts angular velocities to time derivative of
@@ -678,6 +722,18 @@ public:
   Inverse joints (sense < 0) express velocities in the original parent frame
   and are copied directly */
   void ConvertdqTody(const std::vector<double>& y, std::vector<double>& dy);
+
+  /*! \brief the positions q_out reached from q by the increments \p delta,
+   * one per generalized velocity: \f$q_{out} = q + \delta\f$ for a
+   * coordinate whose rate is its velocity, and for a spherical or float joint
+   * the rotation by the rotation vector \f$\underline{\delta}\f$, expressed
+   * like the joint's angular velocity (see ConvertdqTody), by the
+   * exponential map (ksl_quaternion_exp), with the translation increment
+   * likewise rotated. ConvertdqTody is the rate of this map at delta = 0.
+   * q and q_out may be the same array. Used by the implicit integrators,
+   * whose position updates are increments over a step. */
+  void IncrementPositions(const double* q, const double* delta,
+                          double* q_out) const;
 
   void Simulate();
 
@@ -1294,6 +1350,16 @@ private:
   double mobility_ = 0.0;
   double rms_constraint_error_ = 0;
   double force_time_ = 0; /*!< t of the last SetForces */
+  bool collecting_tangents_ = false; /*!< see set_collecting_tangents */
+
+  /*! the body loads (load indices) and joint forces (generalized
+   * velocities) each active force module applied in the last SetForces
+   * while collecting_tangents_, see CollectTangents */
+  struct AppliedForces {
+    std::vector<int> loads;
+    std::vector<int> joints;
+  };
+  std::vector<AppliedForces> applied_forces_;
 };
 
 } // namespace core

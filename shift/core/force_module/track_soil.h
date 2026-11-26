@@ -119,6 +119,18 @@ public:
   void Connect() override;
   void Load() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief the derivatives of the loads on the shoes and of the rates of
+   * the states with respect to the states, in closed form (see
+   * Tangents) */
+  bool AddStateTangents(const double* y, Tangents& tangents) override;
+  /*! \brief the stiffness of the pressure, the shear strength and the earth
+   * pressure with the sinkage of the stations, and the derivatives of the
+   * rates of the states with the sinkage and with the velocity of the
+   * shoe's center, which changes as the center moves with the shoe; the
+   * earth pressure also turns with the shoe's directions in the ground
+   * plane. The rows of the deepest stations are averaged where several are
+   * as deep. */
+  bool AddTangents(const double* y, Tangents& tangents) override;
 
   /*! \brief the names of the outputs, in the order of outputs_ */
   std::vector<std::string> OutputNames() const;
@@ -149,8 +161,16 @@ private:
   /*! \brief x, y and z of point p (inertial frame) in the frame of the
    * deformable terrain */
   void ToTerrain(const ksl_vec3_t& p, double& x, double& y, double& z) const;
-  /*! \brief the forces on the shoes and the state rates (if dy) */
-  void Evaluate(const double* y, double* dy, bool apply);
+  /*! \brief \f$\partial p / \partial z_p\f$ of Pressure */
+  double PressureSlope(const SoilProperties& soil, double z, double z_p) const;
+  /*! \brief \f$\partial p / \partial z\f$ of Pressure */
+  double PressureSinkageSlope(const SoilProperties& soil, double z,
+                              double z_p) const;
+  /*! \brief the forces on the shoes and the state rates (if dy), and their
+   * derivatives with respect to the states (if \p tangents) and to the
+   * motion (if \p motion) */
+  void Evaluate(const double* y, double* dy, bool apply,
+                Tangents* tangents = nullptr, Tangents* motion = nullptr);
 
   static bool registered_;
 

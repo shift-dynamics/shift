@@ -94,6 +94,10 @@ public:
   void Connect() override;
   void Load() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief it applies no force: no tangents */
+  bool AddTangents(const double*, Tangents&) override {
+    return true;
+  }
 
   /*! \brief the names of the outputs, in the order of outputs_ */
   std::vector<std::string> OutputNames() const;

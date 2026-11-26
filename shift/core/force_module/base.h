@@ -13,6 +13,7 @@ namespace shift {
 namespace core {
 
 class Context;
+class Tangents;
 
 namespace joint {
 class Base;
@@ -117,6 +118,36 @@ public:
    * \param y [in] state vector [q, dq, auxiliary states]
    * \param dy [out] state time derivatives */
   virtual void Service(const double* y, double* dy) = 0;
+
+  /*! \brief add the derivatives of the module's forces with respect to the
+   * generalized coordinates and velocities at the state y to \p tangents
+   * (see Tangents), for the iteration matrix of the implicit integrators;
+   * called after Service at the same state. Returns false when the module
+   * gives none, and the integrator then finds its terms by finite
+   * differences. A module with internal states also gives the derivatives
+   * of their rates with respect to the generalized coordinates and
+   * velocities (Tangents::AddStateStiffness and the others); the
+   * derivatives with respect to the internal states themselves are those
+   * of AddStateTangents. */
+  virtual bool AddTangents(const double* y, Tangents& tangents) {
+    (void)y;
+    (void)tangents;
+    return false;
+  }
+
+  /*! \brief add the derivatives of the module's loads and of the rates of
+   * its internal states with respect to those states, at the state y, to
+   * \p tangents (Tangents::AddStateLoad, AddStateForce, AddStateRate);
+   * called after Service at the same state, whether AddTangents gives its
+   * terms or not. Returns false when the module gives none, and the
+   * integrator then finds them by finite differences, one evaluation of the
+   * equations of motion per state; when it returns true, Context marks the
+   * states as given (Tangents::AddGivenStates). */
+  virtual bool AddStateTangents(const double* y, Tangents& tangents) {
+    (void)y;
+    (void)tangents;
+    return false;
+  }
 
   /*! \brief called by Context::AcceptStep after each accepted integration
    * step: a module with a model of its own that advances with the

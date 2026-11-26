@@ -106,6 +106,10 @@ struct ContactPair {
   /*! the starting points of the search for the contact of two CAD geometries,
    * kept while they move too little for new regions of contact to appear */
   std::shared_ptr<CadPairCache> cad_cache;
+  /*! the CAD cache of the last accepted step (see Context::AcceptStep), from
+   * which each test starts: so the contact found depends on the accepted
+   * state and the poses, not on the tests of a step that was rejected */
+  std::shared_ptr<CadPairCache> accepted_cad_cache;
   /*! @} */
 };
 
@@ -127,6 +131,13 @@ did not reach a decision within its iteration limit, in which case false is
 returned
 */
 bool TestContact(ContactPair& pair);
+
+/*!
+@brief to = a copy of the CAD cache from (none if from has none), reusing
+the storage of to
+*/
+void CopyCadCache(const std::shared_ptr<CadPairCache>& from,
+                  std::shared_ptr<CadPairCache>& to);
 
 } // namespace collision_geometry
 } // namespace core

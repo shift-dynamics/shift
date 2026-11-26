@@ -19,6 +19,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/log.h"
+#include "shift/core/tangents.h"
 
 bool shift::core::force_module::Contact::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -838,6 +839,8 @@ void shift::core::force_module::Contact::Service(const double* y,
     group_mass_.erase(-1);
     group_mass_[-2] = 0.0; // found, even without bodies
   }
+  const bool record = context_->is_collecting_tangents();
+  point_tangents_.clear();
   const int count = static_cast<int>(used_materials_.size());
   for(auto pair : context_->get_contacts()) {
     const Geometry& a = Find(pair->a);
@@ -948,6 +951,44 @@ void shift::core::force_module::Contact::Service(const double* y,
             rate - z_normal * n.at[k] / bristles->release_time;
         }
       }
+      if(record) {
+        /* F = N n + T on b: the normal force falls with the displacement of
+        b along n by k_n = w K e d^(e-1) and with the velocity along n by
+        c_n = w ramp, T follows N in proportion, and T changes with the
+        sliding velocity by D (regularized Coulomb, or the bristles' sigma_1
+        and sigma_2); -dF/dx = k_n (n + T/N) n^T and -dF/du = c_n (n + T/N)
+        n^T + D. The turning of n and the moving of p are left out. */
+        PointTangent t;
+        t.load_index_a = a.load_index;
+        t.load_index_b = b.load_index;
+        t.p = p;
+        const double k_n =
+          c.weight * stiffness * exponent * std::pow(c.depth, exponent - 1.0);
+        const double c_n = c.weight * ramp;
+        ksl_vec3_t direction;
+        for(int k = 0; k < 3; k++) {
+          direction.at[k] = n.at[k] + tangential.at[k] / normal;
+        }
+        const double slide2 = ksl_dot_vv(&sliding, &sliding) +
+                              used_friction_velocity_ * used_friction_velocity_;
+        const double slide = std::sqrt(slide2);
+        for(int r = 0; r < 3; r++) {
+          for(int k = 0; k < 3; k++) {
+            const double projector = (r == k ? 1.0 : 0.0) - n.at[r] * n.at[k];
+            double d;
+            if(bristles && slot < bristles->points) {
+              d = normal * (bristles->sigma_1 + bristles->sigma_2) * projector;
+            } else {
+              d = law.friction * normal *
+                  (projector / slide -
+                   sliding.at[r] * sliding.at[k] / (slide2 * slide));
+            }
+            t.stiffness[r * 3 + k] = k_n * direction.at[r] * n.at[k];
+            t.damping[r * 3 + k] = c_n * direction.at[r] * n.at[k] + d;
+          }
+        }
+        point_tangents_.push_back(t);
+      }
       ksl_coscrew_t load;
       for(int k = 0; k < 3; k++) {
         load.lin.at[k] = normal * n.at[k] + tangential.at[k];
@@ -1037,4 +1078,60 @@ void shift::core::force_module::Contact::Service(const double* y,
     }
   }
   ReleaseShared(y);
+}
+
+/* a point's 3 x 3 derivatives X act between the bodies through the point
+map E = [I, -[p x]] of a twist to the velocity of the point p: the block of
+the force on b with respect to the motion of b is E^T X E, those between a
+and b have the opposite sign */
+bool shift::core::force_module::Contact::AddTangents(const double*,
+                                                     Tangents& tangents) {
+  for(const PointTangent& t : point_tangents_) {
+    double blocks[2][36];
+    for(int kind = 0; kind < 2; kind++) {
+      const double* X = kind == 0 ? t.stiffness : t.damping;
+      double E[3][6] = {};
+      for(int r = 0; r < 3; r++) {
+        E[r][r] = 1.0;
+      }
+      /* -[p x]: rows of the cross product matrix negated */
+      E[0][4] = t.p.z;
+      E[0][5] = -t.p.y;
+      E[1][3] = -t.p.z;
+      E[1][5] = t.p.x;
+      E[2][3] = t.p.y;
+      E[2][4] = -t.p.x;
+      double XE[3][6] = {};
+      for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 6; c++) {
+          for(int k = 0; k < 3; k++) {
+            XE[r][c] += X[r * 3 + k] * E[k][c];
+          }
+        }
+      }
+      for(int r = 0; r < 6; r++) {
+        for(int c = 0; c < 6; c++) {
+          double sum = 0.0;
+          for(int k = 0; k < 3; k++) {
+            sum += E[k][r] * XE[k][c];
+          }
+          blocks[kind][r * 6 + c] = sum;
+        }
+      }
+    }
+    const int bodies[2] = {t.load_index_b, t.load_index_a};
+    for(int i = 0; i < 2; i++) {
+      for(int j = 0; j < 2; j++) {
+        const double sign = i == j ? 1.0 : -1.0;
+        double k[36], c[36];
+        for(int e = 0; e < 36; e++) {
+          k[e] = sign * blocks[0][e];
+          c[e] = sign * blocks[1][e];
+        }
+        tangents.AddBodyStiffness(bodies[i], bodies[j], k);
+        tangents.AddBodyDamping(bodies[i], bodies[j], c);
+      }
+    }
+  }
+  return true;
 }
