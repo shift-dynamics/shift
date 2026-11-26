@@ -54,6 +54,24 @@ M_j\underline{\mathbf{a}}^q_j - [ad]^*_j M_j\underline{\mathbf{v}}_j
 collects the applied wrench \f$\underline{\mathbf{g}}^*_j\f$, the inertia
 wrench of the quadratic acceleration and the gyroscopic wrench, with
 \f$[ad]^*_j\f$ formed from \f$\underline{\mathbf{v}}_j\f$.
+
+*Implicit integration.* The solvers do not form the generalized mass matrix
+\f$M\f$. Their residual (Residual) is that of the accelerations,
+\f[
+\underline{\rho} = \underline{\ddot{q}} -
+\underline{\ddot{q}}_s(\underline{q}, \underline{\dot{q}}) =
+M^{-1}\left(M\underline{\ddot{q}} - \underline{f}\right)
+\f]
+with \f$\underline{\ddot{q}}_s\f$ the accelerations the solver finds, and
+their iteration matrix the derivative of \f$\underline{\rho}\f$ with respect
+to the accelerations, \f$S = I + M^{-1}(c\, C + k\, K)\f$: the equations of
+motion multiplied by \f$M^{-1}\f$, with the same solution. The columns of
+\f$M^{-1}\f$ follow from the solver itself, which is linear in the working
+forces of the joints: the change of the accelerations when the working force
+of one generalized velocity is increased (InverseMass). The matrix is dense,
+of the size of the generalized velocities of the trees, and factored by LU
+decomposition. The columns found by differences of the residual are already
+those of \f$S\f$.
 */
 class ArticulatedBody : public Base {
 
@@ -83,6 +101,54 @@ public:
    * the solver's trees, for the current DHVA and forces, writing them to
    * Context::get_ddq(); return true on failure */
   bool SolveAccelerations();
+
+  /*! \name Implicit integration (see the class documentation) */
+  ///@{
+  virtual bool supports_implicit() const override {
+    return true;
+  }
+
+  /*! \brief the residual of the accelerations of the trees at t and y for
+   * ddq, \f$\underline{\ddot{q}} - \underline{\ddot{q}}_s\f$ in the rows of
+   * the generalized velocities (there are no multipliers); the modules are
+   * serviced at y, which sets the rates of the internal states in dy */
+  virtual bool Residual(const double t, const std::vector<double>& y,
+                        const std::vector<double>& ddq,
+                        const std::vector<double>& la, std::vector<double>& r,
+                        std::vector<double>& dy) override;
+
+  /*! \brief form and factor \f$S = I + M^{-1}(c\, C + k\, K)\f$ at the
+   * state of the last Residual, the columns of the velocities in
+   * \p differenced from \p k_columns and \p c_columns, differences of the
+   * residual of the accelerations */
+  virtual bool FactorIterationMatrix(const Tangents& tangents, double c,
+                                     double k,
+                                     const std::vector<int>& differenced,
+                                     const std::vector<double>& k_columns,
+                                     const std::vector<double>& c_columns)
+    override;
+
+  virtual bool SolveIterationMatrix(std::vector<double>& rhs) override;
+
+  /*! \brief the generalized velocities of the solver's trees, those of the
+   * joints and the elastic coordinates of their bodies, in increasing order */
+  const std::vector<int>& get_tree_dq() const {
+    return tree_dq_;
+  }
+
+  /*! \brief the residual of the accelerations of the trees after
+   * SolveAccelerations, \p ddq less the accelerations it found, into the
+   * rows get_tree_dq() of \p r */
+  void TreeResidual(const std::vector<double>& ddq,
+                    std::vector<double>& r) const;
+
+  /*! \brief \f$M^{-1}\f$ of the trees at the state of the last
+   * SolveAccelerations, row major over get_tree_dq(), from the change of the
+   * accelerations the solver finds for a change of the working force of
+   * each generalized velocity; the accelerations of the context and the
+   * working forces are left as they were. Returns true on failure. */
+  bool InverseMass(std::vector<double>& inverse_mass);
+  ///@}
 
 protected:
   /*! \brief check that the solver can solve every tree of the model; throw
@@ -147,6 +213,12 @@ protected:
 
   /*! the bodies of trees_, tree after tree, each in level-increasing order */
   std::vector<int> bodies_;
+
+  /* see get_tree_dq and FactorIterationMatrix */
+  std::vector<int> tree_dq_;
+  std::vector<double> iteration_lu_;
+  std::vector<int> iteration_pivots_;
+  bool has_iteration_matrix_ = false;
 
 private:
   std::vector<int> tree_indices_;

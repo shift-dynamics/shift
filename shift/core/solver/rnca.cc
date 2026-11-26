@@ -1,12 +1,16 @@
 #include <assert.h>
 
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
+#include <set>
 
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/log.h"
 #include "shift/core/solver/rnca.h"
+#include "shift/core/tangents.h"
 
 #include "ksl/array.h"
 #include "ksl/inertia.h"
@@ -142,6 +146,17 @@ void shift::core::solver::RNCA::Initialize() {
     delegated_dq_.assign(dq_count_, false);
   }
   delegated_po3_.assign(dq_count_, false);
+
+  elastic_entries_.clear();
+  has_delegated_elastic_ = false;
+  for(int i : context_->get_elastic_bodies()) {
+    const int j = context_->get_active_articulated_bodies()[i]->get_va_index();
+    if(delegated_body_[j]) {
+      has_delegated_elastic_ = true;
+    } else {
+      elastic_entries_.push_back(j);
+    }
+  }
 
   SetupElasticLookup();
 
@@ -284,13 +299,16 @@ shift::core::solver::RNCA::KineticEnergy(shift::core::topology::DHVA& dhva) {
   return cblas_ddot(6 * non_rigid_joint_count_, (double*)(p_.data()), 1,
                     (double*)(dhva.v), 1) /
            2.0 +
-         ElasticKineticEnergy(dhva);
+         ElasticKineticEnergy(dhva, has_delegated_elastic_ ? &elastic_entries_
+                                                           : nullptr);
 #else
   double sum = 0.0;
   for(size_t i = 0; i < context_->get_non_rigid_joint_count(); i++) {
     sum += ksl_dot_cs(&(p_[i]), &dhva.v[i]);
   }
-  return sum / 2.0 + ElasticKineticEnergy(dhva);
+  return sum / 2.0 +
+         ElasticKineticEnergy(dhva, has_delegated_elastic_ ? &elastic_entries_
+                                                           : nullptr);
 #endif
 }
 
@@ -304,6 +322,24 @@ void shift::core::solver::RNCA::Memoize() {
   RecordOperations();
   CountPointers();
   RecordPointers();
+  RecordMassPattern();
+  memoize_count_++;
+}
+
+void shift::core::solver::RNCA::RecordMassPattern() {
+  mass_pattern_index_.clear();
+  mass_pattern_row_.clear();
+  mass_pattern_column_.clear();
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    const int row_start = i * (i + 1) / 2;
+    for(unsigned int j = 0; j <= i; j++) {
+      if(Mlbs_[row_start + j]) {
+        mass_pattern_index_.push_back(row_start + j);
+        mass_pattern_row_.push_back(i);
+        mass_pattern_column_.push_back(j);
+      }
+    }
+  }
 }
 
 void shift::core::solver::RNCA::CountOperations() {
@@ -1198,6 +1234,10 @@ void shift::core::solver::RNCA::RecordPointers() {
 
   dependent_count_ = nd;
 
+  /* the substitutions (ForwardBackwardSubstitution) read the entries of L
+  from here on */
+  factored_pointer_end_ = p2;
+
   ni = 0;
   nd = 0;
   l1 = 0;
@@ -2006,25 +2046,17 @@ void shift::core::solver::RNCA::SetupMassMatrixAndRecordFills() {
   AddElasticMassTerms(true);
 }
 
-void shift::core::solver::RNCA::FactorAndSolve() {
+void shift::core::solver::RNCA::Factor() {
 
   assert(context_);
-  auto& ddq = context_->get_ddq();
-
-  shift::core::Jacobian& jacobian = context_->get_jacobian();
-  const auto& pv_23 = jacobian.get_pv23();
-  const auto& pv_13 = jacobian.get_pv13();
-  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& is_dependent_po3 =
+    context_->get_jacobian().get_is_dependent_po3();
 
   /* Access entries in P_[] to factor matrix and access L */
   int p2 = dq_count_;
 
-  /* Access entries in P_[] to process rhs and lhs */
-  int p3 = p3_start_;
-
   int ni = 0;
   int nd = 0;
-  // int k = context_->dependentCount - 1;
 
   /* Factor the matrix */
   for(int i = dq_count_ - 1; i > -1; i--) {
@@ -2065,8 +2097,26 @@ void shift::core::solver::RNCA::FactorAndSolve() {
       ni++;
     }
   }
-  nd = 0;
-  ni = 0;
+}
+
+void shift::core::solver::RNCA::ForwardBackwardSubstitution() {
+
+  assert(context_);
+  auto& ddq = context_->get_ddq();
+
+  shift::core::Jacobian& jacobian = context_->get_jacobian();
+  const auto& pv_23 = jacobian.get_pv23();
+  const auto& pv_13 = jacobian.get_pv13();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+
+  /* Access entries in P_[] to access L, after the factorization's */
+  int p2 = factored_pointer_end_;
+
+  /* Access entries in P_[] to process rhs and lhs */
+  int p3 = p3_start_;
+
+  int ni = 0;
+  int nd = 0;
 
   /* Backward elimination */
   for(int i = dq_count_ - 1; i > -1; i--) {
@@ -2201,7 +2251,8 @@ bool shift::core::solver::RNCA::Solve(const double t,
 #endif
 #endif
 
-  FactorAndSolve();
+  Factor();
+  ForwardBackwardSubstitution();
   if(SolveDelegated()) {
     return true;
   }
@@ -2786,4 +2837,499 @@ void shift::core::solver::RNCA::AddElasticForces() {
       fl_[pv_31[l]] = value;
     }
   }
+}
+
+void shift::core::solver::RNCA::Multipliers(std::vector<double>& la) const {
+  assert(context_);
+  const auto& jacobian = context_->get_jacobian();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& pv_23 = jacobian.get_pv23();
+  la.clear();
+  la.reserve(dependent_count_);
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(is_dependent_po3[i]) {
+      la.push_back(la_[pv_23[i]]);
+    }
+  }
+}
+
+bool shift::core::solver::RNCA::Residual(const double t,
+                                         const std::vector<double>& y,
+                                         const std::vector<double>& ddq,
+                                         const std::vector<double>& la,
+                                         std::vector<double>& r,
+                                         std::vector<double>& dy) {
+  assert(context_);
+  assert(ddq.size() == dq_count_);
+  assert(la.size() == dependent_count_);
+
+  const double* q = y.data();
+  const double* dq = q + q_count_;
+
+  context_->UpdateDHVA(q, dq);
+  context_->EvaluateConstraints();
+  context_->SetForces(t, y, dy);
+  /* the mass matrix and the bias forces of the flexible bodies at y */
+  context_->EvaluateElasticBodies(context_->get_dhva(), q, dq);
+
+  /* the equations at y as SetupEquations sets them up, without its
+  condition check, which could refactor the Jacobian and change the
+  partition */
+  auto& jacobian = context_->get_jacobian();
+  jacobian.Save();
+  jacobian.SetupPO2();
+  jacobian.FactorPO2();
+  jacobian.SetupBMatrixSparse();
+  SetupRHS();
+  SetupMassMatrix();
+
+  const auto& pv_13 = jacobian.get_pv13();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& rb3 = jacobian.get_rb3();
+  const auto& cb3 = jacobian.get_cb3();
+  const auto& b3 = jacobian.get_b3();
+
+  /* M ddq - f in permutation order 3, over the entries of the pattern of M
+  recorded by Memoize (the lower triangle of Ml_) */
+  std::vector<double> ddq_po3(dq_count_);
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    ddq_po3[i] = ddq[pv_13[i]];
+  }
+  std::vector<double> r_po3(dq_count_);
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    r_po3[i] = -fl_[i];
+  }
+  for(size_t l = 0; l < mass_pattern_index_.size(); l++) {
+    const int i = mass_pattern_row_[l];
+    const int j = mass_pattern_column_[l];
+    const double m_ij = Ml_[mass_pattern_index_[l]];
+    r_po3[i] += m_ij * ddq_po3[j];
+    if(i != j) {
+      r_po3[j] += m_ij * ddq_po3[i];
+    }
+  }
+
+  /* + B^T la: each dependent row of B is a 1 at its own variable and the
+  entries of b3 at the independent variables */
+  unsigned int m = 0;
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(is_dependent_po3[i]) {
+      const double la_m = la[m++];
+      r_po3[i] += la_m;
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        r_po3[cb3[j]] += b3[j] * la_m;
+      }
+    }
+  }
+
+  /* the rows of variables delegated to another solver are zero, for it to
+  fill (solver::Auto) */
+  r.assign(dq_count_ + dependent_count_, 0.0);
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(!delegated_po3_[i]) {
+      r[pv_13[i]] = r_po3[i];
+    }
+  }
+
+  /* the velocity constraints, [B_di I] dq, each dependent row of B a 1 at
+  its own variable and the entries of b3 at the independent variables */
+  if(velocity_constraints_) {
+    m = 0;
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      if(is_dependent_po3[i]) {
+        double rate = dq[pv_13[i]];
+        for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+          rate += b3[j] * dq[pv_13[cb3[j]]];
+        }
+        r[dq_count_ + m++] = rate;
+      }
+    }
+    return false;
+  }
+
+  /* the position constraints, as the Newton-Raphson corrections of the
+  dependent coordinates */
+  jacobian.EvaluateNewtonRaphsonCorrections();
+  const auto& delta_q = context_->get_delta_q();
+  m = 0;
+  for(unsigned int i = 0; i < dq_count_; i++) {
+    if(is_dependent_po3[i]) {
+      r[dq_count_ + m++] = delta_q[pv_13[i]];
+    }
+  }
+
+  /* the constraints as Solve leaves them */
+  context_->EvaluateConstraints();
+  return false;
+}
+
+void shift::core::solver::RNCA::AddIterationEntry(int a, int b,
+                                                  double value) {
+  if(value == 0.0) {
+    return;
+  }
+  const auto& pv_31 = context_->get_jacobian().get_pv31();
+  iteration_row_.push_back(pv_31[a]);
+  iteration_column_.push_back(pv_31[b]);
+  iteration_value_.push_back(value);
+}
+
+int shift::core::solver::RNCA::IterationSlot(int r, int c) const {
+  if(r == c) {
+    return r;
+  }
+  const auto found =
+    iteration_slot_.find(static_cast<int64_t>(r) * dq_count_ + c);
+  return found == iteration_slot_.end() ? -1 : found->second;
+}
+
+void shift::core::solver::RNCA::RecordIterationPattern() {
+  const int n = static_cast<int>(dq_count_);
+  const auto& jacobian = context_->get_jacobian();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& rb3 = jacobian.get_rb3();
+  const std::vector<int> cb3 = jacobian.get_cb3();
+
+  /* the pattern below the diagonal, row by row: the mass matrix, the
+  entries of A since the last partition change, then the fill-in of the
+  elimination from the last variable to the first */
+  std::vector<std::set<int>> lower(n);
+  for(size_t l = 0; l < mass_pattern_index_.size(); l++) {
+    if(mass_pattern_row_[l] != mass_pattern_column_[l]) {
+      lower[mass_pattern_row_[l]].insert(mass_pattern_column_[l]);
+    }
+  }
+  for(const int64_t key : iteration_pattern_entries_) {
+    lower[key / n].insert(static_cast<int>(key % n));
+  }
+  auto connect = [&](int r, int c) {
+    if(r != c) {
+      lower[std::max(r, c)].insert(std::min(r, c));
+    }
+  };
+  for(int i = n - 1; i > -1; i--) {
+    if(is_dependent_po3[i]) {
+      /* the rows and columns of the variables of row i of B take the
+      entries of row and column i */
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        assert(cb3[j] < i);
+        lower[i].insert(cb3[j]);
+      }
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        for(int c : lower[i]) {
+          connect(cb3[j], c);
+        }
+      }
+    } else {
+      for(int a : lower[i]) {
+        for(int b : lower[i]) {
+          if(b < a) {
+            lower[a].insert(b);
+          }
+        }
+      }
+    }
+  }
+
+  /* the value indices: the diagonal first, then (i, k) and (k, i) */
+  iteration_slot_.clear();
+  iteration_neighbor_start_.assign(n + 1, 0);
+  iteration_neighbor_.clear();
+  iteration_lower_slot_.clear();
+  iteration_upper_slot_.clear();
+  int slot_count = n;
+  for(int i = 0; i < n; i++) {
+    iteration_neighbor_start_[i] = static_cast<int>(iteration_neighbor_.size());
+    for(int k : lower[i]) {
+      iteration_neighbor_.push_back(k);
+      iteration_upper_slot_.push_back(slot_count);
+      iteration_slot_[static_cast<int64_t>(i) * n + k] = slot_count++;
+      iteration_lower_slot_.push_back(slot_count);
+      iteration_slot_[static_cast<int64_t>(k) * n + i] = slot_count++;
+    }
+  }
+  iteration_neighbor_start_[n] = static_cast<int>(iteration_neighbor_.size());
+  iteration_slot_count_ = slot_count;
+
+  iteration_mass_slot_.resize(mass_pattern_index_.size());
+  iteration_mass_transpose_slot_.resize(mass_pattern_index_.size());
+  for(size_t l = 0; l < mass_pattern_index_.size(); l++) {
+    const int r = mass_pattern_row_[l];
+    const int c = mass_pattern_column_[l];
+    iteration_mass_slot_[l] = IterationSlot(r, c);
+    iteration_mass_transpose_slot_[l] = r == c ? -1 : IterationSlot(c, r);
+  }
+
+  /* the operations of each elimination; B follows the entries */
+  const int b_offset = slot_count;
+  iteration_operation_.clear();
+  iteration_operation_start_.assign(n, 0);
+  iteration_operation_end_.assign(n, 0);
+  auto push = [&](int x, int y, int z) {
+    assert(x > -1 && y > -1 && z > -1);
+    iteration_operation_.push_back(x);
+    iteration_operation_.push_back(y);
+    iteration_operation_.push_back(z);
+  };
+  for(int i = n - 1; i > -1; i--) {
+    iteration_operation_start_[i] = static_cast<int>(iteration_operation_.size());
+    if(is_dependent_po3[i]) {
+      /* the rows of the variables of row i of B: A_rc -= B_ir A_ic, the
+      entries of row i (with c = i) */
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        const int r = cb3[j];
+        push(IterationSlot(r, i), b_offset + j, IterationSlot(i, i));
+        for(int c : lower[i]) {
+          push(IterationSlot(r, c), b_offset + j, IterationSlot(i, c));
+        }
+      }
+      /* then their columns: A_rc -= A_ri B_ic */
+      for(int r : lower[i]) {
+        for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+          push(IterationSlot(r, cb3[j]), IterationSlot(r, i), b_offset + j);
+        }
+      }
+    } else {
+      /* A_ab -= L_ai U_ib, after the column of L is scaled */
+      for(int a : lower[i]) {
+        for(int b : lower[i]) {
+          push(IterationSlot(a, b), IterationSlot(a, i), IterationSlot(i, b));
+        }
+      }
+    }
+    iteration_operation_end_[i] = static_cast<int>(iteration_operation_.size());
+  }
+
+  iteration_b_count_ = jacobian.get_b3().size();
+  iteration_pattern_memoize_count_ = memoize_count_;
+  has_iteration_pattern_ = true;
+  SHIFT_DEBUG("RNCA: iteration matrix pattern of " +
+              std::to_string(slot_count) + " entries, " +
+              std::to_string(iteration_operation_.size() / 3) + " operations");
+}
+
+bool shift::core::solver::RNCA::FactorIterationEntries() {
+  const int n = static_cast<int>(dq_count_);
+  const auto& jacobian = context_->get_jacobian();
+  const auto& b3 = jacobian.get_b3();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+
+  /* the pattern is recorded again for a new partition, or for an entry
+  outside it */
+  bool record = !has_iteration_pattern_ ||
+                iteration_pattern_memoize_count_ != memoize_count_ ||
+                b3.size() != iteration_b_count_;
+  if(iteration_pattern_memoize_count_ != memoize_count_) {
+    iteration_pattern_entries_.clear();
+  }
+  for(size_t e = 0; e < iteration_row_.size(); e++) {
+    const int r = iteration_row_[e];
+    const int c = iteration_column_[e];
+    if(r == c) {
+      continue;
+    }
+    const int64_t key = static_cast<int64_t>(std::max(r, c)) * n +
+                        std::min(r, c);
+    if(iteration_pattern_entries_.insert(key).second && !record &&
+       IterationSlot(r, c) < 0) {
+      record = true;
+    }
+  }
+  if(record) {
+    RecordIterationPattern();
+  }
+
+  /* M + A, then B */
+  const int b_offset = iteration_slot_count_;
+  iteration_factors_.assign(b_offset + b3.size(), 0.0);
+  double* value = iteration_factors_.data();
+  for(size_t l = 0; l < mass_pattern_index_.size(); l++) {
+    const double m = Ml_[mass_pattern_index_[l]];
+    value[iteration_mass_slot_[l]] += m;
+    if(iteration_mass_transpose_slot_[l] > -1) {
+      value[iteration_mass_transpose_slot_[l]] += m;
+    }
+  }
+  for(size_t e = 0; e < iteration_row_.size(); e++) {
+    value[IterationSlot(iteration_row_[e], iteration_column_[e])] +=
+      iteration_value_[e];
+  }
+  std::copy(b3.begin(), b3.end(), value + b_offset);
+
+  /* the elimination from the last variable to the first */
+  const int* operation = iteration_operation_.data();
+  for(int i = n - 1; i > -1; i--) {
+    if(!is_dependent_po3[i]) {
+      const double pivot = value[i];
+      if(pivot == 0.0 || !std::isfinite(pivot)) {
+        SHIFT_DEBUG("RNCA: pivot " + std::to_string(i) +
+                    " of the iteration matrix is " + std::to_string(pivot));
+        return true;
+      }
+      value[i] = 1.0 / pivot;
+      for(int m = iteration_neighbor_start_[i];
+          m < iteration_neighbor_start_[i + 1]; m++) {
+        value[iteration_lower_slot_[m]] *= value[i];
+      }
+    }
+    for(int o = iteration_operation_start_[i]; o < iteration_operation_end_[i];
+        o += 3) {
+      value[operation[o]] -= value[operation[o + 1]] * value[operation[o + 2]];
+    }
+  }
+  return false;
+}
+
+bool shift::core::solver::RNCA::FactorIterationMatrix(
+  const shift::core::Tangents& tangents, double c, double k,
+  const std::vector<int>& differenced, const std::vector<double>& k_columns,
+  const std::vector<double>& c_columns) {
+  assert(context_);
+  has_iteration_matrix_ = false;
+
+  iteration_row_.clear();
+  iteration_column_.clear();
+  iteration_value_.clear();
+
+  /* a column found by differences holds all its terms, and takes the place
+  of the tangents in it; the rows and columns of variables delegated to
+  another solver are left out, with a 1 on the diagonal (solver::Auto) */
+  std::vector<bool> is_differenced(dq_count_, false);
+  for(const int l : differenced) {
+    is_differenced[l] = true;
+  }
+  auto is_delegated = [&](int l) {
+    return l < static_cast<int>(delegated_dq_.size()) && delegated_dq_[l];
+  };
+  for(unsigned int l = 0; l < dq_count_; l++) {
+    if(is_delegated(l)) {
+      AddIterationEntry(l, l, 1.0);
+    }
+  }
+
+  /* the tangents, between velocities and between bodies (as SetupRHS
+  projects the body loads, Context::GetLoadPath) */
+  ForEachTangentEntry(
+    *context_, tangents, c, k, [&](int row, int column, double value) {
+      if(row < 0 || column < 0 || is_differenced[column] ||
+         is_delegated(row) || is_delegated(column)) {
+        return;
+      }
+      AddIterationEntry(row, column, value);
+    });
+
+  /* the columns found by finite differences */
+  const size_t differenced_count = differenced.size();
+  assert(k_columns.empty() ||
+         k_columns.size() == dq_count_ * differenced_count);
+  assert(c_columns.empty() ||
+         c_columns.size() == dq_count_ * differenced_count);
+  for(size_t n = 0; n < differenced_count; n++) {
+    for(unsigned int i = 0; i < dq_count_; i++) {
+      double value = 0.0;
+      if(!k_columns.empty()) {
+        value += k * k_columns[i * differenced_count + n];
+      }
+      if(!c_columns.empty()) {
+        value += c * c_columns[i * differenced_count + n];
+      }
+      if(is_delegated(static_cast<int>(i)) || is_delegated(differenced[n])) {
+        continue;
+      }
+      AddIterationEntry(i, differenced[n], value);
+    }
+  }
+
+  if(FactorIterationEntries()) {
+    return true;
+  }
+
+  iteration_memoize_count_ = memoize_count_;
+  has_iteration_matrix_ = true;
+  return false;
+}
+
+bool shift::core::solver::RNCA::SolveIterationMatrix(
+  std::vector<double>& rhs) {
+  assert(context_);
+  if(!has_iteration_matrix_ || iteration_memoize_count_ != memoize_count_) {
+    return true;
+  }
+  assert(rhs.size() == dq_count_ + dependent_count_);
+
+  const int n = static_cast<int>(dq_count_);
+  const auto& jacobian = context_->get_jacobian();
+  const auto& pv_13 = jacobian.get_pv13();
+  const auto& is_dependent_po3 = jacobian.get_is_dependent_po3();
+  const auto& rb3 = jacobian.get_rb3();
+  const std::vector<int> cb3 = jacobian.get_cb3();
+  const double* value = iteration_factors_.data();
+  const double* b = value + iteration_slot_count_;
+
+  /* the right-hand sides in permutation order 3: f of the rows of the
+  velocities, g of the constraint rows of the dependent variables */
+  std::vector<double> f(n);
+  std::vector<double> g(n, 0.0);
+  unsigned int m = 0;
+  for(int i = 0; i < n; i++) {
+    f[i] = rhs[pv_13[i]];
+    if(is_dependent_po3[i]) {
+      g[i] = rhs[dq_count_ + m++];
+    }
+  }
+
+  /* the operations of the factorization on the right-hand sides, from the
+  last variable to the first */
+  for(int i = n - 1; i > -1; i--) {
+    const int start = iteration_neighbor_start_[i];
+    const int end = iteration_neighbor_start_[i + 1];
+    if(is_dependent_po3[i]) {
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        f[cb3[j]] -= b[j] * f[i];
+      }
+      for(int k = start; k < end; k++) {
+        f[iteration_neighbor_[k]] -= value[iteration_lower_slot_[k]] * g[i];
+      }
+    } else {
+      for(int k = start; k < end; k++) {
+        f[iteration_neighbor_[k]] -= value[iteration_lower_slot_[k]] * f[i];
+      }
+    }
+  }
+
+  /* the back substitution from the first variable to the last: a dependent
+  variable from its constraint row, its multiplier from its own row */
+  std::vector<double> x(n);
+  std::vector<double> la(n, 0.0);
+  for(int i = 0; i < n; i++) {
+    const int start = iteration_neighbor_start_[i];
+    const int end = iteration_neighbor_start_[i + 1];
+    if(is_dependent_po3[i]) {
+      double x_i = g[i];
+      for(int j = rb3[i][0]; j < rb3[i][1]; j++) {
+        x_i -= b[j] * x[cb3[j]];
+      }
+      x[i] = x_i;
+      double la_i = f[i] - value[i] * x_i;
+      for(int k = start; k < end; k++) {
+        la_i -= value[iteration_upper_slot_[k]] * x[iteration_neighbor_[k]];
+      }
+      la[i] = la_i;
+    } else {
+      double v = f[i];
+      for(int k = start; k < end; k++) {
+        v -= value[iteration_upper_slot_[k]] * x[iteration_neighbor_[k]];
+      }
+      x[i] = value[i] * v;
+    }
+  }
+
+  m = 0;
+  for(int i = 0; i < n; i++) {
+    rhs[pv_13[i]] = x[i];
+    if(is_dependent_po3[i]) {
+      rhs[dq_count_ + m++] = la[i];
+    }
+  }
+  return false;
 }

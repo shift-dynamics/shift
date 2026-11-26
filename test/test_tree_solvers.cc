@@ -3,11 +3,13 @@ of a model is classified into serial chains, branched trees and closed loops,
 and at the same state every solver gives the same joint accelerations. */
 
 #include <omp.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -20,6 +22,7 @@ and at the same state every solver gives the same joint accelerations. */
 #include "shift/core/solver/auto.h"
 #include "shift/core/solver/base.h"
 #include "shift/core/solver/dca.h"
+#include "shift/core/tangents.h"
 
 class TreeSolvers {
 public:
@@ -688,4 +691,259 @@ TEST(SolverSpeed, FloatingBaseWithLimbs) {
     }
   }
   SolverSpeed::Run("float base + 4x6 limbs", bodies, joints);
+}
+
+/* the iteration matrix of the implicit integrators: for the same state and
+the same tangents (entries between the velocities, springs between every
+pair of bodies, which couple the trees, and one column found by
+differences), the solution of the tree solvers' system (the accelerations'
+residual, S = I + M^-1 (c C + k K)) and of Auto's (RNCA's rows of the closed
+loop, the accelerations' rows of the delegated trees) is RNCA's, whose system
+is that of the forces, M + c C + k K. The right-hand sides and the
+differenced column of the accelerations' rows are M^-1 times those of the
+forces, from RNCA's system without tangents. */
+struct IterationSystem {
+  std::unique_ptr<shift::core::Context> context;
+  shift::core::solver::Base* solver = nullptr;
+};
+
+static IterationSystem LoadIterationSystem(const std::string& model,
+                                           const std::vector<double>& y_state,
+                                           std::vector<double>& y) {
+  IterationSystem system;
+  system.context = TreeSolvers::Load(model, "tree_solver_iteration");
+  shift::core::Context& context = *system.context;
+  context.get_active_integrators()[0]->Initialize();
+  system.solver = context["model_parameters"]["solvers"][0]
+                    .get_data<shift::core::solver::Base>();
+  system.solver->Initialize();
+  y.assign(context.get_state_count() + context.get_auxiliary_state_count(),
+           0.0);
+  std::copy(y_state.begin(), y_state.end(), y.begin());
+  std::vector<double> dy(y.size(), 0.0);
+  EXPECT_FALSE(system.solver->Solve(0.0, y, dy));
+  return system;
+}
+
+/* Residual at y, for the iteration matrix to be formed at that state */
+static void ResidualAt(IterationSystem& system, const std::vector<double>& y) {
+  shift::core::Context& context = *system.context;
+  const std::vector<double> ddq(context.get_dq_count(), 0.0);
+  const std::vector<double> la(system.solver->get_multiplier_count(), 0.0);
+  std::vector<double> r;
+  std::vector<double> dy(y.size(), 0.0);
+  ASSERT_FALSE(system.solver->Residual(0.0, y, ddq, la, r, dy));
+}
+
+static void CheckIterationMatrix(const std::vector<std::string>& bodies,
+                                 const std::vector<std::string>& joints,
+                                 const std::string& solver_type,
+                                 bool expect_delegated) {
+  SCOPED_TRACE(solver_type);
+  auto reference_run =
+    TreeSolvers::Load(TreeSolvers::Model("rnca", bodies, joints, 0.1),
+                      "tree_solver_iteration_run");
+  const std::vector<double> y_state = TreeSolvers::Run(*reference_run);
+
+  std::vector<double> y;
+  IterationSystem reference = LoadIterationSystem(
+    TreeSolvers::Model("rnca", bodies, joints), y_state, y);
+  IterationSystem tested = LoadIterationSystem(
+    TreeSolvers::Model(solver_type, bodies, joints), y_state, y);
+  ASSERT_TRUE(tested.solver->supports_implicit());
+  shift::core::Context& context = *reference.context;
+  const unsigned int n = context.get_dq_count();
+  const unsigned int multipliers = reference.solver->get_multiplier_count();
+  ASSERT_EQ(tested.solver->get_multiplier_count(), multipliers);
+  const unsigned int size = n + multipliers;
+
+  /* the rows in the form of the accelerations */
+  std::vector<bool> acceleration_row(n, solver_type != "auto");
+  if(solver_type == "auto") {
+    auto* automatic = dynamic_cast<shift::core::solver::Auto*>(tested.solver);
+    ASSERT_NE(automatic, nullptr);
+    EXPECT_EQ(!automatic->get_delegated_trees().empty(), expect_delegated);
+    const auto& trees = tested.context->get_trees();
+    const auto& dq_lookup = tested.context->get_dq_lookup_compressed();
+    const auto& dof = tested.context->get_joint_dof_compressed();
+    for(int t : automatic->get_delegated_trees()) {
+      for(int j : trees[t].bodies) {
+        for(unsigned int m = 0; m < dof[j]; m++) {
+          acceleration_row[dq_lookup[j] + m] = true;
+        }
+      }
+    }
+  }
+
+  std::mt19937 generator(4321);
+  std::uniform_real_distribution<double> uniform(-1.0, 1.0);
+  const double c = 0.02;
+  const double k = 0.003;
+  shift::core::Tangents tangents;
+  for(unsigned int i = 0; i < n; i++) {
+    tangents.AddJointStiffness(i, i, 2.0 + uniform(generator));
+    tangents.AddJointDamping(i, i, 1.0 + 0.5 * uniform(generator));
+    if(i + 1 < n) {
+      tangents.AddJointStiffness(i, i + 1, 0.3 * uniform(generator));
+      tangents.AddJointStiffness(i + 1, i, 0.3 * uniform(generator));
+    }
+  }
+  std::vector<int> loads;
+  for(auto* body : context.get_active_articulated_bodies()) {
+    const int load_index = context.GetBodyLoadIndex(body);
+    if(load_index > -1 &&
+       std::find(loads.begin(), loads.end(), load_index) == loads.end()) {
+      loads.push_back(load_index);
+    }
+  }
+  ASSERT_GE(loads.size(), 2u);
+  double block[36] = {}, minus_block[36] = {};
+  for(int m = 0; m < 6; m++) {
+    for(int l = 0; l < 6; l++) {
+      block[m * 6 + l] = (m == l ? 2.0 : 0.0) + 0.2 * uniform(generator);
+      minus_block[m * 6 + l] = -block[m * 6 + l];
+    }
+  }
+  for(size_t a = 0; a < loads.size(); a++) {
+    for(size_t b = a + 1; b < loads.size(); b++) {
+      tangents.AddBodyStiffness(loads[a], loads[a], block);
+      tangents.AddBodyStiffness(loads[b], loads[b], block);
+      tangents.AddBodyStiffness(loads[a], loads[b], minus_block);
+      tangents.AddBodyStiffness(loads[b], loads[a], minus_block);
+    }
+  }
+  tangents.AddBodyDamping(loads[0], loads[0], block);
+
+  /* one column by differences, of the forces; a right-hand side */
+  const std::vector<int> differenced = {static_cast<int>(n / 2)};
+  std::vector<double> k_column(n), c_column(n), rhs(size);
+  for(unsigned int i = 0; i < n; i++) {
+    k_column[i] = 0.5 * uniform(generator) + (i == n / 2 ? 3.0 : 0.0);
+    c_column[i] = 0.5 * uniform(generator);
+  }
+  for(double& value : rhs) {
+    value = uniform(generator);
+  }
+
+  /* M^-1 of the force vectors, from RNCA's system without tangents */
+  ResidualAt(reference, y);
+  const shift::core::Tangents none;
+  ASSERT_FALSE(
+    reference.solver->FactorIterationMatrix(none, 0.0, 0.0, {}, {}, {}));
+  auto inverse_mass = [&](const std::vector<double>& force) {
+    std::vector<double> x(size, 0.0);
+    std::copy(force.begin(), force.begin() + n, x.begin());
+    EXPECT_FALSE(reference.solver->SolveIterationMatrix(x));
+    return x;
+  };
+  const std::vector<double> rhs_acceleration = inverse_mass(rhs);
+  const std::vector<double> k_acceleration = inverse_mass(k_column);
+  const std::vector<double> c_acceleration = inverse_mass(c_column);
+
+  /* RNCA, the forces */
+  ResidualAt(reference, y);
+  ASSERT_FALSE(reference.solver->FactorIterationMatrix(
+    tangents, c, k, differenced, k_column, c_column));
+  std::vector<double> expected(rhs);
+  ASSERT_FALSE(reference.solver->SolveIterationMatrix(expected));
+
+  /* the tested solver, the accelerations in their rows */
+  std::vector<double> tested_rhs(rhs), tested_k(k_column), tested_c(c_column);
+  for(unsigned int i = 0; i < n; i++) {
+    if(acceleration_row[i]) {
+      tested_rhs[i] = rhs_acceleration[i];
+      tested_k[i] = k_acceleration[i];
+      tested_c[i] = c_acceleration[i];
+    }
+  }
+  ResidualAt(tested, y);
+  ASSERT_FALSE(tested.solver->FactorIterationMatrix(
+    tangents, c, k, differenced, tested_k, tested_c));
+  /* the factors are kept: a Residual at another state in between */
+  std::vector<double> y_other(y);
+  for(unsigned int i = 0; i < n; i++) {
+    y_other[context.get_q_count() + i] += 0.1;
+  }
+  ResidualAt(tested, y_other);
+  ASSERT_FALSE(tested.solver->SolveIterationMatrix(tested_rhs));
+
+  double scale = 1.0;
+  for(double value : expected) {
+    scale = std::max(scale, std::fabs(value));
+  }
+  for(unsigned int i = 0; i < size; i++) {
+    EXPECT_NEAR(tested_rhs[i], expected[i], 1e-8 * scale) << "entry " << i;
+  }
+}
+
+TEST(TreeSolvers, IterationMatrixMatchesRNCA) {
+  auto bodies = ChainBodies();
+  auto joints = ChainJoints();
+  for(auto& body : BranchedBodies()) {
+    bodies.push_back(body);
+  }
+  for(auto& joint : BranchedJoints()) {
+    joints.push_back(joint);
+  }
+  CheckIterationMatrix(bodies, joints, "aba", false);
+  CheckIterationMatrix(bodies, joints, "dca", false);
+  AddLoopTree(bodies, joints);
+  CheckIterationMatrix(bodies, joints, "auto", true);
+}
+
+/* HHT with each tree solver follows HHT with RNCA: the forest of a chain, a
+branched tree and a closed loop, with springs and dampers on the joints of
+the chain; the solvers converge Newton to the same tolerance, so their
+trajectories agree to it */
+TEST(TreeSolvers, ImplicitIntegrationMatchesRNCA) {
+  auto bodies = ChainBodies();
+  std::vector<std::string> joints = ChainJoints();
+  const std::string forces =
+    R"("stiffness_coefficients": [0.0, 300.0], "damping_coefficients": [0.0, 2.0], )";
+  joints[1] = TreeSolvers::Joint(
+    "j1", "revolute", "b0", "tip", "b1",
+    R"("axis": [0, 0.6, 0.8], "initial_velocity": 2.0, )" + forces);
+  joints[2] = TreeSolvers::Joint(
+    "j2", "prismatic", "b1", "side", "b2",
+    R"("axis": [1, 0, 0], "initial_velocity": -0.5, )" + forces);
+  for(auto& body : BranchedBodies()) {
+    bodies.push_back(body);
+  }
+  for(auto& joint : BranchedJoints()) {
+    joints.push_back(joint);
+  }
+  auto with_hht = [](std::string model) {
+    const std::string from = R"("type": "ode113")";
+    const size_t at = model.find(from);
+    EXPECT_NE(at, std::string::npos);
+    model.replace(at, from.size(), R"("type": "hht")");
+    return model;
+  };
+  for(bool loop : {false, true}) {
+    if(loop) {
+      AddLoopTree(bodies, joints);
+    }
+    auto reference = TreeSolvers::Load(
+      with_hht(TreeSolvers::Model("rnca", bodies, joints, 0.1)),
+      "tree_hht_rnca");
+    const std::vector<double> expected = TreeSolvers::Run(*reference);
+    double scale = 1.0;
+    for(double value : expected) {
+      scale = std::max(scale, std::fabs(value));
+    }
+    const std::vector<std::string> solvers =
+      loop ? std::vector<std::string>{"auto",
+                                      R"({"type": "auto", "tree_solver": "dca"})"}
+           : std::vector<std::string>{"aba", "dca", "auto"};
+    for(const auto& solver : solvers) {
+      SCOPED_TRACE(solver + (loop ? " with the loop" : ""));
+      auto context = TreeSolvers::Load(
+        with_hht(TreeSolvers::Model(solver, bodies, joints, 0.1)), "tree_hht");
+      const std::vector<double> y = TreeSolvers::Run(*context);
+      ASSERT_EQ(y.size(), expected.size());
+      for(size_t i = 0; i < y.size(); i++) {
+        EXPECT_NEAR(y[i], expected[i], 1e-6 * scale) << "state " << i;
+      }
+    }
+  }
 }

@@ -78,6 +78,15 @@ public:
    * kinematics in the context, which are up to date with y */
   virtual void Update(const double* y) = 0;
 
+  /*! \brief if the signal is a generalized coordinate or velocity: its
+   * generalized velocity index, and whether it is the coordinate (with the
+   * velocity as its rate) or the velocity; false for other signals */
+  virtual bool GetGeneralizedSignal(int& dq_index, bool& position) const {
+    (void)dq_index;
+    (void)position;
+    return false;
+  }
+
   /*! \brief compute the sensor's outputs (DeclareOutput) for the state y at
    * time t; Context::WriteStates calls it after Update and before the
    * loggers, which record the outputs they are connected to, while the

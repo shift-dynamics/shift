@@ -10,6 +10,7 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/force_module/soil.h"
+#include "shift/core/tangents.h"
 #include "shift/core/terrain/scm.h"
 #include "shift/core/terrain/sph.h"
 
@@ -102,7 +103,14 @@ void shift::core::force_module::SoilContact::Connect() {
   }
 }
 
-void shift::core::force_module::SoilContact::Evaluate(bool apply) {
+bool shift::core::force_module::SoilContact::AddTangents(const double*,
+                                                        Tangents& tangents) {
+  Evaluate(false, &tangents);
+  return true;
+}
+
+void shift::core::force_module::SoilContact::Evaluate(bool apply,
+                                                     Tangents* tangents) {
   normal_force_ = contact_nodes_ = sinkage_ = 0.0;
   if(!terrain_) {
     return;
@@ -249,6 +257,8 @@ void shift::core::force_module::SoilContact::Evaluate(bool apply) {
         if(z > hit.z) {
           hit.z = z;
           hit.body = geometry_body_[g];
+          hit.geometry = static_cast<int>(g);
+          hit.start = start;
           const double x = scm.NodeX(i), y = scm.NodeY(j);
           for(int c = 0; c < 3; c++) {
             hit.point.at[c] =
@@ -304,6 +314,9 @@ void shift::core::force_module::SoilContact::Evaluate(bool apply) {
   const double area = h * h;
   std::vector<ksl_coscrew_t> loads(bodies_.size(),
                                    ksl_coscrew(0, 0, 0, 0, 0, 0));
+  /* the stiffness and damping blocks of each body, if tangents */
+  std::vector<double> stiffness(tangents ? bodies_.size() * 36 : 0, 0.0);
+  std::vector<double> damping(tangents ? bodies_.size() * 36 : 0, 0.0);
   std::vector<ksl_screw_t> velocities(bodies_.size());
   for(size_t k = 0; k < bodies_.size(); k++) {
     velocities[k] = context_->GetBodyVelocity(load_indices_[k]);
@@ -370,6 +383,108 @@ void shift::core::force_module::SoilContact::Evaluate(bool apply) {
       loads[hit.body].lin.at[c] += force.at[c];
       loads[hit.body].ang.at[c] += moment.at[c];
     }
+    if(tangents) {
+      /* the force's derivatives with respect to p and to the shear
+      displacement, in the terrain frame */
+      double by_p[3] = {0.0, 0.0, -area};
+      double by_shear[2][3] = {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+      if(displacement > 0.0) {
+        const double modulus = soil->shear_modulus;
+        const double mobilized = -std::expm1(-displacement / modulus);
+        const double strength =
+          soil->cohesion + p * std::tan(soil->friction_angle);
+        /* u = mobilized shear / |shear|, du = g I + (dg / d) shear shear^T */
+        double g = mobilized / displacement;
+        double dg = (std::exp(-displacement / modulus) / modulus * displacement -
+                     mobilized) /
+                    (displacement * displacement * displacement);
+        if(!(displacement > 1e-9 * modulus)) {
+          g = 1.0 / modulus;
+          dg = 0.0;
+        }
+        for(int c = 0; c < 2; c++) {
+          by_p[c] = -area * std::tan(soil->friction_angle) * g * shear[c];
+          for(int b = 0; b < 2; b++) {
+            by_shear[b][c] =
+              -area * strength * ((b == c ? g : 0.0) + dg * shear[c] * shear[b]);
+          }
+        }
+      }
+      const double* axes[3] = {e_x.at, e_y.at, e_z.at};
+      auto world = [&](const double f[3], double out[3]) {
+        for(int c = 0; c < 3; c++) {
+          out[c] = axes[0][c] * f[0] + axes[1][c] * f[1] + axes[2][c] * f[2];
+        }
+      };
+      double force_by_p[3], force_by_shear[2][3];
+      world(by_p, force_by_p);
+      world(by_shear[0], force_by_shear[0]);
+      world(by_shear[1], force_by_shear[1]);
+      /* dp / ds and dp / ds' (the rate), while the pressure is not cut off
+      at zero; the sinkage and its rate move with the point along e_z */
+      const double damping_coefficient = scm.DampingAt(t);
+      const bool pressed = elastic * (1.0 + damping_coefficient * rate) > 0.0;
+      const double by_s =
+        pressed ? scm.PressureSlope(*soil, b, s, plastic) *
+                    (1.0 + damping_coefficient * rate)
+                : 0.0;
+      const double by_rate = pressed ? elastic * damping_coefficient : 0.0;
+      const double shear_by_slip =
+        accepted && accepted->in_contact ? 0.5 * dt : dt;
+      /* the point stays on the node's vertical: the body's surface, of
+      normal n there, crosses it lower by g^T E delta, g = n / (n . e_z) */
+      double g[3] = {e_z.x, e_z.y, e_z.z};
+      ksl_vec3_t origin = hit.point, normal;
+      ksl_axpy_vv(hit.start - hit.z, &e_z, &origin);
+      double distance = 0.0;
+      if(geometry_[hit.geometry]->RayCast(origin, up, reach, distance,
+                                          normal)) {
+        const double n_z = ksl_dot_vv(&normal, &e_z);
+        if(std::fabs(n_z) > 0.1 * ksl_vec3_l2norm(&normal)) {
+          for(int c = 0; c < 3; c++) {
+            g[c] = normal.at[c] / n_z;
+          }
+        }
+      }
+      double sinkage_row[6] = {};
+      Tangents::AddPointRow(g, hit.point, 1.0, sinkage_row);
+      /* the force changes with the sinkage by u: through the pressure, and
+      through the slip, as the body's point there, moving along e_z, has the
+      velocity w x e_z more per unit (the sinkage rate, along e_z, does not
+      change); its moment by p x u - F x e_z */
+      const ksl_vec3_t& w = velocity.ang;
+      ksl_vec3_t w_z;
+      ksl_cross_vv(&w, &e_z, &w_z);
+      const double slip_x = ksl_dot_vv(&w_z, &e_x);
+      const double slip_y = ksl_dot_vv(&w_z, &e_y);
+      ksl_vec3_t u;
+      for(int c = 0; c < 3; c++) {
+        u.at[c] = force_by_p[c] * by_s +
+                  shear_by_slip * (force_by_shear[0][c] * slip_x +
+                                   force_by_shear[1][c] * slip_y);
+      }
+      ksl_vec3_t m, arm;
+      ksl_cross_vv(&hit.point, &u, &m);
+      ksl_cross_vv(&force, &e_z, &arm);
+      double* k_block = &stiffness[size_t(hit.body) * 36];
+      for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 6; c++) {
+          k_block[r * 6 + c] -= u.at[r] * sinkage_row[c];
+          k_block[(r + 3) * 6 + c] -= (m.at[r] - arm.at[r]) * sinkage_row[c];
+        }
+      }
+      /* X = dF / d(point velocity) */
+      double x_c[9];
+      for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 3; c++) {
+          x_c[r * 3 + c] = force_by_p[r] * by_rate * e_z.at[c] +
+                           shear_by_slip * (force_by_shear[0][r] * e_x.at[c] +
+                                            force_by_shear[1][r] * e_y.at[c]);
+        }
+      }
+      Tangents::AddPointBlock(hit.point, x_c, hit.point, -1.0,
+                              &damping[size_t(hit.body) * 36]);
+    }
     normal_force_ += p * area;
     contact_nodes_ += 1.0;
     sinkage_ = std::max(sinkage_, s);
@@ -387,6 +502,14 @@ void shift::core::force_module::SoilContact::Evaluate(bool apply) {
   if(apply) {
     for(size_t k = 0; k < bodies_.size(); k++) {
       context_->AddBodyLoad(load_indices_[k], loads[k]);
+    }
+  }
+  if(tangents) {
+    for(size_t k = 0; k < bodies_.size(); k++) {
+      tangents->AddBodyStiffness(load_indices_[k], load_indices_[k],
+                                 &stiffness[k * 36]);
+      tangents->AddBodyDamping(load_indices_[k], load_indices_[k],
+                               &damping[k * 36]);
     }
   }
 }

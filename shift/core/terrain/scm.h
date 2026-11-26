@@ -282,6 +282,9 @@ public:
    * plastic_sinkage \f$z_p\f$ (see the class description) */
   double Pressure(const force_module::SoilProperties& soil, double b, double s,
                   double plastic_sinkage) const;
+  /*! \brief \f$\partial p / \partial s\f$ of Pressure */
+  double PressureSlope(const force_module::SoilProperties& soil, double b,
+                       double s, double plastic_sinkage) const;
   /*! \brief the level of a node whose deepest sinkage is plastic_sinkage,
    * once the soil has sprung back: \f$z_p (1 - 1 / \mathrm{unloading\_ratio})\f$ */
   double ReboundLevel(double plastic_sinkage) const {

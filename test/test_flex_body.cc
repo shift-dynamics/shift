@@ -23,6 +23,7 @@ chain moves in three dimensions under gravity. */
 #include "shift/core/body/flex.h"
 #include "shift/core/constraint/chord.h"
 #include "shift/core/context.h"
+#include "shift/core/integrator/alpha.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/integrator/base.h"
@@ -664,6 +665,51 @@ TEST(FlexBody, SolversRouteFlexibleTrees) {
     for(size_t k = 0; k < y.size(); k++) {
       EXPECT_NEAR(y[k], y_rnca[k], 1e-8 * std::fmax(1.0, std::fabs(y_rnca[k])))
         << solver << " " << k;
+    }
+  }
+}
+
+/* the model text with the integrator ODE113 replaced by HHT, at the error
+tolerance \p tolerance */
+static std::string WithHHT(std::string model, double tolerance) {
+  const std::string from = R"("type": "ode113")";
+  const size_t at = model.find(from);
+  EXPECT_NE(at, std::string::npos);
+  model.replace(at, from.size(), R"("type": "hht")");
+  std::ostringstream errors;
+  errors << tolerance;
+  for(const std::string key : {"\"relative_error\": 1e-11",
+                               "\"absolute_error\": 1e-11"}) {
+    const size_t key_at = model.find(key);
+    EXPECT_NE(key_at, std::string::npos) << key;
+    model.replace(key_at, key.size(),
+                  key.substr(0, key.find(':') + 2) + errors.str());
+  }
+  return model;
+}
+
+/* HHT with each solver on a flexible tree follows ODE113 to the accuracy of
+its tolerance (4e-6 here); the tree solvers' iteration matrix,
+I + M^-1 (c C + k K), takes M^-1 from the solvers, the elastic coordinates
+included. Auto hands the whole tree to aba, its elastic coordinates too. */
+TEST(FlexBody, TreeSolversIntegrateImplicitly) {
+  auto reference =
+    FlexParticles::Load(RotatingModel("rnca", 0.05), "flex_rotating_ode");
+  const std::vector<double> y_reference = FlexParticles::Run(*reference);
+  double moved = 0.0;
+  for(double value : y_reference) {
+    moved = std::fmax(moved, std::fabs(value));
+  }
+  EXPECT_GT(moved, 0.1);
+  for(const std::string solver : {"rnca", "aba", "dca", "auto"}) {
+    SCOPED_TRACE(solver);
+    auto context =
+      FlexParticles::Load(WithHHT(RotatingModel(solver, 0.05), 1e-9),
+                          "flex_rotating_hht_" + solver);
+    const std::vector<double> y = FlexParticles::Run(*context);
+    ASSERT_EQ(y.size(), y_reference.size());
+    for(size_t k = 0; k < y.size(); k++) {
+      EXPECT_NEAR(y[k], y_reference[k], 2e-5) << k;
     }
   }
 }
@@ -1564,6 +1610,156 @@ TEST(FlexFourBar, LoopLeavingByANodeMatchesRigidModel) {
   const std::vector<double> y_rigid = FlexParticles::Run(*rigid);
   CompareFourBars(*flexible, y_flexible, *rigid, y_rigid, false, 1e-7);
   CompareFourBars(*flexible, y_flexible, *rigid, y_rigid, true, 1e-6);
+}
+
+/* the largest difference between the states of an HHT run of the model at
+the error tolerance \p tolerance and the reference states \p y_reference, the
+rates scaled by 0.1 s; the loop of the HHT run stays closed */
+static double HHTDifference(const std::string& model, double tolerance,
+                            const std::vector<double>& y_reference) {
+  auto implicit = FlexParticles::Load(WithHHT(model, tolerance), "flex_hht");
+  const std::vector<double> y = FlexParticles::Run(*implicit);
+  EXPECT_EQ(y.size(), y_reference.size());
+  EXPECT_LT(implicit->get_jacobian().EvaluateConstraints(), 1e-9);
+  const size_t q_count = implicit->get_q_count();
+  double largest = 0.0;
+  for(size_t k = 0; k < std::min(y.size(), y_reference.size()); k++) {
+    largest = std::max(largest, std::fabs(y[k] - y_reference[k]) *
+                                  (k < q_count ? 1.0 : 0.1));
+  }
+  return largest;
+}
+
+/* the implicit integrator on flexible bodies, on a tree and on the loop
+closed through the elastic coordinates of the coupler (some of them
+dependent): HHT converges to ODE113 at a tight tolerance as its tolerance is
+tightened, about 20 times closer for a tolerance 100 times smaller (the
+residual evaluates the flexible bodies at each trial state, without which
+the four-bar was 0.06 off at 1e-6) */
+TEST(FlexFourBar, HHTConvergesToODE113) {
+  const std::string models[2] = {FlexParticles::Model(true, 0.2, true),
+                                 FourBarModel(true, 0.2, false, true)};
+  for(int m = 0; m < 2; m++) {
+    SCOPED_TRACE(m == 0 ? "tree" : "four-bar");
+    auto reference = FlexParticles::Load(models[m], "flex_ode");
+    const std::vector<double> y_reference = FlexParticles::Run(*reference);
+    double moved = 0.0;
+    for(size_t k = 0; k < reference->get_q_count(); k++) {
+      moved = std::max(moved, std::fabs(y_reference[k]));
+    }
+    EXPECT_GT(moved, 0.1);
+    const double loose = HHTDifference(models[m], 1e-6, y_reference);
+    const double tight = HHTDifference(models[m], 1e-8, y_reference);
+    EXPECT_LT(tight, loose / 10.0);
+    EXPECT_LT(loose, 2e-3);
+    EXPECT_LT(tight, 1e-4);
+  }
+}
+
+/* HHT without numerical damping (alpha = 0) on the four-bar, rigid, flexible
+and started deformed: the velocity constraints in Newton and the position
+constraints by projection keep it second order, the error falling as the
+square of the number of steps between tolerances 1e-6 and 1e-8. With the
+position constraints in Newton (index 3) the loop's accelerations
+alternated in sign from step to step and grew, and the steps fell: 4333 at
+1e-8 rigid, 12815 flexible, and the deformed one stalled. */
+TEST(FlexFourBar, HHTWithoutDamping) {
+  struct Case {
+    const char* name;
+    bool flexible;
+    bool deformed;
+    unsigned int step_limit;
+  };
+  for(const Case& c : {Case{"rigid", false, false, 300},
+                       Case{"flexible", true, false, 300},
+                       Case{"deformed", true, true, 700}}) {
+    SCOPED_TRACE(c.name);
+    const std::string model = FourBarModel(c.flexible, 0.2, false, c.deformed);
+    auto reference = FlexParticles::Load(model, "flex_ode");
+    const std::vector<double> y_reference = FlexParticles::Run(*reference);
+    double errors[2];
+    unsigned int steps[2];
+    const double tolerances[2] = {1e-6, 1e-8};
+    for(int k = 0; k < 2; k++) {
+      std::string undamped = WithHHT(model, tolerances[k]);
+      const std::string from = R"("type": "hht")";
+      undamped.replace(undamped.find(from), from.size(),
+                       R"("type": "hht", "alpha": 0)");
+      auto implicit = FlexParticles::Load(undamped, "flex_hht");
+      const std::vector<double> y = FlexParticles::Run(*implicit);
+      ASSERT_EQ(y.size(), y_reference.size());
+      EXPECT_LT(implicit->get_jacobian().EvaluateConstraints(), 1e-9);
+      const auto* alpha = dynamic_cast<shift::core::integrator::Alpha*>(
+        implicit->get_active_integrators()[0]);
+      ASSERT_TRUE(alpha);
+      steps[k] = alpha->get_accepted_steps();
+      errors[k] = 0.0;
+      for(size_t i = 0; i < implicit->get_q_count(); i++) {
+        errors[k] = std::max(errors[k], std::fabs(y[i] - y_reference[i]));
+      }
+    }
+    /* fatal: without the two-level form the deformed case stalls */
+    ASSERT_LT(steps[1], c.step_limit);
+    EXPECT_LT(errors[1], 2e-5);
+    const double order =
+      std::log(errors[0] / errors[1]) / std::log(double(steps[1]) / steps[0]);
+    EXPECT_GT(order, 1.7);
+  }
+}
+
+/* the flexible four-bar (a closed loop, RNCA's) and the rotating flexible
+chain (a tree, which auto hands to aba or dca) in one model, with the solver
+given */
+static std::string LoopAndFlexibleTree(const std::string& solver,
+                                       double time_span) {
+  std::string model = FourBarModel(true, time_span);
+  const std::string chain = RotatingModel("rnca", time_span);
+  const size_t begin = chain.find(R"({"name": "chain")");
+  const size_t end = chain.rfind("]}");
+  model.insert(model.rfind("]}"), ",\n" + chain.substr(begin, end - begin));
+  const std::string from = R"("type": "rnca")";
+  model.replace(model.find(from), from.size(), solver);
+  return model;
+}
+
+/* auto with a flexible body in a tree it hands to aba or dca: the tree's
+elastic coordinates are the tree solver's, and RNCA leaves their rows and
+columns empty. Before, RNCA kept them in its mass matrix with the tree's
+joints delegated, and factoring it failed (a zero pivot); its kinetic energy
+also counted the tree's elastic kinetic energy, which the tree solver adds,
+a second time (3.725 J for 3.588 J here). The kinetic energy is RNCA's, ODE113
+follows RNCA's motion to rounding, and HHT that of HHT with RNCA to its
+accuracy (the iteration matrices differ: 5e-8 in the coordinates and 1e-6
+in the velocities at a tolerance of 1e-8). */
+TEST(FlexBody, AutoHandsFlexibleTreeToTreeSolver) {
+  const std::string solvers[3] = {
+    R"("type": "rnca")", R"("type": "auto")",
+    R"("type": "auto", "tree_solver": "dca")"};
+  double kinetic[3];
+  std::vector<double> explicit_runs[3];
+  std::vector<double> implicit_runs[3];
+  for(int s = 0; s < 3; s++) {
+    SCOPED_TRACE(solvers[s]);
+    const std::string model = LoopAndFlexibleTree(solvers[s], 0.05);
+    auto context = FlexParticles::Load(model, "flex_loop_tree");
+    FlexParticles::Derivatives(*context);
+    kinetic[s] = context->KineticEnergy();
+    explicit_runs[s] = FlexParticles::Run(*context);
+    auto implicit =
+      FlexParticles::Load(WithHHT(model, 1e-8), "flex_loop_tree_hht");
+    implicit_runs[s] = FlexParticles::Run(*implicit);
+  }
+  EXPECT_GT(kinetic[0], 1.0);
+  for(int s = 1; s < 3; s++) {
+    SCOPED_TRACE(solvers[s]);
+    EXPECT_NEAR(kinetic[s], kinetic[0], 1e-12 * kinetic[0]);
+    ASSERT_EQ(explicit_runs[s].size(), explicit_runs[0].size());
+    ASSERT_EQ(implicit_runs[s].size(), implicit_runs[0].size());
+    for(size_t k = 0; k < explicit_runs[0].size(); k++) {
+      EXPECT_NEAR(explicit_runs[s][k], explicit_runs[0][k], 1e-10) << k;
+      EXPECT_NEAR(implicit_runs[s][k], implicit_runs[0][k], 1e-5) << k;
+    }
+  }
 }
 
 /* the run-time path (the Jacobian set up in the order of the last full

@@ -88,6 +88,7 @@ public:
   void DeclareParameters() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
+  bool AddTangents(const double* y, Tangents& tangents) override;
   /*! \brief the error and the effort at the state y, with the sensor
    * updated to it, and the input of the component set to the effort */
   void UpdateOutputs(double t, const double* y) override;

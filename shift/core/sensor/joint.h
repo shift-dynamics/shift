@@ -49,6 +49,7 @@ public:
 
   void Connect() override;
   void Update(const double* y) override;
+  bool GetGeneralizedSignal(int& dq_index, bool& position) const override;
 
 protected:
   void DeclareParameters() override;

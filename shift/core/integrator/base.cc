@@ -1,6 +1,8 @@
 #include "shift/core/integrator/base.h"
 #include "shift/core/context.h"
 #include "shift/core/log.h"
+#include "shift/core/integrator/generalized_alpha.h"
+#include "shift/core/integrator/hht.h"
 #include "shift/core/integrator/ode113.h"
 #include "shift/core/integrator/rk4.h"
 
@@ -9,6 +11,12 @@ bool shift::core::integrator::Modules::is_initialized() {
     return false;
   }
   if(!shift::core::integrator::RK4::is_registered()) {
+    return false;
+  }
+  if(!shift::core::integrator::GeneralizedAlpha::is_registered()) {
+    return false;
+  }
+  if(!shift::core::integrator::HHT::is_registered()) {
     return false;
   }
   return true;

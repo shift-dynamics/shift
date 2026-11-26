@@ -1,4 +1,5 @@
 #include "shift/core/context.h"
+#include "shift/core/tangents.h"
 #include "shift/core/body/node_kinematics.h"
 #include "shift/core/terrain/basic.h"
 #include "shift/core/utility.h"
@@ -2868,6 +2869,11 @@ static constexpr double kElasticGrain = 1e5;
 void shift::core::Context::EvaluateElasticBodies(
   const topology::DHVA& dhva, const double* q, const double* dq) {
   const int count = static_cast<int>(elastic_bodies_.size());
+  /* without elastic bodies, nothing to evaluate: the parallel region costs
+  its setup even when it runs on one thread */
+  if(count == 0) {
+    return;
+  }
   double work = 0.0;
   for(int i : elastic_bodies_) {
     const double n = active_articulated_bodies_[i]->get_elastic_count();
@@ -3928,8 +3934,37 @@ void shift::core::Context::SetForces(const double t,
   for(auto& controller : active_controllers_) {
     controller->Service(y.data(), dy.data());
   }
-  for(auto& force_module : active_force_modules_) {
-    force_module->Service(y.data(), dy.data());
+  if(collecting_tangents_) {
+    /* what each force module applies, from the loads and forces before and
+    after it */
+    applied_forces_.resize(active_force_modules_.size());
+    std::vector<ksl_coscrew_t> loads_before;
+    std::vector<double> forces_before;
+    for(size_t k = 0; k < active_force_modules_.size(); k++) {
+      loads_before = body_loads_;
+      forces_before = f_;
+      active_force_modules_[k]->Service(y.data(), dy.data());
+      AppliedForces& applied = applied_forces_[k];
+      applied.loads.clear();
+      applied.joints.clear();
+      for(size_t b = 0; b < body_loads_.size(); b++) {
+        for(int c = 0; c < 6; c++) {
+          if(body_loads_[b].at[c] != loads_before[b].at[c]) {
+            applied.loads.push_back(static_cast<int>(b));
+            break;
+          }
+        }
+      }
+      for(size_t l = 0; l < f_.size(); l++) {
+        if(f_[l] != forces_before[l]) {
+          applied.joints.push_back(static_cast<int>(l));
+        }
+      }
+    }
+  } else {
+    for(auto& force_module : active_force_modules_) {
+      force_module->Service(y.data(), dy.data());
+    }
   }
   /* the free bodies move under the loads applied above */
   EvaluateFreeBodies(y.data(), dy.data());
@@ -3938,6 +3973,93 @@ void shift::core::Context::SetForces(const double t,
   //   std::cout << force << " ";
   // }
   // std::cout << std::endl;
+}
+
+bool shift::core::Context::CollectTangents(const std::vector<double>& y,
+                                           Tangents& tangents,
+                                           std::vector<int>* differenced) {
+  for(auto& joint : active_joints_) {
+    joint->AddTangents(y, tangents);
+  }
+  bool complete = true;
+  bool all = false;
+  for(auto& controller : active_controllers_) {
+    if(!controller->AddTangents(y.data(), tangents)) {
+      complete = false;
+      all = true;
+    }
+  }
+  /* the derivatives with respect to the internal states, of the modules
+  that give them */
+  for(auto& force_module : active_force_modules_) {
+    if(force_module->get_equation_count() > 0 &&
+       force_module->AddStateTangents(y.data(), tangents)) {
+      tangents.AddGivenStates(
+        static_cast<int>(force_module->get_state_offset()),
+        static_cast<int>(force_module->get_equation_count()));
+    }
+  }
+  std::vector<bool> columns(dq_count_, false);
+  std::vector<int> path;
+  std::vector<ksl_screw_t> screws;
+  for(size_t k = 0; k < active_force_modules_.size(); k++) {
+    if(active_force_modules_[k]->AddTangents(y.data(), tangents)) {
+      continue;
+    }
+    complete = false;
+    if(k >= applied_forces_.size()) {
+      /* no record of what it applies */
+      all = true;
+      continue;
+    }
+    for(const int load_index : applied_forces_[k].loads) {
+      GetLoadPath(load_index, path, screws);
+      for(const int l : path) {
+        columns[l] = true;
+      }
+    }
+    for(const int l : applied_forces_[k].joints) {
+      if(l < static_cast<int>(dq_count_)) {
+        columns[l] = true;
+      }
+    }
+  }
+  if(differenced) {
+    differenced->clear();
+    for(unsigned int l = 0; l < dq_count_; l++) {
+      if(all || columns[l]) {
+        differenced->push_back(static_cast<int>(l));
+      }
+    }
+  }
+  return complete;
+}
+
+void shift::core::Context::GetLoadPath(
+  int load_index, std::vector<int>& velocities,
+  std::vector<ksl_screw_t>& screws) const {
+  velocities.clear();
+  screws.clear();
+  if(load_index < 0 ||
+     load_index >= static_cast<int>(get_non_rigid_joint_count())) {
+    return;
+  }
+  const auto& dhva = get_dhva();
+  const auto& pcl_compressed = get_pcl_compressed();
+  const auto& dq_lookup_compressed = get_dq_lookup_compressed();
+  const auto& joint_dof_compressed = get_joint_dof_compressed();
+  const auto& is_rotation = get_is_rotation();
+  for(int i = load_index; i > -1; i = pcl_compressed[i]) {
+    for(unsigned int m = 0; m < joint_dof_compressed[i]; m++) {
+      const int l = dq_lookup_compressed[i] + m;
+      ksl_screw_t h = dhva.h[l];
+      if(!is_rotation[l]) {
+        h.ang = ksl_vec3(0.0, 0.0, 0.0);
+      }
+      velocities.push_back(l);
+      screws.push_back(h);
+    }
+  }
 }
 
 void shift::core::Context::ConvertdqTody(const std::vector<double>& y,
@@ -3984,6 +4106,73 @@ void shift::core::Context::ConvertdqTody(const std::vector<double>& y,
   }
 
   memcpy(dy.data() + q_count_, ddq_.data(), dq_count_ * sizeof(double));
+}
+
+void shift::core::Context::IncrementPositions(const double* q,
+                                             const double* delta,
+                                             double* q_out) const {
+  if(q_out != q) {
+    memcpy(q_out, q, q_count_ * sizeof(double));
+  }
+
+  for(auto& index : non_quaternion_indices_) {
+    q_out[index.q] = q[index.q] + delta[index.dq];
+  }
+
+  /* a rotation by the rotation vector delta, in the child frame
+  (ksl_add_dpiToq, to first order), is q exp(delta / 2); a parent frame
+  rotation vector (inverse joints) is R^T delta in the child frame. The
+  translation of a float joint is rotated as ConvertdqTody rotates its
+  velocity, by the rotation at the middle of the increment, so that its
+  error is of third order */
+  for(auto& index : quaternion_indices_) {
+    /* a copy, as q and q_out may be the same array */
+    ksl_quaternion_t quaternion =
+      *reinterpret_cast<const ksl_quaternion_t*>(&q[index.q]);
+    const ksl_vec3_t rotation =
+      *reinterpret_cast<const ksl_vec3_t*>(&delta[index.dq]);
+    ksl_mat3x3_t R;
+    ksl_quaternion_toMat3x3(&quaternion, &R);
+    ksl_vec3_t rotation_child = rotation;
+    if(!index.child_frame) {
+      for(int i = 0; i < 3; i++) {
+        rotation_child.at[i] = ksl_dot_vv(&R.v[i], &rotation);
+      }
+    }
+
+    ksl_vec3_t half;
+    ksl_vec3_t quarter;
+    for(int i = 0; i < 3; i++) {
+      half.at[i] = 0.5 * rotation_child.at[i];
+      quarter.at[i] = 0.25 * rotation_child.at[i];
+    }
+    ksl_quaternion_t increment;
+    ksl_quaternion_exp(&half, &increment);
+    ksl_quaternion_t rotated;
+    ksl_product_qq(&quaternion, &increment, &rotated);
+    ksl_quaternion_normalize(&rotated);
+
+    if(index.translation_q > -1) {
+      const ksl_vec3_t* translation =
+        reinterpret_cast<const ksl_vec3_t*>(&delta[index.translation_dq]);
+      ksl_vec3_t increment_parent = *translation;
+      if(index.child_frame) {
+        ksl_quaternion_t middle_increment;
+        ksl_quaternion_exp(&quarter, &middle_increment);
+        ksl_quaternion_t middle;
+        ksl_product_qq(&quaternion, &middle_increment, &middle);
+        ksl_mat3x3_t R_middle;
+        ksl_quaternion_toMat3x3(&middle, &R_middle);
+        ksl_product_drv(&R_middle, translation, &increment_parent);
+      }
+      for(int i = 0; i < 3; i++) {
+        q_out[index.translation_q + i] =
+          q[index.translation_q + i] + increment_parent.at[i];
+      }
+    }
+
+    *reinterpret_cast<ksl_quaternion_t*>(&q_out[index.q]) = rotated;
+  }
 }
 
 void shift::core::Context::SetupQuaternionMap() {
@@ -4522,16 +4711,24 @@ void shift::core::Context::UpdateContactCandidates() {
     }
   }
 
+  /* a pair out of scope is not in contact; one that was at the accepted
+  state keeps its history until a step is accepted without it (see
+  AcceptStep), since the evaluation may be of a step that is rejected */
   for(auto it = contact_pairs_.begin(); it != contact_pairs_.end();) {
-    if(!it->second.in_scope) {
-      if(it->second.collision) {
-        SHIFT_DEBUG("Collision geometry '" + it->second.a->get_name() +
-                    "' and '" + it->second.b->get_name() + "' separated");
+    auto& pair = it->second;
+    if(!pair.in_scope) {
+      if(pair.collision) {
+        SHIFT_DEBUG("Collision geometry '" + pair.a->get_name() + "' and '" +
+                    pair.b->get_name() + "' separated");
       }
-      it = contact_pairs_.erase(it);
-    } else {
-      ++it;
+      pair.collision = false;
+      const ksl_vec3_t& kept = pair.accepted_normal;
+      if(kept.x == 0.0 && kept.y == 0.0 && kept.z == 0.0) {
+        it = contact_pairs_.erase(it);
+        continue;
+      }
     }
+    ++it;
   }
   contact_candidates_valid_ = true;
 }
@@ -4566,12 +4763,20 @@ static void TestCandidate(shift::core::collision_geometry::ContactPair& pair,
 }
 
 void shift::core::Context::AcceptStep(const std::vector<double>&) {
-  /* the contact normals of the accepted state, the last evaluation of the
-  step */
-  for(auto& entry : contact_pairs_) {
-    auto& pair = entry.second;
+  /* the contact normals and the CAD caches of the accepted state, the last
+  evaluation of the step, from which the tests of the next step start (see
+  DetectContacts); the pairs out of scope at it go */
+  for(auto it = contact_pairs_.begin(); it != contact_pairs_.end();) {
+    auto& pair = it->second;
+    if(!pair.in_scope) {
+      it = contact_pairs_.erase(it);
+      continue;
+    }
     pair.accepted_normal =
       pair.collision ? pair.normal : ksl_vec3_t{{0.0, 0.0, 0.0}};
+    shift::core::collision_geometry::CopyCadCache(pair.cad_cache,
+                                                  pair.accepted_cad_cache);
+    ++it;
   }
   /* the changes of deformable terrain in that evaluation */
   for(auto terrain : active_terrain_) {
@@ -4619,6 +4824,10 @@ void shift::core::Context::DetectContacts() {
   for(int k = 0; k < m; k++) {
     ContactCandidate& candidate = contact_candidates_[k];
     candidate.was_in_contact = candidate.pair->collision;
+    /* from the CAD cache of the accepted state, not of an evaluation of a
+    step that may be rejected */
+    shift::core::collision_geometry::CopyCadCache(
+      candidate.pair->accepted_cad_cache, candidate.pair->cad_cache);
     TestCandidate(*candidate.pair, contact_planes_[candidate.a],
                   contact_planes_[candidate.b]);
   }

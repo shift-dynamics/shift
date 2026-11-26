@@ -14,9 +14,12 @@ reference) and its tip tied to an averaging one:
   are refused;
 - the stress recovered from the static modes (fea::NodalStresses) under a
   tip load converges to the beam's bending stress as the mesh is refined,
-  away from the attachments' patches. */
+  away from the attachments' patches;
+- the divide-by-zero trap is suspended while the reduction runs and
+  restored after it (fea::DivideByZeroTrapSuspension). */
 
 #include <array>
+#include <cfenv>
 #include <cmath>
 #include <map>
 #include <vector>
@@ -33,6 +36,7 @@ reference) and its tip tied to an averaging one:
 #include "shift/core/fea/element.h"
 #include "shift/core/fea/reduction.h"
 #include "shift/core/fea/tet_mesh.h"
+#include "shift/core/fea/trap_suspension.h"
 
 class FeaReduction : public ::testing::Test {
 protected:
@@ -361,5 +365,29 @@ TEST_F(FeaReduction, StressAwayFromTheAttachmentsConverges) {
     EXPECT_LT(errors[2][k], 1e-3) << "x = " << stations[k];
   }
 }
+
+/* the trap that shift-cli enables (SHIFT_FP_TRAP): suspended for the
+lifetime of the object, a division by zero inside raises no signal and
+leaves no flag, and the trap is enabled again after it. Eigen built for AVX
+divides by zero in the unused lanes of the last rows of a SimplicialLDLT
+solve, which trapped the reduction of the flexible slider-crank's
+connecting rod in the release build. */
+#if defined(SHIFT_FP_TRAP) && defined(__linux__)
+TEST(FeaTrapSuspension, SuspendsAndRestoresTheTrap) {
+  const int before = fegetexcept();
+  feenableexcept(FE_DIVBYZERO);
+  {
+    const shift::core::fea::DivideByZeroTrapSuspension suspension;
+    EXPECT_EQ(fegetexcept() & FE_DIVBYZERO, 0);
+    volatile double zero = 0.0;
+    volatile double quotient = 1.0 / zero;
+    EXPECT_TRUE(std::isinf(quotient));
+  }
+  EXPECT_NE(fegetexcept() & FE_DIVBYZERO, 0);
+  EXPECT_EQ(fetestexcept(FE_DIVBYZERO), 0);
+  fedisableexcept(FE_ALL_EXCEPT);
+  feenableexcept(before);
+}
+#endif
 
 #endif

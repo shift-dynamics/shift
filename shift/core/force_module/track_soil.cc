@@ -9,6 +9,7 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
+#include "shift/core/tangents.h"
 #include "shift/core/force_module/soil_contact.h"
 #include "shift/core/terrain/scm.h"
 
@@ -195,6 +196,56 @@ double shift::core::force_module::TrackSoil::Pressure(
   return std::max(0.0, std::min(load, unload));
 }
 
+double shift::core::force_module::TrackSoil::PressureSlope(
+  const SoilProperties& soil, double z, double z_p) const {
+  if(!(z_p > 0.0) || !(z > 0.0)) {
+    return 0.0;
+  }
+  const double b = std::min(length_, width_);
+  const double load = soil.Pressure(b, z);
+  const double reached = soil.Pressure(b, z_p);
+  /* p_load(z_p) (1 - r + r z / z_p) on the unloading line */
+  const double line = 1.0 - unloading_ratio_ + unloading_ratio_ * z / z_p;
+  const double unload = reached * line;
+  if(!(unload < load) || !(unload > 0.0)) {
+    return 0.0;
+  }
+  return soil.n * reached / z_p * line -
+         reached * unloading_ratio_ * z / (z_p * z_p);
+}
+
+double shift::core::force_module::TrackSoil::PressureSinkageSlope(
+  const SoilProperties& soil, double z, double z_p) const {
+  if(!(z > 0.0)) {
+    return 0.0;
+  }
+  const double b = std::min(length_, width_);
+  if(!(z_p > 0.0)) {
+    return soil.PressureSlope(b, z);
+  }
+  const double load = soil.Pressure(b, z);
+  const double reached = soil.Pressure(b, z_p);
+  const double unload =
+    reached - unloading_ratio_ * reached / z_p * (z_p - z);
+  if(!(std::min(load, unload) > 0.0)) {
+    return 0.0;
+  }
+  return unload < load ? unloading_ratio_ * reached / z_p
+                       : soil.PressureSlope(b, z);
+}
+
+bool shift::core::force_module::TrackSoil::AddTangents(const double* y,
+                                                      Tangents& tangents) {
+  Evaluate(y + state_offset_, nullptr, false, nullptr, &tangents);
+  return true;
+}
+
+bool shift::core::force_module::TrackSoil::AddStateTangents(
+  const double* y, Tangents& tangents) {
+  Evaluate(y + state_offset_, nullptr, false, &tangents);
+  return true;
+}
+
 void shift::core::force_module::TrackSoil::ToTerrain(const ksl_vec3_t& p,
                                                     double& x, double& y,
                                                     double& z) const {
@@ -211,7 +262,9 @@ void shift::core::force_module::TrackSoil::Service(const double* y,
 }
 
 void shift::core::force_module::TrackSoil::Evaluate(const double* y,
-                                                    double* dy, bool apply) {
+                                                    double* dy, bool apply,
+                                                    Tangents* tangents,
+                                                    Tangents* motion) {
   const int stations = stations_along_ * stations_across_;
   const int count = get_shoe_state_count();
   const double area = length_ * width_ / stations;
@@ -219,6 +272,9 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
   for(size_t s = 0; s < shoes_.size(); s++) {
     const double* q = y + s * count;
     double* rate = dy ? dy + s * count : nullptr;
+    /* the index in y of the shoe's first state */
+    const int first =
+      static_cast<int>(state_offset_) + static_cast<int>(s) * count;
     if(load_indices_[s] == -2) {
       load_indices_[s] = context_->GetBodyLoadIndex(shoes_[s]);
     }
@@ -263,6 +319,46 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
       ToTerrain(p, x, y, z);
       return z - scm_->LocalZ(x, y, z_x, z_y);
     };
+    /* its gradient, in fixed coordinates */
+    auto depth_gradient = [&](const ksl_vec3_t& p, double g[3]) {
+      if(!over_scm) {
+        g[0] = g[1] = 0.0;
+        g[2] = 1.0;
+        return;
+      }
+      double x, y, z, z_x, z_y;
+      ToTerrain(p, x, y, z);
+      scm_->LocalZ(x, y, z_x, z_y);
+      const ksl_SE3_t& frame = scm_->get_pose();
+      for(int c = 0; c < 3; c++) {
+        g[c] = frame.R.v2.at[c] - z_x * frame.R.v0.at[c] - z_y * frame.R.v1.at[c];
+      }
+    };
+    /* the stiffness block of the shoe's body, and the derivative of the
+    sinkage at a point p of the shoe, dz / d delta = g^T E(p) */
+    double block[36] = {};
+    auto sinkage_row = [&](const ksl_vec3_t& p, double row[6]) {
+      double g[3];
+      depth_gradient(p, g);
+      for(int c = 0; c < 6; c++) {
+        row[c] = 0.0;
+      }
+      Tangents::AddPointRow(g, p, 1.0, row);
+    };
+    /* K -= [v; at x v] row^T, for a force at the point at that changes by v
+    per unit of a scalar whose derivative is row */
+    auto add_column = [&](const ksl_vec3_t& at, const ksl_vec3_t& v,
+                          const double row[6]) {
+      ksl_vec3_t m;
+      ksl_cross_vv(&at, &v, &m);
+      for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 6; c++) {
+          block[r * 6 + c] -= v.at[r] * row[c];
+          block[(r + 3) * 6 + c] -= m.at[r] * row[c];
+        }
+      }
+    };
+    int deepest_station = -1;
     /* the shoe's directions in the ground plane */
     ksl_vec3_t a = world(along_), c = world(across_);
     a.z = 0.0;
@@ -291,6 +387,9 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
                     &p);
         points[n] = point(p);
         const double z = depth(points[n]);
+        if(z > deepest) {
+          deepest_station = n;
+        }
         deepest = std::max(deepest, z);
         center_depth += z / stations;
         if(rate && over_scm) {
@@ -302,6 +401,34 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
             /* off the soil: the rut stays behind, and the shoe comes down
             on fresh soil */
             rate[n] += q[n] * std::expm1(z / contact_depth_) / rut_time_;
+          }
+        }
+        if(tangents) {
+          double slope = 0.0;
+          if(over_scm) {
+            slope = -1.0 / rut_time_;
+          } else {
+            slope = z > q[n] ? -1.0 / plastic_time_ : 0.0;
+            if(z < 0.0) {
+              slope += std::expm1(z / contact_depth_) / rut_time_;
+            }
+          }
+          tangents->AddStateRate(first + n, first + n, slope);
+        }
+        if(motion && !over_scm) {
+          /* the rate with the sinkage */
+          double slope = z > q[n] ? 1.0 / plastic_time_ : 0.0;
+          if(z < 0.0) {
+            slope += q[n] * std::exp(z / contact_depth_) /
+                     (contact_depth_ * rut_time_);
+          }
+          if(slope != 0.0) {
+            double row[6];
+            sinkage_row(points[n], row);
+            for(int c = 0; c < 6; c++) {
+              row[c] *= slope;
+            }
+            motion->AddStateBodyStiffness(first + n, load_indices_[s], row);
           }
         }
         if(!facing || !(z > 0.0) || over_scm || !shoe_soil) {
@@ -321,16 +448,76 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
     /* the shear displacement, and its rate: the slip of the shoe's center
     in the ground plane while it is on the soil */
     const double jx = q[stations], jy = q[stations + 1];
-    if(rate) {
-      const double w =
-        deepest > 0.0 ? -std::expm1(-deepest / contact_depth_) : 0.0;
+    const double w =
+      deepest > 0.0 ? -std::expm1(-deepest / contact_depth_) : 0.0;
+    if(tangents) {
+      for(int i = 0; i < 2; i++) {
+        tangents->AddStateRate(first + stations + i, first + stations + i,
+                               -(1.0 - w) / shear_time_);
+      }
+    }
+    if(rate || motion) {
       const ksl_screw_t velocity =
         context_->GetBodyVelocity(load_indices_[s]);
       ksl_vec3_t v;
       ksl_cross_vv(&velocity.ang, &o, &v);
       ksl_axpy_vv(1.0, &velocity.lin, &v);
-      rate[stations] = w * v.x - (1.0 - w) * jx / shear_time_;
-      rate[stations + 1] = w * v.y - (1.0 - w) * jy / shear_time_;
+      if(rate) {
+        rate[stations] = w * v.x - (1.0 - w) * jx / shear_time_;
+        rate[stations + 1] = w * v.y - (1.0 - w) * jy / shear_time_;
+      }
+      if(motion) {
+        /* with the velocity of the center, w E(o), with its displacement,
+        and with the deepest sinkage through w */
+        /* the deepest sinkage is the stations' largest: where several are
+        as deep (a flat shoe on flat ground), the mean of theirs, the middle
+        of its one-sided derivatives over the symmetric grid */
+        double deep_row[6] = {};
+        const bool sunk = deepest > 0.0 && deepest_station > -1;
+        if(sunk) {
+          int tied = 0;
+          for(int n = 0; n < stations; n++) {
+            if(depth(points[n]) >= deepest - 1e-12) {
+              double row[6];
+              sinkage_row(points[n], row);
+              for(int c = 0; c < 6; c++) {
+                deep_row[c] += row[c];
+              }
+              tied++;
+            }
+          }
+          for(int c = 0; c < 6; c++) {
+            deep_row[c] /= tied;
+          }
+        }
+        const double by_deepest =
+          sunk ? std::exp(-deepest / contact_depth_) / contact_depth_ : 0.0;
+        const double shear_j[2] = {jx, jy};
+        for(int i = 0; i < 2; i++) {
+          const double axis[3] = {i == 0 ? 1.0 : 0.0, i == 1 ? 1.0 : 0.0,
+                                  0.0};
+          double row[6] = {};
+          Tangents::AddPointRow(axis, o, w, row);
+          motion->AddStateBodyDamping(first + stations + i, load_indices_[s],
+                                      row);
+          /* the center moves with the shoe by E(o) delta, so its velocity
+          changes by omega x E(o) delta with the angular velocity omega:
+          e_i . (omega x d) = (e_i x omega) . d */
+          const ksl_vec3_t e_i = {{axis[0], axis[1], axis[2]}};
+          ksl_vec3_t turning;
+          ksl_cross_vv(&e_i, &velocity.ang, &turning);
+          double stiffness_row[6] = {};
+          Tangents::AddPointRow(turning.at, o, w, stiffness_row);
+          const double by_w = v.at[i] + shear_j[i] / shear_time_;
+          if(by_deepest * by_w != 0.0) {
+            for(int c = 0; c < 6; c++) {
+              stiffness_row[c] += by_deepest * by_w * deep_row[c];
+            }
+          }
+          motion->AddStateBodyStiffness(first + stations + i, load_indices_[s],
+                                        stiffness_row);
+        }
+      }
     }
     if(!(deepest > 0.0) || !shoe_soil) {
       continue;
@@ -371,8 +558,154 @@ void shift::core::force_module::TrackSoil::Evaluate(const double* y,
       add(f, points[n]);
     }
     add(earth, o);
+    if(tangents) {
+      /* the load of a force f at p, (f, p x f) */
+      auto add_load = [](const ksl_vec3_t& f, const ksl_vec3_t& at,
+                         double load[6]) {
+        ksl_vec3_t m;
+        ksl_cross_vv(&at, &f, &m);
+        for(int i = 0; i < 3; i++) {
+          load[i] += f.at[i];
+          load[3 + i] += m.at[i];
+        }
+      };
+      /* the plastic sinkage of a station changes its pressure, and the
+      shear strength with it */
+      for(int n = 0; n < stations; n++) {
+        if(!(pressure[n] > 0.0)) {
+          continue;
+        }
+        const double slope = PressureSlope(soil, depth(points[n]), q[n]);
+        if(slope == 0.0) {
+          continue;
+        }
+        ksl_vec3_t f = {{0.0, 0.0, -slope * area}};
+        ksl_axpy_vv(-mobilized * slope * std::tan(soil.friction_angle) * area,
+                    &dir, &f);
+        double load[6] = {};
+        add_load(f, points[n], load);
+        tangents->AddStateLoad(first + n, load_indices_[s], load);
+      }
+      /* the shear displacement: u = mobilized(j) j / |j|, whose derivative
+      is g I + (dg/dj / j) j j^T with g = mobilized / j (1 / K at j = 0) */
+      const double modulus = soil.shear_modulus;
+      double g = 1.0 / modulus, dg = 0.0;
+      if(j > 1e-9 * modulus) {
+        g = mobilized / j;
+        dg = (std::exp(-j / modulus) / modulus * j - mobilized) / (j * j * j);
+      }
+      for(int b = 0; b < 2; b++) {
+        const double j_b = b == 0 ? jx : jy;
+        const ksl_vec3_t du = {{(b == 0 ? g : 0.0) + dg * jx * j_b,
+                                (b == 1 ? g : 0.0) + dg * jy * j_b, 0.0}};
+        double load[6] = {};
+        for(int n = 0; n < stations; n++) {
+          if(!(strength[n] > 0.0)) {
+            continue;
+          }
+          ksl_vec3_t f = {{0.0, 0.0, 0.0}};
+          ksl_axpy_vv(-strength[n], &du, &f);
+          add_load(f, points[n], load);
+        }
+        ksl_vec3_t f = {{0.0, 0.0, 0.0}};
+        ksl_axpy_vv(-ksl_dot_vv(&du, &a) * earth_along, &a, &f);
+        ksl_axpy_vv(-ksl_dot_vv(&du, &c) * earth_across, &c, &f);
+        add_load(f, o, load);
+        tangents->AddStateLoad(first + stations + b, load_indices_[s], load);
+      }
+    }
     if(apply) {
       context_->AddBodyLoad(load_indices_[s], load);
+    }
+    if(motion) {
+      const double tan_phi = std::tan(soil.friction_angle);
+      for(int n = 0; n < stations; n++) {
+        if(!(pressure[n] > 0.0) && !(strength[n] > 0.0)) {
+          continue;
+        }
+        const double z = depth(points[n]);
+        const double by_z = PressureSinkageSlope(soil, z, q[n]);
+        const double strength_by_z =
+          (soil.cohesion * std::exp(-z / contact_depth_) / contact_depth_ +
+           by_z * tan_phi) *
+          area;
+        ksl_vec3_t v = {{0.0, 0.0, -by_z * area}};
+        ksl_axpy_vv(-mobilized * strength_by_z, &dir, &v);
+        double row[6];
+        sinkage_row(points[n], row);
+        add_column(points[n], v, row);
+        /* the moment of the force about the moving station */
+        ksl_vec3_t f = {{0.0, 0.0, -pressure[n] * area}};
+        ksl_axpy_vv(-mobilized * strength[n], &dir, &f);
+        Tangents::AddMomentArmBlock(points[n], f, 1.0, block);
+      }
+      /* the earth pressure with the mean sinkage */
+      double center_row[6] = {};
+      for(int n = 0; n < stations; n++) {
+        double row[6];
+        sinkage_row(points[n], row);
+        for(int c = 0; c < 6; c++) {
+          center_row[c] += row[c] / stations;
+        }
+      }
+      const double along_by_depth =
+        center_depth > 0.0 && center_depth < grouser_height_
+          ? width_ * soil.PassiveForceSlope(h_grouser)
+          : 0.0;
+      const double across_by_depth =
+        center_depth > 0.0 ? length_ * soil.PassiveForceSlope(h_side) : 0.0;
+      ksl_vec3_t v = {{0.0, 0.0, 0.0}};
+      ksl_axpy_vv(-mobilized * ksl_dot_vv(&dir, &a) * along_by_depth, &a, &v);
+      ksl_axpy_vv(-mobilized * ksl_dot_vv(&dir, &c) * across_by_depth, &c, &v);
+      add_column(o, v, center_row);
+      Tangents::AddMomentArmBlock(o, earth, 1.0, block);
+      /* the earth pressure with the turning of the shoe's directions in
+      the ground plane: e = normalize(P world(d)) changes with the rotation
+      w by (I - e e^T) / |P world(d)| P (-[world(d) x]) w */
+      auto turning = [&](const ksl_vec3_t& local, const ksl_vec3_t& e,
+                         double length, double j[9]) {
+        const ksl_vec3_t r = world(local);
+        const double cross[9] = {0.0,     -r.at[2], r.at[1], r.at[2], 0.0,
+                                 -r.at[0], -r.at[1], r.at[0], 0.0};
+        for(int row = 0; row < 3; row++) {
+          for(int col = 0; col < 3; col++) {
+            double value = 0.0;
+            for(int m = 0; m < 2; m++) {
+              value += ((row == m ? 1.0 : 0.0) - e.at[row] * e.at[m]) *
+                       -cross[m * 3 + col];
+            }
+            j[row * 3 + col] = length > 0.0 ? value / length : 0.0;
+          }
+        }
+      };
+      double j_a[9], j_c[9];
+      turning(along_, a, la, j_a);
+      turning(across_, c, lc, j_c);
+      const double force_a = width_ * soil.PassiveForce(h_grouser);
+      const double force_c = length_ * soil.PassiveForce(h_side);
+      const double d_a = ksl_dot_vv(&dir, &a), d_c = ksl_dot_vv(&dir, &c);
+      for(int col = 0; col < 3; col++) {
+        /* dE / dw_col */
+        ksl_vec3_t de = {{0.0, 0.0, 0.0}};
+        double dir_j_a = 0.0, dir_j_c = 0.0;
+        for(int m = 0; m < 3; m++) {
+          dir_j_a += dir.at[m] * j_a[m * 3 + col];
+          dir_j_c += dir.at[m] * j_c[m * 3 + col];
+        }
+        for(int r = 0; r < 3; r++) {
+          de.at[r] = -mobilized * (force_a * (a.at[r] * dir_j_a +
+                                              d_a * j_a[r * 3 + col]) +
+                                   force_c * (c.at[r] * dir_j_c +
+                                              d_c * j_c[r * 3 + col]));
+        }
+        ksl_vec3_t m;
+        ksl_cross_vv(&o, &de, &m);
+        for(int r = 0; r < 3; r++) {
+          block[r * 6 + 3 + col] -= de.at[r];
+          block[(r + 3) * 6 + 3 + col] -= m.at[r];
+        }
+      }
+      motion->AddBodyStiffness(load_indices_[s], load_indices_[s], block);
     }
   }
   const size_t totals = shoes_.size();

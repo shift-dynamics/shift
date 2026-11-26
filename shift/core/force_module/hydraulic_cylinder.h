@@ -156,6 +156,15 @@ public:
 
   void UpdateOutputs(double t, const double* y) override;
 
+  /*! \brief the stiffness and damping of the end stops and the seal
+   * friction on the joint, and the derivatives of the pressure rates with
+   * respect to the extension and its rate,
+   * \f$\partial \dot{p}_h / \partial \dot{x} = -\beta a_h / v_h\f$ and
+   * \f$\partial \dot{p}_h / \partial x = -(\dot{p}_h / v_h)\, a_h\f$ (the
+   * same for the rod side, with \f$-a_r\f$), which give the stiffness of
+   * the oil. The flows depend on the pressures and the command only. */
+  bool AddTangents(const double* y, Tangents& tangents) override;
+
   /*! \brief the valve opening, -1 to 1 (the parameter command) */
   void set_command(double u) {
     command_ = u;

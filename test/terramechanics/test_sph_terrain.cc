@@ -23,13 +23,15 @@ These run the SPH on the CPU, so they need no GPU. */
 #include "shift/core/exception.h"
 #include "shift/core/force_module/soil.h"
 #include "shift/core/gpu/device.h"
+#include "shift/core/integrator/alpha.h"
 #include "shift/core/terrain/scm.h"
 #include "shift/core/terrain/sph.h"
 
 /* a model with terrain on the frame "terrain" of the fixed body, run for
-time_span */
+time_span by the integrator of type integrator */
 static void LoadTerrain(shift::core::Context& context, const std::string& name,
-                        const std::string& terrain, double time_span = 0.0) {
+                        const std::string& terrain, double time_span = 0.0,
+                        const std::string& integrator = "ode113") {
   const std::string path = testing::TempDir() + "/" + name + ".json";
   std::ostringstream model;
   model << R"({
@@ -40,8 +42,8 @@ static void LoadTerrain(shift::core::Context& context, const std::string& name,
     "gravity": [0.0, 0.0, 9.81],
     "include_directories": [")" << testing::TempDir() << R"("],
     "solvers": [{"type": "rnca"}],
-    "integrators": [{"type": "ode113", "time_span": )" << time_span
-        << R"(, "time_step": 0.01}]
+    "integrators": [{"type": ")" << integrator << R"(", "time_span": )"
+        << time_span << R"(, "time_step": 0.01}]
   },
   "frames": [{"name": "terrain", "T": [0.5, -0.25, 0.1]}],
   "terrain": [)" << terrain << R"(],
@@ -200,6 +202,31 @@ TEST(SphTerrain, StaysAtRest) {
     }
   }
   EXPECT_LT(fastest, 0.1f);
+}
+
+/* the implicit integrator takes no step longer than the terrain allows
+(Context::GetStepLimit), as ODE113 and RK4 */
+TEST(SphTerrain, LimitsTheImplicitStep) {
+  shift::core::Context context;
+  LoadTerrain(context, "sph_hht",
+              std::string(R"({"type": "sph", "name": "pit",
+                 "parent": [["fixed"], "terrain"], "x": [0, 0.1],
+                 "y": [0, 0.1], "depth": 0.06, "spacing": 0.02,
+                 "device": "cpu", )") +
+                kSand + "}",
+              0.02, "hht");
+  const double limit = context.GetStepLimit();
+  ASSERT_LT(limit, 0.01);
+  context.Simulate();
+  ASSERT_EQ(context.get_active_integrators().size(), 1u);
+  const auto* hht = dynamic_cast<const shift::core::integrator::Alpha*>(
+    context.get_active_integrators()[0]);
+  ASSERT_NE(hht, nullptr);
+  EXPECT_GE(hht->get_accepted_steps(),
+            static_cast<unsigned int>(std::ceil(0.02 / limit - 1e-9)));
+  shift::core::terrain::Sph* sph = GetSph(context);
+  ASSERT_NE(sph, nullptr);
+  EXPECT_LE(sph->get_time(), 0.02 + 1e-9);
 }
 
 /* an SPH region in an SCM terrain: only the SCM terrain is the context's;

@@ -9,6 +9,7 @@
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
+#include "shift/core/tangents.h"
 #include "shift/core/terrain/base.h"
 
 bool shift::core::force_module::TerrainContact::registered_ =
@@ -69,7 +70,8 @@ void shift::core::force_module::TerrainContact::Load() {
   load_index_ = -2;
 }
 
-void shift::core::force_module::TerrainContact::Evaluate(bool apply) {
+void shift::core::force_module::TerrainContact::Evaluate(bool apply,
+                                                         Tangents* tangents) {
   if(load_index_ == -2) {
     load_index_ = context_->GetBodyLoadIndex(body_);
   }
@@ -79,6 +81,8 @@ void shift::core::force_module::TerrainContact::Evaluate(bool apply) {
   const auto& terrains = context_->get_active_terrain();
   normal_force_ = contacts_ = depth_ = 0.0;
   ksl_coscrew_t total = ksl_coscrew(0, 0, 0, 0, 0, 0);
+  double stiffness[36] = {};
+  double damping[36] = {};
   for(size_t i = 0; i + 2 < points_.size(); i += 3) {
     const ksl_vec3_t local = {{points_[i], points_[i + 1], points_[i + 2]}};
     ksl_vec3_t p;
@@ -120,6 +124,33 @@ void shift::core::force_module::TerrainContact::Evaluate(bool apply) {
     for(int c = 0; c < 3; c++) {
       f.at[c] = -f_n * n.at[c] - friction_ * f_n * v_t.at[c] / slip;
     }
+    if(tangents && f_n > 0.0) {
+      /* f = f_n (-n - mu v_t / s), with f_n of the depth d (n . dp) and its
+      rate (n . dv), and v_t / s of the velocity */
+      const double pressing = 1.0 + damping_ * rate;
+      const double f_d =
+        stiffness_ * exponent_ * std::pow(d, exponent_ - 1.0) * pressing;
+      const double f_rate = stiffness_ * std::pow(d, exponent_) * damping_;
+      double direction[3];
+      for(int c = 0; c < 3; c++) {
+        direction[c] = -n.at[c] - friction_ * v_t.at[c] / slip;
+      }
+      double x_d[9], x_v[9];
+      for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 3; c++) {
+          const double projection = (r == c ? 1.0 : 0.0) - n.at[r] * n.at[c];
+          x_d[r * 3 + c] = direction[r] * f_d * n.at[c];
+          x_v[r * 3 + c] =
+            direction[r] * f_rate * n.at[c] -
+            friction_ * f_n *
+              (projection / slip -
+               v_t.at[r] * v_t.at[c] / (slip * slip * slip));
+        }
+      }
+      Tangents::AddPointBlock(p, x_d, p, -1.0, stiffness);
+      Tangents::AddMomentArmBlock(p, f, 1.0, stiffness);
+      Tangents::AddPointBlock(p, x_v, p, -1.0, damping);
+    }
     normal_force_ += f_n;
     contacts_ += 1.0;
     depth_ = std::max(depth_, d);
@@ -133,6 +164,19 @@ void shift::core::force_module::TerrainContact::Evaluate(bool apply) {
   if(apply && contacts_ > 0.0) {
     context_->AddBodyLoad(load_index_, total);
   }
+  if(tangents && contacts_ > 0.0) {
+    tangents->AddBodyStiffness(load_index_, load_index_, stiffness);
+    tangents->AddBodyDamping(load_index_, load_index_, damping);
+  }
+}
+
+bool shift::core::force_module::TerrainContact::AddTangents(
+  const double*, Tangents& tangents) {
+  if(load_index_ == -2) {
+    return true; // not yet serviced
+  }
+  Evaluate(false, &tangents);
+  return true;
 }
 
 void shift::core::force_module::TerrainContact::Service(const double*,

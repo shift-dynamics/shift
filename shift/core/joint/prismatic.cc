@@ -1,5 +1,6 @@
 #include "shift/core/joint/prismatic.h"
 #include "shift/core/context.h"
+#include "shift/core/tangents.h"
 #include "shift/core/factory.h"
 
 #include "ksl/matrix.h"
@@ -815,4 +816,26 @@ void shift::core::joint::Prismatic::Service(const std::vector<double>& y) {
   }
 
   // std::cout << "dq: " << dq << ", f: " << f[dq_index_] << std::endl;
+}
+
+/* the derivatives of the polynomial spring and damper of Service,
+f = -sum k_i q^i - sum c_i dq^i: K = sum i k_i q^(i-1), C likewise */
+void shift::core::joint::Prismatic::AddTangents(const std::vector<double>& y,
+                                         Tangents& tangents) const {
+  const double q = y[q_index_];
+  const double dq = y[context_->get_q_count() + dq_index_];
+  double k = 0.0;
+  for(unsigned int i = 1; i < stiffness_coefficients_.size(); i++) {
+    k += i * stiffness_coefficients_[i] * std::pow(q, i - 1.0);
+  }
+  double c = 0.0;
+  for(unsigned int i = 1; i < damping_coefficients_.size(); i++) {
+    c += i * damping_coefficients_[i] * std::pow(dq, i - 1.0);
+  }
+  if(k != 0.0) {
+    tangents.AddJointStiffness(dq_index_, dq_index_, k);
+  }
+  if(c != 0.0) {
+    tangents.AddJointDamping(dq_index_, dq_index_, c);
+  }
 }

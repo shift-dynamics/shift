@@ -6,6 +6,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/sensor/base.h"
+#include "shift/core/tangents.h"
 
 bool shift::core::controller::PID::registered_ =
   shift::core::Factory<shift::core::controller::Base>::get()->RegisterModule(
@@ -147,4 +148,30 @@ void shift::core::controller::PID::Service(const double* y, double* dy) {
   } else {
     context_->get_joint_working_forces()[joint_->get_dq_index()] += effort_;
   }
+}
+
+/* the effort on a joint, u = kp (target - s) + ki z - kd ds/dt, for a signal
+s that is a generalized coordinate (K = kp, C = kd) or velocity (C = kp),
+and the rate of the integral, dz/dt = target - s (-1 with respect to s); the
+derivative with respect to the integral z is found by the integrator */
+bool shift::core::controller::PID::AddTangents(const double*,
+                                               Tangents& tangents) {
+  int signal = -1;
+  bool position = false;
+  if(!joint_ || !sensor_->GetGeneralizedSignal(signal, position)) {
+    return false;
+  }
+  const int row = static_cast<int>(joint_->get_dq_index());
+  const int state = static_cast<int>(state_offset_);
+  if(position) {
+    tangents.AddJointStiffness(row, signal, kp_);
+    if(kd_ != 0.0) {
+      tangents.AddJointDamping(row, signal, kd_);
+    }
+    tangents.AddStateStiffness(state, signal, -1.0);
+  } else {
+    tangents.AddJointDamping(row, signal, kp_);
+    tangents.AddStateDamping(state, signal, -1.0);
+  }
+  return true;
 }

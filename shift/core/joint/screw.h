@@ -55,6 +55,8 @@ public:
   topology::dh_fptr DHfptr() override;
   topology::dhva_fptr DHVAfptr() override;
   void Service(const std::vector<double>& y) override;
+  void AddTangents(const std::vector<double>& y,
+                   Tangents& tangents) const override;
 
   /*! pose of the child frame from that of the parent for the angle q;
   data is {axis, pitch}, sign is -1 when the joint is traversed inverted */

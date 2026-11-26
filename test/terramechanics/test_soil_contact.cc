@@ -19,6 +19,7 @@ back; the soil unloads and reloads along the stiffer line of terrain::Scm */
 #include "shift/core/exception.h"
 #include "shift/core/force_module/soil.h"
 #include "shift/core/force_module/soil_contact.h"
+#include "shift/core/tangents.h"
 #include "shift/core/terrain/scm.h"
 
 static const double kMass = 2000.0;
@@ -899,4 +900,131 @@ TEST(SoilContact, Hdf5LogsLevelChanges) {
   EXPECT_EQ(replayed, end);
   file.close();
   std::remove(h5.c_str());
+}
+
+/* the stiffness and damping of the soil's force (SoilContact::AddTangents)
+against central differences of the generalized forces Q = J^T g of the
+plate's load g, with the plate's Jacobian J of the state given: the plate
+sliding along x and sinking, then lifted by 0.1 mm so that the nodes are on
+their unloading lines (at the accepted state the sinkage is the deepest,
+where the loading and unloading lines meet), evaluated 1 ms after the
+accepted time so that the shear displacement grows with the slip */
+TEST(SoilContact, Tangents) {
+  std::string model = PlateModel(Grid("scm"), kSoilContact, kPlate, 0.05, true);
+  const std::string axis = R"("axis": [1, 0, 0]})";
+  ASSERT_NE(model.find(axis), std::string::npos);
+  model.replace(model.find(axis), axis.size(),
+                R"("axis": [1, 0, 0], "initial_velocity": 0.2})");
+  shift::core::Context context;
+  Load(context, "soil_tangents", model);
+  double t = 0.0;
+  std::vector<double> y;
+  context.set_state_observer([&](double time, const std::vector<double>& s) {
+    t = time;
+    y = s;
+  });
+  context.Simulate();
+  ASSERT_FALSE(y.empty());
+  const unsigned int q_count = context.get_q_count();
+  const unsigned int dq_count = context.get_dq_count();
+  ASSERT_EQ(dq_count, 2u);
+  int slide = -1;
+  for(auto* joint : context.get_active_joints()) {
+    if(joint->get_name() == "slide") {
+      slide = joint->get_q_index();
+    }
+  }
+  ASSERT_GT(slide, -1);
+  y[slide] -= 1e-4;
+  t += 1e-3;
+
+  int plate = -1;
+  for(auto* body : context.get_active_articulated_bodies()) {
+    if(body->get_name() == "plate") {
+      plate = context.GetBodyLoadIndex(body);
+    }
+  }
+  ASSERT_GT(plate, -1);
+  std::vector<double> jacobian(6 * dq_count, 0.0);
+  for(unsigned int l = 0; l < dq_count; l++) {
+    std::vector<double> unit(dq_count, 0.0);
+    unit[l] = 1.0;
+    context.UpdateDHVA(y.data(), unit.data());
+    const ksl_screw_t twist = context.GetBodyVelocity(plate);
+    for(int m = 0; m < 6; m++) {
+      jacobian[m * dq_count + l] = twist.at[m];
+    }
+  }
+  auto forces = [&](const std::vector<double>& state) {
+    std::vector<double> dy(state.size(), 0.0);
+    context.UpdateDHVA(state.data(), state.data() + q_count);
+    context.SetForces(t, state, dy);
+    const ksl_coscrew_t load = context.get_body_loads()[plate];
+    std::vector<double> q(dq_count, 0.0);
+    for(unsigned int l = 0; l < dq_count; l++) {
+      for(int m = 0; m < 6; m++) {
+        q[l] += jacobian[m * dq_count + l] * load.at[m];
+      }
+    }
+    return q;
+  };
+
+  context.set_collecting_tangents(true);
+  forces(y);
+  context.set_collecting_tangents(false);
+  shift::core::Tangents tangents;
+  ASSERT_TRUE(context.CollectTangents(y, tangents));
+  auto map = [&](const std::vector<shift::core::Tangents::BodyBlock>& blocks) {
+    std::vector<double> matrix(dq_count * dq_count, 0.0);
+    for(const auto& block : blocks) {
+      EXPECT_EQ(block.load_index_a, plate);
+      for(unsigned int l = 0; l < dq_count; l++) {
+        for(unsigned int k = 0; k < dq_count; k++) {
+          for(int r = 0; r < 6; r++) {
+            for(int c = 0; c < 6; c++) {
+              matrix[l * dq_count + k] += jacobian[r * dq_count + l] *
+                                          block.block[r * 6 + c] *
+                                          jacobian[c * dq_count + k];
+            }
+          }
+        }
+      }
+    }
+    return matrix;
+  };
+  const std::vector<double> stiffness = map(tangents.get_body_stiffness());
+  const std::vector<double> damping = map(tangents.get_body_damping());
+
+  const double step = 1e-8;
+  for(int velocity = 0; velocity < 2; velocity++) {
+    const std::vector<double>& tangent = velocity ? damping : stiffness;
+    double largest = 0.0;
+    std::vector<double> difference(dq_count * dq_count);
+    for(unsigned int k = 0; k < dq_count; k++) {
+      std::vector<double> plus(y), minus(y);
+      if(velocity) {
+        plus[q_count + k] += step;
+        minus[q_count + k] -= step;
+      } else {
+        std::vector<double> delta(dq_count, 0.0);
+        delta[k] = step;
+        context.IncrementPositions(y.data(), delta.data(), plus.data());
+        delta[k] = -step;
+        context.IncrementPositions(y.data(), delta.data(), minus.data());
+      }
+      const std::vector<double> q_plus = forces(plus), q_minus = forces(minus);
+      for(unsigned int l = 0; l < dq_count; l++) {
+        /* K = -dQ / dq, C = -dQ / d dq */
+        difference[l * dq_count + k] =
+          -(q_plus[l] - q_minus[l]) / (2.0 * step);
+        largest = std::max(largest, std::fabs(difference[l * dq_count + k]));
+      }
+    }
+    EXPECT_GT(largest, 0.0);
+    for(unsigned int e = 0; e < dq_count * dq_count; e++) {
+      EXPECT_NEAR(tangent[e], difference[e], 1e-4 * largest)
+        << (velocity ? "damping " : "stiffness ") << e / dq_count << ", "
+        << e % dq_count;
+    }
+  }
 }

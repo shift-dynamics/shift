@@ -10,6 +10,7 @@
 #include "shift/core/factory.h"
 #include "shift/core/joint/prismatic.h"
 #include "shift/core/log.h"
+#include "shift/core/tangents.h"
 
 bool shift::core::force_module::HydraulicCylinder::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -282,6 +283,62 @@ void shift::core::force_module::HydraulicCylinder::Evaluate(const double* y,
     }
   }
   force_ = p_head_ * area_head_ - p_rod_ * area_rod_ - friction_ * dx - stop;
+}
+
+bool shift::core::force_module::HydraulicCylinder::AddTangents(
+  const double* y, Tangents& tangents) {
+  assert(joint_ && context_);
+  if(hold_force_active_) {
+    return true; // a constant force, and the pressures do not change
+  }
+  const int dq = static_cast<int>(joint_->get_dq_index());
+  const int head = static_cast<int>(state_offset_);
+  const int rod = head + 1;
+  std::vector<double> rates(state_offset_ + 2, 0.0);
+  Evaluate(y, rates.data());
+  const double x = extension_;
+  const double dx =
+    direction_ * y[context_->get_q_count() + joint_->get_dq_index()];
+
+  /* the force on the joint, direction f(x, dx): the stops and the friction
+  (the joint's coordinate and rate are direction x and direction dx, and
+  direction^2 = 1) */
+  double stiffness = 0.0, damping = friction_;
+  if(end_stop_stiffness_ > 0.0) {
+    const double below = -x;
+    const double above = x - stroke_;
+    if(below > 0.0 && 1.0 - end_stop_damping_ * dx > 0.0) {
+      stiffness += end_stop_stiffness_ * (1.0 - end_stop_damping_ * dx);
+      damping += end_stop_stiffness_ * end_stop_damping_ * below;
+    }
+    if(above > 0.0 && 1.0 + end_stop_damping_ * dx > 0.0) {
+      stiffness += end_stop_stiffness_ * (1.0 + end_stop_damping_ * dx);
+      damping += end_stop_stiffness_ * end_stop_damping_ * above;
+    }
+  }
+  tangents.AddJointStiffness(dq, dq, stiffness);
+  tangents.AddJointDamping(dq, dq, damping);
+
+  /* the pressure rates, beta / v (net flow): the volumes change with x,
+  unless held at their least, the net flows with dx */
+  const double open_head = volume_head_0_ + area_head_ * x;
+  const double open_rod = volume_rod_0_ + area_rod_ * (stroke_ - x);
+  const double volume_head = std::max(open_head, 0.1 * volume_head_0_);
+  const double volume_rod = std::max(open_rod, 0.1 * volume_rod_0_);
+  /* d(rate)/dx = -(rate / v) dv/dx */
+  const double head_x = open_head > 0.1 * volume_head_0_
+                          ? -rates[head] * area_head_ / volume_head
+                          : 0.0;
+  const double rod_x = open_rod > 0.1 * volume_rod_0_
+                         ? rates[rod] * area_rod_ / volume_rod
+                         : 0.0;
+  tangents.AddStateStiffness(head, dq, direction_ * head_x);
+  tangents.AddStateStiffness(rod, dq, direction_ * rod_x);
+  tangents.AddStateDamping(
+    head, dq, -direction_ * bulk_modulus_ * area_head_ / volume_head);
+  tangents.AddStateDamping(
+    rod, dq, direction_ * bulk_modulus_ * area_rod_ / volume_rod);
+  return true;
 }
 
 void shift::core::force_module::HydraulicCylinder::Hold(double force,

@@ -94,7 +94,7 @@ Solvers and integrators
 .. doxygenclass:: shift::core::solver::Base
 
 .. doxygenclass:: shift::core::solver::RNCA
-   :members: FactorAndSolve
+   :members: Factor, ForwardBackwardSubstitution
 
 .. doxygenclass:: shift::core::solver::ArticulatedBody
 
@@ -109,6 +109,12 @@ Solvers and integrators
 .. doxygenclass:: shift::core::integrator::ODE113
 
 .. doxygenclass:: shift::core::integrator::RK4
+
+.. doxygenclass:: shift::core::integrator::Alpha
+
+.. doxygenclass:: shift::core::integrator::GeneralizedAlpha
+
+.. doxygenclass:: shift::core::integrator::HHT
 
 Force modules
 -------------

@@ -2,12 +2,16 @@
 
 #include <assert.h>
 
+#include <algorithm>
 #include <cmath>
+
+#include <lapacke.h>
 
 #include "shift/core/context.h"
 #include "shift/core/exception.h"
 #include "shift/core/joint/base.h"
 #include "shift/core/log.h"
+#include "shift/core/tangents.h"
 
 void shift::core::solver::ArticulatedBody::Initialize() {
   assert(context_);
@@ -28,6 +32,28 @@ void shift::core::solver::ArticulatedBody::Initialize() {
   for(const auto& tree : trees_) {
     bodies_.insert(bodies_.end(), tree.bodies.begin(), tree.bodies.end());
   }
+
+  /* the generalized velocities of the trees: each joint's, then the elastic
+  coordinates of its child body */
+  const auto& dq_lookup_compressed = context_->get_dq_lookup_compressed();
+  const auto& joint_dof_compressed = context_->get_joint_dof_compressed();
+  const auto& elastic_count_compressed =
+    context_->get_elastic_count_compressed();
+  tree_dq_.clear();
+  for(int j : bodies_) {
+    const unsigned int count =
+      joint_dof_compressed[j] +
+      (static_cast<size_t>(j) < elastic_count_compressed.size()
+         ? elastic_count_compressed[j]
+         : 0u);
+    for(unsigned int k = 0; k < count; k++) {
+      tree_dq_.push_back(dq_lookup_compressed[j] + static_cast<int>(k));
+    }
+  }
+  std::sort(tree_dq_.begin(), tree_dq_.end());
+  tree_dq_.erase(std::unique(tree_dq_.begin(), tree_dq_.end()),
+                 tree_dq_.end());
+  has_iteration_matrix_ = false;
 
   inertia_.assign(body_count_,
                   ksl_inertia(0.0, {{0.0, 0.0, 0.0}}, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -229,4 +255,153 @@ bool shift::core::solver::ArticulatedBody::InvertSymmetric6(const double A[36],
     }
   }
   return true;
+}
+
+bool shift::core::solver::ArticulatedBody::Residual(
+  const double t, const std::vector<double>& y, const std::vector<double>& ddq,
+  const std::vector<double>& la, std::vector<double>& r,
+  std::vector<double>& dy) {
+  assert(context_);
+  (void)la;
+  const double* q = y.data();
+  const double* dq = q + q_count_;
+  context_->UpdateDHVA(q, dq);
+  context_->SetForces(t, y, dy);
+  context_->EvaluateElasticBodies(context_->get_dhva(), q, dq);
+  if(SolveAccelerations()) {
+    return true;
+  }
+  /* a velocity of no tree (there is none in a model the solver accepts)
+  keeps the row of the accelerations */
+  r.assign(ddq.begin(), ddq.end());
+  TreeResidual(ddq, r);
+  return false;
+}
+
+void shift::core::solver::ArticulatedBody::TreeResidual(
+  const std::vector<double>& ddq, std::vector<double>& r) const {
+  const auto& solved = context_->get_ddq();
+  for(const int l : tree_dq_) {
+    r[l] = ddq[l] - solved[l];
+  }
+}
+
+bool shift::core::solver::ArticulatedBody::InverseMass(
+  std::vector<double>& inverse_mass) {
+  const size_t n = tree_dq_.size();
+  inverse_mass.assign(n * n, 0.0);
+  auto& f = context_->get_joint_working_forces();
+  auto& solved = context_->get_ddq();
+  const std::vector<double> base(solved.begin(), solved.end());
+  /* a change large against the forces, so that the accelerations it causes
+  are well above the rounding of those of the state; the solver is linear
+  in it */
+  double largest = 1.0;
+  for(const double value : f) {
+    largest = std::max(largest, std::fabs(value));
+  }
+  const double change = 1e8 * largest;
+  bool failed = false;
+  for(size_t m = 0; m < n && !failed; m++) {
+    const int l = tree_dq_[m];
+    const double saved = f[l];
+    f[l] = saved + change;
+    failed = SolveTrees();
+    f[l] = saved;
+    for(size_t i = 0; i < n && !failed; i++) {
+      const int row = tree_dq_[i];
+      inverse_mass[i * n + m] = (solved[row] - base[row]) / change;
+    }
+  }
+  std::copy(base.begin(), base.end(), solved.begin());
+  return failed;
+}
+
+bool shift::core::solver::ArticulatedBody::FactorIterationMatrix(
+  const Tangents& tangents, double c, double k,
+  const std::vector<int>& differenced, const std::vector<double>& k_columns,
+  const std::vector<double>& c_columns) {
+  assert(context_);
+  has_iteration_matrix_ = false;
+  const int n = static_cast<int>(dq_count_);
+  std::vector<double> inverse_mass;
+  if(InverseMass(inverse_mass)) {
+    return true;
+  }
+  /* the position of each velocity among those of the trees */
+  std::vector<int> position(dq_count_, -1);
+  for(size_t m = 0; m < tree_dq_.size(); m++) {
+    position[tree_dq_[m]] = static_cast<int>(m);
+  }
+  std::vector<bool> is_differenced(dq_count_, false);
+  for(const int l : differenced) {
+    is_differenced[l] = true;
+  }
+
+  /* c C + k K of the tangents, dense, in the columns not found by
+  differences */
+  std::vector<double> a(size_t(n) * n, 0.0);
+  ForEachTangentEntry(*context_, tangents, c, k,
+                      [&](int row, int column, double value) {
+                        if(row > -1 && column > -1 && row < n && column < n &&
+                           !is_differenced[column]) {
+                          a[size_t(row) * n + column] += value;
+                        }
+                      });
+
+  /* S = I + M^-1 A in the rows of the trees; a velocity of no tree keeps
+  its row of A */
+  iteration_lu_.assign(size_t(n) * n, 0.0);
+  const size_t tree_count = tree_dq_.size();
+  for(int i = 0; i < n; i++) {
+    const int p = position[i];
+    for(int j = 0; j < n; j++) {
+      double value = i == j ? 1.0 : 0.0;
+      if(p < 0) {
+        value += a[size_t(i) * n + j];
+      } else {
+        for(size_t m = 0; m < tree_count; m++) {
+          value += inverse_mass[size_t(p) * tree_count + m] *
+                   a[size_t(tree_dq_[m]) * n + j];
+        }
+      }
+      iteration_lu_[size_t(i) * n + j] = value;
+    }
+  }
+  const size_t differenced_count = differenced.size();
+  for(size_t m = 0; m < differenced_count; m++) {
+    const int j = differenced[m];
+    for(int i = 0; i < n; i++) {
+      double value = i == j ? 1.0 : 0.0;
+      if(!k_columns.empty()) {
+        value += k * k_columns[size_t(i) * differenced_count + m];
+      }
+      if(!c_columns.empty()) {
+        value += c * c_columns[size_t(i) * differenced_count + m];
+      }
+      iteration_lu_[size_t(i) * n + j] = value;
+    }
+  }
+
+  iteration_pivots_.resize(n);
+  if(n > 0 && LAPACKE_dgetrf(LAPACK_ROW_MAJOR, n, n, iteration_lu_.data(), n,
+                             iteration_pivots_.data()) != 0) {
+    return true;
+  }
+  has_iteration_matrix_ = true;
+  return false;
+}
+
+bool shift::core::solver::ArticulatedBody::SolveIterationMatrix(
+  std::vector<double>& rhs) {
+  const int n = static_cast<int>(dq_count_);
+  if(!has_iteration_matrix_ || rhs.size() != dq_count_) {
+    return true;
+  }
+  if(n > 0 && LAPACKE_dgetrs(LAPACK_ROW_MAJOR, 'N', n, 1,
+                             iteration_lu_.data(), n, iteration_pivots_.data(),
+                             rhs.data(), 1) != 0) {
+    return true;
+  }
+  return false;
 }

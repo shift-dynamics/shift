@@ -8,6 +8,7 @@
 #include "shift/core/exception.h"
 #include "shift/core/factory.h"
 #include "shift/core/joint/base.h"
+#include "shift/core/tangents.h"
 
 bool shift::core::force_module::Powertrain::registered_ =
   shift::core::Factory<shift::core::force_module::Base>::get()->RegisterModule(
@@ -857,6 +858,73 @@ void shift::core::force_module::Powertrain::CouplingTorques(
 void shift::core::force_module::Powertrain::Service(const double* y,
                                                     double* dy) {
   Compute(y, dy, true);
+}
+
+bool shift::core::force_module::Powertrain::AddTangents(
+  const double* y, Tangents& tangents) {
+  assert(context_);
+  /* the joints whose rates the law reads */
+  std::vector<int> joints;
+  auto add_joint = [&](const joint::Base* joint) {
+    if(joint) {
+      const int dq = static_cast<int>(joint->get_dq_index());
+      if(std::find(joints.begin(), joints.end(), dq) == joints.end()) {
+        joints.push_back(dq);
+      }
+    }
+  };
+  for(const auto& axle : wheel_) {
+    add_joint(axle.left.joint);
+    add_joint(axle.right.joint);
+  }
+  for(const auto& brake : brake_) {
+    add_joint(brake.joint);
+  }
+
+  const size_t q_count = context_->get_q_count();
+  const size_t count = get_state_count();
+  const size_t end = state_offset_ + count;
+  std::vector<double> state(y, y + std::max(end, q_count + context_->get_dq_count()));
+  std::vector<double> rates_plus(state.size(), 0.0);
+  std::vector<double> rates_minus(state.size(), 0.0);
+  auto& forces = context_->get_joint_working_forces();
+  const std::vector<double> saved(forces);
+  std::vector<double> torques_plus(joints.size());
+  std::vector<double> torques_minus(joints.size());
+
+  for(int column : joints) {
+    const double rate = y[q_count + column];
+    const double step = 1e-6 * std::max(1.0, std::fabs(rate));
+    for(int side = 0; side < 2; side++) {
+      std::vector<double>& rates = side ? rates_minus : rates_plus;
+      std::vector<double>& torques = side ? torques_minus : torques_plus;
+      state[q_count + column] = rate + (side ? -step : step);
+      std::fill(rates.begin(), rates.end(), 0.0);
+      forces = saved;
+      Compute(state.data(), rates.data(), true);
+      for(size_t r = 0; r < joints.size(); r++) {
+        torques[r] = forces[joints[r]] - saved[joints[r]];
+      }
+    }
+    state[q_count + column] = rate;
+    for(size_t r = 0; r < joints.size(); r++) {
+      const double value = -(torques_plus[r] - torques_minus[r]) / (2.0 * step);
+      if(value != 0.0) {
+        tangents.AddJointDamping(joints[r], column, value);
+      }
+    }
+    for(size_t i = state_offset_; i < end; i++) {
+      const double value = (rates_plus[i] - rates_minus[i]) / (2.0 * step);
+      if(value != 0.0) {
+        tangents.AddStateDamping(static_cast<int>(i), column, value);
+      }
+    }
+  }
+
+  /* the forces and the outputs as Service left them */
+  forces = saved;
+  Compute(state.data(), rates_plus.data(), false);
+  return true;
 }
 
 void shift::core::force_module::Powertrain::UpdateOutputs(double,

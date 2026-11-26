@@ -479,6 +479,17 @@ public:
   void Load() override;
   void Service(const double* y, double* dy) override;
 
+  /*! \brief the damping of the torques on the wheel and brake joints with
+   * respect to their rates (the differentials, the axles' drag and the
+   * damping of their shafts, the brakes), and the derivatives of the rates
+   * of the states with respect to the same rates (the twist of the shafts,
+   * the bristles of the clutches and the brakes, the output shaft and the
+   * center differential), by central differences of the powertrain's law
+   * (Compute) over the rates of those joints; the torques and the rates do
+   * not depend on the joints' coordinates. The engine, the coupling and the
+   * clutches of the gears act between internal states only. */
+  bool AddTangents(const double* y, Tangents& tangents) override;
+
   /*! \brief the names of the outputs, in the order of outputs_ */
   std::vector<std::string> OutputNames() const;
   void UpdateOutputs(double t, const double* y) override;

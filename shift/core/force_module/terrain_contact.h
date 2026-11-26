@@ -79,6 +79,14 @@ public:
 
   void UpdateOutputs(double t, const double* y) override;
 
+  /*! \brief the stiffness and damping of the force at each point in
+   * contact, for the surface plane and normal under it as they are: the
+   * normal force changes with the depth and its rate along the normal, the
+   * friction with them and with the sliding velocity, and the moment about
+   * the fixed origin with the point (Tangents::AddPointBlock,
+   * Tangents::AddMomentArmBlock) */
+  bool AddTangents(const double* y, Tangents& tangents) override;
+
   double get_normal_force() const {
     return normal_force_;
   }
@@ -87,7 +95,9 @@ protected:
   void DeclareParameters() override;
 
 private:
-  void Evaluate(bool apply);
+  /*! \brief the force at the points in contact; added to the body if
+   * apply, and its stiffness and damping to tangents unless it is null */
+  void Evaluate(bool apply, Tangents* tangents = nullptr);
 
   static bool registered_;
 

@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cmath>
+#include <string>
 
 #include "shift/core/constraint/chord.h"
 #include "shift/core/context.h"
@@ -666,6 +668,50 @@ void shift::core::Jacobian::MakeVelocitiesConsistent() {
   context_->UpdateDHVA();
 }
 
+void shift::core::Jacobian::ProjectPositions(double tolerance) {
+  const topology::DHVA& dhva = context_->get_dhva();
+  context_->UpdateDH();
+  double initial_error = 0.0;
+  for(auto& substructure : substructures_) {
+    initial_error =
+      std::max(initial_error, substructure.EvaluateConstraints(dhva));
+  }
+  if(initial_error <= tolerance) {
+    return;
+  }
+  for(auto& substructure : substructures_) {
+    substructure.SetupPO2(dhva);
+    substructure.FactorPO2();
+    substructure.EvaluateConstraintsNewtonRaphson(dhva);
+  }
+  const int max_step = 100;
+  double error = initial_error;
+  for(int step = 0; step < max_step; step++) {
+    for(auto& substructure : substructures_) {
+      substructure.NewtonRaphsonSolver();
+      substructure.Updateq();
+    }
+    context_->UpdateDH();
+    error = 0.0;
+    for(auto& substructure : substructures_) {
+      error = std::max(error, substructure.EvaluateConstraints(dhva));
+    }
+    if(error <= tolerance) {
+      return;
+    }
+    if(!std::isfinite(error) ||
+       error > 1e6 * std::max(initial_error, tolerance)) {
+      throw shift::core::Exception(
+        "Newton-Raphson diverged while projecting the coordinates onto the "
+        "position constraints");
+    }
+  }
+  throw shift::core::Exception(
+    "Newton-Raphson did not project the coordinates onto the position "
+    "constraints in " + std::to_string(max_step) + " iterations (error " +
+    std::to_string(error) + ")");
+}
+
 void shift::core::Jacobian::RemoveConstraintViolationsFast(bool use_tight_tolerance) {
   for(auto& substructure : substructures_) {
     substructure.RemoveConstraintViolationsFast(use_tight_tolerance);
@@ -705,6 +751,13 @@ double shift::core::Jacobian::EvaluateConstraints() {
     e += substructure.EvaluateConstraints(context_->get_dhva());
   }
   return e;
+}
+
+void shift::core::Jacobian::EvaluateNewtonRaphsonCorrections() {
+  for(auto& substructure : substructures_) {
+    substructure.EvaluateConstraintsNewtonRaphson(context_->get_dhva());
+    substructure.NewtonRaphsonSolver();
+  }
 }
 
 double shift::core::Jacobian::EvaluateConstraintsNewtonRaphson() {

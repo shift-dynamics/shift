@@ -88,6 +88,10 @@ public:
   void DeclareParameters() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief the targets depend on time only: no tangents */
+  bool AddTangents(const double*, Tangents&) override {
+    return true;
+  }
   /*! \brief the output value at the time t, and the targets set to it */
   void UpdateOutputs(double t, const double* y) override;
 

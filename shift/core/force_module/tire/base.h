@@ -105,6 +105,11 @@ public:
   void Load() override;
   void Connect() override;
   void Service(const double* y, double* dy) override;
+  /*! \brief the derivatives of the load on the wheel and of the rates of
+   * the tire's states (the relaxation of the slips, the bristles) with
+   * respect to the wheel's displacement and twist, by central differences
+   * of the tire's own law (24 evaluations of it, not of the model) */
+  bool AddTangents(const double* y, Tangents& tangents) override;
 
   /*! \brief Bekker-Wong: sinkage, slip, drawbar_pull (\f$f_x\f$), load (\f$-f_z\f$),
    * shear_torque (BekkerWong::get_shear_torque), camber
@@ -123,6 +128,12 @@ private:
 
   /*! \brief contact of the wheel disc with the terrain */
   void UpdateContact(const ksl_SE3_t& hub, const ksl_screw_t& velocity);
+  /*! \brief the load on the wheel (fixed coordinates, referred to the fixed
+   * origin) for the hub pose and the wheel's twist, with the contact, the
+   * force in the w frame and the rates of the states as Service sets them;
+   * zero out of contact */
+  ksl_coscrew_t WheelLoad(const ksl_SE3_t& hub, const ksl_screw_t& velocity,
+                          const double* states, double* rates);
 
   /*! \brief the same, from the area of the wheel below the terrain in the
    * given number of slices (see Iowa) */

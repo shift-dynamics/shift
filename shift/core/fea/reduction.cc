@@ -11,6 +11,7 @@
 #include <Spectra/SymGEigsShiftSolver.h>
 
 #include "shift/core/exception.h"
+#include "shift/core/fea/trap_suspension.h"
 
 /* [a]x, the matrix of the cross product a x */
 static Eigen::Matrix3d Skew(const Eigen::Vector3d& a) {
@@ -146,6 +147,9 @@ static shift::core::fea::Reduction ReduceModes(
   unsigned int reference, const std::vector<int>& retained_nodes,
   unsigned int modes_computed, std::vector<unsigned int> modes_kept,
   bool keep_all) {
+  /* Eigen's vectorized solves divide by zero in unused lanes (see
+  DivideByZeroTrapSuspension); the results are checked below */
+  const shift::core::fea::DivideByZeroTrapSuspension suspension;
   const Eigen::Index node_count = static_cast<Eigen::Index>(mesh.nodes.size());
   const Eigen::Index dofs = 3 * node_count;
   if(reference >= attachments.size()) {
@@ -495,6 +499,10 @@ static shift::core::fea::Reduction ReduceModes(
 
   const Eigen::MatrixXd k_eta = Psi.transpose() * (K * Psi);
   const Eigen::MatrixXd m_eta = Psi.transpose() * (M * Psi);
+  if(!Psi.allFinite() || !k_eta.allFinite() || !m_eta.allFinite()) {
+    throw shift::core::Exception(
+      "Reduce: the shapes, stiffness or mass are not finite");
+  }
   reduction.stiffness.resize(n_e * n_e);
   reduction.mass.resize(n_e * n_e);
   for(Eigen::Index i = 0; i < n_e; i++) {
